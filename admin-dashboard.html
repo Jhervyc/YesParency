@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin Dashboard — YesParency</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+<style>
+  /* ─── ADMIN SIDEBAR ACCENT ─── */
+  .dash-sidebar { background: #0a2e1a; }
+  .sidebar-brand { border-bottom-color: rgba(253,185,19,.15); }
+  .brand-seal { background: var(--gold); }
+  .admin-role-badge {
+    margin: 0 16px 12px;
+    padding: 6px 12px; border-radius: 6px;
+    background: rgba(253,185,19,.1); border: 1px solid rgba(253,185,19,.2);
+    font-family: 'DM Mono', monospace; font-size: .62rem;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gold); display: flex; align-items: center; gap: 6px;
+  }
+
+  /* ─── OVERVIEW GRID ─── */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px; margin-bottom: 22px;
+  }
+
+  /* ─── ACTIVITY FEED ─── */
+  .activity-feed { display: flex; flex-direction: column; }
+  .activity-item {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 12px 18px; border-bottom: 1px solid var(--border-d);
+    transition: background .15s;
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-item:hover { background: var(--dash-bg); }
+  .activity-icon {
+    width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ai-green  { background: rgba(73,122,58,.12); color: var(--green-nat); }
+  .ai-blue   { background: rgba(43,87,151,.1);  color: var(--blue); }
+  .ai-gold   { background: rgba(253,185,19,.12); color: #8a6000; }
+  .ai-red    { background: rgba(218,33,40,.08);  color: var(--red); }
+  .ai-gray   { background: rgba(107,127,107,.1); color: var(--muted); }
+  .activity-body { flex: 1; }
+  .activity-title { font-size: .82rem; font-weight: 500; color: var(--text); margin-bottom: 2px; line-height: 1.4; }
+  .activity-meta  { font-size: .72rem; color: var(--text-dim); }
+  .activity-time  { font-family: 'DM Mono', monospace; font-size: .68rem; color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }
+
+  /* ─── PROCUREMENT STATUS TABLE ─── */
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px;
+  }
+  .sd-live     { background: var(--red); animation: pulse-red 1.4s ease-in-out infinite; }
+  .sd-open     { background: var(--green-nat); }
+  .sd-upcoming { background: var(--blue); }
+  .sd-closed   { background: #ccc; }
+
+  /* ─── QUICK ACTIONS ─── */
+  .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px 18px; }
+  .qa-btn {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; border-radius: 8px;
+    border: 1px solid var(--border-d); background: var(--dash-bg);
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: border-color .15s, background .15s; text-decoration: none;
+  }
+  .qa-btn:hover { border-color: var(--green-nat); background: rgba(73,122,58,.04); }
+  .qa-icon {
+    width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .qa-label { font-size: .8rem; font-weight: 600; color: var(--text); }
+  .qa-sub   { font-size: .7rem; color: var(--text-dim); margin-top: 1px; }
+
+  /* ─── BIDDER APPROVAL LIST ─── */
+  .approval-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 18px; border-bottom: 1px solid var(--border-d);
+  }
+  .approval-item:last-child { border-bottom: none; }
+  .approval-avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--green-nat); display: flex; align-items: center;
+    justify-content: center; font-family: 'DM Mono', monospace;
+    font-size: .72rem; font-weight: 700; color: var(--white);
+  }
+  .approval-info { flex: 1; }
+  .approval-name { font-size: .82rem; font-weight: 600; color: var(--text); }
+  .approval-meta { font-size: .71rem; color: var(--text-dim); margin-top: 1px; }
+  .approval-actions { display: flex; gap: 6px; }
+  .btn-approve {
+    padding: 5px 12px; border-radius: 5px; font-size: .74rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; border: none;
+    background: rgba(73,122,58,.12); color: #2d6b1f; transition: background .15s;
+  }
+  .btn-approve:hover { background: rgba(73,122,58,.22); }
+  .btn-reject {
+    padding: 5px 12px; border-radius: 5px; font-size: .74rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    background: rgba(218,33,40,.07); border: 1px solid rgba(218,33,40,.18);
+    color: #b01a1f; transition: background .15s;
+  }
+  .btn-reject:hover { background: rgba(218,33,40,.14); }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 1100px) { .overview-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 768px)  {
+    .overview-grid { grid-template-columns: repeat(2, 1fr); }
+    .quick-actions { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px)  { .overview-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="dash-sidebar" id="sidebar">
+  <a href="yesparency-landing.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div><div class="brand-name">YesParency</div><div class="brand-sub">SLSU Procurement</div></div>
+  </a>
+
+  <div class="sidebar-profile">
+    <div class="profile-avatar" style="background:#2b5797;">MZ</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Maridel C. Zabella</div>
+      <div class="profile-role">BAC Chairperson</div>
+      <div class="profile-verified">Super Administrator</div>
+    </div>
+  </div>
+
+  <div class="admin-role-badge">
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Admin Access
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="admin-dashboard.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+
+    <div class="nav-section-label">Procurement</div>
+    <a href="admin-procurements.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Procurements
+      <span class="nav-badge">2</span>
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Bid Openings
+    </a>
+    <a href="admin-bid-submissions.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Bid Submissions
+    </a>
+
+    <div class="nav-section-label">Management</div>
+    <a href="admin-bidder-accounts.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Bidder Accounts
+      <span class="nav-badge">4</span>
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Announcements
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Audit Trail
+    </a>
+
+    <div class="nav-section-label">System</div>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Settings
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="dash-main">
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb">
+        <a href="admin-dashboard.html">Admin</a>
+        <span class="topbar-sep">/</span>
+      </span>
+      <span class="topbar-page">Overview</span>
+    </div>
+    <div class="topbar-right">
+      <div style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--text-dim);padding:0 4px;">
+        March 26, 2026
+      </div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-btn" title="Notifications">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="notif-dot"></div>
+      </div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar" style="background:#2b5797;" title="Maridel C. Zabella">MZ</div>
+    </div>
+  </header>
+
+  <main class="dash-content">
+
+    <!-- Welcome -->
+    <div class="welcome-banner" style="margin-bottom:22px;">
+      <div class="welcome-text">
+        <div class="welcome-greeting">Good morning</div>
+        <div class="welcome-name">Maridel C. Zabella</div>
+        <div class="welcome-meta">
+          BAC Chairperson &nbsp;·&nbsp; <span>1 bid opening live today</span> &nbsp;·&nbsp; Last login: <span>March 26, 2026 at 8:45 AM</span>
+        </div>
+      </div>
+      <a href="bid-live.html" class="welcome-cta" style="display:flex;align-items:center;gap:7px;text-decoration:none;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        Open Live Session
+      </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="overview-grid">
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-nat)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-label">Active Procurements</div>
+          <div class="stat-value">6</div>
+          <div class="stat-sub"><span class="up">2 open</span> · 3 upcoming</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-label">Registered Bidders</div>
+          <div class="stat-value">217</div>
+          <div class="stat-sub"><span class="up">+4</span> pending approval</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon gold">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-label">Bids Submitted</div>
+          <div class="stat-value">38</div>
+          <div class="stat-sub">Across all open projects</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-label">Total ABC (FY 2026)</div>
+          <div class="stat-value" style="font-size:1.3rem;">₱124M</div>
+          <div class="stat-sub">Across 6 procurements</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid" style="grid-template-columns:1fr 320px;">
+
+      <!-- Left -->
+      <div>
+
+        <!-- Active Procurements -->
+        <div class="dash-card" style="margin-bottom:18px;">
+          <div class="dash-card-header">
+            <div class="dash-card-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Active Procurements
+            </div>
+            <a href="#" class="dash-card-action">Manage All →</a>
+          </div>
+          <table class="dash-table">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Status</th>
+                <th>Bids</th>
+                <th>Opening</th>
+                <th>ABC</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="td-name">Science Lab Equipment — CAS</div>
+                  <div class="td-ref">SLSU-BAC-2026-003</div>
+                </td>
+                <td>
+                  <span class="badge badge-red" style="display:inline-flex;align-items:center;gap:4px;">
+                    <span class="status-dot sd-live"></span>Live
+                  </span>
+                </td>
+                <td style="font-family:'DM Mono',monospace;font-size:.8rem;font-weight:700;color:var(--text);">3</td>
+                <td style="font-size:.78rem;color:var(--text-dim);">Today · 10:00 AM</td>
+                <td style="font-family:'DM Mono',monospace;font-size:.76rem;">₱2.45M</td>
+                <td><a href="bid-live.html" class="td-link" style="color:var(--red);font-weight:700;">Go Live</a></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="td-name">Multi-Purpose Hall Construction</div>
+                  <div class="td-ref">SLSU-BAC-2026-007</div>
+                </td>
+                <td><span class="badge badge-green"><span class="status-dot sd-open"></span>Open</span></td>
+                <td style="font-family:'DM Mono',monospace;font-size:.8rem;font-weight:700;color:var(--text);">12</td>
+                <td style="font-size:.78rem;color:var(--text-dim);">Apr 3 · 10:00 AM</td>
+                <td style="font-family:'DM Mono',monospace;font-size:.76rem;">₱18.75M</td>
+                <td><a href="#" class="td-link">View</a></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="td-name">IT Equipment — CIT</div>
+                  <div class="td-ref">SLSU-BAC-2026-011</div>
+                </td>
+                <td><span class="badge badge-blue"><span class="status-dot sd-upcoming"></span>Upcoming</span></td>
+                <td style="font-family:'DM Mono',monospace;font-size:.8rem;font-weight:700;color:var(--text);">9</td>
+                <td style="font-size:.78rem;color:var(--text-dim);">Apr 10 · 2:00 PM</td>
+                <td style="font-family:'DM Mono',monospace;font-size:.76rem;">₱3.2M</td>
+                <td><a href="#" class="td-link">View</a></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="td-name">Office Supplies — All Depts.</div>
+                  <div class="td-ref">SLSU-BAC-2026-014</div>
+                </td>
+                <td><span class="badge badge-blue"><span class="status-dot sd-upcoming"></span>Upcoming</span></td>
+                <td style="font-family:'DM Mono',monospace;font-size:.8rem;font-weight:700;color:var(--text);">5</td>
+                <td style="font-size:.78rem;color:var(--text-dim);">Apr 17 · 10:00 AM</td>
+                <td style="font-family:'DM Mono',monospace;font-size:.76rem;">₱980K</td>
+                <td><a href="#" class="td-link">View</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div class="dash-card-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Recent System Activity
+            </div>
+            <a href="#" class="dash-card-action">Audit Trail →</a>
+          </div>
+          <div class="activity-feed">
+            <div class="activity-item">
+              <div class="activity-icon ai-red">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-title">Bid opening session started — SLSU-BAC-2026-003</div>
+                <div class="activity-meta">Initiated by Maridel C. Zabella · Session ID: BO-2026-003</div>
+              </div>
+              <div class="activity-time">10:00 AM</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-icon ai-gold">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-title">Digital signature authenticated — Envelope 2 access granted</div>
+                <div class="activity-meta">Officer: Maridel C. Zabella · Project: SLSU-BAC-2026-003</div>
+              </div>
+              <div class="activity-time">10:28 AM</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-icon ai-blue">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-title">New bid submitted — BID-0042-001 · SLSU-BAC-2026-011</div>
+                <div class="activity-meta">Bidder: Juan M. Cruz · Lots: 1, 2 · Encrypted &amp; locked</div>
+              </div>
+              <div class="activity-time">9:47 AM</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-icon ai-green">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-title">Bidder account approved — Maria Santos (Apex Scientific)</div>
+                <div class="activity-meta">Approved by: Admin · PhilGEPS verified</div>
+              </div>
+              <div class="activity-time">9:15 AM</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-icon ai-blue">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-title">New procurement posted — SLSU-BAC-2026-016 (Gymnasium Roofing)</div>
+                <div class="activity-meta">Posted by: Admin · ABC: ₱5,600,000.00 · PhilGEPS: 8852774</div>
+              </div>
+              <div class="activity-time">Yesterday</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-icon ai-gold">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-title">Edit request approved — BID-0042-002 · Multi-Purpose Hall</div>
+                <div class="activity-meta">Approved by: Admin · Bidder: Juan M. Cruz</div>
+              </div>
+              <div class="activity-time">Yesterday</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /left -->
+
+      <!-- Right -->
+      <div>
+
+        <!-- Quick Actions -->
+        <div class="dash-card" style="margin-bottom:18px;">
+          <div class="dash-card-header">
+            <div class="dash-card-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              Quick Actions
+            </div>
+          </div>
+          <div class="quick-actions">
+            <a href="bid-live.html" class="qa-btn">
+              <div class="qa-icon ai-red">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              </div>
+              <div><div class="qa-label">Start Live Session</div><div class="qa-sub">Open bid opening</div></div>
+            </a>
+            <a href="#" class="qa-btn">
+              <div class="qa-icon ai-green">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </div>
+              <div><div class="qa-label">New Procurement</div><div class="qa-sub">Post a project</div></div>
+            </a>
+            <a href="#" class="qa-btn">
+              <div class="qa-icon ai-blue">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              </div>
+              <div><div class="qa-label">Review Bidders</div><div class="qa-sub">4 pending</div></div>
+            </a>
+            <a href="#" class="qa-btn">
+              <div class="qa-icon ai-gold">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <div><div class="qa-label">Audit Trail</div><div class="qa-sub">View all logs</div></div>
+            </a>
+          </div>
+        </div>
+
+        <!-- Pending Bidder Approvals -->
+        <div class="dash-card" style="margin-bottom:18px;">
+          <div class="dash-card-header">
+            <div class="dash-card-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              Pending Approvals
+            </div>
+            <span class="badge badge-gold">4 new</span>
+          </div>
+          <div>
+            <div class="approval-item">
+              <div class="approval-avatar">RS</div>
+              <div class="approval-info">
+                <div class="approval-name">Ramon Santos</div>
+                <div class="approval-meta">Santos Supply Co. · Submitted Mar 25</div>
+              </div>
+              <div class="approval-actions">
+                <button class="btn-approve" onclick="approveItem(this)">Approve</button>
+                <button class="btn-reject" onclick="rejectItem(this)">Reject</button>
+              </div>
+            </div>
+            <div class="approval-item">
+              <div class="approval-avatar">AL</div>
+              <div class="approval-info">
+                <div class="approval-name">Ana Lim</div>
+                <div class="approval-meta">Lim Trading Corp. · Submitted Mar 24</div>
+              </div>
+              <div class="approval-actions">
+                <button class="btn-approve" onclick="approveItem(this)">Approve</button>
+                <button class="btn-reject" onclick="rejectItem(this)">Reject</button>
+              </div>
+            </div>
+            <div class="approval-item">
+              <div class="approval-avatar">PG</div>
+              <div class="approval-info">
+                <div class="approval-name">Pedro Garcia</div>
+                <div class="approval-meta">Garcia Builders Inc. · Submitted Mar 23</div>
+              </div>
+              <div class="approval-actions">
+                <button class="btn-approve" onclick="approveItem(this)">Approve</button>
+                <button class="btn-reject" onclick="rejectItem(this)">Reject</button>
+              </div>
+            </div>
+            <div class="approval-item">
+              <div class="approval-avatar">MC</div>
+              <div class="approval-info">
+                <div class="approval-name">Maria Cruz</div>
+                <div class="approval-meta">Cruz General Trading · Submitted Mar 22</div>
+              </div>
+              <div class="approval-actions">
+                <button class="btn-approve" onclick="approveItem(this)">Approve</button>
+                <button class="btn-reject" onclick="rejectItem(this)">Reject</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Health -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div class="dash-card-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              System Status
+            </div>
+          </div>
+          <div style="padding:14px 18px;display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;">
+              <span style="color:var(--text-dim);">Live Stream</span>
+              <span style="display:flex;align-items:center;gap:5px;color:#2d6b1f;font-weight:600;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#2d6b1f;display:inline-block;"></span>Active
+              </span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;">
+              <span style="color:var(--text-dim);">Bid Encryption</span>
+              <span style="display:flex;align-items:center;gap:5px;color:#2d6b1f;font-weight:600;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#2d6b1f;display:inline-block;"></span>Operational
+              </span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;">
+              <span style="color:var(--text-dim);">Audit Trail</span>
+              <span style="display:flex;align-items:center;gap:5px;color:#2d6b1f;font-weight:600;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#2d6b1f;display:inline-block;"></span>Recording
+              </span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;">
+              <span style="color:var(--text-dim);">Digital Signatures</span>
+              <span style="display:flex;align-items:center;gap:5px;color:#2d6b1f;font-weight:600;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#2d6b1f;display:inline-block;"></span>Operational
+              </span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;">
+              <span style="color:var(--text-dim);">Public Observers</span>
+              <span style="font-family:'DM Mono',monospace;font-size:.78rem;font-weight:700;color:var(--text);">47 connected</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /right -->
+    </div><!-- /content-grid -->
+
+  </main>
+</div>
+
+<script src="assets/dashboard.js"></script>
+<script>
+  function approveItem(btn) {
+    const item = btn.closest('.approval-item');
+    const name = item.querySelector('.approval-name').textContent;
+    item.style.opacity = '.45';
+    item.querySelector('.approval-actions').innerHTML = `<span class="badge badge-green">Approved</span>`;
+  }
+  function rejectItem(btn) {
+    const item = btn.closest('.approval-item');
+    item.style.opacity = '.45';
+    item.querySelector('.approval-actions').innerHTML = `<span class="badge badge-red">Rejected</span>`;
+  }
+</script>
+</body>
+</html>

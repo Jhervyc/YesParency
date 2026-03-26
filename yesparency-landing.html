@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>YesParency — SLSU Procurement Bidding System</title>
+<link rel="stylesheet" href="assets/shared.css"/>
+<style>
+  /* ─── HERO ─── */
+  .hero {
+    position: relative; min-height: 91vh;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 80px 52px 64px; overflow: hidden; background: var(--green-base);
+  }
+  .hero-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 55% at 85% 30%, rgba(43,87,151,.2) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 45% at 5% 85%, rgba(73,122,58,.22) 0%, transparent 55%),
+      radial-gradient(ellipse 28% 35% at 50% 5%, rgba(253,185,19,.07) 0%, transparent 50%);
+  }
+  .hero-bg::after {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(253,185,19,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(253,185,19,.025) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+  .hero-content { position: relative; z-index: 1; max-width: 760px; }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: 'DM Mono', monospace; font-size: .71rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 22px; padding: 6px 14px;
+    border: 1px solid var(--border-gold); border-radius: 4px; background: rgba(253,185,19,.07);
+    animation: fadeUp .7s ease both;
+  }
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5.5vw, 4.6rem); font-weight: 900;
+    line-height: 1.08; letter-spacing: -.02em; color: var(--white);
+    margin-bottom: 24px; animation: fadeUp .7s .1s ease both;
+  }
+  .hero-title .accent      { color: var(--gold); }
+  .hero-title .accent-blue { color: #7ab0f5; }
+  .hero-desc {
+    font-size: clamp(.88rem, 2vw, 1.03rem); color: rgba(255,255,255,.58); line-height: 1.72;
+    max-width: 530px; margin-bottom: 40px; font-weight: 300; animation: fadeUp .7s .2s ease both;
+  }
+  .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; animation: fadeUp .7s .3s ease both; }
+
+  /* ─── COUNTDOWN ─── */
+  .countdown-card {
+    position: absolute; right: 52px; top: 50%; transform: translateY(-50%);
+    background: rgba(15,74,34,.78); border: 1px solid rgba(253,185,19,.2);
+    border-radius: 16px; padding: 32px 36px; backdrop-filter: blur(14px);
+    text-align: center; animation: fadeUp .7s .35s ease both; min-width: 268px;
+  }
+  .countdown-label {
+    font-family: 'DM Mono', monospace; font-size: .68rem;
+    letter-spacing: .15em; text-transform: uppercase; color: var(--gold); margin-bottom: 18px;
+  }
+  .countdown-grid { display: flex; gap: 10px; justify-content: center; align-items: flex-start; }
+  .cd-unit { text-align: center; }
+  .cd-num {
+    font-family: 'Playfair Display', serif; font-size: 2.3rem; font-weight: 700;
+    color: var(--white); line-height: 1; display: block; min-width: 56px;
+    background: rgba(253,185,19,.1); border: 1px solid rgba(253,185,19,.18);
+    border-radius: 8px; padding: 8px 4px;
+  }
+  .cd-label { font-size: .63rem; color: rgba(255,255,255,.42); letter-spacing: .1em; text-transform: uppercase; margin-top: 6px; display: block; }
+  .cd-sep { font-size: 1.9rem; color: rgba(253,185,19,.4); margin-top: 10px; line-height: 1; }
+  .countdown-event {
+    margin-top: 20px; font-size: .77rem; color: rgba(255,255,255,.48);
+    line-height: 1.55; border-top: 1px solid rgba(253,185,19,.14); padding-top: 16px;
+  }
+  .countdown-event strong { color: var(--white); display: block; margin-bottom: 4px; font-size: .84rem; }
+
+  /* ─── STATS BAR ─── */
+  .stats-bar {
+    background: var(--off-white); border-bottom: 1px solid var(--border);
+    padding: 26px 52px; display: flex; justify-content: center; flex-wrap: wrap;
+  }
+  .stat-item {
+    flex: 1; min-width: 120px; max-width: 200px; text-align: center;
+    padding: 12px 24px; border-right: 1px solid var(--border);
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-num { font-family: 'Playfair Display', serif; font-size: clamp(1.4rem, 3vw, 1.9rem); font-weight: 700; color: var(--green-base); }
+  .stat-desc { font-size: .72rem; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; margin-top: 4px; }
+
+  .bid-schedule { background: var(--white); }
+  .announcements { background: var(--off-white); }
+  .section-cta { margin-top: 32px; }
+
+  /* ─── HERO RESPONSIVE ─── */
+  @media (max-width: 1100px) {
+    .hero { padding: 64px 32px 48px; min-height: auto; }
+    .countdown-card { position: relative; right: auto; top: auto; transform: none; margin-top: 36px; width: 100%; max-width: 360px; }
+  }
+  @media (max-width: 768px) {
+    .hero { padding: 48px 16px 40px; }
+    .hero-eyebrow { font-size: .65rem; padding: 5px 10px; }
+    .hero-actions { flex-direction: column; gap: 10px; }
+    .hero-actions .btn-primary,
+    .hero-actions .btn-outline { width: 100%; text-align: center; padding: 13px 20px; }
+    .stats-bar { padding: 0; }
+    .stat-item { border-right: none; border-bottom: 1px solid var(--border); padding: 14px 16px; flex: 1 1 50%; max-width: 50%; }
+    .stat-item:nth-child(odd) { border-right: 1px solid var(--border); }
+    .stat-item:last-child { border-bottom: none; }
+    .countdown-card { max-width: 100%; padding: 24px 20px; }
+    .cd-num { font-size: 1.8rem; min-width: 44px; }
+  }
+  @media (max-width: 480px) {
+    .hero { padding: 36px 12px 32px; }
+    .stat-item { flex: 1 1 100%; max-width: 100%; border-right: none; }
+    .stat-item:nth-child(odd) { border-right: none; }
+    .countdown-grid { gap: 6px; }
+    .cd-num { font-size: 1.5rem; min-width: 38px; padding: 6px 2px; }
+    .cd-sep { font-size: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="5,0 10,10 0,10"/></svg>
+      Southern Luzon State University — Procurement Office
+    </div>
+    <h1 class="hero-title">
+      Transparent Bidding,<br>
+      <span class="accent">Digitized</span> &amp; <span class="accent-blue">Secure.</span>
+    </h1>
+    <p class="hero-desc">
+      YesParency digitizes the government procurement process under RA 9184 — enabling secure online bid submission, signature-authenticated document access, and live public bid openings for full transparency.
+    </p>
+    <div class="hero-actions">
+      <a href="register.html" class="btn-primary">Register as Bidder</a>
+      <a href="#schedule" class="btn-outline">View Bid Schedule</a>
+    </div>
+  </div>
+  <div class="countdown-card">
+    <div class="countdown-label">⏱ Next Bid Opening In</div>
+    <div class="countdown-grid">
+      <div class="cd-unit"><span class="cd-num" id="cd-days">07</span><span class="cd-label">Days</span></div>
+      <div class="cd-sep">:</div>
+      <div class="cd-unit"><span class="cd-num" id="cd-hours">14</span><span class="cd-label">Hrs</span></div>
+      <div class="cd-sep">:</div>
+      <div class="cd-unit"><span class="cd-num" id="cd-mins">32</span><span class="cd-label">Min</span></div>
+      <div class="cd-sep">:</div>
+      <div class="cd-unit"><span class="cd-num" id="cd-secs">09</span><span class="cd-label">Sec</span></div>
+    </div>
+    <div class="countdown-event">
+      <strong>Construction of SLSU Multi-Purpose Hall</strong>
+      April 3, 2026 &nbsp;·&nbsp; 10:00 AM &nbsp;·&nbsp; BAC Room
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-num">48</div><div class="stat-desc">Active Procurements</div></div>
+  <div class="stat-item"><div class="stat-num">217</div><div class="stat-desc">Registered Bidders</div></div>
+  <div class="stat-item"><div class="stat-num">₱124M</div><div class="stat-desc">Total Bid Value FY2026</div></div>
+  <div class="stat-item"><div class="stat-num">100%</div><div class="stat-desc">RA 9184 Compliant</div></div>
+</div>
+
+<!-- BID SCHEDULE -->
+<section class="bid-schedule" id="schedule">
+  <div class="section-eyebrow">Procurement Details</div>
+  <div class="section-title">Active &amp; Upcoming Bid Openings</div>
+  <p class="section-sub">All procurement activities are conducted in accordance with Republic Act No. 9184. Click on any item to view full procurement details.</p>
+  <div class="schedule-grid">
+    <div class="schedule-card is-live" onclick="window.location.href='bid-live.html'" style="cursor:pointer;">
+      <div class="card-status status-live"><div class="live-dot"></div> Live Now</div>
+      <div class="card-title">Supply and Delivery of Science Laboratory Equipment for College of Arts and Sciences</div>
+      <div class="card-meta">
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Opening Today — March 26, 2026 at 10:00 AM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>BAC Conference Room, Admin Building</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>ABC: ₱2,450,000.00</div>
+      </div>
+      <div class="card-abc">Ref No: <span>SLSU-BAC-2026-003</span> &nbsp;·&nbsp; PhilGEPS: <span>8821047</span></div>
+    </div>
+    <div class="schedule-card is-open">
+      <div class="card-status status-open">● Open for Submission</div>
+      <div class="card-title">Construction of New Multi-Purpose Hall at SLSU Main Campus</div>
+      <div class="card-meta">
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Bid Opening: April 3, 2026 at 10:00 AM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Submission Deadline: April 2, 2026, 5:00 PM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>ABC: ₱18,750,000.00</div>
+      </div>
+      <div class="card-abc">Ref No: <span>SLSU-BAC-2026-007</span> &nbsp;·&nbsp; PhilGEPS: <span>8834502</span></div>
+    </div>
+    <div class="schedule-card is-upcoming">
+      <div class="card-status status-upcoming">◆ Upcoming</div>
+      <div class="card-title">Supply of Information Technology Equipment and Peripherals for CIT</div>
+      <div class="card-meta">
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Bid Opening: April 10, 2026 at 2:00 PM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Submission Deadline: April 9, 2026, 5:00 PM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>ABC: ₱3,200,000.00</div>
+      </div>
+      <div class="card-abc">Ref No: <span>SLSU-BAC-2026-011</span> &nbsp;·&nbsp; PhilGEPS: <span>8841289</span></div>
+    </div>
+    <div class="schedule-card is-closed">
+      <div class="card-status status-closed">✕ Closed</div>
+      <div class="card-title">Procurement of Janitorial and Maintenance Services FY 2026</div>
+      <div class="card-meta">
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Opened: March 15, 2026</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Notice of Award Released</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>ABC: ₱1,800,000.00</div>
+      </div>
+      <div class="card-abc">Ref No: <span>SLSU-BAC-2026-001</span></div>
+    </div>
+  </div>
+  <div class="section-cta">
+    <a href="bid-openings.html" class="btn-primary">View All Bid Openings</a>
+  </div>
+</section>
+
+<!-- ANNOUNCEMENTS -->
+<section class="announcements" id="announcements">
+  <div class="section-eyebrow">News &amp; Notices</div>
+  <div class="section-title">Procurement Announcements</div>
+  <p class="section-sub">Official notices, invitations to bid, and important deadlines from the SLSU Bids and Awards Committee.</p>
+  <div class="ann-main">
+    <div class="ann-card">
+      <div class="ann-date-block"><div class="ann-day">26</div><div class="ann-month">Mar</div></div>
+      <div class="ann-body">
+        <span class="ann-tag tag-bid">Invitation to Bid</span>
+        <div class="ann-title">ITB: Supply and Delivery of Laboratory Equipment for the College of Arts and Sciences</div>
+        <div class="ann-excerpt">The Bids and Awards Committee of SLSU invites PhilGEPS-registered suppliers to bid for the supply and delivery of laboratory equipment. Total ABC: ₱2,450,000.00. Deadline for submission of bids is April 2, 2026.</div>
+      </div>
+    </div>
+    <div class="ann-card">
+      <div class="ann-date-block"><div class="ann-day">24</div><div class="ann-month">Mar</div></div>
+      <div class="ann-body">
+        <span class="ann-tag tag-notice">Notice</span>
+        <div class="ann-title">Pre-Bid Conference: Renovation of Science and Technology Building</div>
+        <div class="ann-excerpt">A pre-bid conference will be held on March 28, 2026 at 2:00 PM at the BAC Conference Room. All interested bidders are encouraged to attend. Bidding documents are available at the Procurement Office.</div>
+      </div>
+    </div>
+    <div class="ann-card">
+      <div class="ann-date-block"><div class="ann-day">20</div><div class="ann-month">Mar</div></div>
+      <div class="ann-body">
+        <span class="ann-tag tag-deadline">Deadline Reminder</span>
+        <div class="ann-title">Final Call: IT Equipment Procurement — Submission Closes April 9</div>
+        <div class="ann-excerpt">This is a reminder that the deadline for submission of bids for the IT Equipment and Peripherals project (SLSU-BAC-2026-011) is on April 9, 2026 at 5:00 PM. Late submissions will not be accepted.</div>
+      </div>
+    </div>
+  </div>
+  <div class="section-cta">
+    <a href="procurement-announcements.html" class="btn-primary">View All Announcements</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <div class="f-logo-seal">Y</div>
+      <div class="f-sys-name">YesParency</div>
+      <p>A web-based procurement bidding system developed for the Southern Luzon State University Procurement Office. Digitizing the two-envelope bidding process under Republic Act No. 9184.</p>
+    </div>
+    <div class="footer-col">
+      <h4>For Bidders</h4>
+      <ul>
+        <li><a href="#">Register Account</a></li>
+        <li><a href="#">Submit a Bid</a></li>
+        <li><a href="#">Eligibility Requirements</a></li>
+        <li><a href="#">Bidder's Guide</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Procurement</h4>
+      <ul>
+        <li><a href="#">Active Procurements</a></li>
+        <li><a href="#">Bid Results</a></li>
+        <li><a href="#">Annual Procurement Plan</a></li>
+        <li><a href="#">BAC Resolutions</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Institution</h4>
+      <ul>
+        <li><a href="#">About SLSU</a></li>
+        <li><a href="#">Procurement Office</a></li>
+        <li><a href="#">FOI Requests</a></li>
+        <li><a href="#">Contact Us</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Southern Luzon State University · Procurement Office · YesParency v1.0</span>
+    <span>Developed by Cosejo · Duhapa · De Lumban &nbsp;|&nbsp; <a href="#">Privacy Policy</a> &nbsp;·&nbsp; <a href="#">Terms of Use</a></span>
+  </div>
+</footer>
+
+<script src="assets/shared.js"></script>
+<script>
+  initCountdown('2026-04-03T10:00:00+08:00');
+</script>
+</body>
+</html>

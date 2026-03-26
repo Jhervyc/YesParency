@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Procurements — YesParency Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+<style>
+  .dash-sidebar { background: #0a2e1a; }
+  .admin-role-badge {
+    margin: 0 12px 8px; padding: 5px 10px; border-radius: 5px;
+    background: rgba(253,185,19,.1); border: 1px solid rgba(253,185,19,.2);
+    font-family: 'DM Mono', monospace; font-size: .58rem;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gold); display: flex; align-items: center; gap: 5px;
+  }
+  .page-body { padding: 26px 28px; flex: 1; }
+
+  /* ─── TOOLBAR ─── */
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .search-wrap { flex: 1; min-width: 200px; position: relative; }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); opacity: .4; pointer-events: none; }
+  .search-input {
+    width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--border-d);
+    border-radius: 7px; font-size: .83rem; font-family: 'DM Sans', sans-serif;
+    background: var(--card-bg); color: var(--text); outline: none; transition: border-color .2s;
+  }
+  .search-input:focus { border-color: var(--green-nat); }
+  .filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ftab {
+    padding: 8px 14px; border-radius: 7px; font-size: .78rem; font-weight: 500;
+    border: 1px solid var(--border-d); background: var(--card-bg);
+    color: var(--text-dim); cursor: pointer; transition: all .15s; font-family: 'DM Sans', sans-serif;
+  }
+  .ftab:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .ftab.active { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+  .btn-new {
+    padding: 9px 18px; border-radius: 7px; background: var(--gold); color: var(--green-base);
+    border: none; font-size: .82rem; font-weight: 700; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 6px;
+    transition: background .15s; white-space: nowrap; text-decoration: none;
+  }
+  .btn-new:hover { background: var(--gold-light); }
+
+  /* ─── STATUS DOT ─── */
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 5px; flex-shrink: 0; }
+  .sd-live     { background: var(--red); animation: pulse-red 1.4s ease-in-out infinite; }
+  .sd-open     { background: var(--green-nat); }
+  .sd-upcoming { background: var(--blue); }
+  .sd-closed   { background: #ccc; }
+
+  /* ─── PROCUREMENT CARDS ─── */
+  .proc-list { display: flex; flex-direction: column; gap: 10px; }
+  .proc-card {
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 10px; overflow: hidden;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .proc-card:hover { border-color: rgba(12,58,27,.2); box-shadow: 0 3px 14px rgba(12,58,27,.07); }
+  .proc-card-inner { display: flex; align-items: stretch; }
+  .proc-accent { width: 4px; flex-shrink: 0; }
+  .pa-live     { background: var(--red); }
+  .pa-open     { background: var(--green-nat); }
+  .pa-upcoming { background: var(--blue); }
+  .pa-closed   { background: #ccc; }
+
+  .proc-body { flex: 1; padding: 14px 18px; display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+  .proc-info { flex: 1; min-width: 220px; }
+  .proc-ref  { font-family: 'DM Mono', monospace; font-size: .67rem; color: var(--text-dim); margin-bottom: 4px; }
+  .proc-name { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: 7px; line-height: 1.35; }
+  .proc-meta { display: flex; gap: 14px; flex-wrap: wrap; }
+  .proc-meta-item { display: flex; align-items: center; gap: 5px; font-size: .73rem; color: var(--text-dim); }
+  .proc-meta-item svg { opacity: .45; flex-shrink: 0; }
+
+  .proc-stats { display: flex; gap: 20px; align-items: center; flex-shrink: 0; }
+  .proc-stat { text-align: center; }
+  .proc-stat-val { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--text); line-height: 1; }
+  .proc-stat-label { font-family: 'DM Mono', monospace; font-size: .58rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); margin-top: 2px; }
+
+  .proc-abc { text-align: right; flex-shrink: 0; }
+  .proc-abc-label { font-family: 'DM Mono', monospace; font-size: .58rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 2px; }
+  .proc-abc-val   { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--green-base); }
+
+  .proc-actions {
+    display: flex; flex-direction: column; gap: 5px;
+    padding: 14px 16px 14px 0; justify-content: center; flex-shrink: 0;
+  }
+  .proc-btn {
+    padding: 6px 14px; border-radius: 6px; font-size: .74rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; text-decoration: none;
+    border: 1px solid var(--border-d); background: var(--card-bg); color: var(--text-dim);
+    transition: all .15s; display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  }
+  .proc-btn:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .proc-btn.live  { background: rgba(218,33,40,.08); color: var(--red); border-color: rgba(218,33,40,.22); }
+  .proc-btn.live:hover { background: rgba(218,33,40,.16); }
+  .proc-btn.primary { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+  .proc-btn.primary:hover { background: var(--green-mid); }
+
+  /* ─── DRAWER ─── */
+  .drawer-overlay { display: none; position: fixed; inset: 0; z-index: 998; background: rgba(0,0,0,.4); }
+  .drawer-overlay.open { display: block; }
+  .drawer {
+    position: fixed; top: 0; right: -600px; bottom: 0; width: 580px; max-width: 96vw;
+    background: var(--card-bg); z-index: 999;
+    box-shadow: -8px 0 40px rgba(0,0,0,.15);
+    display: flex; flex-direction: column; transition: right .3s ease;
+  }
+  .drawer.open { right: 0; }
+  .drawer-header {
+    background: #0a2e1a; padding: 18px 22px;
+    border-bottom: 3px solid var(--gold);
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  }
+  .drawer-eyebrow { font-family: 'DM Mono', monospace; font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+  .drawer-title { font-family: 'Playfair Display', serif; font-size: .98rem; font-weight: 700; color: var(--white); line-height: 1.3; }
+  .drawer-ref   { font-family: 'DM Mono', monospace; font-size: .66rem; color: rgba(255,255,255,.4); margin-top: 3px; }
+  .drawer-close { background: none; border: none; cursor: pointer; color: rgba(255,255,255,.5); font-size: 1.2rem; flex-shrink: 0; }
+  .drawer-close:hover { color: var(--white); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 18px 22px; display: flex; flex-direction: column; gap: 16px; }
+  .drawer-footer { padding: 12px 22px; border-top: 1px solid var(--border-d); display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .d-section-title {
+    font-family: 'DM Mono', monospace; font-size: .6rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px;
+    padding-bottom: 7px; border-bottom: 1px solid var(--border-d);
+  }
+  .d-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: .8rem; border-bottom: 1px solid var(--border-d); }
+  .d-row:last-child { border-bottom: none; }
+  .d-key { color: var(--text-dim); flex-shrink: 0; }
+  .d-val { font-weight: 600; color: var(--text); text-align: right; }
+  .d-val.mono { font-family: 'DM Mono', monospace; }
+
+  .lot-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 9px 12px; border-radius: 7px; background: var(--dash-bg);
+    border: 1px solid var(--border-d); margin-bottom: 6px;
+  }
+  .lot-row-left { flex: 1; }
+  .lot-row-num  { font-family: 'DM Mono', monospace; font-size: .62rem; color: var(--text-dim); margin-bottom: 2px; }
+  .lot-row-name { font-size: .8rem; font-weight: 600; color: var(--text); }
+  .lot-row-desc { font-size: .7rem; color: var(--text-dim); margin-top: 2px; }
+  .lot-row-abc  { font-family: 'Playfair Display', serif; font-size: .92rem; font-weight: 700; color: var(--green-base); flex-shrink: 0; }
+
+  .bid-summary-row {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+    border-radius: 7px; background: var(--dash-bg); border: 1px solid var(--border-d); margin-bottom: 6px;
+  }
+  .bsr-rank { font-family: 'DM Mono', monospace; font-size: .68rem; font-weight: 700; color: var(--text-dim); width: 24px; flex-shrink: 0; }
+  .bsr-name { flex: 1; font-size: .8rem; font-weight: 500; color: var(--text); }
+  .bsr-price { font-family: 'DM Mono', monospace; font-size: .8rem; font-weight: 700; color: var(--green-base); }
+
+  /* ─── NEW PROCUREMENT MODAL ─── */
+  .modal-overlay { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--card-bg); border-radius: 12px; width: 100%; max-width: 600px;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,.2); position: relative; animation: modalIn .2s ease;
+  }
+  @keyframes modalIn { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: none; } }
+  .modal-header {
+    background: #0a2e1a; padding: 18px 22px; border-bottom: 3px solid var(--gold);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-header-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--white); }
+  .modal-close { background: none; border: none; cursor: pointer; color: rgba(255,255,255,.5); font-size: 1.2rem; }
+  .modal-close:hover { color: var(--white); }
+  .modal-body { padding: 20px 22px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; margin-bottom: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.span2 { grid-column: span 2; }
+  .form-label { font-size: .74rem; font-weight: 600; color: var(--text); }
+  .form-input, .form-select, .form-textarea {
+    padding: 9px 12px; border: 1px solid var(--border-d); border-radius: 7px;
+    font-size: .83rem; font-family: 'DM Sans', sans-serif; color: var(--text);
+    background: var(--dash-bg); outline: none; transition: border-color .2s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--green-nat); }
+  .form-textarea { resize: vertical; min-height: 70px; }
+  .form-section-label {
+    font-family: 'DM Mono', monospace; font-size: .6rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-dim); margin: 4px 0 10px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border-d);
+  }
+  .modal-footer { padding: 14px 22px; border-top: 1px solid var(--border-d); display: flex; gap: 8px; justify-content: flex-end; }
+  .btn-cancel { padding: 9px 20px; border-radius: 7px; border: 1px solid var(--border-d); background: var(--card-bg); font-size: .82rem; font-weight: 600; color: var(--text-dim); cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .btn-save   { padding: 9px 22px; border-radius: 7px; background: var(--green-base); color: var(--white); border: none; font-size: .82rem; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .15s; }
+  .btn-save:hover { background: var(--green-mid); }
+
+  /* ─── EMPTY ─── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+
+  @media (max-width: 768px) {
+    .page-body { padding: 16px; }
+    .proc-stats { display: none; }
+    .proc-abc { display: none; }
+    .proc-actions { flex-direction: row; padding: 0 14px 12px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.span2 { grid-column: span 1; }
+    .drawer { width: 100%; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="dash-sidebar" id="sidebar">
+  <a href="admin-dashboard.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div><div class="brand-name">YesParency</div><div class="brand-sub">SLSU Procurement</div></div>
+  </a>
+  <div class="sidebar-profile">
+    <div class="profile-avatar" style="background:#2b5797;">MZ</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Maridel C. Zabella</div>
+      <div class="profile-role">BAC Chairperson</div>
+      <div class="profile-verified">Super Administrator</div>
+    </div>
+  </div>
+  <div class="admin-role-badge">
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Admin Access
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="admin-dashboard.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <div class="nav-section-label">Procurement</div>
+    <a href="admin-procurements.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Procurements
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Bid Openings
+    </a>
+    <a href="admin-bid-submissions.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Bid Submissions
+    </a>
+    <div class="nav-section-label">Management</div>
+    <a href="admin-bidder-accounts.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Bidder Accounts <span class="nav-badge">4</span>
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Announcements
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Audit Trail
+    </a>
+    <div class="nav-section-label">System</div>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="dash-main">
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb"><a href="admin-dashboard.html">Admin</a><span class="topbar-sep">/</span></span>
+      <span class="topbar-page">Procurements</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-dot"></div></div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar" style="background:#2b5797;">MZ</div>
+    </div>
+  </header>
+
+  <main class="page-body">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" type="text" placeholder="Search by name or ref no..." oninput="filterProc(this.value)"/>
+      </div>
+      <div class="filter-tabs">
+        <button class="ftab active" onclick="setFilter('all',this)">All</button>
+        <button class="ftab" onclick="setFilter('live',this)">🔴 Live</button>
+        <button class="ftab" onclick="setFilter('open',this)">Open</button>
+        <button class="ftab" onclick="setFilter('upcoming',this)">Upcoming</button>
+        <button class="ftab" onclick="setFilter('closed',this)">Closed</button>
+      </div>
+      <button class="btn-new" onclick="openNewModal()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Procurement
+      </button>
+    </div>
+
+    <!-- LIST -->
+    <div class="proc-list" id="procList"></div>
+
+  </main>
+</div>
+
+<!-- DETAIL DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-eyebrow" id="dEyebrow">Procurement Details</div>
+      <div class="drawer-title" id="dTitle">—</div>
+      <div class="drawer-ref" id="dRef">—</div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="dBody"></div>
+  <div class="drawer-footer" id="dFooter"></div>
+</div>
+
+<!-- NEW PROCUREMENT MODAL -->
+<div class="modal-overlay" id="newModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-header-title">New Procurement</div>
+      <button class="modal-close" onclick="closeNewModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section-label">Project Information</div>
+      <div class="form-grid">
+        <div class="form-group span2">
+          <label class="form-label">Project Title <span style="color:var(--red)">*</span></label>
+          <input class="form-input" type="text" placeholder="e.g. Supply of Laboratory Equipment for CAS"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reference No. <span style="color:var(--red)">*</span></label>
+          <input class="form-input" type="text" placeholder="SLSU-BAC-2026-XXX"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">PhilGEPS Ref No.</label>
+          <input class="form-input" type="text" placeholder="e.g. 8821047"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Procurement Mode <span style="color:var(--red)">*</span></label>
+          <select class="form-select">
+            <option>Public Bidding</option>
+            <option>Shopping</option>
+            <option>Negotiated Procurement</option>
+            <option>Direct Contracting</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select">
+            <option>Goods</option>
+            <option>Infrastructure</option>
+            <option>Consulting Services</option>
+          </select>
+        </div>
+        <div class="form-group span2">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea" placeholder="Brief description of the procurement..."></textarea>
+        </div>
+      </div>
+      <div class="form-section-label">Schedule</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Pre-Bid Conference</label>
+          <input class="form-input" type="datetime-local"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Submission Deadline <span style="color:var(--red)">*</span></label>
+          <input class="form-input" type="datetime-local"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bid Opening Date <span style="color:var(--red)">*</span></label>
+          <input class="form-input" type="datetime-local"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Venue</label>
+          <input class="form-input" type="text" value="BAC Conference Room, Admin Building"/>
+        </div>
+      </div>
+      <div class="form-section-label">Budget</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Approved Budget (ABC) <span style="color:var(--red)">*</span></label>
+          <input class="form-input" type="text" placeholder="0.00" style="font-family:'DM Mono',monospace;"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Number of Lots</label>
+          <select class="form-select">
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeNewModal()">Cancel</button>
+      <button class="btn-save" onclick="saveNewProc()">Create Procurement</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/dashboard.js"></script>
+<script>
+const PROCS = [
+  {
+    id: 'SLSU-BAC-2026-003', status: 'live',
+    name: 'Supply and Delivery of Science Laboratory Equipment for College of Arts and Sciences',
+    opening: 'March 26, 2026 · 10:00 AM', deadline: 'March 25, 2026 · 5:00 PM',
+    location: 'BAC Conference Room, Admin Building',
+    abc: '₱2,450,000.00', philgeps: '8821047', bids: 3, lots: 1, mode: 'Public Bidding',
+    lots_data: [
+      { num: 'Lot 1', name: 'Laboratory Equipment — Full Package', abc: '₱2,450,000.00', desc: 'Microscopes, centrifuges, spectrophotometers, and related lab equipment.' }
+    ],
+    bids_data: [
+      { rank: '1st', name: 'Apex Scientific Supply Co.', price: '₱2,180,000.00' },
+      { rank: '2nd', name: 'LabTech Philippines Inc.', price: '₱2,310,500.00' },
+      { rank: '3rd', name: 'SciEquip Solutions Corp.', price: '₱2,398,000.00' },
+    ]
+  },
+  {
+    id: 'SLSU-BAC-2026-007', status: 'open',
+    name: 'Construction of New Multi-Purpose Hall at SLSU Main Campus',
+    opening: 'April 3, 2026 · 10:00 AM', deadline: 'April 2, 2026 · 5:00 PM',
+    location: 'BAC Conference Room, Admin Building',
+    abc: '₱18,750,000.00', philgeps: '8834502', bids: 12, lots: 1, mode: 'Public Bidding',
+    lots_data: [
+      { num: 'Lot 1', name: 'Full Construction Package', abc: '₱18,750,000.00', desc: 'Complete construction of a 2-storey multi-purpose hall.' }
+    ],
+    bids_data: []
+  },
+  {
+    id: 'SLSU-BAC-2026-011', status: 'upcoming',
+    name: 'Supply of Information Technology Equipment and Peripherals for CIT',
+    opening: 'April 10, 2026 · 2:00 PM', deadline: 'April 9, 2026 · 5:00 PM',
+    location: 'BAC Conference Room, Admin Building',
+    abc: '₱3,200,000.00', philgeps: '8841289', bids: 9, lots: 3, mode: 'Public Bidding',
+    lots_data: [
+      { num: 'Lot 1', name: 'High-End Workstations & Servers', abc: '₱1,400,000.00', desc: 'Intel Core i9 / Xeon workstations, rack servers, UPS units.' },
+      { num: 'Lot 2', name: 'Mid-Range Desktop Computers', abc: '₱1,100,000.00', desc: 'Intel Core i5 desktop units with monitors.' },
+      { num: 'Lot 3', name: 'Peripherals & Accessories', abc: '₱700,000.00', desc: 'Keyboards, mice, webcams, headsets, network switches.' },
+    ],
+    bids_data: []
+  },
+  {
+    id: 'SLSU-BAC-2026-014', status: 'upcoming',
+    name: 'Procurement of Office Supplies and Materials for All Departments FY 2026',
+    opening: 'April 17, 2026 · 10:00 AM', deadline: 'April 16, 2026 · 5:00 PM',
+    location: 'BAC Conference Room, Admin Building',
+    abc: '₱980,000.00', philgeps: '8849301', bids: 5, lots: 1, mode: 'Public Bidding',
+    lots_data: [
+      { num: 'Lot 1', name: 'Office Supplies — Full Package', abc: '₱980,000.00', desc: 'Bond paper, ink cartridges, folders, pens, and other consumables.' }
+    ],
+    bids_data: []
+  },
+  {
+    id: 'SLSU-BAC-2026-016', status: 'upcoming',
+    name: 'Repair and Rehabilitation of SLSU Gymnasium Roofing',
+    opening: 'April 24, 2026 · 2:00 PM', deadline: 'April 23, 2026 · 5:00 PM',
+    location: 'BAC Conference Room, Admin Building',
+    abc: '₱5,600,000.00', philgeps: '8852774', bids: 0, lots: 1, mode: 'Public Bidding',
+    lots_data: [
+      { num: 'Lot 1', name: 'Roofing Rehabilitation', abc: '₱5,600,000.00', desc: 'Full replacement and rehabilitation of gymnasium roofing system.' }
+    ],
+    bids_data: []
+  },
+  {
+    id: 'SLSU-BAC-2026-001', status: 'closed',
+    name: 'Procurement of Janitorial and Maintenance Services FY 2026',
+    opening: 'March 15, 2026 · 10:00 AM', deadline: 'March 14, 2026 · 5:00 PM',
+    location: 'BAC Conference Room, Admin Building',
+    abc: '₱1,800,000.00', philgeps: '8810022', bids: 7, lots: 1, mode: 'Public Bidding',
+    lots_data: [
+      { num: 'Lot 1', name: 'Janitorial & Maintenance Services', abc: '₱1,800,000.00', desc: 'Full janitorial and maintenance services for all SLSU buildings.' }
+    ],
+    bids_data: [
+      { rank: '1st', name: 'Cruz General Trading', price: '₱1,720,000.00' },
+      { rank: '2nd', name: 'CleanPro Services', price: '₱1,755,000.00' },
+    ]
+  },
+];
+
+const SM = {
+  live:     { label: 'Live Now',            badge: 'badge-red',   accent: 'pa-live' },
+  open:     { label: 'Open for Submission', badge: 'badge-green', accent: 'pa-open' },
+  upcoming: { label: 'Upcoming',            badge: 'badge-blue',  accent: 'pa-upcoming' },
+  closed:   { label: 'Closed',              badge: 'badge-gray',  accent: 'pa-closed' },
+};
+
+let activeFilter = 'all', activeSearch = '';
+
+function render() {
+  const list = document.getElementById('procList');
+  const filtered = PROCS.filter(p => {
+    const mf = activeFilter === 'all' || p.status === activeFilter;
+    const ms = !activeSearch || p.name.toLowerCase().includes(activeSearch) || p.id.toLowerCase().includes(activeSearch);
+    return mf && ms;
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div style="font-size:2rem;opacity:.2;margin-bottom:10px;">📋</div><div style="font-size:.9rem;">No procurements found.</div></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(p => {
+    const sm = SM[p.status];
+    const liveDot = p.status === 'live' ? `<span class="status-dot sd-live"></span>` : '';
+    const primaryBtn = p.status === 'live'
+      ? `<a href="bid-live.html" class="proc-btn live"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Go Live</a>`
+      : p.status !== 'closed'
+        ? `<button class="proc-btn primary" onclick="openDrawer('${p.id}')">Manage</button>`
+        : '';
+
+    return `<div class="proc-card">
+      <div class="proc-card-inner">
+        <div class="proc-accent ${sm.accent}"></div>
+        <div class="proc-body">
+          <div class="proc-info">
+            <div class="proc-ref">${p.id} &nbsp;·&nbsp; PhilGEPS: ${p.philgeps}</div>
+            <div class="proc-name">${p.name}</div>
+            <div class="proc-meta">
+              <div class="proc-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${p.opening}</div>
+              <div class="proc-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Deadline: ${p.deadline}</div>
+              <span class="badge ${sm.badge}" style="font-size:.62rem;">${liveDot}${sm.label}</span>
+              <span class="badge badge-gray" style="font-size:.62rem;">${p.lots} Lot${p.lots > 1 ? 's' : ''}</span>
+            </div>
+          </div>
+          <div class="proc-stats">
+            <div class="proc-stat"><div class="proc-stat-val">${p.bids}</div><div class="proc-stat-label">Bids</div></div>
+            <div class="proc-stat"><div class="proc-stat-val">${p.lots}</div><div class="proc-stat-label">Lots</div></div>
+          </div>
+          <div class="proc-abc">
+            <div class="proc-abc-label">ABC</div>
+            <div class="proc-abc-val">${p.abc}</div>
+          </div>
+        </div>
+        <div class="proc-actions">
+          <button class="proc-btn" onclick="openDrawer('${p.id}')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Details
+          </button>
+          ${primaryBtn}
+          ${p.status !== 'live' && p.status !== 'closed' ? `<button class="proc-btn" onclick="editProc('${p.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function filterProc(val) { activeSearch = val.toLowerCase(); render(); }
+
+function openDrawer(id) {
+  const p = PROCS.find(x => x.id === id);
+  if (!p) return;
+  const sm = SM[p.status];
+  document.getElementById('dEyebrow').textContent = p.opening;
+  document.getElementById('dTitle').textContent = p.name;
+  document.getElementById('dRef').textContent = p.id + ' · PhilGEPS: ' + p.philgeps;
+
+  const lotsHtml = p.lots_data.map(l => `
+    <div class="lot-row">
+      <div class="lot-row-left">
+        <div class="lot-row-num">${l.num}</div>
+        <div class="lot-row-name">${l.name}</div>
+        <div class="lot-row-desc">${l.desc}</div>
+      </div>
+      <div class="lot-row-abc">${l.abc}</div>
+    </div>`).join('');
+
+  const bidsHtml = p.bids_data.length
+    ? p.bids_data.map(b => `
+      <div class="bid-summary-row">
+        <div class="bsr-rank">${b.rank}</div>
+        <div class="bsr-name">${b.name}</div>
+        <div class="bsr-price">${b.price}</div>
+      </div>`).join('')
+    : `<div style="font-size:.78rem;color:var(--text-dim);padding:8px 0;">No bids opened yet.</div>`;
+
+  document.getElementById('dBody').innerHTML = `
+    <div>
+      <div class="d-section-title">Procurement Details</div>
+      <div class="d-row"><span class="d-key">Status</span><span class="d-val"><span class="badge ${sm.badge}">${sm.label}</span></span></div>
+      <div class="d-row"><span class="d-key">Mode</span><span class="d-val">${p.mode}</span></div>
+      <div class="d-row"><span class="d-key">Bid Opening</span><span class="d-val">${p.opening}</span></div>
+      <div class="d-row"><span class="d-key">Submission Deadline</span><span class="d-val">${p.deadline}</span></div>
+      <div class="d-row"><span class="d-key">Venue</span><span class="d-val">${p.location}</span></div>
+      <div class="d-row"><span class="d-key">Total ABC</span><span class="d-val mono">${p.abc}</span></div>
+      <div class="d-row"><span class="d-key">Bids Received</span><span class="d-val">${p.bids}</span></div>
+    </div>
+    <div>
+      <div class="d-section-title">Lots (${p.lots})</div>
+      ${lotsHtml}
+    </div>
+    <div>
+      <div class="d-section-title">Bid Summary</div>
+      ${bidsHtml}
+    </div>`;
+
+  const liveBtn = p.status === 'live'
+    ? `<a href="bid-live.html" class="proc-btn live" style="text-decoration:none;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Open Live Session</a>` : '';
+  const editBtn = p.status !== 'live' && p.status !== 'closed'
+    ? `<button class="proc-btn" onclick="closeDrawer();editProc('${p.id}')">Edit</button>` : '';
+
+  document.getElementById('dFooter').innerHTML = `${liveBtn}${editBtn}<button class="proc-btn" onclick="closeDrawer()">Close</button>`;
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+
+function editProc(id) { alert('Edit form for ' + id + ' — coming soon.'); }
+
+function openNewModal()  { document.getElementById('newModal').classList.add('open'); }
+function closeNewModal() { document.getElementById('newModal').classList.remove('open'); }
+function saveNewProc()   { closeNewModal(); alert('Procurement created successfully.'); }
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); closeNewModal(); } });
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Notifications — YesParency</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+<style>
+  .page-body { padding: 26px 28px; flex: 1; }
+
+  /* ─── TOOLBAR ─── */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .toolbar-left { flex: 1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ftab {
+    padding: 8px 16px; border-radius: 7px; font-size: .8rem; font-weight: 500;
+    border: 1px solid var(--border-d); background: var(--card-bg);
+    color: var(--text-dim); cursor: pointer; transition: all .15s;
+    font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 6px;
+  }
+  .ftab:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .ftab.active { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+  .ftab-count {
+    background: rgba(255,255,255,.2); color: inherit;
+    font-family: 'DM Mono', monospace; font-size: .65rem; font-weight: 700;
+    padding: 1px 6px; border-radius: 99px; min-width: 18px; text-align: center;
+  }
+  .ftab:not(.active) .ftab-count { background: var(--border-d); color: var(--text-dim); }
+
+  .btn-mark-all {
+    padding: 8px 16px; border-radius: 7px; font-size: .8rem; font-weight: 600;
+    border: 1px solid var(--border-d); background: var(--card-bg);
+    color: var(--text-dim); cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: all .15s; white-space: nowrap;
+  }
+  .btn-mark-all:hover { border-color: var(--green-nat); color: var(--green-base); }
+
+  /* ─── NOTIF GROUPS ─── */
+  .notif-group { margin-bottom: 24px; }
+  .notif-group-label {
+    font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--text-dim);
+    padding: 0 0 8px; margin-bottom: 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .notif-group-label::after { content: ''; flex: 1; height: 1px; background: var(--border-d); }
+
+  /* ─── NOTIF CARD ─── */
+  .notif-card {
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 10px; margin-bottom: 8px; overflow: hidden;
+    transition: border-color .15s, box-shadow .15s; cursor: pointer;
+  }
+  .notif-card:hover { border-color: rgba(12,58,27,.2); box-shadow: 0 2px 12px rgba(12,58,27,.06); }
+  .notif-card.unread { border-left: 3px solid var(--green-nat); background: rgba(12,58,27,.02); }
+  .notif-card.unread.type-deadline { border-left-color: var(--red); }
+  .notif-card.unread.type-award    { border-left-color: var(--gold); }
+  .notif-card.unread.type-live     { border-left-color: var(--red); }
+  .notif-card.unread.type-system   { border-left-color: var(--blue); }
+
+  .notif-card-inner {
+    display: flex; align-items: flex-start; gap: 14px; padding: 14px 18px;
+  }
+  .notif-icon-wrap {
+    width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .icon-bid      { background: rgba(73,122,58,.1); color: var(--green-nat); }
+  .icon-deadline { background: rgba(218,33,40,.08); color: var(--red); }
+  .icon-award    { background: rgba(253,185,19,.12); color: #8a6000; }
+  .icon-live     { background: rgba(218,33,40,.08); color: var(--red); }
+  .icon-system   { background: rgba(43,87,151,.08); color: var(--blue); }
+  .icon-edit     { background: rgba(253,185,19,.1); color: #8a6000; }
+  .icon-doc      { background: rgba(73,122,58,.1); color: var(--green-nat); }
+
+  .notif-body { flex: 1; min-width: 0; }
+  .notif-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+  .notif-title { font-size: .86rem; font-weight: 600; color: var(--text); line-height: 1.35; }
+  .notif-card:not(.unread) .notif-title { font-weight: 500; color: var(--text-dim); }
+  .notif-time  { font-family: 'DM Mono', monospace; font-size: .68rem; color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }
+  .notif-desc  { font-size: .78rem; color: var(--text-dim); line-height: 1.55; margin-bottom: 8px; }
+  .notif-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .notif-btn {
+    padding: 5px 12px; border-radius: 5px; font-size: .74rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; text-decoration: none;
+    border: 1px solid var(--border-d); background: var(--card-bg); color: var(--text-dim);
+    transition: all .15s; display: inline-flex; align-items: center; gap: 4px;
+  }
+  .notif-btn:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .notif-btn.primary { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+  .notif-btn.primary:hover { background: var(--green-mid); }
+  .notif-btn.danger { color: var(--red); border-color: rgba(218,33,40,.2); }
+  .notif-btn.danger:hover { background: rgba(218,33,40,.06); }
+  .notif-btn.gold { background: var(--gold); color: var(--green-base); border-color: var(--gold); }
+  .notif-btn.gold:hover { background: var(--gold-light); }
+
+  .unread-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+    background: var(--green-nat);
+  }
+  .type-deadline .unread-dot { background: var(--red); }
+  .type-award    .unread-dot { background: var(--gold); }
+  .type-live     .unread-dot { background: var(--red); }
+  .type-system   .unread-dot { background: var(--blue); }
+
+  /* ─── EMPTY STATE ─── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+  .empty-icon  { margin-bottom: 12px; opacity: .2; }
+  .empty-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .empty-sub   { font-size: .82rem; }
+
+  @media (max-width: 768px) {
+    .page-body { padding: 16px; }
+    .notif-card-inner { padding: 12px 14px; gap: 10px; }
+    .notif-icon-wrap { width: 32px; height: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="dash-sidebar" id="sidebar">
+  <a href="yesparency-landing.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div><div class="brand-name">YesParency</div><div class="brand-sub">SLSU Procurement</div></div>
+  </a>
+  <div class="sidebar-profile">
+    <div class="profile-avatar">JC</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Juan M. Cruz</div>
+      <div class="profile-role">Registered Bidder</div>
+      <div class="profile-verified">Account Verified</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a href="bidder-dashboard.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="submit-bid.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      Submit a Bid
+    </a>
+    <a href="my-bids.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      My Bids
+    </a>
+    <div class="nav-section-label">Information</div>
+    <a href="bid-schedule.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Bid Schedule
+    </a>
+    <a href="notifications.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Notifications <span class="nav-badge" id="sidebarBadge">3</span>
+    </a>
+    <div class="nav-section-label">Account</div>
+    <a href="profile-settings.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile &amp; Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="dash-main">
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb"><a href="bidder-dashboard.html">Dashboard</a><span class="topbar-sep">/</span></span>
+      <span class="topbar-page">Notifications</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="notif-dot" id="topbarDot"></div>
+      </div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar">JC</div>
+    </div>
+  </header>
+
+  <main class="page-body">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="filter-tabs">
+          <button class="ftab active" onclick="setFilter('all',this)">All <span class="ftab-count" id="cnt-all">0</span></button>
+          <button class="ftab" onclick="setFilter('unread',this)">Unread <span class="ftab-count" id="cnt-unread">0</span></button>
+          <button class="ftab" onclick="setFilter('bid',this)">Bids</button>
+          <button class="ftab" onclick="setFilter('deadline',this)">Deadlines</button>
+          <button class="ftab" onclick="setFilter('award',this)">Awards</button>
+          <button class="ftab" onclick="setFilter('system',this)">System</button>
+        </div>
+      </div>
+      <button class="btn-mark-all" onclick="markAllRead()">Mark all as read</button>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div id="notifContainer"></div>
+
+  </main>
+</div>
+
+<script src="assets/dashboard.js"></script>
+<script>
+const NOTIFS = [
+  {
+    id: 1, type: 'live', unread: true,
+    title: 'Bid Opening Live Now — Science Lab Equipment',
+    desc: 'The bid opening for SLSU-BAC-2026-003 has started. You submitted BID-0042-001 for this project. Join the live stream to watch the proceedings.',
+    time: 'Today, 10:02 AM',
+    group: 'Today',
+    actions: [
+      { label: 'Watch Live', href: 'bid-live.html', style: 'danger' },
+      { label: 'View My Bid', href: 'my-bids.html', style: '' },
+    ]
+  },
+  {
+    id: 2, type: 'deadline', unread: true,
+    title: 'Submission Deadline in 7 Days — Multi-Purpose Hall',
+    desc: 'Your bid for SLSU-BAC-2026-007 (Construction of Multi-Purpose Hall) must be submitted by April 2, 2026 at 5:00 PM. Ensure all documents are complete.',
+    time: 'Today, 9:00 AM',
+    group: 'Today',
+    actions: [
+      { label: 'View Bid', href: 'my-bids.html', style: 'primary' },
+      { label: 'Bid Schedule', href: 'bid-schedule.html', style: '' },
+    ]
+  },
+  {
+    id: 3, type: 'edit', unread: true,
+    title: 'Edit Request Pending — Multi-Purpose Hall',
+    desc: 'Your amendment request for BID-0042-002 has been submitted to the BAC. You will be notified once the BAC reviews and responds to your request.',
+    time: 'Today, 8:30 AM',
+    group: 'Today',
+    actions: [
+      { label: 'View Request', href: 'my-bids.html', style: '' },
+    ]
+  },
+  {
+    id: 4, type: 'award', unread: false,
+    title: 'Notice of Award — Janitorial Services FY 2026',
+    desc: 'Congratulations! You have been awarded the contract for Procurement of Janitorial and Maintenance Services FY 2026 (SLSU-BAC-2026-001). Please submit the required post-award documents within 5 calendar days.',
+    time: 'March 20, 2026',
+    group: 'This Week',
+    actions: [
+      { label: 'View Award', href: 'my-bids.html', style: 'gold' },
+    ]
+  },
+  {
+    id: 5, type: 'bid', unread: false,
+    title: 'Bid Successfully Submitted — IT Equipment',
+    desc: 'Your two-envelope bid for SLSU-BAC-2026-011 (IT Equipment and Peripherals for CIT) has been received, encrypted, and locked. Bid Ref: BID-0042-001.',
+    time: 'March 25, 2026',
+    group: 'This Week',
+    actions: [
+      { label: 'View Bid', href: 'my-bids.html', style: '' },
+    ]
+  },
+  {
+    id: 6, type: 'bid', unread: false,
+    title: 'Bid Successfully Submitted — Multi-Purpose Hall',
+    desc: 'Your two-envelope bid for SLSU-BAC-2026-007 (Construction of Multi-Purpose Hall) has been received and locked. Bid Ref: BID-0042-002.',
+    time: 'March 24, 2026',
+    group: 'This Week',
+    actions: [
+      { label: 'View Bid', href: 'my-bids.html', style: '' },
+    ]
+  },
+  {
+    id: 7, type: 'deadline', unread: false,
+    title: 'Reminder: Bid Opening Tomorrow — Science Lab Equipment',
+    desc: 'The bid opening for SLSU-BAC-2026-003 is scheduled tomorrow, March 26, 2026 at 10:00 AM at the BAC Conference Room. A live stream will be available.',
+    time: 'March 25, 2026',
+    group: 'This Week',
+    actions: [
+      { label: 'Bid Schedule', href: 'bid-schedule.html', style: '' },
+    ]
+  },
+  {
+    id: 8, type: 'system', unread: false,
+    title: 'Account Fully Verified',
+    desc: 'Your PhilGEPS registration and eligibility documents have been reviewed and verified by the SLSU Procurement Office. You are now eligible to submit bids on all open procurements.',
+    time: 'March 10, 2026',
+    group: 'Earlier',
+    actions: [
+      { label: 'Go to Dashboard', href: 'bidder-dashboard.html', style: '' },
+    ]
+  },
+  {
+    id: 9, type: 'system', unread: false,
+    title: 'New Procurement Posted — IT Equipment for CIT',
+    desc: 'A new procurement has been posted: Supply of IT Equipment and Peripherals for CIT (SLSU-BAC-2026-011). ABC: ₱3,200,000.00. Bid documents are now available.',
+    time: 'March 20, 2026',
+    group: 'Earlier',
+    actions: [
+      { label: 'View Details', href: 'bid-schedule.html', style: 'primary' },
+    ]
+  },
+  {
+    id: 10, type: 'doc', unread: false,
+    title: 'Bid Documents Available — Multi-Purpose Hall',
+    desc: 'Bid documents for SLSU-BAC-2026-007 are now available for purchase at the SLSU Procurement Office. Pre-bid conference is on March 20, 2026 at 2:00 PM.',
+    time: 'March 12, 2026',
+    group: 'Earlier',
+    actions: [
+      { label: 'View Schedule', href: 'bid-schedule.html', style: '' },
+    ]
+  },
+];
+
+const ICONS = {
+  bid:      `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+  deadline: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  award:    `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>`,
+  live:     `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
+  system:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  edit:     `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  doc:      `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
+};
+
+let activeFilter = 'all';
+
+function getFiltered() {
+  return NOTIFS.filter(n => {
+    if (activeFilter === 'unread') return n.unread;
+    if (activeFilter === 'all') return true;
+    return n.type === activeFilter;
+  });
+}
+
+function updateCounts() {
+  document.getElementById('cnt-all').textContent    = NOTIFS.length;
+  document.getElementById('cnt-unread').textContent = NOTIFS.filter(n => n.unread).length;
+  const unreadCount = NOTIFS.filter(n => n.unread).length;
+  const badge = document.getElementById('sidebarBadge');
+  const dot   = document.getElementById('topbarDot');
+  if (badge) badge.textContent = unreadCount || '';
+  if (badge) badge.style.display = unreadCount ? '' : 'none';
+  if (dot)   dot.style.display   = unreadCount ? '' : 'none';
+}
+
+function render() {
+  const filtered = getFiltered();
+  const container = document.getElementById('notifContainer');
+
+  if (!filtered.length) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+      <div class="empty-title">All caught up</div>
+      <div class="empty-sub">No notifications here.</div>
+    </div>`;
+    return;
+  }
+
+  // Group by date label
+  const groups = {};
+  filtered.forEach(n => {
+    if (!groups[n.group]) groups[n.group] = [];
+    groups[n.group].push(n);
+  });
+
+  const ORDER = ['Today', 'This Week', 'Earlier'];
+  let html = '';
+  ORDER.forEach(g => {
+    if (!groups[g]) return;
+    html += `<div class="notif-group">
+      <div class="notif-group-label">${g}</div>`;
+    groups[g].forEach(n => {
+      const actionsHtml = n.actions.map(a =>
+        `<a href="${a.href}" class="notif-btn ${a.style}" onclick="markRead(${n.id})">${a.label}</a>`
+      ).join('');
+      html += `<div class="notif-card ${n.unread ? 'unread' : ''} type-${n.type}" onclick="markRead(${n.id})" id="notif-${n.id}">
+        <div class="notif-card-inner">
+          ${n.unread ? `<div class="unread-dot"></div>` : '<div style="width:8px;flex-shrink:0;"></div>'}
+          <div class="notif-icon-wrap icon-${n.type}">${ICONS[n.type] || ICONS.system}</div>
+          <div class="notif-body">
+            <div class="notif-header">
+              <div class="notif-title">${n.title}</div>
+              <div class="notif-time">${n.time}</div>
+            </div>
+            <div class="notif-desc">${n.desc}</div>
+            <div class="notif-actions">${actionsHtml}</div>
+          </div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  container.innerHTML = html;
+  updateCounts();
+}
+
+function markRead(id) {
+  const n = NOTIFS.find(x => x.id === id);
+  if (n) n.unread = false;
+  render();
+}
+
+function markAllRead() {
+  NOTIFS.forEach(n => n.unread = false);
+  render();
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

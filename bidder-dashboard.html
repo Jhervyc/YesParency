@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bidder Dashboard — YesParency</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<aside class="dash-sidebar" id="sidebar">
+
+  <a href="yesparency-landing.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div>
+      <div class="brand-name">YesParency</div>
+      <div class="brand-sub">SLSU Procurement</div>
+    </div>
+  </a>
+
+  <div class="sidebar-profile">
+    <div class="profile-avatar">JC</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Juan M. Cruz</div>
+      <div class="profile-role">Registered Bidder</div>
+      <div class="profile-verified">Account Verified</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+
+    <a href="#" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="submit-bid.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      Submit a Bid
+    </a>
+    <a href="my-bids.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      My Bids
+    </a>
+
+    <div class="nav-section-label">Information</div>
+
+    <a href="bid-schedule.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Bid Schedule
+    </a>
+    <a href="notifications.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Notifications
+      <span class="nav-badge">3</span>
+    </a>
+
+    <div class="nav-section-label">Account</div>
+
+    <a href="profile-settings.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile &amp; Settings
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+
+</aside>
+
+<!-- ── MAIN ── -->
+<div class="dash-main">
+
+  <!-- Topbar -->
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Toggle menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb">
+        <a href="bidder-dashboard.html">Dashboard</a>
+        <span class="topbar-sep">/</span>
+      </span>
+      <span class="topbar-page">Overview</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-btn" title="Notifications">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="notif-dot"></div>
+      </div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar" title="Juan M. Cruz">JC</div>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main class="dash-content">
+
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+      <div class="welcome-text">
+        <div class="welcome-greeting">Welcome back</div>
+        <div class="welcome-name">Juan M. Cruz</div>
+        <div class="welcome-meta">
+          Bidder ID: <span>SLSU-BID-2026-0042</span> &nbsp;·&nbsp;
+          PhilGEPS: <span>Verified</span> &nbsp;·&nbsp;
+          Last login: <span>March 26, 2026 at 9:14 AM</span>
+        </div>
+      </div>
+      <a href="submit-bid.html" class="welcome-cta">+ Submit a New Bid</a>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-nat)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-label">Total Bids</div>
+          <div class="stat-value">5</div>
+          <div class="stat-sub"><span class="up">+1</span> this month</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-label">Under Review</div>
+          <div class="stat-value">2</div>
+          <div class="stat-sub">Awaiting bid opening</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon gold">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-label">Awards</div>
+          <div class="stat-value">1</div>
+          <div class="stat-sub">FY 2026</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-label">Upcoming Deadlines</div>
+          <div class="stat-value">2</div>
+          <div class="stat-sub"><span class="warn">1 due soon</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid">
+
+      <!-- Left Column -->
+      <div>
+
+        <!-- My Bids -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div class="dash-card-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              My Bids
+            </div>
+            <a href="#" class="dash-card-action">View All →</a>
+          </div>
+          <table class="dash-table">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Ref No.</th>
+                <th>Submitted</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="td-name">Supply of Science Lab Equipment</div>
+                  <div class="td-ref">SLSU-BAC-2026-003</div>
+                </td>
+                <td><span class="td-ref">BID-0042-001</span></td>
+                <td style="font-size:.78rem;color:var(--text-dim);">Mar 20, 2026</td>
+                <td><span class="badge badge-gold">Under Review</span></td>
+                <td><a href="bid-live.html" class="td-link">Watch Live</a></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="td-name">Construction of Multi-Purpose Hall</div>
+                  <div class="td-ref">SLSU-BAC-2026-007</div>
+                </td>
+                <td><span class="td-ref">BID-0042-002</span></td>
+                <td style="font-size:.78rem;color:var(--text-dim);">Mar 24, 2026</td>
+                <td><span class="badge badge-blue">Submitted</span></td>
+                <td><a href="#" class="td-link">View</a></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="td-name">IT Equipment and Peripherals for CIT</div>
+                  <div class="td-ref">SLSU-BAC-2026-011</div>
+                </td>
+                <td><span class="td-ref">BID-0042-003</span></td>
+                <td style="font-size:.78rem;color:var(--text-dim);">Mar 25, 2026</td>
+                <td><span class="badge badge-blue">Submitted</span></td>
+                <td><a href="#" class="td-link">View</a></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="td-name">Janitorial and Maintenance Services</div>
+                  <div class="td-ref">SLSU-BAC-2026-001</div>
+                </td>
+                <td><span class="td-ref">BID-0042-004</span></td>
+                <td style="font-size:.78rem;color:var(--text-dim);">Feb 28, 2026</td>
+                <td><span class="badge badge-green">Awarded</span></td>
+                <td><a href="#" class="td-link">View</a></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="td-name">Supply of Office Furniture</div>
+                  <div class="td-ref">SLSU-BAC-2026-002</div>
+                </td>
+                <td><span class="td-ref">BID-0042-005</span></td>
+                <td style="font-size:.78rem;color:var(--text-dim);">Jan 15, 2026</td>
+                <td><span class="badge badge-gray">Not Awarded</span></td>
+                <td><a href="#" class="td-link">View</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Notifications -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div class="dash-card-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              Recent Notifications
+            </div>
+            <a href="notifications.html" class="dash-card-action">View All →</a>
+          </div>
+          <div class="notif-list">
+            <div class="notif-item unread">
+              <div class="notif-indicator ni-red"></div>
+              <div class="notif-body">
+                <div class="notif-title">Bid Opening Today — Science Lab Equipment</div>
+                <div class="notif-desc">The bid opening for SLSU-BAC-2026-003 is scheduled today at 10:00 AM. Join the live stream.</div>
+              </div>
+              <div class="notif-time">9:00 AM</div>
+            </div>
+            <div class="notif-item unread">
+              <div class="notif-indicator ni-gold"></div>
+              <div class="notif-body">
+                <div class="notif-title">Submission Deadline Reminder</div>
+                <div class="notif-desc">Your bid for Multi-Purpose Hall (SLSU-BAC-2026-007) is due April 2, 2026 at 5:00 PM.</div>
+              </div>
+              <div class="notif-time">Yesterday</div>
+            </div>
+            <div class="notif-item unread">
+              <div class="notif-indicator ni-green"></div>
+              <div class="notif-body">
+                <div class="notif-title">Notice of Award — Janitorial Services</div>
+                <div class="notif-desc">Congratulations! You have been awarded the contract for Janitorial and Maintenance Services FY 2026.</div>
+              </div>
+              <div class="notif-time">Mar 20</div>
+            </div>
+            <div class="notif-item">
+              <div class="notif-indicator ni-blue"></div>
+              <div class="notif-body">
+                <div class="notif-title">Bid Successfully Submitted</div>
+                <div class="notif-desc">Your two-envelope bid for IT Equipment (SLSU-BAC-2026-011) has been received and recorded in the audit trail.</div>
+              </div>
+              <div class="notif-time">Mar 25</div>
+            </div>
+            <div class="notif-item">
+              <div class="notif-indicator ni-gray"></div>
+              <div class="notif-body">
+                <div class="notif-title">Account Verification Complete</div>
+                <div class="notif-desc">Your PhilGEPS registration and eligibility documents have been verified by the SLSU Procurement Office.</div>
+              </div>
+              <div class="notif-time">Mar 10</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /left col -->
+
+      <!-- Right Column -->
+      <div>
+
+        <!-- Account Status -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div class="dash-card-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Account Status
+            </div>
+            <a href="profile-settings.html" class="dash-card-action">Manage →</a>
+          </div>
+          <div class="account-status-bar" style="background:rgba(253,185,19,.1);">
+            <div class="as-icon">⚠️</div>
+            <div>
+              <div class="as-label" style="color:#8a6000;">Action Required</div>
+              <div class="as-sub">2 documents expiring soon · 1 expired</div>
+            </div>
+          </div>
+          <div class="progress-steps">
+            <div class="progress-step">
+              <div class="step-dot done">✓</div>
+              <div class="step-text done">Register Account</div>
+            </div>
+            <div class="progress-step">
+              <div class="step-dot done">✓</div>
+              <div class="step-text done">PhilGEPS Registration Verified</div>
+            </div>
+            <div class="progress-step">
+              <div class="step-dot done">✓</div>
+              <div class="step-text done">Verified by Procurement Office</div>
+            </div>
+            <div class="progress-step">
+              <div class="step-dot" style="background:var(--red);color:var(--white);">!</div>
+              <div class="step-text" style="color:var(--red);font-weight:600;">SLCC Expired — Renew Now</div>
+            </div>
+            <div class="progress-step">
+              <div class="step-dot" style="background:var(--gold);color:var(--green-base);">!</div>
+              <div class="step-text" style="color:#8a6000;font-weight:600;">Mayor's Permit expiring in 30 days</div>
+            </div>
+            <div class="progress-step">
+              <div class="step-dot" style="background:var(--gold);color:var(--green-base);">!</div>
+              <div class="step-text" style="color:#8a6000;font-weight:600;">PhilGEPS Cert expiring in 25 days</div>
+            </div>
+          </div>
+          <div style="padding:12px 18px;border-top:1px solid var(--border-d);">
+            <a href="profile-settings.html" style="font-size:.78rem;font-weight:600;color:var(--red);text-decoration:none;display:flex;align-items:center;gap:5px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Renew documents to avoid account suspension
+            </a>
+          </div>
+        </div>
+
+        <!-- Upcoming Deadlines -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div class="dash-card-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Upcoming Deadlines
+            </div>
+            <a href="bid-schedule.html" class="dash-card-action">Full Schedule →</a>
+          </div>
+          <div class="schedule-list">
+            <div class="schedule-item">
+              <div class="sched-date"><div class="sched-day">26</div><div class="sched-month">Mar</div></div>
+              <div class="sched-info">
+                <div class="sched-title">Bid Opening — Science Lab Equipment</div>
+                <div class="sched-meta">10:00 AM · BAC Conference Room</div>
+                <div style="margin-top:5px;"><span class="badge badge-red">Today</span></div>
+              </div>
+            </div>
+            <div class="schedule-item">
+              <div class="sched-date"><div class="sched-day">02</div><div class="sched-month">Apr</div></div>
+              <div class="sched-info">
+                <div class="sched-title">Submission Deadline — Multi-Purpose Hall</div>
+                <div class="sched-meta">5:00 PM · Online Submission</div>
+                <div style="margin-top:5px;"><span class="badge badge-gold">7 days left</span></div>
+              </div>
+            </div>
+            <div class="schedule-item">
+              <div class="sched-date"><div class="sched-day">03</div><div class="sched-month">Apr</div></div>
+              <div class="sched-info">
+                <div class="sched-title">Bid Opening — Multi-Purpose Hall</div>
+                <div class="sched-meta">10:00 AM · BAC Conference Room</div>
+                <div style="margin-top:5px;"><span class="badge badge-blue">Upcoming</span></div>
+              </div>
+            </div>
+            <div class="schedule-item">
+              <div class="sched-date"><div class="sched-day">09</div><div class="sched-month">Apr</div></div>
+              <div class="sched-info">
+                <div class="sched-title">Submission Deadline — IT Equipment</div>
+                <div class="sched-meta">5:00 PM · Online Submission</div>
+                <div style="margin-top:5px;"><span class="badge badge-blue">Upcoming</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /right col -->
+    </div><!-- /content-grid -->
+
+  </main>
+</div><!-- /dash-main -->
+
+<script src="assets/dashboard.js"></script>
+</body>
+</html>

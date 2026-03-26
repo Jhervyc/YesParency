@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Register as Bidder — YesParency</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<style>
+  /* ─── PAGE LAYOUT ─── */
+  .reg-page {
+    min-height: calc(100vh - 70px);
+    background: var(--off-white);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 48px 20px 64px;
+  }
+  .reg-container { width: 100%; max-width: 680px; }
+
+  /* ─── STEPPER ─── */
+  .stepper {
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 36px; gap: 0;
+  }
+  .step {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    flex: 1; position: relative;
+  }
+  .step:not(:last-child)::after {
+    content: ''; position: absolute;
+    top: 18px; left: calc(50% + 18px);
+    width: calc(100% - 36px); height: 2px;
+    background: var(--border); z-index: 0;
+    transition: background .4s;
+  }
+  .step.done:not(:last-child)::after  { background: var(--green-nat); }
+  .step.active:not(:last-child)::after { background: var(--border); }
+
+  .step-circle {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: .78rem; font-weight: 700;
+    border: 2px solid var(--border); background: var(--white);
+    color: var(--muted); position: relative; z-index: 1;
+    transition: all .3s;
+  }
+  .step.active .step-circle {
+    border-color: var(--green-base); background: var(--green-base); color: var(--white);
+  }
+  .step.done .step-circle {
+    border-color: var(--green-nat); background: var(--green-nat); color: var(--white);
+  }
+  .step-label {
+    font-size: .68rem; font-weight: 600; letter-spacing: .04em;
+    color: var(--muted); text-align: center; text-transform: uppercase;
+    transition: color .3s;
+  }
+  .step.active .step-label { color: var(--green-base); }
+  .step.done  .step-label  { color: var(--green-nat); }
+
+  /* ─── CARD ─── */
+  .reg-card {
+    background: var(--white); border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 24px rgba(12,58,27,.07);
+    overflow: hidden;
+  }
+  .reg-card-header {
+    background: var(--green-base); padding: 28px 36px;
+    border-bottom: 3px solid var(--gold);
+  }
+  .reg-card-eyebrow {
+    font-family: 'DM Mono', monospace; font-size: .65rem;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 6px;
+  }
+  .reg-card-title {
+    font-family: 'Playfair Display', serif; font-size: 1.4rem;
+    font-weight: 700; color: var(--white); margin-bottom: 4px;
+  }
+  .reg-card-sub { font-size: .82rem; color: rgba(255,255,255,.5); }
+
+  .reg-card-body { padding: 32px 36px; }
+
+  /* ─── FORM ELEMENTS ─── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .form-grid.full { grid-template-columns: 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.span2 { grid-column: span 2; }
+  .form-group label {
+    font-size: .78rem; font-weight: 600; color: var(--text); letter-spacing: .02em;
+  }
+  .form-group label .req { color: var(--red); margin-left: 2px; }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 10px 14px; border-radius: 8px;
+    border: 1px solid var(--border); font-size: .88rem;
+    font-family: 'DM Sans', sans-serif; color: var(--text);
+    background: var(--off-white); outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    border-color: var(--green-nat);
+    box-shadow: 0 0 0 3px rgba(73,122,58,.1);
+    background: var(--white);
+  }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .form-group select { cursor: pointer; }
+  .form-hint { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+  /* File upload */
+  .file-upload {
+    border: 2px dashed var(--border); border-radius: 8px;
+    padding: 20px; text-align: center; cursor: pointer;
+    transition: border-color .2s, background .2s; background: var(--off-white);
+    position: relative;
+  }
+  .file-upload:hover { border-color: var(--green-nat); background: rgba(73,122,58,.04); }
+  .file-upload input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    width: 100%; height: 100%; border: none; padding: 0;
+  }
+  .file-upload-icon { color: var(--muted); margin-bottom: 8px; }
+  .file-upload-label { font-size: .82rem; font-weight: 600; color: var(--green-base); }
+  .file-upload-sub   { font-size: .72rem; color: var(--muted); margin-top: 3px; }
+  .file-name { font-size: .75rem; color: var(--green-nat); font-weight: 600; margin-top: 6px; display: none; }
+
+  /* OTP */
+  .otp-wrap { display: flex; gap: 10px; justify-content: center; margin: 8px 0; }
+  .otp-input {
+    width: 52px; height: 56px; text-align: center;
+    font-family: 'DM Mono', monospace; font-size: 1.4rem; font-weight: 700;
+    border: 2px solid var(--border); border-radius: 10px;
+    background: var(--off-white); color: var(--text); outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .otp-input:focus {
+    border-color: var(--green-nat);
+    box-shadow: 0 0 0 3px rgba(73,122,58,.1);
+    background: var(--white);
+  }
+  .otp-input.filled { border-color: var(--green-nat); background: rgba(73,122,58,.05); }
+
+  /* Info box */
+  .info-box {
+    background: rgba(43,87,151,.07); border: 1px solid rgba(43,87,151,.18);
+    border-radius: 8px; padding: 14px 16px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .info-box svg { flex-shrink: 0; color: var(--blue); margin-top: 1px; }
+  .info-box p { font-size: .8rem; color: var(--text); line-height: 1.6; }
+  .info-box p strong { color: var(--green-base); }
+
+  .warning-box {
+    background: rgba(253,185,19,.08); border: 1px solid rgba(253,185,19,.25);
+    border-radius: 8px; padding: 14px 16px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .warning-box svg { flex-shrink: 0; color: #8a6000; margin-top: 1px; }
+  .warning-box p { font-size: .8rem; color: var(--text); line-height: 1.6; }
+
+  /* Checklist */
+  .check-list { display: flex; flex-direction: column; gap: 10px; }
+  .check-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 14px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--off-white);
+    cursor: pointer; transition: border-color .2s;
+  }
+  .check-item:hover { border-color: var(--green-nat); }
+  .check-item input[type="checkbox"] { margin-top: 2px; accent-color: var(--green-base); width: 16px; height: 16px; flex-shrink: 0; }
+  .check-item-text { flex: 1; }
+  .check-item-title { font-size: .85rem; font-weight: 600; color: var(--text); }
+  .check-item-sub   { font-size: .74rem; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+
+  /* Success */
+  .success-wrap {
+    text-align: center; padding: 20px 0 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .success-icon {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: rgba(73,122,58,.12); border: 2px solid rgba(73,122,58,.25);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .success-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: var(--green-base); }
+  .success-sub   { font-size: .88rem; color: var(--muted); max-width: 420px; line-height: 1.65; }
+  .success-ref {
+    font-family: 'DM Mono', monospace; font-size: .8rem;
+    background: var(--off-white); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 18px; color: var(--green-base); font-weight: 600;
+  }
+  .success-steps { text-align: left; width: 100%; max-width: 400px; }
+  .success-steps li {
+    font-size: .82rem; color: var(--muted); padding: 6px 0;
+    border-bottom: 1px solid var(--border); list-style: none;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .success-steps li::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--green-nat); flex-shrink: 0; }
+
+  /* ─── FOOTER ACTIONS ─── */
+  .reg-actions {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 36px; border-top: 1px solid var(--border);
+    background: var(--off-white);
+  }
+  .btn-prev {
+    padding: 10px 24px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--white);
+    font-size: .85rem; font-weight: 600; color: var(--muted);
+    cursor: pointer; transition: border-color .2s, color .2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-prev:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .btn-prev:disabled { opacity: .35; cursor: not-allowed; }
+  .btn-next {
+    padding: 10px 28px; border-radius: 8px;
+    background: var(--green-base); color: var(--white);
+    border: none; font-size: .85rem; font-weight: 700;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: background .2s, transform .15s, box-shadow .2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-next:hover { background: var(--green-mid); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(12,58,27,.2); }
+  .step-counter { font-family: 'DM Mono', monospace; font-size: .72rem; color: var(--muted); }
+
+  /* ─── DIVIDER ─── */
+  .form-divider {
+    font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--muted);
+    display: flex; align-items: center; gap: 12px; margin: 4px 0;
+  }
+  .form-divider::before, .form-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 720px) {
+    .reg-page { padding: 28px 12px 48px; }
+    .reg-card-header { padding: 22px 20px; }
+    .reg-card-body   { padding: 24px 20px; }
+    .reg-actions     { padding: 16px 20px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.span2 { grid-column: span 1; }
+    .stepper { gap: 0; }
+    .step-label { font-size: .6rem; }
+    .otp-input { width: 42px; height: 48px; font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="reg-page">
+  <div class="reg-container">
+
+    <!-- STEPPER -->
+    <div class="stepper" id="stepper">
+      <div class="step active" id="s1">
+        <div class="step-circle">1</div>
+        <div class="step-label">Account</div>
+      </div>
+      <div class="step" id="s2">
+        <div class="step-circle">2</div>
+        <div class="step-label">Business</div>
+      </div>
+      <div class="step" id="s3">
+        <div class="step-circle">3</div>
+        <div class="step-label">Documents</div>
+      </div>
+      <div class="step" id="s4">
+        <div class="step-circle">4</div>
+        <div class="step-label">Verify</div>
+      </div>
+      <div class="step" id="s5">
+        <div class="step-circle">5</div>
+        <div class="step-label">Review</div>
+      </div>
+    </div>
+
+    <!-- CARD -->
+    <div class="reg-card">
+
+      <!-- ── STEP 1: Account Info ── -->
+      <div id="pane1">
+        <div class="reg-card-header">
+          <div class="reg-card-eyebrow">Step 1 of 5</div>
+          <div class="reg-card-title">Create Your Account</div>
+          <div class="reg-card-sub">Set up your login credentials for the YesParency bidder portal.</div>
+        </div>
+        <div class="reg-card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>First Name <span class="req">*</span></label>
+              <input type="text" placeholder="Juan" id="fname"/>
+            </div>
+            <div class="form-group">
+              <label>Last Name <span class="req">*</span></label>
+              <input type="text" placeholder="Dela Cruz" id="lname"/>
+            </div>
+            <div class="form-group span2">
+              <label>Email Address <span class="req">*</span></label>
+              <input type="email" placeholder="juan@company.com" id="email"/>
+              <span class="form-hint">A verification code will be sent to this email.</span>
+            </div>
+            <div class="form-group">
+              <label>Password <span class="req">*</span></label>
+              <input type="password" placeholder="Min. 8 characters" id="password"/>
+            </div>
+            <div class="form-group">
+              <label>Confirm Password <span class="req">*</span></label>
+              <input type="password" placeholder="Re-enter password" id="confirm"/>
+            </div>
+            <div class="form-group">
+              <label>Mobile Number <span class="req">*</span></label>
+              <input type="tel" placeholder="+63 9XX XXX XXXX" id="mobile"/>
+            </div>
+            <div class="form-group">
+              <label>Role / Position</label>
+              <input type="text" placeholder="e.g. Procurement Officer" id="role"/>
+            </div>
+          </div>
+          <div style="margin-top:20px;">
+            <div class="info-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <p>Your account will be linked to your business entity in the next step. Only <strong>PhilGEPS-registered</strong> suppliers are eligible to submit bids under RA 9184.</p>
+            </div>
+          </div>
+        </div>
+        <div class="reg-actions">
+          <button class="btn-prev" disabled>← Back</button>
+          <span class="step-counter">Step 1 of 5</span>
+          <button class="btn-next" onclick="goTo(2)">Continue <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </div>
+      </div>
+
+      <!-- ── STEP 2: Business Info ── -->
+      <div id="pane2" style="display:none;">
+        <div class="reg-card-header">
+          <div class="reg-card-eyebrow">Step 2 of 5</div>
+          <div class="reg-card-title">Business Information</div>
+          <div class="reg-card-sub">Provide your company or organization details as registered with PhilGEPS.</div>
+        </div>
+        <div class="reg-card-body">
+          <div class="form-grid">
+            <div class="form-group span2">
+              <label>Registered Business Name <span class="req">*</span></label>
+              <input type="text" placeholder="e.g. Apex Scientific Supply Co."/>
+            </div>
+            <div class="form-group">
+              <label>PhilGEPS Registration No. <span class="req">*</span></label>
+              <input type="text" placeholder="e.g. 1234567"/>
+              <span class="form-hint">Required for bid submission under RA 9184.</span>
+            </div>
+            <div class="form-group">
+              <label>TIN (Tax Identification No.) <span class="req">*</span></label>
+              <input type="text" placeholder="XXX-XXX-XXX-XXX"/>
+            </div>
+            <div class="form-group">
+              <label>Business Type <span class="req">*</span></label>
+              <select>
+                <option value="">Select type...</option>
+                <option>Sole Proprietorship</option>
+                <option>Partnership</option>
+                <option>Corporation</option>
+                <option>Cooperative</option>
+                <option>Joint Venture</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Year Established</label>
+              <input type="number" placeholder="e.g. 2010" min="1900" max="2026"/>
+            </div>
+            <div class="form-group span2">
+              <label>Registered Business Address <span class="req">*</span></label>
+              <textarea placeholder="Unit/Floor, Building, Street, City, Province, ZIP Code"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Business Email</label>
+              <input type="email" placeholder="info@company.com"/>
+            </div>
+            <div class="form-group">
+              <label>Business Phone</label>
+              <input type="tel" placeholder="+63 2 XXXX XXXX"/>
+            </div>
+            <div class="form-group span2">
+              <label>Nature of Business / Products &amp; Services</label>
+              <textarea placeholder="Briefly describe what your company supplies or provides..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="reg-actions">
+          <button class="btn-prev" onclick="goTo(1)">← Back</button>
+          <span class="step-counter">Step 2 of 5</span>
+          <button class="btn-next" onclick="goTo(3)">Continue <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </div>
+      </div>
+
+      <!-- ── STEP 3: Document Upload ── -->
+      <div id="pane3" style="display:none;">
+        <div class="reg-card-header">
+          <div class="reg-card-eyebrow">Step 3 of 5</div>
+          <div class="reg-card-title">Eligibility Documents</div>
+          <div class="reg-card-sub">Upload the required legal and eligibility documents. Accepted formats: PDF, JPG, PNG (max 5MB each).</div>
+        </div>
+        <div class="reg-card-body">
+          <div class="warning-box" style="margin-bottom:20px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <p>All documents must be valid and current. Expired or falsified documents will result in disqualification and may be subject to legal action under RA 9184.</p>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px;">
+
+            <div class="form-group">
+              <label>DTI / SEC / CDA Registration Certificate <span class="req">*</span></label>
+              <div class="file-upload" onclick="triggerFile('f1')">
+                <input type="file" id="f1" accept=".pdf,.jpg,.png" onchange="showFile('f1','fn1')"/>
+                <div class="file-upload-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+                <div class="file-upload-label">Click to upload or drag &amp; drop</div>
+                <div class="file-upload-sub">PDF, JPG, PNG · Max 5MB</div>
+                <div class="file-name" id="fn1"></div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Mayor's / Business Permit (current year) <span class="req">*</span></label>
+              <div class="file-upload" onclick="triggerFile('f2')">
+                <input type="file" id="f2" accept=".pdf,.jpg,.png" onchange="showFile('f2','fn2')"/>
+                <div class="file-upload-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+                <div class="file-upload-label">Click to upload or drag &amp; drop</div>
+                <div class="file-upload-sub">PDF, JPG, PNG · Max 5MB</div>
+                <div class="file-name" id="fn2"></div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>BIR Certificate of Registration (Form 2303) <span class="req">*</span></label>
+              <div class="file-upload" onclick="triggerFile('f3')">
+                <input type="file" id="f3" accept=".pdf,.jpg,.png" onchange="showFile('f3','fn3')"/>
+                <div class="file-upload-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+                <div class="file-upload-label">Click to upload or drag &amp; drop</div>
+                <div class="file-upload-sub">PDF, JPG, PNG · Max 5MB</div>
+                <div class="file-name" id="fn3"></div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>PhilGEPS Certificate of Registration <span class="req">*</span></label>
+              <div class="file-upload" onclick="triggerFile('f4')">
+                <input type="file" id="f4" accept=".pdf,.jpg,.png" onchange="showFile('f4','fn4')"/>
+                <div class="file-upload-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+                <div class="file-upload-label">Click to upload or drag &amp; drop</div>
+                <div class="file-upload-sub">PDF, JPG, PNG · Max 5MB</div>
+                <div class="file-name" id="fn4"></div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Valid Government-Issued ID of Authorized Representative <span class="req">*</span></label>
+              <div class="file-upload" onclick="triggerFile('f5')">
+                <input type="file" id="f5" accept=".pdf,.jpg,.png" onchange="showFile('f5','fn5')"/>
+                <div class="file-upload-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+                <div class="file-upload-label">Click to upload or drag &amp; drop</div>
+                <div class="file-upload-sub">PDF, JPG, PNG · Max 5MB</div>
+                <div class="file-name" id="fn5"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="reg-actions">
+          <button class="btn-prev" onclick="goTo(2)">← Back</button>
+          <span class="step-counter">Step 3 of 5</span>
+          <button class="btn-next" onclick="goTo(4)">Continue <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </div>
+      </div>
+
+      <!-- ── STEP 4: Email Verification ── -->
+      <div id="pane4" style="display:none;">
+        <div class="reg-card-header">
+          <div class="reg-card-eyebrow">Step 4 of 5</div>
+          <div class="reg-card-title">Email Verification</div>
+          <div class="reg-card-sub">Enter the 6-digit code sent to your registered email address.</div>
+        </div>
+        <div class="reg-card-body">
+          <div style="text-align:center;margin-bottom:28px;">
+            <div style="width:56px;height:56px;border-radius:50%;background:rgba(73,122,58,.1);border:2px solid rgba(73,122,58,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green-nat)" stroke-width="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div style="font-size:.9rem;color:var(--text);font-weight:600;">Code sent to <span id="emailDisplay" style="color:var(--green-base);">your email</span></div>
+            <div style="font-size:.78rem;color:var(--muted);margin-top:4px;">Check your inbox and spam folder. Code expires in <span id="otpTimer" style="color:var(--red);font-weight:600;font-family:'DM Mono',monospace;">10:00</span></div>
+          </div>
+
+          <div class="otp-wrap">
+            <input class="otp-input" type="text" maxlength="1" id="o1" oninput="otpNext(this,'o2')" onkeydown="otpBack(event,this,'')"/>
+            <input class="otp-input" type="text" maxlength="1" id="o2" oninput="otpNext(this,'o3')" onkeydown="otpBack(event,this,'o1')"/>
+            <input class="otp-input" type="text" maxlength="1" id="o3" oninput="otpNext(this,'o4')" onkeydown="otpBack(event,this,'o2')"/>
+            <input class="otp-input" type="text" maxlength="1" id="o4" oninput="otpNext(this,'o5')" onkeydown="otpBack(event,this,'o3')"/>
+            <input class="otp-input" type="text" maxlength="1" id="o5" oninput="otpNext(this,'o6')" onkeydown="otpBack(event,this,'o4')"/>
+            <input class="otp-input" type="text" maxlength="1" id="o6" oninput="otpNext(this,'')"   onkeydown="otpBack(event,this,'o5')"/>
+          </div>
+
+          <div style="text-align:center;margin-top:16px;">
+            <span style="font-size:.78rem;color:var(--muted);">Didn't receive it? </span>
+            <button onclick="resendOtp()" style="background:none;border:none;color:var(--green-nat);font-size:.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Resend Code</button>
+          </div>
+
+          <div style="margin-top:24px;">
+            <div class="info-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <p>This verification confirms your email address. Your account will also undergo <strong>manual review by the SLSU Procurement Office</strong> before full bidder access is granted.</p>
+            </div>
+          </div>
+        </div>
+        <div class="reg-actions">
+          <button class="btn-prev" onclick="goTo(3)">← Back</button>
+          <span class="step-counter">Step 4 of 5</span>
+          <button class="btn-next" onclick="verifyOtp()">Verify &amp; Continue <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </div>
+      </div>
+
+      <!-- ── STEP 5: Review & Terms ── -->
+      <div id="pane5" style="display:none;">
+        <div class="reg-card-header">
+          <div class="reg-card-eyebrow">Step 5 of 5</div>
+          <div class="reg-card-title">Review &amp; Declaration</div>
+          <div class="reg-card-sub">Read and confirm the following declarations before submitting your registration.</div>
+        </div>
+        <div class="reg-card-body">
+          <div class="check-list">
+            <label class="check-item">
+              <input type="checkbox" id="c1"/>
+              <div class="check-item-text">
+                <div class="check-item-title">Accuracy of Information</div>
+                <div class="check-item-sub">I certify that all information and documents submitted are true, accurate, and complete. I understand that any false declaration may result in disqualification and legal action.</div>
+              </div>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" id="c2"/>
+              <div class="check-item-text">
+                <div class="check-item-title">PhilGEPS Registration Compliance</div>
+                <div class="check-item-sub">I confirm that my business is registered with PhilGEPS and that the registration is current and valid, as required under Republic Act No. 9184.</div>
+              </div>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" id="c3"/>
+              <div class="check-item-text">
+                <div class="check-item-title">No Conflict of Interest</div>
+                <div class="check-item-sub">I declare that I have no direct or indirect conflict of interest with any SLSU official or procurement officer involved in the bidding process.</div>
+              </div>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" id="c4"/>
+              <div class="check-item-text">
+                <div class="check-item-title">Terms of Use &amp; Privacy Policy</div>
+                <div class="check-item-sub">I have read and agree to the YesParency Terms of Use and Privacy Policy, including the collection and processing of my personal and business data for procurement purposes.</div>
+              </div>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" id="c5"/>
+              <div class="check-item-text">
+                <div class="check-item-title">Audit Trail Consent</div>
+                <div class="check-item-sub">I acknowledge that all my actions within the YesParency system — including document submissions, access events, and signature authentications — will be recorded in an audit trail for accountability purposes.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="reg-actions">
+          <button class="btn-prev" onclick="goTo(4)">← Back</button>
+          <span class="step-counter">Step 5 of 5</span>
+          <button class="btn-next" onclick="submitReg()" style="background:var(--gold);color:var(--green-base);">
+            Submit Registration
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── STEP 6: Success ── -->
+      <div id="pane6" style="display:none;">
+        <div class="reg-card-header">
+          <div class="reg-card-eyebrow">Registration Submitted</div>
+          <div class="reg-card-title">You're Almost There</div>
+          <div class="reg-card-sub">Your registration is under review by the SLSU Procurement Office.</div>
+        </div>
+        <div class="reg-card-body">
+          <div class="success-wrap">
+            <div class="success-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green-nat)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="success-title">Registration Submitted</div>
+            <div class="success-sub">Your application has been received. The SLSU Procurement Office will review your documents and verify your eligibility within <strong>3–5 business days</strong>.</div>
+            <div class="success-ref" id="refNumber">Ref No: YP-REG-2026-0047</div>
+            <div class="success-steps">
+              <ul>
+                <li>You will receive an email confirmation shortly.</li>
+                <li>The Procurement Office will review your submitted documents.</li>
+                <li>Once approved, you will receive login credentials and full bidder access.</li>
+                <li>You may then submit bids for active procurements on YesParency.</li>
+              </ul>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:8px;">
+              <a href="yesparency-landing.html" class="btn-primary">Back to Home</a>
+              <a href="bid-openings.html" style="padding:14px 28px;border-radius:8px;border:1px solid var(--border);color:var(--text);font-size:.88rem;font-weight:600;text-decoration:none;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--green-nat)'" onmouseout="this.style.borderColor='var(--border)'">View Active Bids</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /reg-card -->
+  </div><!-- /reg-container -->
+</div><!-- /reg-page -->
+
+<script src="assets/shared.js"></script>
+<script>
+  let currentStep = 1;
+  const TOTAL = 5;
+
+  function goTo(step) {
+    document.getElementById('pane' + currentStep).style.display = 'none';
+    document.getElementById('pane' + step).style.display = 'block';
+
+    // Update stepper
+    for (let i = 1; i <= TOTAL; i++) {
+      const s = document.getElementById('s' + i);
+      s.classList.remove('active', 'done');
+      if (i < step)  s.classList.add('done');
+      if (i === step) s.classList.add('active');
+      // Checkmark for done steps
+      const circle = s.querySelector('.step-circle');
+      circle.textContent = i < step ? '✓' : i;
+    }
+    currentStep = step;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Show email in step 4
+    if (step === 4) {
+      const email = document.getElementById('email')?.value || 'your email';
+      document.getElementById('emailDisplay').textContent = email;
+      startOtpTimer();
+    }
+  }
+
+  // OTP navigation
+  function otpNext(el, nextId) {
+    el.value = el.value.replace(/\D/g, '');
+    if (el.value) {
+      el.classList.add('filled');
+      if (nextId) document.getElementById(nextId)?.focus();
+    } else {
+      el.classList.remove('filled');
+    }
+  }
+  function otpBack(e, el, prevId) {
+    if (e.key === 'Backspace' && !el.value && prevId) {
+      document.getElementById(prevId)?.focus();
+    }
+  }
+
+  // OTP timer
+  let timerInterval;
+  function startOtpTimer() {
+    clearInterval(timerInterval);
+    let secs = 600;
+    const el = document.getElementById('otpTimer');
+    timerInterval = setInterval(() => {
+      secs--;
+      const m = Math.floor(secs / 60), s = secs % 60;
+      el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      if (secs <= 0) { clearInterval(timerInterval); el.textContent = 'Expired'; }
+    }, 1000);
+  }
+
+  function resendOtp() {
+    ['o1','o2','o3','o4','o5','o6'].forEach(id => {
+      const el = document.getElementById(id);
+      el.value = ''; el.classList.remove('filled');
+    });
+    document.getElementById('o1').focus();
+    startOtpTimer();
+    alert('A new verification code has been sent to your email.');
+  }
+
+  function verifyOtp() {
+    const code = ['o1','o2','o3','o4','o5','o6'].map(id => document.getElementById(id).value).join('');
+    if (code.length < 6) { alert('Please enter the complete 6-digit verification code.'); return; }
+    // Prototype: any 6-digit code passes
+    goTo(5);
+  }
+
+  function submitReg() {
+    const checks = ['c1','c2','c3','c4','c5'];
+    const unchecked = checks.filter(id => !document.getElementById(id).checked);
+    if (unchecked.length > 0) {
+      alert('Please confirm all declarations before submitting your registration.');
+      return;
+    }
+    // Generate ref number
+    const ref = 'YP-REG-2026-' + String(Math.floor(Math.random() * 9000) + 1000);
+    document.getElementById('refNumber').textContent = 'Ref No: ' + ref;
+
+    // Hide stepper, show success
+    document.getElementById('stepper').style.display = 'none';
+    document.getElementById('pane5').style.display = 'none';
+    document.getElementById('pane6').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function triggerFile(id) {
+    // Prevent double-trigger from label click
+  }
+  function showFile(inputId, nameId) {
+    const file = document.getElementById(inputId).files[0];
+    const nameEl = document.getElementById(nameId);
+    if (file) {
+      nameEl.textContent = '✓ ' + file.name;
+      nameEl.style.display = 'block';
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Submit a Bid — YesParency</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+<style>
+  /* ─── PAGE SHELL ─── */
+  .bid-page { padding: 28px; flex: 1; }
+
+  /* ─── STEP FLOW ─── */
+  .flow-header {
+    display: flex; align-items: center; gap: 0;
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 10px; overflow: hidden; margin-bottom: 24px;
+  }
+  .flow-step {
+    flex: 1; display: flex; align-items: center; gap: 10px;
+    padding: 14px 18px; font-size: .8rem; font-weight: 500;
+    color: var(--text-dim); border-right: 1px solid var(--border-d);
+    position: relative; cursor: default;
+  }
+  .flow-step:last-child { border-right: none; }
+  .flow-step.done   { color: var(--green-nat); }
+  .flow-step.active { color: var(--green-base); font-weight: 700; background: rgba(12,58,27,.04); }
+  .flow-num {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: .72rem; font-weight: 700;
+    background: var(--border-d); color: var(--text-dim);
+    transition: all .2s;
+  }
+  .flow-step.done   .flow-num { background: var(--green-nat); color: var(--white); }
+  .flow-step.active .flow-num { background: var(--green-base); color: var(--white); }
+
+  /* ─── PANES ─── */
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  /* ─── RECEIPT VERIFY ─── */
+  .verify-card {
+    max-width: 560px; margin: 0 auto;
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 12px; overflow: hidden;
+  }
+  .verify-card-top {
+    background: var(--green-base); padding: 28px 32px;
+    border-bottom: 3px solid var(--gold);
+  }
+  .verify-eyebrow { font-family: 'DM Mono', monospace; font-size: .63rem; letter-spacing: .16em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+  .verify-title   { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; color: var(--white); margin-bottom: 4px; }
+  .verify-sub     { font-size: .82rem; color: rgba(255,255,255,.5); }
+  .verify-body    { padding: 28px 32px; }
+
+  .receipt-input-wrap {
+    display: flex; gap: 10px; margin: 20px 0;
+  }
+  .receipt-input {
+    flex: 1; padding: 12px 16px; border-radius: 8px;
+    border: 2px solid var(--border-d); font-size: .95rem;
+    font-family: 'DM Mono', monospace; font-weight: 600;
+    color: var(--text); background: var(--dash-bg); outline: none;
+    letter-spacing: .06em; text-transform: uppercase;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .receipt-input:focus { border-color: var(--green-nat); box-shadow: 0 0 0 3px rgba(73,122,58,.1); background: var(--white); }
+  .receipt-input.error { border-color: var(--red); box-shadow: 0 0 0 3px rgba(218,33,40,.08); }
+  .receipt-input.success { border-color: var(--green-nat); background: rgba(73,122,58,.04); }
+
+  .btn-verify {
+    padding: 12px 24px; background: var(--green-base); color: var(--white);
+    border: none; border-radius: 8px; font-size: .85rem; font-weight: 700;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: background .2s; white-space: nowrap;
+  }
+  .btn-verify:hover { background: var(--green-mid); }
+
+  .receipt-result {
+    display: none; border-radius: 8px; padding: 14px 16px;
+    margin-bottom: 16px; font-size: .82rem; line-height: 1.6;
+  }
+  .receipt-result.ok  { background: rgba(73,122,58,.08); border: 1px solid rgba(73,122,58,.2); color: #2d6b1f; }
+  .receipt-result.err { background: rgba(218,33,40,.07); border: 1px solid rgba(218,33,40,.18); color: #b01a1f; }
+  .receipt-result.ok strong { display: block; margin-bottom: 4px; font-size: .88rem; }
+
+  .info-note {
+    background: rgba(43,87,151,.07); border: 1px solid rgba(43,87,151,.16);
+    border-radius: 8px; padding: 12px 14px;
+    display: flex; gap: 10px; font-size: .78rem; color: var(--text); line-height: 1.6;
+  }
+  .info-note svg { flex-shrink: 0; color: var(--blue); margin-top: 1px; }
+
+  /* ─── PROJECT SELECTION ─── */
+  .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; margin-bottom: 20px; }
+
+  .project-card {
+    background: var(--card-bg); border: 2px solid var(--border-d);
+    border-radius: 10px; padding: 18px 20px; cursor: pointer;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+    position: relative;
+  }
+  .project-card:hover { border-color: var(--green-nat); box-shadow: 0 4px 16px rgba(12,58,27,.08); }
+  .project-card.selected { border-color: var(--green-base); background: rgba(12,58,27,.03); box-shadow: 0 4px 20px rgba(12,58,27,.1); }
+  .project-card.selected::after {
+    content: '✓'; position: absolute; top: 12px; right: 14px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--green-base); color: var(--white);
+    font-size: .72rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .proj-ref   { font-family: 'DM Mono', monospace; font-size: .68rem; color: var(--text-dim); margin-bottom: 6px; }
+  .proj-name  { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: 10px; line-height: 1.4; }
+  .proj-meta  { display: flex; flex-direction: column; gap: 5px; }
+  .proj-row   { display: flex; align-items: center; gap: 7px; font-size: .76rem; color: var(--text-dim); }
+  .proj-row svg { flex-shrink: 0; opacity: .5; }
+  .proj-abc   { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--green-base); margin-top: 10px; }
+  .proj-status-bar { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-d); display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* ─── LOT SELECTION ─── */
+  .lot-section { margin-bottom: 24px; }
+  .lot-section-title {
+    font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border-d);
+  }
+  .lot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .lot-card {
+    border: 2px solid var(--border-d); border-radius: 8px; padding: 14px 16px;
+    cursor: pointer; transition: border-color .2s, background .2s;
+    position: relative;
+  }
+  .lot-card:hover { border-color: var(--green-nat); }
+  .lot-card.selected { border-color: var(--green-base); background: rgba(12,58,27,.03); }
+  .lot-card.selected::after {
+    content: '✓'; position: absolute; top: 8px; right: 10px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--green-base); color: var(--white);
+    font-size: .65rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .lot-num  { font-family: 'DM Mono', monospace; font-size: .62rem; color: var(--text-dim); margin-bottom: 4px; }
+  .lot-name { font-size: .84rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .lot-abc  { font-family: 'Playfair Display', serif; font-size: .95rem; font-weight: 700; color: var(--green-base); }
+  .lot-desc { font-size: .72rem; color: var(--text-dim); margin-top: 4px; line-height: 1.4; }
+
+  /* ─── BID FORM ─── */
+  .bid-form-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+
+  .form-card {
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 10px; overflow: hidden;
+  }
+  .form-card-header {
+    padding: 14px 20px; border-bottom: 1px solid var(--border-d);
+    display: flex; align-items: center; gap: 8px;
+    font-size: .86rem; font-weight: 600; color: var(--text);
+  }
+  .form-card-header svg { color: var(--green-base); opacity: .7; }
+  .form-card-body { padding: 20px; }
+
+  .field-group { margin-bottom: 18px; }
+  .field-label {
+    display: block; font-size: .76rem; font-weight: 600;
+    color: var(--text); margin-bottom: 6px; letter-spacing: .02em;
+  }
+  .field-label .req { color: var(--red); margin-left: 2px; }
+  .field-input, .field-select, .field-textarea {
+    width: 100%; padding: 10px 13px; border-radius: 7px;
+    border: 1px solid var(--border-d); font-size: .86rem;
+    font-family: 'DM Sans', sans-serif; color: var(--text);
+    background: var(--dash-bg); outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .field-input:focus, .field-select:focus, .field-textarea:focus {
+    border-color: var(--green-nat); box-shadow: 0 0 0 3px rgba(73,122,58,.1); background: var(--white);
+  }
+  .field-input.currency { font-family: 'DM Mono', monospace; font-size: .92rem; font-weight: 600; }
+  .field-textarea { resize: vertical; min-height: 80px; }
+  .field-hint { font-size: .71rem; color: var(--text-dim); margin-top: 4px; }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* File upload */
+  .upload-zone {
+    border: 2px dashed var(--border-d); border-radius: 8px;
+    padding: 18px; text-align: center; cursor: pointer;
+    transition: border-color .2s, background .2s; background: var(--dash-bg);
+    position: relative;
+  }
+  .upload-zone:hover { border-color: var(--green-nat); background: rgba(73,122,58,.03); }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-label { font-size: .8rem; font-weight: 600; color: var(--green-base); }
+  .upload-sub   { font-size: .7rem; color: var(--text-dim); margin-top: 3px; }
+  .upload-files { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+  .upload-file-item {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+    background: rgba(73,122,58,.07); border-radius: 5px;
+    font-size: .74rem; color: var(--green-base); font-weight: 500;
+  }
+  .upload-file-item svg { flex-shrink: 0; }
+
+  /* Envelope labels */
+  .envelope-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'DM Mono', monospace; font-size: .65rem; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 4px; margin-bottom: 14px;
+  }
+  .env-1 { background: rgba(43,87,151,.1); color: var(--blue); border: 1px solid rgba(43,87,151,.2); }
+  .env-2 { background: rgba(253,185,19,.12); color: #8a6000; border: 1px solid rgba(253,185,19,.25); }
+
+  /* Summary sidebar */
+  .summary-card {
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 10px; overflow: hidden; position: sticky; top: 80px;
+  }
+  .summary-header {
+    background: var(--green-base); padding: 14px 18px;
+    font-family: 'DM Mono', monospace; font-size: .65rem;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--gold);
+  }
+  .summary-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .summary-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .summary-key { font-size: .74rem; color: var(--text-dim); flex-shrink: 0; }
+  .summary-val { font-size: .78rem; font-weight: 600; color: var(--text); text-align: right; }
+  .summary-val.mono { font-family: 'DM Mono', monospace; }
+  .summary-divider { height: 1px; background: var(--border-d); }
+  .summary-abc {
+    font-family: 'Playfair Display', serif; font-size: 1.1rem;
+    font-weight: 700; color: var(--green-base); text-align: center;
+    padding: 8px 0;
+  }
+  .summary-abc span { display: block; font-family: 'DM Mono', monospace; font-size: .62rem; font-weight: 400; color: var(--text-dim); margin-bottom: 2px; }
+
+  .lock-notice {
+    background: rgba(253,185,19,.08); border: 1px solid rgba(253,185,19,.22);
+    border-radius: 7px; padding: 11px 13px;
+    font-size: .75rem; color: #7a5500; line-height: 1.55;
+    display: flex; gap: 8px;
+  }
+  .lock-notice svg { flex-shrink: 0; margin-top: 1px; }
+
+  /* ─── REVIEW PANE ─── */
+  .review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .review-block {
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 8px; padding: 16px 18px;
+  }
+  .review-block-title {
+    font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border-d);
+  }
+  .review-row { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: .8rem; }
+  .review-key { color: var(--text-dim); }
+  .review-val { font-weight: 600; color: var(--text); text-align: right; }
+  .review-val.mono { font-family: 'DM Mono', monospace; }
+
+  .declaration-box {
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 8px; padding: 18px 20px; margin-bottom: 20px;
+  }
+  .declaration-title { font-size: .86rem; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+  .decl-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 9px 0; border-bottom: 1px solid var(--border-d); font-size: .8rem;
+  }
+  .decl-item:last-child { border-bottom: none; }
+  .decl-item input[type="checkbox"] { margin-top: 2px; accent-color: var(--green-base); flex-shrink: 0; }
+  .decl-item span { color: var(--text); line-height: 1.55; }
+
+  /* ─── SUCCESS ─── */
+  .success-pane {
+    max-width: 560px; margin: 0 auto; text-align: center;
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 12px; padding: 48px 36px;
+  }
+  .success-icon-wrap {
+    width: 68px; height: 68px; border-radius: 50%; margin: 0 auto 20px;
+    background: rgba(73,122,58,.1); border: 2px solid rgba(73,122,58,.25);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .success-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: var(--green-base); margin-bottom: 8px; }
+  .success-sub   { font-size: .86rem; color: var(--text-dim); line-height: 1.65; margin-bottom: 20px; }
+  .success-ref   {
+    font-family: 'DM Mono', monospace; font-size: .82rem; font-weight: 600;
+    background: var(--dash-bg); border: 1px solid var(--border-d);
+    border-radius: 6px; padding: 10px 20px; display: inline-block; margin-bottom: 24px;
+    color: var(--green-base);
+  }
+  .locked-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(218,33,40,.07); border: 1px solid rgba(218,33,40,.18);
+    border-radius: 6px; padding: 8px 14px; font-size: .78rem;
+    color: #b01a1f; font-weight: 600; margin-bottom: 20px;
+  }
+  .success-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  /* ─── BOTTOM ACTIONS ─── */
+  .pane-actions {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 0 0; margin-top: 8px;
+    border-top: 1px solid var(--border-d);
+  }
+  .btn-back {
+    padding: 10px 22px; border-radius: 7px;
+    border: 1px solid var(--border-d); background: var(--card-bg);
+    font-size: .84rem; font-weight: 600; color: var(--text-dim);
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: border-color .2s, color .2s;
+  }
+  .btn-back:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .btn-next {
+    padding: 10px 26px; border-radius: 7px;
+    background: var(--green-base); color: var(--white);
+    border: none; font-size: .84rem; font-weight: 700;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: background .2s, transform .15s;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .btn-next:hover { background: var(--green-mid); transform: translateY(-1px); }
+  .btn-submit {
+    padding: 10px 26px; border-radius: 7px;
+    background: var(--gold); color: var(--green-base);
+    border: none; font-size: .84rem; font-weight: 700;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: background .2s; display: flex; align-items: center; gap: 7px;
+  }
+  .btn-submit:hover { background: var(--gold-light); }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    .bid-form-grid { grid-template-columns: 1fr; }
+    .summary-card { position: static; }
+    .review-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .bid-page { padding: 16px; }
+    .flow-step .flow-label { display: none; }
+    .project-grid { grid-template-columns: 1fr; }
+    .lot-grid { grid-template-columns: 1fr; }
+    .field-row { grid-template-columns: 1fr; }
+    .verify-body, .verify-card-top { padding: 20px; }
+    .receipt-input-wrap { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<aside class="dash-sidebar" id="sidebar">
+  <a href="yesparency-landing.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div><div class="brand-name">YesParency</div><div class="brand-sub">SLSU Procurement</div></div>
+  </a>
+  <div class="sidebar-profile">
+    <div class="profile-avatar">JC</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Juan M. Cruz</div>
+      <div class="profile-role">Registered Bidder</div>
+      <div class="profile-verified">Account Verified</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a href="bidder-dashboard.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="submit-bid.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      Submit a Bid
+    </a>
+    <a href="my-bids.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      My Bids
+    </a>
+    <div class="nav-section-label">Information</div>
+    <a href="bid-schedule.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Bid Schedule
+    </a>
+    <a href="notifications.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Notifications
+      <span class="nav-badge">3</span>
+    </a>
+    <div class="nav-section-label">Account</div>
+    <a href="profile-settings.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile &amp; Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<div class="dash-main">
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb">
+        <a href="bidder-dashboard.html">Dashboard</a>
+        <span class="topbar-sep">/</span>
+      </span>
+      <span class="topbar-page">Submit a Bid</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-dot"></div></div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar">JC</div>
+    </div>
+  </header>
+
+  <main class="bid-page">
+
+    <!-- STEP FLOW HEADER -->
+    <div class="flow-header" id="flowHeader">
+      <div class="flow-step active" id="fs1"><div class="flow-num">1</div><span class="flow-label">Verify Receipt</span></div>
+      <div class="flow-step" id="fs2"><div class="flow-num">2</div><span class="flow-label">Select Project</span></div>
+      <div class="flow-step" id="fs3"><div class="flow-num">3</div><span class="flow-label">Select Lots</span></div>
+      <div class="flow-step" id="fs4"><div class="flow-num">4</div><span class="flow-label">Bid Details</span></div>
+      <div class="flow-step" id="fs5"><div class="flow-num">5</div><span class="flow-label">Review &amp; Submit</span></div>
+    </div>
+
+    <!-- ── PANE 1: RECEIPT VERIFICATION ── -->
+    <div class="pane active" id="pane1">
+      <div class="verify-card">
+        <div class="verify-card-top">
+          <div class="verify-eyebrow">Step 1 of 5 — Bid Document Receipt</div>
+          <div class="verify-title">Verify Your Bid Documents Receipt</div>
+          <div class="verify-sub">Before submitting a bid, you must purchase the official Bid Documents from the SLSU Procurement Office and enter the reference number from your official receipt.</div>
+        </div>
+        <div class="verify-body">
+          <div class="info-note" style="margin-bottom:20px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Bid Documents are available at the <strong>SLSU Procurement Office, Admin Building</strong> during office hours (8:00 AM – 5:00 PM, Mon–Fri). The receipt reference number is printed on your Official Receipt (OR).</span>
+          </div>
+
+          <label class="field-label">Official Receipt Reference Number <span class="req" style="color:var(--red);">*</span></label>
+          <div class="receipt-input-wrap">
+            <input class="receipt-input" id="receiptInput" type="text" placeholder="e.g. OR-2026-004821" maxlength="20"/>
+            <button class="btn-verify" onclick="verifyReceipt()">Verify</button>
+          </div>
+
+          <div class="receipt-result" id="receiptResult"></div>
+
+          <div class="info-note">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Each receipt number is valid for <strong>one bid submission only</strong> and is tied to a specific procurement project. Ensure your receipt corresponds to the project you intend to bid on.</span>
+          </div>
+
+          <div class="pane-actions">
+            <span style="font-size:.76rem;color:var(--text-dim);">Don't have a receipt? Visit the Procurement Office.</span>
+            <button class="btn-next" id="btn1Next" onclick="goTo(2)" disabled style="opacity:.4;cursor:not-allowed;">
+              Continue <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PANE 2: SELECT PROJECT ── -->
+    <div class="pane" id="pane2">
+      <div style="margin-bottom:16px;">
+        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:4px;">Select a Procurement Project</div>
+        <div style="font-size:.8rem;color:var(--text-dim);">Your receipt is valid for the projects listed below. Select the project you wish to bid on.</div>
+      </div>
+      <div class="project-grid" id="projectGrid">
+
+        <div class="project-card" onclick="selectProject(this,'SLSU-BAC-2026-011','Supply of IT Equipment and Peripherals for CIT','April 10, 2026','₱3,200,000.00','3 Lots Available')">
+          <div class="proj-ref">SLSU-BAC-2026-011</div>
+          <div class="proj-name">Supply of Information Technology Equipment and Peripherals for the College of Industrial Technology</div>
+          <div class="proj-meta">
+            <div class="proj-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Bid Opening: April 10, 2026 at 2:00 PM</div>
+            <div class="proj-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Submission Deadline: April 9, 2026 at 5:00 PM</div>
+          </div>
+          <div class="proj-abc">₱3,200,000.00</div>
+          <div class="proj-status-bar">
+            <span class="badge badge-blue">Open for Submission</span>
+            <span class="badge badge-gray">3 Lots</span>
+          </div>
+        </div>
+
+        <div class="project-card" onclick="selectProject(this,'SLSU-BAC-2026-007','Construction of New Multi-Purpose Hall at SLSU Main Campus','April 3, 2026','₱18,750,000.00','1 Lot')">
+          <div class="proj-ref">SLSU-BAC-2026-007</div>
+          <div class="proj-name">Construction of New Multi-Purpose Hall at SLSU Main Campus</div>
+          <div class="proj-meta">
+            <div class="proj-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Bid Opening: April 3, 2026 at 10:00 AM</div>
+            <div class="proj-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Submission Deadline: April 2, 2026 at 5:00 PM</div>
+          </div>
+          <div class="proj-abc">₱18,750,000.00</div>
+          <div class="proj-status-bar">
+            <span class="badge badge-blue">Open for Submission</span>
+            <span class="badge badge-gray">1 Lot</span>
+          </div>
+        </div>
+
+      </div>
+      <div class="pane-actions">
+        <button class="btn-back" onclick="goTo(1)">← Back</button>
+        <button class="btn-next" id="btn2Next" onclick="goTo(3)" disabled style="opacity:.4;cursor:not-allowed;">
+          Continue <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── PANE 3: SELECT LOTS ── -->
+    <div class="pane" id="pane3">
+      <div style="margin-bottom:16px;">
+        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:4px;">Select Lot(s) to Bid On</div>
+        <div style="font-size:.8rem;color:var(--text-dim);">You may bid on one or more lots. Each lot requires a separate financial bid envelope.</div>
+      </div>
+
+      <div class="lot-section">
+        <div class="lot-section-title" id="lotProjectLabel">SLSU-BAC-2026-011 — IT Equipment and Peripherals</div>
+        <div class="lot-grid" id="lotGrid">
+
+          <div class="lot-card" onclick="toggleLot(this,'lot1','Lot 1 — High-End Workstations','₱1,400,000.00')">
+            <div class="lot-num">Lot 1</div>
+            <div class="lot-name">High-End Workstations &amp; Servers</div>
+            <div class="lot-abc">₱1,400,000.00</div>
+            <div class="lot-desc">Intel Core i9 / Xeon workstations, rack servers, UPS units for the CIT server room.</div>
+          </div>
+
+          <div class="lot-card" onclick="toggleLot(this,'lot2','Lot 2 — Mid-Range Desktops','₱1,100,000.00')">
+            <div class="lot-num">Lot 2</div>
+            <div class="lot-name">Mid-Range Desktop Computers</div>
+            <div class="lot-abc">₱1,100,000.00</div>
+            <div class="lot-desc">Intel Core i5 desktop units with monitors for computer laboratory use.</div>
+          </div>
+
+          <div class="lot-card" onclick="toggleLot(this,'lot3','Lot 3 — Peripherals &amp; Accessories','₱700,000.00')">
+            <div class="lot-num">Lot 3</div>
+            <div class="lot-name">Peripherals &amp; Accessories</div>
+            <div class="lot-abc">₱700,000.00</div>
+            <div class="lot-desc">Keyboards, mice, webcams, headsets, network switches, and cabling materials.</div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="info-note" style="margin-bottom:16px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>You may bid on multiple lots. Each selected lot will require its own Envelope 2 (Financial Bid) with a separate bid price. Envelope 1 (Eligibility) is shared across all lots.</span>
+      </div>
+
+      <div class="pane-actions">
+        <button class="btn-back" onclick="goTo(2)">← Back</button>
+        <button class="btn-next" id="btn3Next" onclick="goTo(4)" disabled style="opacity:.4;cursor:not-allowed;">
+          Continue <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── PANE 4: BID DETAILS ── -->
+    <div class="pane" id="pane4">
+      <div class="bid-form-grid">
+        <div>
+
+          <!-- Envelope 1 -->
+          <div class="form-card" style="margin-bottom:18px;">
+            <div class="form-card-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Envelope 1 — Eligibility &amp; Technical Documents
+            </div>
+            <div class="form-card-body">
+              <div class="envelope-tag env-1">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Envelope 1 · Eligibility &amp; Technical
+              </div>
+              <div class="field-row" style="margin-bottom:14px;">
+                <div class="field-group">
+                  <label class="field-label">Legal Eligibility Documents <span class="req">*</span></label>
+                  <div class="upload-zone">
+                    <input type="file" multiple accept=".pdf" onchange="addFiles(this,'uf1')"/>
+                    <div class="upload-label">Upload PDF files</div>
+                    <div class="upload-sub">DTI/SEC, Mayor's Permit, BIR Form 2303, PhilGEPS Cert</div>
+                  </div>
+                  <div class="upload-files" id="uf1"></div>
+                </div>
+                <div class="field-group">
+                  <label class="field-label">Technical Specifications Compliance <span class="req">*</span></label>
+                  <div class="upload-zone">
+                    <input type="file" multiple accept=".pdf" onchange="addFiles(this,'uf2')"/>
+                    <div class="upload-label">Upload PDF files</div>
+                    <div class="upload-sub">Technical specs, brochures, compliance statements</div>
+                  </div>
+                  <div class="upload-files" id="uf2"></div>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Statement of Ongoing &amp; Completed Contracts</label>
+                <div class="upload-zone">
+                  <input type="file" accept=".pdf" onchange="addFiles(this,'uf3')"/>
+                  <div class="upload-label">Upload PDF</div>
+                  <div class="upload-sub">SLCC / Audited Financial Statements</div>
+                </div>
+                <div class="upload-files" id="uf3"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Envelope 2 -->
+          <div class="form-card" id="env2Card">
+            <div class="form-card-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Envelope 2 — Financial Bid
+            </div>
+            <div class="form-card-body" id="env2Body">
+              <!-- Dynamically populated per lot -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Summary Sidebar -->
+        <div>
+          <div class="summary-card">
+            <div class="summary-header">Bid Summary</div>
+            <div class="summary-body">
+              <div class="summary-row">
+                <span class="summary-key">Project</span>
+                <span class="summary-val" id="sumProject">—</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-key">Ref No.</span>
+                <span class="summary-val mono" id="sumRef">—</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-key">Receipt No.</span>
+                <span class="summary-val mono" id="sumReceipt">—</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-key">Selected Lots</span>
+                <span class="summary-val" id="sumLots">—</span>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-abc"><span>Total ABC for Selected Lots</span><span id="sumABC">₱0.00</span></div>
+              <div class="summary-divider"></div>
+              <div class="lock-notice">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span>Once submitted, your bid is <strong>locked</strong>. To request an amendment, you must submit a formal Edit Request to the BAC before the submission deadline.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pane-actions">
+        <button class="btn-back" onclick="goTo(3)">← Back</button>
+        <button class="btn-next" onclick="goTo(5)">
+          Review Bid <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── PANE 5: REVIEW & SUBMIT ── -->
+    <div class="pane" id="pane5">
+      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:16px;">Review Your Bid Before Submitting</div>
+
+      <div class="review-grid">
+        <div class="review-block">
+          <div class="review-block-title">Procurement Details</div>
+          <div class="review-row"><span class="review-key">Project</span><span class="review-val" id="rv-project">—</span></div>
+          <div class="review-row"><span class="review-key">Ref No.</span><span class="review-val mono" id="rv-ref">—</span></div>
+          <div class="review-row"><span class="review-key">Bid Opening</span><span class="review-val" id="rv-opening">—</span></div>
+          <div class="review-row"><span class="review-key">Deadline</span><span class="review-val" id="rv-deadline">—</span></div>
+        </div>
+        <div class="review-block">
+          <div class="review-block-title">Bidder Information</div>
+          <div class="review-row"><span class="review-key">Bidder</span><span class="review-val">Juan M. Cruz</span></div>
+          <div class="review-row"><span class="review-key">Bidder ID</span><span class="review-val mono">SLSU-BID-2026-0042</span></div>
+          <div class="review-row"><span class="review-key">Receipt No.</span><span class="review-val mono" id="rv-receipt">—</span></div>
+          <div class="review-row"><span class="review-key">PhilGEPS</span><span class="review-val">Verified ✓</span></div>
+        </div>
+        <div class="review-block" style="grid-column:span 2;" id="rv-lots-block">
+          <div class="review-block-title">Selected Lots &amp; Bid Prices</div>
+          <div id="rv-lots-content" style="font-size:.82rem;color:var(--text-dim);">No lots selected.</div>
+        </div>
+      </div>
+
+      <div class="declaration-box">
+        <div class="declaration-title">Declaration &amp; Certification</div>
+        <label class="decl-item">
+          <input type="checkbox" id="dc1"/>
+          <span>I certify that all information and documents submitted in this bid are true, accurate, and complete. I understand that any false declaration may result in disqualification and legal action under RA 9184.</span>
+        </label>
+        <label class="decl-item">
+          <input type="checkbox" id="dc2"/>
+          <span>I confirm that the bid prices submitted in Envelope 2 are firm and valid for the period stated in the Bidding Documents, and that I have not colluded with any other bidder.</span>
+        </label>
+        <label class="decl-item">
+          <input type="checkbox" id="dc3"/>
+          <span>I acknowledge that once submitted, my bid is <strong>locked and cannot be modified</strong> without a formal Edit Request approved by the BAC before the submission deadline.</span>
+        </label>
+        <label class="decl-item">
+          <input type="checkbox" id="dc4"/>
+          <span>I understand that this submission will be recorded in the YesParency audit trail with a timestamp, and that the BAC will open my bid during the scheduled public bid opening.</span>
+        </label>
+      </div>
+
+      <div class="pane-actions">
+        <button class="btn-back" onclick="goTo(4)">← Back</button>
+        <button class="btn-submit" onclick="submitBid()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Lock &amp; Submit Bid
+        </button>
+      </div>
+    </div>
+
+    <!-- ── PANE 6: SUCCESS ── -->
+    <div class="pane" id="pane6">
+      <div class="success-pane">
+        <div class="success-icon-wrap">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--green-nat)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="success-title">Bid Submitted &amp; Locked</div>
+        <div class="success-sub">Your two-envelope bid has been securely submitted and encrypted. It will remain sealed until the official bid opening date.</div>
+        <div class="success-ref" id="bidRefNum">Bid Ref: BID-0042-006</div>
+        <div class="locked-badge">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Bid Locked — Edit Request Required to Amend
+        </div>
+        <div style="background:var(--dash-bg);border:1px solid var(--border-d);border-radius:8px;padding:14px 18px;text-align:left;margin-bottom:24px;font-size:.8rem;color:var(--text-dim);line-height:1.7;">
+          <strong style="color:var(--text);display:block;margin-bottom:6px;">What happens next?</strong>
+          Your bid envelopes are now encrypted and stored securely. On the bid opening date, the BAC Chairperson will authenticate with a digital signature to unlock and open the envelopes in sequence — Envelope 1 (Eligibility) first, then Envelope 2 (Financial Bid) — during the live public broadcast.
+        </div>
+        <div class="success-actions">
+          <a href="bidder-dashboard.html" class="btn-next" style="text-decoration:none;">Go to Dashboard</a>
+          <a href="bid-live.html" style="padding:10px 22px;border-radius:7px;border:1px solid var(--border-d);color:var(--text);font-size:.84rem;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            Watch Live Opening
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="assets/dashboard.js"></script>
+<script>
+  // ── State ──
+  const state = {
+    receipt: '', receiptValid: false,
+    project: null, lots: {},
+    bidPrices: {}
+  };
+
+  // Demo valid receipts
+  const VALID_RECEIPTS = {
+    '1': { project: 'SLSU-BAC-2026-011', name: 'IT Equipment and Peripherals for CIT', date: 'March 25, 2026', amount: '₱500.00' },
+    'OR-2026-004821': { project: 'SLSU-BAC-2026-011', name: 'IT Equipment and Peripherals for CIT', date: 'March 25, 2026', amount: '₱500.00' },
+    'OR-2026-004799': { project: 'SLSU-BAC-2026-007', name: 'Construction of Multi-Purpose Hall', date: 'March 22, 2026', amount: '₱1,000.00' },
+  };
+
+  const LOT_ABCS = { lot1: 1400000, lot2: 1100000, lot3: 700000 };
+
+  // ── Step navigation ──
+  let currentStep = 1;
+  function goTo(step) {
+    document.getElementById('pane' + currentStep).classList.remove('active');
+    document.getElementById('pane' + step).classList.add('active');
+    for (let i = 1; i <= 5; i++) {
+      const fs = document.getElementById('fs' + i);
+      if (!fs) continue;
+      fs.classList.remove('active', 'done');
+      if (i < step)  fs.classList.add('done'),   fs.querySelector('.flow-num').textContent = '✓';
+      if (i === step) fs.classList.add('active'), fs.querySelector('.flow-num').textContent = i;
+      if (i > step)  fs.querySelector('.flow-num').textContent = i;
+    }
+    if (step === 4) buildEnv2();
+    if (step === 5) buildReview();
+    if (step === 6) document.getElementById('flowHeader').style.display = 'none';
+    currentStep = step;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── Receipt verification ──
+  function verifyReceipt() {
+    const val = document.getElementById('receiptInput').value.trim().toUpperCase();
+    const input = document.getElementById('receiptInput');
+    const result = document.getElementById('receiptResult');
+    const btn = document.getElementById('btn1Next');
+
+    if (!val) { showError(input, result, 'Please enter a receipt reference number.'); return; }
+
+    const match = VALID_RECEIPTS[val];
+    if (match) {
+      state.receipt = val;
+      state.receiptValid = true;
+      input.classList.remove('error'); input.classList.add('success');
+      result.className = 'receipt-result ok';
+      result.style.display = 'block';
+      result.innerHTML = `<strong>✓ Receipt Verified</strong>
+        Receipt No: <strong>${val}</strong><br>
+        Project: ${match.name}<br>
+        Date Purchased: ${match.date} &nbsp;·&nbsp; Amount Paid: ${match.amount}`;
+      btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+    } else {
+      showError(input, result, 'Receipt not found. Please check the number and try again, or visit the Procurement Office.');
+      state.receiptValid = false;
+      btn.disabled = true; btn.style.opacity = '.4'; btn.style.cursor = 'not-allowed';
+    }
+  }
+
+  function showError(input, result, msg) {
+    input.classList.add('error'); input.classList.remove('success');
+    result.className = 'receipt-result err';
+    result.style.display = 'block';
+    result.textContent = '✕ ' + msg;
+  }
+
+  document.getElementById('receiptInput').addEventListener('keydown', e => { if (e.key === 'Enter') verifyReceipt(); });
+
+  // ── Project selection ──
+  function selectProject(el, ref, name, opening, abc, lots) {
+    document.querySelectorAll('.project-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    state.project = { ref, name, opening, abc, lots };
+    // Update summary
+    document.getElementById('sumProject').textContent = name.length > 40 ? name.slice(0,40)+'…' : name;
+    document.getElementById('sumRef').textContent = ref;
+    document.getElementById('sumReceipt').textContent = state.receipt;
+    // Enable next
+    const btn = document.getElementById('btn2Next');
+    btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+  }
+
+  // ── Lot selection ──
+  function toggleLot(el, id, name, abc) {
+    el.classList.toggle('selected');
+    if (el.classList.contains('selected')) {
+      state.lots[id] = { name, abc };
+    } else {
+      delete state.lots[id];
+      delete state.bidPrices[id];
+    }
+    updateLotSummary();
+  }
+
+  function updateLotSummary() {
+    const keys = Object.keys(state.lots);
+    const btn = document.getElementById('btn3Next');
+    if (keys.length > 0) {
+      btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+      document.getElementById('sumLots').textContent = keys.map(k => state.lots[k].name.split('—')[0].trim()).join(', ');
+      const total = keys.reduce((s, k) => s + LOT_ABCS[k], 0);
+      document.getElementById('sumABC').textContent = '₱' + total.toLocaleString('en-PH', {minimumFractionDigits:2});
+    } else {
+      btn.disabled = true; btn.style.opacity = '.4'; btn.style.cursor = 'not-allowed';
+      document.getElementById('sumLots').textContent = '—';
+      document.getElementById('sumABC').textContent = '₱0.00';
+    }
+  }
+
+  // ── Build Envelope 2 fields per lot ──
+  function buildEnv2() {
+    const body = document.getElementById('env2Body');
+    body.innerHTML = '';
+    Object.entries(state.lots).forEach(([id, lot]) => {
+      const div = document.createElement('div');
+      div.style.marginBottom = '20px';
+      div.innerHTML = `
+        <div class="envelope-tag env-2">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Envelope 2 · ${lot.name}
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Total Bid Price (PHP) <span class="req">*</span></label>
+            <input class="field-input currency" type="text" id="price_${id}" placeholder="0.00"
+              oninput="updateBidPrice('${id}', this.value)"
+              onfocus="this.select()"/>
+            <div class="field-hint">ABC: ${lot.abc} — Bids exceeding the ABC will be disqualified.</div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Bid Security Form <span class="req">*</span></label>
+            <select class="field-select">
+              <option value="">Select type...</option>
+              <option>Surety Bond</option>
+              <option>Cash</option>
+              <option>Manager's Check</option>
+              <option>Bank Draft</option>
+              <option>Letter of Credit</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Bid Security Amount (PHP) <span class="req">*</span></label>
+          <input class="field-input currency" type="text" placeholder="Min. 2% of bid price"/>
+          <div class="field-hint">Minimum 2% of your total bid price as required under RA 9184 IRR.</div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Financial Bid Document (Signed) <span class="req">*</span></label>
+          <div class="upload-zone">
+            <input type="file" accept=".pdf" onchange="addFiles(this,'uf_${id}')"/>
+            <div class="upload-label">Upload signed Financial Bid Form (PDF)</div>
+            <div class="upload-sub">Must be signed by authorized representative</div>
+          </div>
+          <div class="upload-files" id="uf_${id}"></div>
+        </div>`;
+      body.appendChild(div);
+    });
+  }
+
+  function updateBidPrice(id, val) {
+    state.bidPrices[id] = val;
+  }
+
+  // ── Build review ──
+  function buildReview() {
+    if (state.project) {
+      document.getElementById('rv-project').textContent = state.project.name;
+      document.getElementById('rv-ref').textContent = state.project.ref;
+      document.getElementById('rv-opening').textContent = state.project.opening;
+      document.getElementById('rv-deadline').textContent = 'April 9, 2026 at 5:00 PM';
+    }
+    document.getElementById('rv-receipt').textContent = state.receipt;
+
+    const lotsHtml = Object.entries(state.lots).map(([id, lot]) => `
+      <div class="review-row">
+        <span class="review-key">${lot.name}</span>
+        <span class="review-val mono">${state.bidPrices[id] ? '₱' + parseFloat(state.bidPrices[id].replace(/,/g,'')).toLocaleString('en-PH',{minimumFractionDigits:2}) : '(not entered)'}</span>
+      </div>`).join('');
+    document.getElementById('rv-lots-content').innerHTML = lotsHtml || '<span style="color:var(--text-dim)">No lots selected.</span>';
+  }
+
+  // ── File upload display ──
+  function addFiles(input, containerId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    Array.from(input.files).forEach(f => {
+      const item = document.createElement('div');
+      item.className = 'upload-file-item';
+      item.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${f.name}`;
+      container.appendChild(item);
+    });
+  }
+
+  // ── Submit ──
+  function submitBid() {
+    const checks = ['dc1','dc2','dc3','dc4'];
+    if (checks.some(id => !document.getElementById(id).checked)) {
+      alert('Please confirm all declarations before submitting your bid.');
+      return;
+    }
+    const ref = 'BID-0042-001';
+    document.getElementById('bidRefNum').textContent = 'Bid Ref: ' + ref;
+    goTo(6);
+  }
+</script>
+</body>
+</html>
+

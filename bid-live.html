@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Live Bid Opening — YesParency | SLSU</title>
+<link rel="stylesheet" href="assets/shared.css"/>
+<style>
+  body { background: #080d08; color: var(--white); }
+
+  /* ─── TOP BAR ─── */
+  .live-topbar {
+    background: var(--green-base); border-bottom: 2px solid var(--gold);
+    padding: 10px 28px; display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+  }
+  .live-topbar-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .live-topbar-back {
+    display: flex; align-items: center; gap: 6px;
+    color: rgba(255,255,255,.5); font-size: .75rem; text-decoration: none;
+    transition: color .2s;
+  }
+  .live-topbar-back:hover { color: var(--gold); }
+  .live-topbar-divider { width: 1px; height: 28px; background: rgba(255,255,255,.12); }
+  .live-topbar-title { font-family: 'Playfair Display', serif; font-size: .92rem; font-weight: 700; color: var(--white); }
+  .live-topbar-meta  { font-size: .72rem; color: rgba(255,255,255,.45); margin-top: 2px; }
+  .live-topbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+  .live-pill {
+    display: flex; align-items: center; gap: 7px;
+    background: rgba(218,33,40,.22); border: 1px solid rgba(218,33,40,.5);
+    color: #ff7a7e; font-size: .75rem; font-weight: 700; letter-spacing: .08em;
+    padding: 5px 12px; border-radius: 999px;
+  }
+  .viewer-count {
+    font-family: 'DM Mono', monospace; font-size: .72rem; color: rgba(255,255,255,.45);
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  /* ─── PHASE BANNER ─── */
+  .phase-banner {
+    background: rgba(43,87,151,.18); border-bottom: 1px solid rgba(43,87,151,.3);
+    padding: 8px 28px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .phase-step {
+    display: flex; align-items: center; gap: 7px;
+    font-family: 'DM Mono', monospace; font-size: .68rem; letter-spacing: .08em;
+    color: rgba(255,255,255,.3); padding: 4px 0;
+  }
+  .phase-step.done  { color: #5aad4e; }
+  .phase-step.done .phase-dot  { background: #5aad4e; }
+  .phase-step.active { color: var(--gold); }
+  .phase-step.active .phase-dot { background: var(--gold); animation: pulse-gold 1.4s ease-in-out infinite; }
+  .phase-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.2); flex-shrink: 0; }
+  @keyframes pulse-gold {
+    0%,100% { box-shadow: 0 0 0 0 rgba(253,185,19,.7); }
+    50%      { box-shadow: 0 0 0 6px rgba(253,185,19,0); }
+  }
+  .phase-arrow { color: rgba(255,255,255,.18); font-size: .7rem; }
+
+  /* ─── MAIN LAYOUT ─── */
+  .live-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: 1fr auto;
+    height: calc(100vh - 172px);
+    min-height: 520px;
+  }
+
+  /* ─── VIDEO PANEL ─── */
+  .video-panel {
+    background: #000; position: relative; overflow: hidden;
+    display: flex; align-items: stretch; justify-content: center;
+    grid-row: 1 / 2; grid-column: 1 / 2;
+  }
+  .video-placeholder {
+    width: 100%; background: #0a140a;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; position: relative; overflow: hidden;
+  }
+  .video-placeholder::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 40%, rgba(73,122,58,.1) 0%, transparent 65%),
+      radial-gradient(ellipse 30% 30% at 20% 80%, rgba(43,87,151,.08) 0%, transparent 60%);
+  }
+  /* Simulated camera feed grid lines */
+  .video-placeholder::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background-image: linear-gradient(rgba(255,255,255,.015) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,.015) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .video-cam-icon { opacity: .12; position: relative; z-index: 1; }
+  .video-stream-label {
+    font-family: 'DM Mono', monospace; font-size: .72rem; letter-spacing: .14em;
+    text-transform: uppercase; color: rgba(255,255,255,.25); position: relative; z-index: 1;
+  }
+  .video-slsu-badge {
+    position: relative; z-index: 1;
+    background: rgba(12,58,27,.7); border: 1px solid rgba(253,185,19,.2);
+    border-radius: 6px; padding: 8px 16px; text-align: center;
+  }
+  .video-slsu-badge .badge-title { font-family: 'Playfair Display', serif; font-size: .82rem; font-weight: 700; color: var(--gold); }
+  .video-slsu-badge .badge-sub   { font-size: .68rem; color: rgba(255,255,255,.45); margin-top: 2px; }
+
+  /* Overlays */
+  .video-live-badge {
+    position: absolute; top: 14px; left: 14px; z-index: 10;
+    background: var(--red); color: var(--white);
+    font-family: 'DM Mono', monospace; font-size: .65rem; font-weight: 700;
+    letter-spacing: .1em; padding: 4px 10px; border-radius: 4px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .video-timer {
+    position: absolute; top: 14px; right: 14px; z-index: 10;
+    background: rgba(0,0,0,.65); color: var(--white);
+    font-family: 'DM Mono', monospace; font-size: .78rem;
+    padding: 4px 10px; border-radius: 4px; letter-spacing: .06em;
+  }
+  .sig-required-overlay {
+    position: absolute; inset: 0; z-index: 20;
+    background: rgba(0,0,0,.82); backdrop-filter: blur(6px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; padding: 24px;
+  }
+  .sig-required-overlay.hidden { display: none; }
+  .sig-icon { opacity: .7; }
+  .sig-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; color: var(--white); text-align: center; }
+  .sig-desc  { font-size: .82rem; color: rgba(255,255,255,.5); text-align: center; max-width: 340px; line-height: 1.6; }
+  .sig-btn {
+    background: var(--gold); color: var(--green-base); border: none;
+    border-radius: 8px; padding: 11px 28px; font-size: .88rem; font-weight: 700;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .2s;
+  }
+  .sig-btn:hover { background: var(--gold-light); }
+
+  /* Controls */
+  .video-controls {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
+    background: linear-gradient(transparent, rgba(0,0,0,.8));
+    padding: 28px 16px 12px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .vc-btn {
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14);
+    color: var(--white); border-radius: 6px; padding: 6px 10px;
+    cursor: pointer; transition: background .2s; display: flex; align-items: center; gap: 5px;
+    font-size: .75rem; font-family: 'DM Sans', sans-serif;
+  }
+  .vc-btn:hover { background: rgba(255,255,255,.2); }
+  .vc-btn.muted { background: rgba(218,33,40,.25); border-color: rgba(218,33,40,.4); }
+  .vc-spacer { flex: 1; }
+  .vc-quality {
+    font-family: 'DM Mono', monospace; font-size: .67rem; color: rgba(255,255,255,.4);
+    background: rgba(0,0,0,.4); padding: 3px 7px; border-radius: 4px;
+  }
+  .vc-audit-note {
+    width: 100%; font-size: .65rem; color: rgba(255,255,255,.25);
+    font-family: 'DM Mono', monospace; letter-spacing: .04em; padding-top: 4px;
+  }
+
+  /* ─── INFO PANEL ─── */
+  .info-panel {
+    background: #0c160c; border-top: 1px solid rgba(255,255,255,.06);
+    padding: 14px 20px; grid-row: 2 / 3; grid-column: 1 / 2;
+    display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; overflow-y: auto;
+  }
+  .info-section { flex: 1; min-width: 150px; }
+  .info-label { font-family: 'DM Mono', monospace; font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+  .info-value { font-size: .82rem; color: rgba(255,255,255,.75); line-height: 1.5; }
+  .info-value strong { color: var(--white); }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    grid-row: 1 / 3; grid-column: 2 / 3;
+    background: #0c160c; border-left: 1px solid rgba(255,255,255,.07);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .sidebar-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,.07); }
+  .stab {
+    flex: 1; padding: 11px 6px; text-align: center;
+    font-size: .72rem; font-weight: 600; letter-spacing: .03em;
+    color: rgba(255,255,255,.35); cursor: pointer;
+    border-bottom: 2px solid transparent; transition: color .2s, border-color .2s;
+  }
+  .stab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .tab-pane { display: none; flex: 1; overflow-y: auto; flex-direction: column; }
+  .tab-pane.active { display: flex; }
+
+  /* ─── BIDS TAB ─── */
+  .submissions-list { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .envelope-phase-label {
+    font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .1em;
+    text-transform: uppercase; color: rgba(255,255,255,.3); padding: 6px 4px 4px;
+  }
+  .submission-item {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+    border-radius: 8px; padding: 11px 13px;
+  }
+  .submission-item.sealed {
+    opacity: .5; filter: blur(1px); pointer-events: none; user-select: none;
+  }
+  .sub-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .sub-num    { font-family: 'DM Mono', monospace; font-size: .65rem; color: rgba(255,255,255,.3); }
+  .sub-bidder { font-size: .8rem; font-weight: 600; color: var(--white); margin-bottom: 4px; }
+  .sub-rank {
+    font-family: 'DM Mono', monospace; font-size: .62rem; font-weight: 700;
+    padding: 2px 7px; border-radius: 99px;
+  }
+  .rank-1 { background: rgba(253,185,19,.2); color: var(--gold); border: 1px solid rgba(253,185,19,.3); }
+  .rank-2 { background: rgba(255,255,255,.07); color: rgba(255,255,255,.55); border: 1px solid rgba(255,255,255,.1); }
+  .rank-3 { background: rgba(255,255,255,.04); color: rgba(255,255,255,.35); border: 1px solid rgba(255,255,255,.07); }
+  .sub-amount { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--gold); }
+  .sub-amount.sealed-amount { filter: blur(5px); color: rgba(255,255,255,.3); font-size: .85rem; }
+  .sub-meta { font-size: .67rem; color: rgba(255,255,255,.3); margin-top: 3px; }
+  .sub-status {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: .62rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 99px; margin-top: 5px;
+  }
+  .sub-status.compliant { background: rgba(73,122,58,.15); color: #5aad4e; border: 1px solid rgba(73,122,58,.25); }
+  .sub-status.pending   { background: rgba(253,185,19,.1);  color: var(--gold); border: 1px solid rgba(253,185,19,.2); }
+  .sub-status.sealed-st { background: rgba(255,255,255,.05); color: rgba(255,255,255,.3); border: 1px solid rgba(255,255,255,.08); }
+
+  .post-qual-note {
+    margin: 4px 0 0; padding: 12px; border-top: 1px solid rgba(255,255,255,.06);
+  }
+  .post-qual-note p { font-size: .74rem; color: rgba(255,255,255,.4); line-height: 1.6; }
+
+  /* ─── AUDIT TAB ─── */
+  .audit-list { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .audit-entry {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 8px 10px; border-radius: 6px; background: rgba(255,255,255,.03);
+    border-left: 3px solid transparent;
+  }
+  .audit-entry.sig  { border-left-color: var(--gold); }
+  .audit-entry.open { border-left-color: #5aad4e; }
+  .audit-entry.sub  { border-left-color: var(--blue); }
+  .audit-entry.sys  { border-left-color: rgba(255,255,255,.15); }
+  .audit-time { font-family: 'DM Mono', monospace; font-size: .62rem; color: rgba(255,255,255,.3); flex-shrink: 0; padding-top: 1px; }
+  .audit-text { font-size: .74rem; color: rgba(255,255,255,.65); line-height: 1.45; }
+  .audit-text strong { color: var(--white); }
+  .audit-tag {
+    display: inline-block; font-size: .58rem; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; padding: 1px 6px; border-radius: 3px; margin-right: 4px;
+  }
+  .tag-sig  { background: rgba(253,185,19,.15); color: var(--gold); }
+  .tag-open { background: rgba(73,122,58,.15);  color: #5aad4e; }
+  .tag-sub  { background: rgba(43,87,151,.15);  color: #7ab0f5; }
+  .tag-sys  { background: rgba(255,255,255,.07); color: rgba(255,255,255,.4); }
+
+  /* ─── CHAT TAB ─── */
+  .chat-wrap { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 9px; }
+  .chat-msg { display: flex; gap: 8px; align-items: flex-start; }
+  .chat-avatar {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .67rem; font-weight: 700;
+  }
+  .chat-avatar.bac  { background: var(--gold); color: var(--green-base); }
+  .chat-avatar.pub  { background: rgba(255,255,255,.12); color: rgba(255,255,255,.65); }
+  .chat-body { flex: 1; }
+  .chat-name { font-size: .65rem; font-weight: 600; color: rgba(255,255,255,.4); margin-bottom: 2px; }
+  .chat-name.bac-name { color: var(--gold); }
+  .chat-text { font-size: .76rem; color: rgba(255,255,255,.72); line-height: 1.45; }
+  .chat-time { font-size: .6rem; color: rgba(255,255,255,.22); margin-top: 2px; }
+  .chat-observer-note {
+    padding: 8px 12px; background: rgba(43,87,151,.1); border-top: 1px solid rgba(43,87,151,.2);
+    font-size: .68rem; color: rgba(255,255,255,.35); text-align: center;
+  }
+  .chat-input-wrap { padding: 8px 10px; border-top: 1px solid rgba(255,255,255,.07); display: flex; gap: 7px; }
+  .chat-input {
+    flex: 1; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09);
+    border-radius: 6px; padding: 7px 11px; color: var(--white); font-size: .77rem;
+    font-family: 'DM Sans', sans-serif; outline: none; transition: border-color .2s;
+  }
+  .chat-input::placeholder { color: rgba(255,255,255,.22); }
+  .chat-input:focus { border-color: rgba(253,185,19,.35); }
+  .chat-send {
+    background: var(--gold); color: var(--green-base); border: none;
+    border-radius: 6px; padding: 7px 11px; cursor: pointer; font-weight: 700;
+    font-size: .75rem; transition: background .2s;
+  }
+  .chat-send:hover { background: var(--gold-light); }
+
+  /* ─── DOCS TAB ─── */
+  .docs-list { padding: 10px; display: flex; flex-direction: column; gap: 7px; }
+  .doc-item {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+    border-radius: 7px; padding: 10px 12px; text-decoration: none; cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .doc-item:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.14); }
+  .doc-item.locked { opacity: .45; cursor: not-allowed; }
+  .doc-info { flex: 1; }
+  .doc-name { font-size: .78rem; font-weight: 600; color: var(--white); }
+  .doc-meta { font-size: .65rem; color: rgba(255,255,255,.32); margin-top: 2px; }
+  .doc-badge {
+    font-size: .6rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 3px;
+  }
+  .doc-badge.available { background: rgba(73,122,58,.15); color: #5aad4e; border: 1px solid rgba(73,122,58,.2); }
+  .doc-badge.generating { background: rgba(253,185,19,.1); color: var(--gold); border: 1px solid rgba(253,185,19,.2); }
+  .doc-badge.locked-b   { background: rgba(255,255,255,.05); color: rgba(255,255,255,.3); border: 1px solid rgba(255,255,255,.08); }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 1024px) {
+    .live-layout {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
+      height: auto;
+    }
+    .video-panel { grid-row: 1; grid-column: 1; min-height: 240px; }
+    .info-panel  { grid-row: 2; grid-column: 1; }
+    .sidebar     { grid-row: 3; grid-column: 1; border-left: none; border-top: 1px solid rgba(255,255,255,.07); height: 500px; }
+  }
+  @media (max-width: 600px) {
+    .live-topbar { padding: 8px 14px; }
+    .live-topbar-title { font-size: .8rem; }
+    .live-topbar-meta  { font-size: .67rem; }
+    .phase-banner { padding: 7px 14px; gap: 8px; }
+    .phase-step { font-size: .62rem; }
+    .info-panel { padding: 12px 14px; gap: 14px; }
+    .video-controls { padding: 20px 10px 10px; gap: 6px; }
+    .vc-btn { padding: 5px 8px; font-size: .7rem; }
+    .sidebar { height: 440px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SHARED HEADER (manually rendered — live page skips JS injection) -->
+<header class="site-header">
+  <a href="yesparency-landing.html" class="logo-wrap">
+    <div class="logo-seal">Y</div>
+    <div class="logo-text">
+      <div class="sys-name">YesParency</div>
+      <div class="sys-sub">SLSU Procurement System</div>
+    </div>
+  </a>
+  <nav>
+    <a href="bid-openings.html" class="nav-pill">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      Bid Schedule
+    </a>
+    <a href="procurement-announcements.html" class="nav-pill">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      Announcements
+    </a>
+    <a href="bid-live.html" class="live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </a>
+    <button class="btn-signin" onclick="document.getElementById('loginModal').classList.add('open')">Login</button>
+  </nav>
+</header>
+
+<!-- SESSION INFO BAR -->
+<div class="live-topbar">
+  <div class="live-topbar-left">
+    <a href="bid-openings.html" class="live-topbar-back">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
+    </a>
+    <div class="live-topbar-divider"></div>
+    <div>
+      <div class="live-topbar-title">Supply and Delivery of Science Laboratory Equipment — College of Arts and Sciences</div>
+      <div class="live-topbar-meta">SLSU Procurement Office &nbsp;·&nbsp; Ref No: SLSU-BAC-2026-003 &nbsp;·&nbsp; ABC: ₱2,450,000.00 &nbsp;·&nbsp; RA 9184 Compliant</div>
+    </div>
+  </div>
+  <div class="live-topbar-right">
+    <div class="viewer-count">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span id="viewerCount">47</span> watching
+    </div>
+    <div class="live-pill"><div class="live-dot"></div> LIVE</div>
+  </div>
+</div>
+
+<!-- PHASE BANNER — Two-Envelope Process -->
+<div class="phase-banner">
+  <div class="phase-step done">
+    <div class="phase-dot"></div>
+    Envelope 1 — Eligibility &amp; Technical
+  </div>
+  <div class="phase-arrow">›</div>
+  <div class="phase-step active">
+    <div class="phase-dot"></div>
+    Envelope 2 — Financial Bid (Opening)
+  </div>
+  <div class="phase-arrow">›</div>
+  <div class="phase-step">
+    <div class="phase-dot"></div>
+    Post-Qualification
+  </div>
+  <div class="phase-arrow">›</div>
+  <div class="phase-step">
+    <div class="phase-dot"></div>
+    Notice of Award
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="live-layout">
+
+  <!-- VIDEO PANEL -->
+  <div class="video-panel">
+    <div class="video-placeholder">
+      <svg class="video-cam-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      <div class="video-stream-label">Live Stream — BAC Conference Room, SLSU Admin Building</div>
+      <div class="video-slsu-badge">
+        <div class="badge-title">Southern Luzon State University</div>
+        <div class="badge-sub">Bids and Awards Committee · Public Bid Opening Broadcast</div>
+      </div>
+
+      <!-- Signature-required overlay (shown before financial envelope is unlocked) -->
+      <div class="sig-required-overlay hidden" id="sigOverlay">
+        <svg class="sig-icon" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/></svg>
+        <div class="sig-title">Digital Signature Required</div>
+        <div class="sig-desc">Authorized procurement officers must authenticate with their digital signature before Envelope 2 (Financial Bid) can be opened. This is required under RA 9184 and the YesParency access control policy.</div>
+        <button class="sig-btn" onclick="document.getElementById('sigOverlay').classList.add('hidden')">Authenticate with Digital Signature</button>
+      </div>
+
+      <div class="video-live-badge"><div class="live-dot"></div> LIVE</div>
+      <div class="video-timer" id="streamTimer">00:34:12</div>
+
+      <div class="video-controls">
+        <button class="vc-btn" id="muteBtn" title="Toggle audio" onclick="toggleMute()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          Audio On
+        </button>
+        <button class="vc-btn" title="Closed captions">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M17 2l-5 5-5-5"/></svg>
+          CC
+        </button>
+        <button class="vc-btn" title="Download minutes" onclick="alert('Minutes will be available after the session ends.')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Minutes
+        </button>
+        <div class="vc-spacer"></div>
+        <div class="vc-quality">720p HD</div>
+        <button class="vc-btn" title="Fullscreen" onclick="toggleFullscreen()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        </button>
+        <div class="vc-audit-note">⚑ All access events are being recorded in the audit trail</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INFO PANEL -->
+  <div class="info-panel">
+    <div class="info-section">
+      <div class="info-label">BAC Chairperson</div>
+      <div class="info-value"><strong>Maridel C. Zabella</strong><br>Director, Procurement Office</div>
+    </div>
+    <div class="info-section">
+      <div class="info-label">Current Phase</div>
+      <div class="info-value"><strong>Envelope 2 — Financial Bid</strong><br>Signature authenticated ✓</div>
+    </div>
+    <div class="info-section">
+      <div class="info-label">Bidders Submitted</div>
+      <div class="info-value"><strong>3 of 3</strong> bidders present</div>
+    </div>
+    <div class="info-section">
+      <div class="info-label">Date &amp; Time</div>
+      <div class="info-value"><strong>March 26, 2026</strong><br>10:00 AM · BAC Conference Room</div>
+    </div>
+    <div class="info-section">
+      <div class="info-label">Approved Budget (ABC)</div>
+      <div class="info-value"><strong>₱2,450,000.00</strong></div>
+    </div>
+    <div class="info-section">
+      <div class="info-label">Legal Basis</div>
+      <div class="info-value"><strong>RA 9184</strong><br>Gov't Procurement Reform Act</div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <div class="stab active" onclick="switchTab('bids',this)">Bids</div>
+      <div class="stab" onclick="switchTab('audit',this)">Audit Trail</div>
+      <div class="stab" onclick="switchTab('chat',this)">Chat</div>
+      <div class="stab" onclick="switchTab('docs',this)">Docs</div>
+    </div>
+
+    <!-- BIDS TAB -->
+    <div class="tab-pane active" id="tab-bids">
+      <div class="submissions-list">
+        <div class="envelope-phase-label">Envelope 1 — Eligibility &amp; Technical (Opened)</div>
+
+        <div class="submission-item">
+          <div class="sub-header">
+            <div class="sub-num">#1 · 9:48 AM</div>
+            <div class="sub-rank rank-1">LOWEST</div>
+          </div>
+          <div class="sub-bidder">Apex Scientific Supply Co.</div>
+          <div class="sub-amount">₱2,180,000.00</div>
+          <div class="sub-meta">Env. 1: 12/12 docs &nbsp;·&nbsp; Env. 2: Opened</div>
+          <div class="sub-status compliant">✓ Technically Compliant</div>
+        </div>
+
+        <div class="submission-item">
+          <div class="sub-header">
+            <div class="sub-num">#2 · 9:52 AM</div>
+            <div class="sub-rank rank-2">2ND</div>
+          </div>
+          <div class="sub-bidder">LabTech Philippines Inc.</div>
+          <div class="sub-amount">₱2,310,500.00</div>
+          <div class="sub-meta">Env. 1: 12/12 docs &nbsp;·&nbsp; Env. 2: Opened</div>
+          <div class="sub-status compliant">✓ Technically Compliant</div>
+        </div>
+
+        <div class="submission-item">
+          <div class="sub-header">
+            <div class="sub-num">#3 · 9:55 AM</div>
+            <div class="sub-rank rank-3">3RD</div>
+          </div>
+          <div class="sub-bidder">SciEquip Solutions Corp.</div>
+          <div class="sub-amount">₱2,398,000.00</div>
+          <div class="sub-meta">Env. 1: 11/12 docs &nbsp;·&nbsp; Env. 2: Under Review</div>
+          <div class="sub-status pending">⚠ Under Review</div>
+        </div>
+
+        <div class="post-qual-note">
+          <div class="info-label" style="margin-bottom:6px;">Next Step — Post-Qualification</div>
+          <p>The BAC will issue a Notice of Post-Qualification to the Lowest Calculated Bidder (Apex Scientific Supply Co.) within 3 calendar days per RA 9184 IRR.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDIT TRAIL TAB -->
+    <div class="tab-pane" id="tab-audit">
+      <div class="audit-list">
+        <div class="audit-entry sys">
+          <div class="audit-time">09:58</div>
+          <div class="audit-text"><span class="audit-tag tag-sys">SYSTEM</span>Bid opening session initiated. Session ID: BO-2026-003.</div>
+        </div>
+        <div class="audit-entry sub">
+          <div class="audit-time">09:48</div>
+          <div class="audit-text"><span class="audit-tag tag-sub">SUBMIT</span><strong>Apex Scientific Supply Co.</strong> submitted Envelope 1 &amp; 2. Timestamp locked.</div>
+        </div>
+        <div class="audit-entry sub">
+          <div class="audit-time">09:52</div>
+          <div class="audit-text"><span class="audit-tag tag-sub">SUBMIT</span><strong>LabTech Philippines Inc.</strong> submitted Envelope 1 &amp; 2. Timestamp locked.</div>
+        </div>
+        <div class="audit-entry sub">
+          <div class="audit-time">09:55</div>
+          <div class="audit-text"><span class="audit-tag tag-sub">SUBMIT</span><strong>SciEquip Solutions Corp.</strong> submitted Envelope 1 &amp; 2. Timestamp locked.</div>
+        </div>
+        <div class="audit-entry sig">
+          <div class="audit-time">10:00</div>
+          <div class="audit-text"><span class="audit-tag tag-sig">SIGNATURE</span><strong>Maridel C. Zabella</strong> authenticated with digital signature. Envelope 1 access granted.</div>
+        </div>
+        <div class="audit-entry open">
+          <div class="audit-time">10:03</div>
+          <div class="audit-text"><span class="audit-tag tag-open">OPENED</span>Envelope 1 of all 3 bidders opened. Eligibility verified.</div>
+        </div>
+        <div class="audit-entry sig">
+          <div class="audit-time">10:28</div>
+          <div class="audit-text"><span class="audit-tag tag-sig">SIGNATURE</span><strong>Maridel C. Zabella</strong> authenticated with digital signature. Envelope 2 access granted.</div>
+        </div>
+        <div class="audit-entry open">
+          <div class="audit-time">10:30</div>
+          <div class="audit-text"><span class="audit-tag tag-open">OPENED</span>Envelope 2 — Financial Bids opened. Amounts recorded in Abstract of Bids.</div>
+        </div>
+        <div class="audit-entry sys">
+          <div class="audit-time">10:34</div>
+          <div class="audit-text"><span class="audit-tag tag-sys">SYSTEM</span>Live stream active. <span id="auditViewers">47</span> public observers connected.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT TAB -->
+    <div class="tab-pane" id="tab-chat">
+      <div class="chat-wrap">
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-msg">
+            <div class="chat-avatar bac">B</div>
+            <div class="chat-body">
+              <div class="chat-name bac-name">BAC Secretariat</div>
+              <div class="chat-text">The bid opening has commenced. All 3 bidders are present. We will now proceed to open Envelope 2 — Financial Bids.</div>
+              <div class="chat-time">10:02 AM</div>
+            </div>
+          </div>
+          <div class="chat-msg">
+            <div class="chat-avatar pub">J</div>
+            <div class="chat-body">
+              <div class="chat-name">Juan D. (Public Observer)</div>
+              <div class="chat-text">Can the BAC confirm the Approved Budget for this project?</div>
+              <div class="chat-time">10:04 AM</div>
+            </div>
+          </div>
+          <div class="chat-msg">
+            <div class="chat-avatar bac">B</div>
+            <div class="chat-body">
+              <div class="chat-name bac-name">BAC Secretariat</div>
+              <div class="chat-text">The Approved Budget for the Contract (ABC) is ₱2,450,000.00 as published in the Invitation to Bid.</div>
+              <div class="chat-time">10:05 AM</div>
+            </div>
+          </div>
+          <div class="chat-msg">
+            <div class="chat-avatar pub">M</div>
+            <div class="chat-body">
+              <div class="chat-name">Maria L. (Public Observer)</div>
+              <div class="chat-text">Thank you for the transparency. This live stream is very helpful.</div>
+              <div class="chat-time">10:07 AM</div>
+            </div>
+          </div>
+          <div class="chat-msg">
+            <div class="chat-avatar bac">B</div>
+            <div class="chat-body">
+              <div class="chat-name bac-name">BAC Secretariat</div>
+              <div class="chat-text">Envelope 2 of Apex Scientific Supply Co. is now being opened. Financial bid: ₱2,180,000.00 — Lowest Calculated Bid.</div>
+              <div class="chat-time">10:30 AM</div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-observer-note">Public observers may submit questions. BAC responses are not guaranteed during the session.</div>
+        <div class="chat-input-wrap">
+          <input class="chat-input" id="chatInput" type="text" placeholder="Submit a question as public observer..." />
+          <button class="chat-send" onclick="sendChat()">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOCS TAB -->
+    <div class="tab-pane" id="tab-docs">
+      <div class="docs-list">
+        <div class="info-label" style="padding:4px 2px 6px;">Official Procurement Documents</div>
+
+        <div class="doc-item" onclick="alert('Opening: Invitation to Bid — SLSU-BAC-2026-003')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <div class="doc-info">
+            <div class="doc-name">Invitation to Bid</div>
+            <div class="doc-meta">ITB-SLSU-BAC-2026-003.pdf</div>
+          </div>
+          <div class="doc-badge available">Available</div>
+        </div>
+
+        <div class="doc-item" onclick="alert('Abstract of Bids is being generated...')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <div class="doc-info">
+            <div class="doc-name">Abstract of Bids</div>
+            <div class="doc-meta">AOB-SLSU-BAC-2026-003.pdf</div>
+          </div>
+          <div class="doc-badge generating">Generating</div>
+        </div>
+
+        <div class="doc-item locked" onclick="alert('Minutes of Bid Opening will be available after the session ends.')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <div class="doc-info">
+            <div class="doc-name">Minutes of Bid Opening</div>
+            <div class="doc-meta">Available after session ends</div>
+          </div>
+          <div class="doc-badge locked-b">Locked</div>
+        </div>
+
+        <div class="doc-item locked" onclick="alert('Notice of Award will be issued after Post-Qualification.')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <div class="doc-info">
+            <div class="doc-name">Notice of Award</div>
+            <div class="doc-meta">Pending Post-Qualification</div>
+          </div>
+          <div class="doc-badge locked-b">Pending</div>
+        </div>
+
+        <div class="doc-item" onclick="alert('Viewing PhilGEPS Posting #8821047')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5aad4e" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <div class="doc-info">
+            <div class="doc-name">PhilGEPS Posting</div>
+            <div class="doc-meta">Ref #8821047 · Verified</div>
+          </div>
+          <div class="doc-badge available">Verified ✓</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+</div><!-- /live-layout -->
+
+<script src="assets/shared.js"></script>
+<script>
+  // Inject login modal manually since shared.js skips it on live page
+  (function() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'loginModal';
+    modal.innerHTML = `
+      <div class="modal-box">
+        <button class="modal-close" aria-label="Close" onclick="document.getElementById('loginModal').classList.remove('open')">✕</button>
+        <div class="modal-logo"><div class="modal-seal">Y</div><span class="modal-logo-text">YesParency</span></div>
+        <div class="modal-title">Welcome back</div>
+        <div class="modal-sub">Sign in to your procurement account</div>
+        <form onsubmit="return false;">
+          <div class="form-group"><label>Email Address</label><input type="email" placeholder="you@slsu.edu.ph" autocomplete="email" required /></div>
+          <div class="form-group"><label>Password</label><input type="password" placeholder="••••••••" autocomplete="current-password" required /></div>
+          <div class="form-row"><label><input type="checkbox" /> Remember me</label><a href="#">Forgot password?</a></div>
+          <button type="submit" class="btn-login">Sign In</button>
+        </form>
+        <div class="modal-divider">or</div>
+        <div class="modal-register">Don't have an account? <a href="#">Register as Bidder</a></div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') modal.classList.remove('open'); });
+  })();
+</script>
+<script>
+  function switchTab(name, el) {
+    document.querySelectorAll('.stab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+
+  // Stream timer
+  let elapsed = 34 * 60 + 12;
+  setInterval(() => {
+    elapsed++;
+    const h = Math.floor(elapsed / 3600);
+    const m = Math.floor((elapsed % 3600) / 60);
+    const s = elapsed % 60;
+    document.getElementById('streamTimer').textContent =
+      (h ? String(h).padStart(2,'0') + ':' : '') +
+      String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  }, 1000);
+
+  // Viewer count
+  setInterval(() => {
+    const v = 47 + Math.floor(Math.random() * 7 - 3);
+    document.getElementById('viewerCount').textContent = v;
+    const a = document.getElementById('auditViewers');
+    if (a) a.textContent = v;
+  }, 5000);
+
+  // Mute toggle
+  let muted = false;
+  function toggleMute() {
+    muted = !muted;
+    const btn = document.getElementById('muteBtn');
+    btn.classList.toggle('muted', muted);
+    btn.innerHTML = muted
+      ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg> Muted`
+      : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Audio On`;
+  }
+
+  // Fullscreen
+  function toggleFullscreen() {
+    const vp = document.querySelector('.video-panel');
+    if (!document.fullscreenElement) vp.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  }
+
+  // Chat
+  function sendChat() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    const msgs = document.getElementById('chatMessages');
+    const now = new Date();
+    const h = now.getHours(), m = String(now.getMinutes()).padStart(2,'0');
+    const time = `${h > 12 ? h-12 : h}:${m} ${h >= 12 ? 'PM' : 'AM'}`;
+    const msg = document.createElement('div');
+    msg.className = 'chat-msg';
+    msg.innerHTML = `
+      <div class="chat-avatar pub">Y</div>
+      <div class="chat-body">
+        <div class="chat-name">You (Public Observer)</div>
+        <div class="chat-text">${text.replace(/</g,'&lt;')}</div>
+        <div class="chat-time">${time}</div>
+      </div>`;
+    msgs.appendChild(msg);
+    msgs.scrollTop = msgs.scrollHeight;
+    input.value = '';
+  }
+  document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+</script>
+</body>
+</html>

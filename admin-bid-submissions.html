@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bid Submissions — YesParency Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+<style>
+  .dash-sidebar { background: #0a2e1a; }
+  .admin-role-badge {
+    margin: 0 12px 8px; padding: 5px 10px; border-radius: 5px;
+    background: rgba(253,185,19,.1); border: 1px solid rgba(253,185,19,.2);
+    font-family: 'DM Mono', monospace; font-size: .58rem;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gold); display: flex; align-items: center; gap: 5px;
+  }
+  .page-body { padding: 26px 28px; flex: 1; }
+
+  /* ─── TOOLBAR ─── */
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .search-wrap { flex: 1; min-width: 200px; position: relative; }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); opacity: .4; pointer-events: none; }
+  .search-input {
+    width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--border-d);
+    border-radius: 7px; font-size: .83rem; font-family: 'DM Sans', sans-serif;
+    background: var(--card-bg); color: var(--text); outline: none; transition: border-color .2s;
+  }
+  .search-input:focus { border-color: var(--green-nat); }
+  .filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ftab {
+    padding: 8px 14px; border-radius: 7px; font-size: .78rem; font-weight: 500;
+    border: 1px solid var(--border-d); background: var(--card-bg);
+    color: var(--text-dim); cursor: pointer; transition: all .15s; font-family: 'DM Sans', sans-serif;
+  }
+  .ftab:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .ftab.active { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+
+  /* ─── PROJECT GROUP HEADER ─── */
+  .proj-group { margin-bottom: 28px; }
+  .proj-group-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: var(--green-base); border-radius: 9px 9px 0 0;
+    border: 1px solid rgba(253,185,19,.15);
+  }
+  .proj-group-left { }
+  .proj-group-ref  { font-family: 'DM Mono', monospace; font-size: .65rem; color: rgba(255,255,255,.45); margin-bottom: 3px; }
+  .proj-group-name { font-family: 'Playfair Display', serif; font-size: .92rem; font-weight: 700; color: var(--white); }
+  .proj-group-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .proj-group-abc  { font-family: 'DM Mono', monospace; font-size: .75rem; color: var(--gold); font-weight: 600; }
+
+  /* ─── SUBMISSION TABLE ─── */
+  .sub-table-wrap { border: 1px solid var(--border-d); border-top: none; border-radius: 0 0 9px 9px; overflow: hidden; }
+  .sub-table { width: 100%; border-collapse: collapse; }
+  .sub-table th {
+    text-align: left; font-family: 'DM Mono', monospace; font-size: .6rem;
+    font-weight: 600; color: var(--text-dim); letter-spacing: .08em; text-transform: uppercase;
+    padding: 10px 14px; border-bottom: 1px solid var(--border-d); background: var(--dash-bg);
+  }
+  .sub-table td {
+    padding: 12px 14px; font-size: .81rem; border-bottom: 1px solid var(--border-d);
+    vertical-align: middle; background: var(--card-bg);
+  }
+  .sub-table tr:last-child td { border-bottom: none; }
+  .sub-table tbody tr:hover td { background: var(--dash-bg); }
+
+  .bidder-name { font-weight: 600; color: var(--text); }
+  .bidder-id   { font-family: 'DM Mono', monospace; font-size: .68rem; color: var(--text-dim); margin-top: 1px; }
+  .bid-ref-cell { font-family: 'DM Mono', monospace; font-size: .72rem; color: var(--text-dim); }
+  .bid-price   { font-family: 'Playfair Display', serif; font-size: .95rem; font-weight: 700; color: var(--green-base); }
+  .bid-price.sealed { filter: blur(5px); color: rgba(0,0,0,.3); font-size: .82rem; cursor: not-allowed; user-select: none; }
+  .lot-tag {
+    display: inline-block; font-family: 'DM Mono', monospace; font-size: .6rem;
+    font-weight: 600; padding: 2px 7px; border-radius: 4px; margin-right: 3px;
+    background: rgba(43,87,151,.1); color: var(--blue); border: 1px solid rgba(43,87,151,.18);
+  }
+  .timestamp { font-family: 'DM Mono', monospace; font-size: .7rem; color: var(--text-dim); }
+
+  .rank-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 50%;
+    font-family: 'DM Mono', monospace; font-size: .65rem; font-weight: 700;
+  }
+  .rank-1 { background: rgba(253,185,19,.2); color: #8a6000; border: 1px solid rgba(253,185,19,.35); }
+  .rank-2 { background: rgba(255,255,255,.08); color: var(--text-dim); border: 1px solid var(--border-d); }
+  .rank-3 { background: rgba(255,255,255,.05); color: var(--text-dim); border: 1px solid var(--border-d); }
+  .rank-n { background: var(--dash-bg); color: var(--text-dim); border: 1px solid var(--border-d); }
+
+  .action-btn {
+    padding: 5px 11px; border-radius: 5px; font-size: .73rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; text-decoration: none;
+    border: 1px solid var(--border-d); background: var(--card-bg); color: var(--text-dim);
+    transition: all .15s; display: inline-flex; align-items: center; gap: 4px;
+  }
+  .action-btn:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .action-btn.danger { color: #b01a1f; border-color: rgba(218,33,40,.2); }
+  .action-btn.danger:hover { background: rgba(218,33,40,.06); }
+  .action-btn.approve { background: rgba(73,122,58,.1); color: #2d6b1f; border-color: rgba(73,122,58,.2); }
+  .action-btn.approve:hover { background: rgba(73,122,58,.2); }
+
+  /* ─── EDIT REQUEST BANNER ─── */
+  .edit-req-banner {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(253,185,19,.08); border: 1px solid rgba(253,185,19,.22);
+    border-radius: 6px; padding: 8px 12px; margin-top: 6px;
+    font-size: .74rem; color: #7a5500;
+  }
+  .edit-req-banner svg { flex-shrink: 0; }
+
+  /* ─── DRAWER ─── */
+  .drawer-overlay { display: none; position: fixed; inset: 0; z-index: 998; background: rgba(0,0,0,.4); }
+  .drawer-overlay.open { display: block; }
+  .drawer {
+    position: fixed; top: 0; right: -560px; bottom: 0; width: 540px; max-width: 96vw;
+    background: var(--card-bg); z-index: 999;
+    box-shadow: -8px 0 40px rgba(0,0,0,.15);
+    display: flex; flex-direction: column; transition: right .3s ease;
+  }
+  .drawer.open { right: 0; }
+  .drawer-header {
+    background: #0a2e1a; padding: 16px 20px; border-bottom: 3px solid var(--gold);
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  }
+  .drawer-eyebrow { font-family: 'DM Mono', monospace; font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); margin-bottom: 3px; }
+  .drawer-title { font-family: 'Playfair Display', serif; font-size: .95rem; font-weight: 700; color: var(--white); line-height: 1.3; }
+  .drawer-ref   { font-family: 'DM Mono', monospace; font-size: .65rem; color: rgba(255,255,255,.4); margin-top: 3px; }
+  .drawer-close { background: none; border: none; cursor: pointer; color: rgba(255,255,255,.5); font-size: 1.2rem; flex-shrink: 0; }
+  .drawer-close:hover { color: var(--white); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .drawer-footer { padding: 12px 20px; border-top: 1px solid var(--border-d); display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .d-section-title {
+    font-family: 'DM Mono', monospace; font-size: .6rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border-d);
+  }
+  .d-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: .79rem; border-bottom: 1px solid var(--border-d); }
+  .d-row:last-child { border-bottom: none; }
+  .d-key { color: var(--text-dim); flex-shrink: 0; }
+  .d-val { font-weight: 600; color: var(--text); text-align: right; }
+  .d-val.mono { font-family: 'DM Mono', monospace; }
+
+  .env-block { border: 1px solid var(--border-d); border-radius: 7px; overflow: hidden; margin-bottom: 8px; }
+  .env-header { padding: 8px 12px; font-size: .76rem; font-weight: 600; display: flex; align-items: center; gap: 7px; }
+  .env-h1 { background: rgba(43,87,151,.08); color: var(--blue); }
+  .env-h2 { background: rgba(253,185,19,.1); color: #8a6000; }
+  .env-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 5px; }
+  .env-doc { display: flex; align-items: center; gap: 7px; font-size: .76rem; color: var(--text); }
+  .env-doc svg { color: var(--green-nat); flex-shrink: 0; }
+
+  /* ─── EMPTY ─── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: .85rem; }
+
+  @media (max-width: 900px) {
+    .page-body { padding: 16px; }
+    .sub-table thead { display: none; }
+    .sub-table td { display: block; padding: 5px 12px; }
+    .sub-table td:first-child { padding-top: 12px; }
+    .sub-table td:last-child  { padding-bottom: 12px; }
+    .sub-table tr { display: block; border-bottom: 1px solid var(--border-d); }
+    .drawer { width: 100%; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="dash-sidebar" id="sidebar">
+  <a href="admin-dashboard.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div><div class="brand-name">YesParency</div><div class="brand-sub">SLSU Procurement</div></div>
+  </a>
+  <div class="sidebar-profile">
+    <div class="profile-avatar" style="background:#2b5797;">MZ</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Maridel C. Zabella</div>
+      <div class="profile-role">BAC Chairperson</div>
+      <div class="profile-verified">Super Administrator</div>
+    </div>
+  </div>
+  <div class="admin-role-badge">
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Admin Access
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="admin-dashboard.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <div class="nav-section-label">Procurement</div>
+    <a href="admin-procurements.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Procurements
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Bid Openings
+    </a>
+    <a href="admin-bid-submissions.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Bid Submissions
+    </a>
+    <div class="nav-section-label">Management</div>
+    <a href="admin-bidder-accounts.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Bidder Accounts <span class="nav-badge">4</span>
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Announcements
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Audit Trail
+    </a>
+    <div class="nav-section-label">System</div>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="dash-main">
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb"><a href="admin-dashboard.html">Admin</a><span class="topbar-sep">/</span></span>
+      <span class="topbar-page">Bid Submissions</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-dot"></div></div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar" style="background:#2b5797;">MZ</div>
+    </div>
+  </header>
+
+  <main class="page-body">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" type="text" placeholder="Search by bidder name, ref no., or project..." oninput="filterSubs(this.value)"/>
+      </div>
+      <div class="filter-tabs">
+        <button class="ftab active" onclick="setFilter('all',this)">All Projects</button>
+        <button class="ftab" onclick="setFilter('live',this)">🔴 Live</button>
+        <button class="ftab" onclick="setFilter('open',this)">Open</button>
+        <button class="ftab" onclick="setFilter('edit-req',this)">Edit Requests</button>
+        <button class="ftab" onclick="setFilter('closed',this)">Closed</button>
+      </div>
+    </div>
+
+    <!-- GROUPS -->
+    <div id="subContainer"></div>
+
+  </main>
+</div>
+
+<!-- DETAIL DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-eyebrow" id="dEyebrow">Bid Submission</div>
+      <div class="drawer-title" id="dTitle">—</div>
+      <div class="drawer-ref" id="dRef">—</div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="dBody"></div>
+  <div class="drawer-footer" id="dFooter"></div>
+</div>
+
+<script src="assets/dashboard.js"></script>
+<script>
+const PROJECTS = [
+  {
+    id: 'SLSU-BAC-2026-003', status: 'live',
+    name: 'Supply and Delivery of Science Laboratory Equipment — CAS',
+    abc: '₱2,450,000.00', opening: 'March 26, 2026 · 10:00 AM',
+    submissions: [
+      {
+        bidId: 'BID-0001-003', bidder: 'Apex Scientific Supply Co.', bidderId: 'BDR-2024-00012',
+        receipt: 'OR-2026-004100', submitted: 'Mar 25, 2026 · 9:48 AM',
+        lots: ['Lot 1'], prices: { 'Lot 1': '₱2,180,000.00' },
+        rank: 1, status: 'compliant', locked: true, editRequest: null,
+        env1: ['DTI Registration','Mayor\'s Permit 2026','BIR Form 2303','PhilGEPS Certificate','SLCC Statement'],
+        env2: ['Financial Bid Form — Lot 1 (Signed)','Bid Security — Surety Bond'],
+      },
+      {
+        bidId: 'BID-0002-003', bidder: 'LabTech Philippines Inc.', bidderId: 'BDR-2024-00034',
+        receipt: 'OR-2026-004105', submitted: 'Mar 25, 2026 · 9:52 AM',
+        lots: ['Lot 1'], prices: { 'Lot 1': '₱2,310,500.00' },
+        rank: 2, status: 'compliant', locked: true, editRequest: null,
+        env1: ['DTI Registration','Mayor\'s Permit 2026','BIR Form 2303','PhilGEPS Certificate','SLCC Statement'],
+        env2: ['Financial Bid Form — Lot 1 (Signed)','Bid Security — Manager\'s Check'],
+      },
+      {
+        bidId: 'BID-0003-003', bidder: 'SciEquip Solutions Corp.', bidderId: 'BDR-2024-00078',
+        receipt: 'OR-2026-004112', submitted: 'Mar 25, 2026 · 9:55 AM',
+        lots: ['Lot 1'], prices: { 'Lot 1': '₱2,398,000.00' },
+        rank: 3, status: 'under-review', locked: true, editRequest: null,
+        env1: ['DTI Registration','Mayor\'s Permit 2026','BIR Form 2303','PhilGEPS Certificate'],
+        env2: ['Financial Bid Form — Lot 1 (Signed)','Bid Security — Surety Bond'],
+      },
+    ]
+  },
+  {
+    id: 'SLSU-BAC-2026-007', status: 'open',
+    name: 'Construction of New Multi-Purpose Hall at SLSU Main Campus',
+    abc: '₱18,750,000.00', opening: 'April 3, 2026 · 10:00 AM',
+    submissions: [
+      {
+        bidId: 'BID-0042-002', bidder: 'Juan M. Cruz (Cruz General Trading)', bidderId: 'BDR-2024-00089',
+        receipt: 'OR-2026-004799', submitted: 'Mar 24, 2026 · 3:22 PM',
+        lots: ['Lot 1'], prices: { 'Lot 1': null },
+        rank: null, status: 'submitted', locked: true, editRequest: 'pending',
+        env1: ['SEC Registration','Mayor\'s Permit 2026','BIR Form 2303','PhilGEPS Certificate','PCAB License','Audited Financial Statements'],
+        env2: ['Financial Bid Form — Lot 1 (Signed)','Bid Security — Manager\'s Check'],
+      },
+      {
+        bidId: 'BID-0011-007', bidder: 'Garcia Builders Inc.', bidderId: 'BDR-2024-00101',
+        receipt: 'OR-2026-004820', submitted: 'Mar 25, 2026 · 11:10 AM',
+        lots: ['Lot 1'], prices: { 'Lot 1': null },
+        rank: null, status: 'submitted', locked: true, editRequest: null,
+        env1: ['SEC Registration','Mayor\'s Permit 2026','BIR Form 2303','PhilGEPS Certificate','PCAB License'],
+        env2: ['Financial Bid Form — Lot 1 (Signed)','Bid Security — Surety Bond'],
+      },
+    ]
+  },
+  {
+    id: 'SLSU-BAC-2026-011', status: 'open',
+    name: 'Supply of IT Equipment and Peripherals for CIT',
+    abc: '₱3,200,000.00', opening: 'April 10, 2026 · 2:00 PM',
+    submissions: [
+      {
+        bidId: 'BID-0042-001', bidder: 'Juan M. Cruz (Cruz General Trading)', bidderId: 'BDR-2024-00089',
+        receipt: 'OR-2026-004821', submitted: 'Mar 25, 2026 · 4:47 PM',
+        lots: ['Lot 1','Lot 2'], prices: { 'Lot 1': null, 'Lot 2': null },
+        rank: null, status: 'submitted', locked: true, editRequest: null,
+        env1: ['DTI Registration','Mayor\'s Permit 2026','BIR Form 2303','PhilGEPS Certificate','SLCC Statement'],
+        env2: ['Financial Bid Form — Lot 1 (Signed)','Financial Bid Form — Lot 2 (Signed)','Bid Security — Surety Bond'],
+      },
+      {
+        bidId: 'BID-0015-011', bidder: 'TechSource Philippines', bidderId: 'BDR-2024-00055',
+        receipt: 'OR-2026-004830', submitted: 'Mar 26, 2026 · 8:30 AM',
+        lots: ['Lot 1','Lot 2','Lot 3'], prices: { 'Lot 1': null, 'Lot 2': null, 'Lot 3': null },
+        rank: null, status: 'submitted', locked: true, editRequest: null,
+        env1: ['DTI Registration','Mayor\'s Permit 2026','BIR Form 2303','PhilGEPS Certificate'],
+        env2: ['Financial Bid Form — Lot 1','Financial Bid Form — Lot 2','Financial Bid Form — Lot 3','Bid Security — Cash'],
+      },
+    ]
+  },
+  {
+    id: 'SLSU-BAC-2026-001', status: 'closed',
+    name: 'Procurement of Janitorial and Maintenance Services FY 2026',
+    abc: '₱1,800,000.00', opening: 'March 15, 2026 · 10:00 AM',
+    submissions: [
+      {
+        bidId: 'BID-0042-004', bidder: 'Juan M. Cruz (Cruz General Trading)', bidderId: 'BDR-2024-00089',
+        receipt: 'OR-2026-003901', submitted: 'Feb 28, 2026 · 2:10 PM',
+        lots: ['Lot 1'], prices: { 'Lot 1': '₱1,720,000.00' },
+        rank: 1, status: 'awarded', locked: true, editRequest: null,
+        env1: ['DTI Registration','Mayor\'s Permit 2026','BIR Form 2303','PhilGEPS Certificate'],
+        env2: ['Financial Bid Form — Lot 1 (Signed)','Bid Security — Surety Bond'],
+      },
+      {
+        bidId: 'BID-0008-001', bidder: 'CleanPro Services Corp.', bidderId: 'BDR-2024-00062',
+        receipt: 'OR-2026-003910', submitted: 'Mar 1, 2026 · 10:22 AM',
+        lots: ['Lot 1'], prices: { 'Lot 1': '₱1,755,000.00' },
+        rank: 2, status: 'not-awarded', locked: true, editRequest: null,
+        env1: ['DTI Registration','Mayor\'s Permit 2026','BIR Form 2303','PhilGEPS Certificate'],
+        env2: ['Financial Bid Form — Lot 1 (Signed)','Bid Security — Cash'],
+      },
+    ]
+  },
+];
+
+const STATUS_BADGE = {
+  'compliant':    'badge-green',
+  'submitted':    'badge-blue',
+  'under-review': 'badge-gold',
+  'awarded':      'badge-green',
+  'not-awarded':  'badge-gray',
+  'disqualified': 'badge-red',
+};
+const STATUS_LABEL = {
+  'compliant':    'Compliant',
+  'submitted':    'Submitted',
+  'under-review': 'Under Review',
+  'awarded':      'Awarded',
+  'not-awarded':  'Not Awarded',
+  'disqualified': 'Disqualified',
+};
+
+let activeFilter = 'all', activeSearch = '';
+
+function render() {
+  const container = document.getElementById('subContainer');
+  let html = '';
+  let anyVisible = false;
+
+  PROJECTS.forEach(proj => {
+    const matchFilter = activeFilter === 'all' || activeFilter === proj.status ||
+      (activeFilter === 'edit-req' && proj.submissions.some(s => s.editRequest === 'pending'));
+    if (!matchFilter) return;
+
+    const filteredSubs = proj.submissions.filter(s => {
+      if (!activeSearch) return true;
+      return s.bidder.toLowerCase().includes(activeSearch) ||
+             s.bidId.toLowerCase().includes(activeSearch) ||
+             proj.id.toLowerCase().includes(activeSearch) ||
+             proj.name.toLowerCase().includes(activeSearch);
+    });
+    if (!filteredSubs.length) return;
+    anyVisible = true;
+
+    const isSealed = proj.status === 'open' || proj.status === 'upcoming';
+    const projStatusBadge = proj.status === 'live'
+      ? `<span class="badge badge-red" style="font-size:.62rem;display:inline-flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulse-red 1.4s ease-in-out infinite;display:inline-block;"></span>Live</span>`
+      : proj.status === 'open' ? `<span class="badge badge-green" style="font-size:.62rem;">Open</span>`
+      : proj.status === 'closed' ? `<span class="badge badge-gray" style="font-size:.62rem;">Closed</span>`
+      : `<span class="badge badge-blue" style="font-size:.62rem;">Upcoming</span>`;
+
+    const rows = filteredSubs.map(s => {
+      const rankHtml = s.rank
+        ? `<span class="rank-badge rank-${s.rank <= 3 ? s.rank : 'n'}">${s.rank}</span>`
+        : `<span class="rank-badge rank-n">—</span>`;
+
+      const lotsHtml = s.lots.map(l => `<span class="lot-tag">${l}</span>`).join('');
+
+      const priceHtml = Object.entries(s.prices).map(([lot, price]) =>
+        price
+          ? `<div style="font-size:.72rem;color:var(--text-dim);">${lot}: <span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--green-base);">${price}</span></div>`
+          : `<div style="font-size:.72rem;color:var(--text-dim);">${lot}: <span class="bid-price sealed">₱0,000,000</span></div>`
+      ).join('');
+
+      const editReqHtml = s.editRequest === 'pending'
+        ? `<div class="edit-req-banner"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Edit request pending &nbsp;
+          <button class="action-btn approve" style="padding:3px 9px;font-size:.68rem;" onclick="approveEdit('${proj.id}','${s.bidId}')">Approve</button>
+          <button class="action-btn danger" style="padding:3px 9px;font-size:.68rem;" onclick="denyEdit('${proj.id}','${s.bidId}')">Deny</button>
+        </div>` : '';
+
+      return `<tr>
+        <td>
+          <div class="bidder-name">${s.bidder}</div>
+          <div class="bidder-id">${s.bidderId}</div>
+          ${editReqHtml}
+        </td>
+        <td><span class="bid-ref-cell">${s.bidId}</span></td>
+        <td>${lotsHtml}</td>
+        <td>${priceHtml}</td>
+        <td>${rankHtml}</td>
+        <td><span class="badge ${STATUS_BADGE[s.status]}" style="font-size:.62rem;">${STATUS_LABEL[s.status]}</span></td>
+        <td><span class="timestamp">${s.submitted}</span></td>
+        <td>
+          <button class="action-btn" onclick="openDrawer('${proj.id}','${s.bidId}')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            View
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    html += `<div class="proj-group">
+      <div class="proj-group-header">
+        <div class="proj-group-left">
+          <div class="proj-group-ref">${proj.id} &nbsp;·&nbsp; Opening: ${proj.opening}</div>
+          <div class="proj-group-name">${proj.name}</div>
+        </div>
+        <div class="proj-group-right">
+          ${projStatusBadge}
+          <span class="proj-group-abc">${proj.abc}</span>
+          <span class="badge badge-gray" style="font-size:.62rem;">${filteredSubs.length} bid${filteredSubs.length !== 1 ? 's' : ''}</span>
+        </div>
+      </div>
+      <div class="sub-table-wrap">
+        <table class="sub-table">
+          <thead>
+            <tr>
+              <th>Bidder</th>
+              <th>Bid Ref</th>
+              <th>Lots</th>
+              <th>Bid Price</th>
+              <th>Rank</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  });
+
+  container.innerHTML = anyVisible ? html : `<div class="empty-state">No submissions found.</div>`;
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+function filterSubs(val) { activeSearch = val.toLowerCase(); render(); }
+
+function openDrawer(projId, bidId) {
+  const proj = PROJECTS.find(p => p.id === projId);
+  const s = proj?.submissions.find(x => x.bidId === bidId);
+  if (!s) return;
+
+  document.getElementById('dEyebrow').textContent = proj.id + ' · ' + proj.opening;
+  document.getElementById('dTitle').textContent = s.bidder;
+  document.getElementById('dRef').textContent = s.bidId + ' · Receipt: ' + s.receipt;
+
+  const priceRows = Object.entries(s.prices).map(([lot, price]) => `
+    <div class="d-row">
+      <span class="d-key">${lot}</span>
+      <span class="d-val mono">${price || '<span style="filter:blur(4px);color:rgba(0,0,0,.3);">₱0,000,000</span>'}</span>
+    </div>`).join('');
+
+  const env1Html = s.env1.map(d => `<div class="env-doc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>${d}</div>`).join('');
+  const env2Html = s.env2.map(d => `<div class="env-doc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>${d}</div>`).join('');
+
+  const editReqSection = s.editRequest === 'pending' ? `
+    <div>
+      <div class="d-section-title">Edit Request</div>
+      <div style="background:rgba(253,185,19,.08);border:1px solid rgba(253,185,19,.22);border-radius:7px;padding:12px 14px;font-size:.78rem;color:#7a5500;line-height:1.6;">
+        <strong style="display:block;margin-bottom:4px;">Pending Amendment Request</strong>
+        Reason: Correction of typographical error in bid price.<br>
+        Submitted: March 26, 2026 at 8:30 AM
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="action-btn approve" onclick="approveEdit('${projId}','${bidId}');closeDrawer()">Approve Edit Request</button>
+        <button class="action-btn danger" onclick="denyEdit('${projId}','${bidId}');closeDrawer()">Deny Request</button>
+      </div>
+    </div>` : '';
+
+  document.getElementById('dBody').innerHTML = `
+    <div>
+      <div class="d-section-title">Submission Details</div>
+      <div class="d-row"><span class="d-key">Bidder ID</span><span class="d-val mono">${s.bidderId}</span></div>
+      <div class="d-row"><span class="d-key">Receipt No.</span><span class="d-val mono">${s.receipt}</span></div>
+      <div class="d-row"><span class="d-key">Submitted</span><span class="d-val">${s.submitted}</span></div>
+      <div class="d-row"><span class="d-key">Status</span><span class="d-val"><span class="badge ${STATUS_BADGE[s.status]}">${STATUS_LABEL[s.status]}</span></span></div>
+      <div class="d-row"><span class="d-key">Locked</span><span class="d-val">${s.locked ? '🔒 Yes' : '🔓 No'}</span></div>
+      <div class="d-row"><span class="d-key">Lots Bid</span><span class="d-val">${s.lots.join(', ')}</span></div>
+    </div>
+    <div>
+      <div class="d-section-title">Bid Prices</div>
+      ${priceRows}
+    </div>
+    <div>
+      <div class="d-section-title">Submitted Documents</div>
+      <div class="env-block">
+        <div class="env-header env-h1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Envelope 1 — Eligibility &amp; Technical</div>
+        <div class="env-body">${env1Html}</div>
+      </div>
+      <div class="env-block">
+        <div class="env-header env-h2"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Envelope 2 — Financial Bid</div>
+        <div class="env-body">${env2Html}</div>
+      </div>
+    </div>
+    ${editReqSection}`;
+
+  document.getElementById('dFooter').innerHTML = `
+    ${s.status === 'submitted' || s.status === 'under-review' ? `<button class="action-btn danger" onclick="disqualify('${projId}','${bidId}');closeDrawer()">Disqualify</button>` : ''}
+    <button class="action-btn" onclick="closeDrawer()">Close</button>`;
+
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+
+function approveEdit(projId, bidId) {
+  const proj = PROJECTS.find(p => p.id === projId);
+  const s = proj?.submissions.find(x => x.bidId === bidId);
+  if (s) { s.editRequest = 'approved'; s.locked = false; }
+  render();
+  alert('Edit request approved. Bid is now unlocked for amendment.');
+}
+
+function denyEdit(projId, bidId) {
+  const proj = PROJECTS.find(p => p.id === projId);
+  const s = proj?.submissions.find(x => x.bidId === bidId);
+  if (s) s.editRequest = 'denied';
+  render();
+  alert('Edit request denied.');
+}
+
+function disqualify(projId, bidId) {
+  if (!confirm('Disqualify this bid? This action will be recorded in the audit trail.')) return;
+  const proj = PROJECTS.find(p => p.id === projId);
+  const s = proj?.submissions.find(x => x.bidId === bidId);
+  if (s) s.status = 'disqualified';
+  render();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+render();
+</script>
+</body>
+</html>

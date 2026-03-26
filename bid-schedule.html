@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bid Schedule — YesParency</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+<style>
+  .page-body { padding: 26px 28px; flex: 1; }
+
+  /* ─── TOOLBAR ─── */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .search-wrap { flex: 1; min-width: 200px; position: relative; }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); opacity: .4; pointer-events: none; }
+  .search-input {
+    width: 100%; padding: 9px 12px 9px 34px;
+    border: 1px solid var(--border-d); border-radius: 7px;
+    font-size: .83rem; font-family: 'DM Sans', sans-serif;
+    background: var(--card-bg); color: var(--text); outline: none;
+    transition: border-color .2s;
+  }
+  .search-input:focus { border-color: var(--green-nat); }
+
+  .filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ftab {
+    padding: 8px 16px; border-radius: 7px; font-size: .8rem; font-weight: 500;
+    border: 1px solid var(--border-d); background: var(--card-bg);
+    color: var(--text-dim); cursor: pointer; transition: all .15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .ftab:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .ftab.active { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+  .ftab.live-tab.active { background: var(--red); border-color: var(--red); }
+
+  /* ─── COUNTDOWN BANNER ─── */
+  .countdown-banner {
+    background: var(--green-base); border-radius: 10px;
+    padding: 18px 24px; margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    border: 1px solid rgba(253,185,19,.2);
+    position: relative; overflow: hidden;
+  }
+  .countdown-banner::before {
+    content: ''; position: absolute; right: -20px; top: -20px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: rgba(253,185,19,.06);
+  }
+  .cd-banner-left { position: relative; z-index: 1; }
+  .cd-banner-label { font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+  .cd-banner-title { font-size: .88rem; font-weight: 600; color: var(--white); margin-bottom: 2px; }
+  .cd-banner-meta  { font-size: .74rem; color: rgba(255,255,255,.45); }
+  .cd-banner-right { display: flex; gap: 8px; align-items: center; position: relative; z-index: 1; }
+  .cd-unit { text-align: center; }
+  .cd-num {
+    font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700;
+    color: var(--white); display: block; min-width: 44px;
+    background: rgba(253,185,19,.1); border: 1px solid rgba(253,185,19,.18);
+    border-radius: 6px; padding: 4px 6px; line-height: 1;
+  }
+  .cd-label { font-size: .58rem; color: rgba(255,255,255,.4); letter-spacing: .08em; text-transform: uppercase; margin-top: 4px; display: block; }
+  .cd-sep { font-size: 1.4rem; color: rgba(253,185,19,.4); line-height: 1; padding-top: 4px; }
+
+  /* ─── SCHEDULE CARDS ─── */
+  .schedule-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .sched-card {
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 10px; overflow: hidden;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .sched-card:hover { border-color: rgba(12,58,27,.2); box-shadow: 0 4px 16px rgba(12,58,27,.07); }
+
+  .sched-card-inner { display: flex; align-items: stretch; }
+  .sched-accent { width: 4px; flex-shrink: 0; }
+  .acc-live     { background: var(--red); }
+  .acc-open     { background: var(--green-nat); }
+  .acc-upcoming { background: var(--blue); }
+  .acc-closed   { background: #ccc; }
+
+  .sched-card-body { flex: 1; padding: 16px 20px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+
+  .sched-date-col {
+    flex-shrink: 0; text-align: center;
+    background: var(--green-base); border-radius: 8px;
+    padding: 10px 14px; min-width: 54px;
+  }
+  .sched-day   { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; color: var(--gold); line-height: 1; }
+  .sched-month { font-size: .6rem; color: rgba(255,255,255,.45); text-transform: uppercase; letter-spacing: .07em; margin-top: 3px; }
+  .sched-time  { font-size: .6rem; color: rgba(255,255,255,.35); margin-top: 4px; font-family: 'DM Mono', monospace; }
+
+  .sched-info { flex: 1; min-width: 200px; }
+  .sched-ref  { font-family: 'DM Mono', monospace; font-size: .68rem; color: var(--text-dim); margin-bottom: 5px; }
+  .sched-name { font-size: .92rem; font-weight: 600; color: var(--text); margin-bottom: 8px; line-height: 1.4; }
+  .sched-meta-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+  .sched-meta-item { display: flex; align-items: center; gap: 5px; font-size: .74rem; color: var(--text-dim); }
+  .sched-meta-item svg { opacity: .45; flex-shrink: 0; }
+  .sched-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .sched-abc-col { text-align: right; flex-shrink: 0; }
+  .sched-abc-label { font-family: 'DM Mono', monospace; font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 3px; }
+  .sched-abc-val   { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: var(--green-base); }
+  .sched-lots      { font-size: .7rem; color: var(--text-dim); margin-top: 3px; }
+
+  .sched-card-actions {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 16px 20px 16px 0; justify-content: center; flex-shrink: 0;
+  }
+  .sched-btn {
+    padding: 7px 16px; border-radius: 6px; font-size: .76rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    border: 1px solid var(--border-d); background: var(--card-bg);
+    color: var(--text-dim); transition: all .15s; text-decoration: none;
+    display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  }
+  .sched-btn:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .sched-btn.primary { background: var(--gold); color: var(--green-base); border-color: var(--gold); }
+  .sched-btn.primary:hover { background: var(--gold-light); }
+  .sched-btn.live-btn { background: rgba(218,33,40,.1); color: var(--red); border-color: rgba(218,33,40,.25); }
+  .sched-btn.live-btn:hover { background: rgba(218,33,40,.18); }
+  .sched-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ─── DETAIL DRAWER ─── */
+  .drawer-overlay { display: none; position: fixed; inset: 0; z-index: 998; background: rgba(0,0,0,.4); }
+  .drawer-overlay.open { display: block; }
+  .drawer {
+    position: fixed; top: 0; right: -540px; bottom: 0; width: 520px; max-width: 95vw;
+    background: var(--card-bg); z-index: 999;
+    box-shadow: -8px 0 40px rgba(0,0,0,.15);
+    display: flex; flex-direction: column; transition: right .3s ease;
+  }
+  .drawer.open { right: 0; }
+  .drawer-header {
+    background: var(--green-base); padding: 20px 24px;
+    border-bottom: 3px solid var(--gold);
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  }
+  .drawer-eyebrow { font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); margin-bottom: 5px; }
+  .drawer-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--white); line-height: 1.3; }
+  .drawer-ref   { font-family: 'DM Mono', monospace; font-size: .68rem; color: rgba(255,255,255,.45); margin-top: 4px; }
+  .drawer-close { background: none; border: none; cursor: pointer; color: rgba(255,255,255,.55); font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+  .drawer-close:hover { color: var(--white); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 18px; }
+  .drawer-footer { padding: 14px 24px; border-top: 1px solid var(--border-d); display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .detail-section-title {
+    font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px;
+    padding-bottom: 7px; border-bottom: 1px solid var(--border-d);
+  }
+  .detail-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: .81rem; border-bottom: 1px solid var(--border-d); }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { color: var(--text-dim); flex-shrink: 0; }
+  .detail-val { font-weight: 600; color: var(--text); text-align: right; }
+  .detail-val.mono { font-family: 'DM Mono', monospace; }
+
+  /* Lot breakdown */
+  .lot-breakdown { display: flex; flex-direction: column; gap: 8px; }
+  .lot-item {
+    background: var(--dash-bg); border: 1px solid var(--border-d);
+    border-radius: 7px; padding: 11px 14px;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+  }
+  .lot-item-left { flex: 1; }
+  .lot-item-num  { font-family: 'DM Mono', monospace; font-size: .62rem; color: var(--text-dim); margin-bottom: 3px; }
+  .lot-item-name { font-size: .82rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .lot-item-desc { font-size: .72rem; color: var(--text-dim); line-height: 1.4; }
+  .lot-item-abc  { font-family: 'Playfair Display', serif; font-size: .95rem; font-weight: 700; color: var(--green-base); flex-shrink: 0; }
+
+  /* Timeline */
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+  .tl-item { display: flex; gap: 12px; align-items: flex-start; padding-bottom: 14px; position: relative; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-item:not(:last-child)::before { content: ''; position: absolute; left: 9px; top: 22px; bottom: 0; width: 2px; background: var(--border-d); }
+  .tl-dot { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .6rem; font-weight: 700; z-index: 1; }
+  .tl-dot.done   { background: var(--green-nat); color: var(--white); }
+  .tl-dot.active { background: var(--gold); color: var(--green-base); }
+  .tl-dot.todo   { background: var(--border-d); color: var(--text-dim); }
+  .tl-label { font-size: .81rem; font-weight: 600; color: var(--text); }
+  .tl-time  { font-size: .71rem; color: var(--text-dim); margin-top: 2px; }
+
+  /* Eligibility checklist */
+  .req-list { display: flex; flex-direction: column; gap: 6px; }
+  .req-item { display: flex; align-items: center; gap: 8px; font-size: .79rem; color: var(--text); padding: 7px 10px; background: var(--dash-bg); border-radius: 6px; border: 1px solid var(--border-d); }
+  .req-item svg { flex-shrink: 0; color: var(--green-nat); }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+  .empty-icon  { margin-bottom: 12px; opacity: .25; }
+  .empty-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+
+  @media (max-width: 768px) {
+    .page-body { padding: 16px; }
+    .sched-card-actions { flex-direction: row; padding: 0 16px 14px; }
+    .sched-abc-col { display: none; }
+    .drawer { width: 100%; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="dash-sidebar" id="sidebar">
+  <a href="yesparency-landing.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div><div class="brand-name">YesParency</div><div class="brand-sub">SLSU Procurement</div></div>
+  </a>
+  <div class="sidebar-profile">
+    <div class="profile-avatar">JC</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Juan M. Cruz</div>
+      <div class="profile-role">Registered Bidder</div>
+      <div class="profile-verified">Account Verified</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a href="bidder-dashboard.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="submit-bid.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      Submit a Bid
+    </a>
+    <a href="my-bids.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      My Bids
+    </a>
+    <div class="nav-section-label">Information</div>
+    <a href="bid-schedule.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Bid Schedule
+    </a>
+    <a href="notifications.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Notifications <span class="nav-badge">3</span>
+    </a>
+    <div class="nav-section-label">Account</div>
+    <a href="profile-settings.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile &amp; Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="dash-main">
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb"><a href="bidder-dashboard.html">Dashboard</a><span class="topbar-sep">/</span></span>
+      <span class="topbar-page">Bid Schedule</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-btn" title="Notifications">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="notif-dot"></div>
+      </div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar">JC</div>
+    </div>
+  </header>
+
+  <main class="page-body">
+
+    <!-- COUNTDOWN BANNER -->
+    <div class="countdown-banner">
+      <div class="cd-banner-left">
+        <div class="cd-banner-label">⏱ Next Bid Opening</div>
+        <div class="cd-banner-title">Supply of IT Equipment and Peripherals for CIT</div>
+        <div class="cd-banner-meta">April 10, 2026 · 2:00 PM · BAC Conference Room</div>
+      </div>
+      <div class="cd-banner-right">
+        <div class="cd-unit"><span class="cd-num" id="cd-days">14</span><span class="cd-label">Days</span></div>
+        <div class="cd-sep">:</div>
+        <div class="cd-unit"><span class="cd-num" id="cd-hours">08</span><span class="cd-label">Hrs</span></div>
+        <div class="cd-sep">:</div>
+        <div class="cd-unit"><span class="cd-num" id="cd-mins">22</span><span class="cd-label">Min</span></div>
+        <div class="cd-sep">:</div>
+        <div class="cd-unit"><span class="cd-num" id="cd-secs">00</span><span class="cd-label">Sec</span></div>
+      </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" type="text" placeholder="Search by project name or ref no..." oninput="filterSchedule(this.value)"/>
+      </div>
+      <div class="filter-tabs">
+        <button class="ftab active" onclick="setFilter('all',this)">All</button>
+        <button class="ftab live-tab" onclick="setFilter('live',this)">🔴 Live Now</button>
+        <button class="ftab" onclick="setFilter('open',this)">Open</button>
+        <button class="ftab" onclick="setFilter('upcoming',this)">Upcoming</button>
+        <button class="ftab" onclick="setFilter('closed',this)">Closed</button>
+      </div>
+    </div>
+
+    <!-- SCHEDULE LIST -->
+    <div class="schedule-list" id="scheduleList"></div>
+
+  </main>
+</div>
+
+<!-- DETAIL DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-eyebrow" id="drawerEyebrow">Procurement Details</div>
+      <div class="drawer-title" id="drawerTitle">—</div>
+      <div class="drawer-ref" id="drawerRef">—</div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-footer" id="drawerFooter"></div>
+</div>
+
+<script src="assets/dashboard.js"></script>
+<script>
+const SCHEDULE = [
+  {
+    id: 'SLSU-BAC-2026-003',
+    name: 'Supply and Delivery of Science Laboratory Equipment for College of Arts and Sciences',
+    status: 'live',
+    openingDate: 'March 26, 2026', openingTime: '10:00 AM',
+    openingDay: '26', openingMonth: 'Mar',
+    deadline: 'March 25, 2026 at 5:00 PM',
+    location: 'BAC Conference Room, Admin Building',
+    abc: '₱2,450,000.00',
+    philgeps: '8821047',
+    lots: [{ num: 'Lot 1', name: 'Laboratory Equipment — Full Package', abc: '₱2,450,000.00', desc: 'Microscopes, centrifuges, spectrophotometers, and related lab equipment.' }],
+    myBid: 'BID-0042-001',
+    requirements: ['DTI/SEC Registration Certificate','Mayor\'s Permit (current year)','BIR Form 2303','PhilGEPS Certificate of Registration','Valid Government-Issued ID','Statement of Ongoing Contracts (SLCC)'],
+    timeline: [
+      { label: 'Invitation to Bid Published', time: 'March 5, 2026', done: true },
+      { label: 'Pre-Bid Conference', time: 'March 12, 2026 · 2:00 PM', done: true },
+      { label: 'Bid Documents Available', time: 'March 5–25, 2026', done: true },
+      { label: 'Submission Deadline', time: 'March 25, 2026 · 5:00 PM', done: true },
+      { label: 'Bid Opening (Live)', time: 'March 26, 2026 · 10:00 AM', active: true },
+      { label: 'Post-Qualification', time: 'Within 3 days of opening', done: false },
+      { label: 'Notice of Award', time: 'Pending', done: false },
+    ]
+  },
+  {
+    id: 'SLSU-BAC-2026-007',
+    name: 'Construction of New Multi-Purpose Hall at SLSU Main Campus',
+    status: 'open',
+    openingDate: 'April 3, 2026', openingTime: '10:00 AM',
+    openingDay: '03', openingMonth: 'Apr',
+    deadline: 'April 2, 2026 at 5:00 PM',
+    location: 'BAC Conference Room, Admin Building',
+    abc: '₱18,750,000.00',
+    philgeps: '8834502',
+    lots: [{ num: 'Lot 1', name: 'Full Construction Package', abc: '₱18,750,000.00', desc: 'Complete construction of a 2-storey multi-purpose hall including structural, electrical, and plumbing works.' }],
+    myBid: 'BID-0042-002',
+    requirements: ['SEC Registration Certificate','Mayor\'s Permit (current year)','BIR Form 2303','PhilGEPS Certificate','PCAB License (Category B or higher)','Audited Financial Statements (last 3 years)','SLCC — Completed Similar Projects'],
+    timeline: [
+      { label: 'Invitation to Bid Published', time: 'March 12, 2026', done: true },
+      { label: 'Pre-Bid Conference', time: 'March 20, 2026 · 2:00 PM', done: true },
+      { label: 'Bid Documents Available', time: 'March 12 – April 2, 2026', done: true },
+      { label: 'Submission Deadline', time: 'April 2, 2026 · 5:00 PM', active: true },
+      { label: 'Bid Opening', time: 'April 3, 2026 · 10:00 AM', done: false },
+      { label: 'Post-Qualification', time: 'Within 3 days of opening', done: false },
+      { label: 'Notice of Award', time: 'Pending', done: false },
+    ]
+  },
+  {
+    id: 'SLSU-BAC-2026-011',
+    name: 'Supply of Information Technology Equipment and Peripherals for the College of Industrial Technology',
+    status: 'upcoming',
+    openingDate: 'April 10, 2026', openingTime: '2:00 PM',
+    openingDay: '10', openingMonth: 'Apr',
+    deadline: 'April 9, 2026 at 5:00 PM',
+    location: 'BAC Conference Room, Admin Building',
+    abc: '₱3,200,000.00',
+    philgeps: '8841289',
+    lots: [
+      { num: 'Lot 1', name: 'High-End Workstations & Servers', abc: '₱1,400,000.00', desc: 'Intel Core i9 / Xeon workstations, rack servers, UPS units.' },
+      { num: 'Lot 2', name: 'Mid-Range Desktop Computers', abc: '₱1,100,000.00', desc: 'Intel Core i5 desktop units with monitors for computer labs.' },
+      { num: 'Lot 3', name: 'Peripherals & Accessories', abc: '₱700,000.00', desc: 'Keyboards, mice, webcams, headsets, network switches, cabling.' },
+    ],
+    myBid: 'BID-0042-001',
+    requirements: ['DTI/SEC Registration Certificate','Mayor\'s Permit (current year)','BIR Form 2303','PhilGEPS Certificate','Valid Government-Issued ID','Technical Specifications Compliance Sheet'],
+    timeline: [
+      { label: 'Invitation to Bid Published', time: 'March 20, 2026', done: true },
+      { label: 'Pre-Bid Conference', time: 'March 28, 2026 · 2:00 PM', done: true },
+      { label: 'Bid Documents Available', time: 'March 20 – April 9, 2026', done: true },
+      { label: 'Submission Deadline', time: 'April 9, 2026 · 5:00 PM', done: false },
+      { label: 'Bid Opening', time: 'April 10, 2026 · 2:00 PM', done: false },
+      { label: 'Post-Qualification', time: 'Within 3 days of opening', done: false },
+      { label: 'Notice of Award', time: 'Pending', done: false },
+    ]
+  },
+  {
+    id: 'SLSU-BAC-2026-014',
+    name: 'Procurement of Office Supplies and Materials for All Departments FY 2026',
+    status: 'upcoming',
+    openingDate: 'April 17, 2026', openingTime: '10:00 AM',
+    openingDay: '17', openingMonth: 'Apr',
+    deadline: 'April 16, 2026 at 5:00 PM',
+    location: 'BAC Conference Room, Admin Building',
+    abc: '₱980,000.00',
+    philgeps: '8849301',
+    lots: [{ num: 'Lot 1', name: 'Office Supplies — Full Package', abc: '₱980,000.00', desc: 'Bond paper, ink cartridges, folders, pens, and other office consumables.' }],
+    myBid: null,
+    requirements: ['DTI/SEC Registration Certificate','Mayor\'s Permit (current year)','BIR Form 2303','PhilGEPS Certificate','Valid Government-Issued ID'],
+    timeline: [
+      { label: 'Invitation to Bid Published', time: 'March 28, 2026', done: true },
+      { label: 'Bid Documents Available', time: 'March 28 – April 16, 2026', done: false },
+      { label: 'Submission Deadline', time: 'April 16, 2026 · 5:00 PM', done: false },
+      { label: 'Bid Opening', time: 'April 17, 2026 · 10:00 AM', done: false },
+      { label: 'Post-Qualification', time: 'Pending', done: false },
+      { label: 'Notice of Award', time: 'Pending', done: false },
+    ]
+  },
+  {
+    id: 'SLSU-BAC-2026-001',
+    name: 'Procurement of Janitorial and Maintenance Services FY 2026',
+    status: 'closed',
+    openingDate: 'March 15, 2026', openingTime: '10:00 AM',
+    openingDay: '15', openingMonth: 'Mar',
+    deadline: 'March 14, 2026 at 5:00 PM',
+    location: 'BAC Conference Room, Admin Building',
+    abc: '₱1,800,000.00',
+    philgeps: '8810022',
+    lots: [{ num: 'Lot 1', name: 'Janitorial & Maintenance Services', abc: '₱1,800,000.00', desc: 'Full janitorial and maintenance services for all SLSU buildings for FY 2026.' }],
+    myBid: 'BID-0042-004',
+    requirements: ['DTI/SEC Registration Certificate','Mayor\'s Permit (current year)','BIR Form 2303','PhilGEPS Certificate','Valid Government-Issued ID'],
+    timeline: [
+      { label: 'Invitation to Bid Published', time: 'Feb 20, 2026', done: true },
+      { label: 'Submission Deadline', time: 'March 14, 2026 · 5:00 PM', done: true },
+      { label: 'Bid Opening', time: 'March 15, 2026 · 10:00 AM', done: true },
+      { label: 'Post-Qualification', time: 'March 18, 2026', done: true },
+      { label: 'Notice of Award Issued', time: 'March 20, 2026', done: true },
+    ]
+  },
+];
+
+const STATUS_META = {
+  live:     { label: 'Live Now',           badge: 'badge-red',   accent: 'acc-live',     accentClass: 'acc-live' },
+  open:     { label: 'Open for Submission', badge: 'badge-green', accent: 'acc-open',     accentClass: 'acc-open' },
+  upcoming: { label: 'Upcoming',           badge: 'badge-blue',  accent: 'acc-upcoming', accentClass: 'acc-upcoming' },
+  closed:   { label: 'Closed',             badge: 'badge-gray',  accent: 'acc-closed',   accentClass: 'acc-closed' },
+};
+
+let activeFilter = 'all', activeSearch = '';
+
+function renderSchedule() {
+  const list = document.getElementById('scheduleList');
+  const filtered = SCHEDULE.filter(s => {
+    const mf = activeFilter === 'all' || s.status === activeFilter;
+    const ms = !activeSearch || s.name.toLowerCase().includes(activeSearch) || s.id.toLowerCase().includes(activeSearch);
+    return mf && ms;
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div class="empty-title">No procurements found</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(s => {
+    const sm = STATUS_META[s.status];
+    const liveDot = s.status === 'live' ? `<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block;animation:pulse-red 1.4s ease-in-out infinite;"></span></span>` : '';
+
+    const myBidTag = s.myBid
+      ? `<span class="badge badge-green" style="font-size:.62rem;">My Bid: ${s.myBid}</span>` : '';
+
+    const primaryBtn = s.status === 'live'
+      ? `<a href="bid-live.html" class="sched-btn live-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Watch Live</a>`
+      : s.status === 'open' || s.status === 'upcoming'
+        ? `<a href="submit-bid.html" class="sched-btn primary"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Submit Bid</a>`
+        : '';
+
+    return `<div class="sched-card" data-status="${s.status}">
+      <div class="sched-card-inner">
+        <div class="sched-accent ${sm.accentClass}"></div>
+        <div class="sched-card-body">
+          <div class="sched-date-col">
+            <div class="sched-day">${s.openingDay}</div>
+            <div class="sched-month">${s.openingMonth}</div>
+            <div class="sched-time">${s.openingTime}</div>
+          </div>
+          <div class="sched-info">
+            <div class="sched-ref">${s.id} &nbsp;·&nbsp; PhilGEPS: ${s.philgeps}</div>
+            <div class="sched-name">${s.name}</div>
+            <div class="sched-meta-row">
+              <div class="sched-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Deadline: ${s.deadline}</div>
+              <div class="sched-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${s.location}</div>
+            </div>
+            <div class="sched-tags">
+              <span class="badge ${sm.badge}">${liveDot}${sm.label}</span>
+              <span class="badge badge-gray">${s.lots.length} Lot${s.lots.length > 1 ? 's' : ''}</span>
+              ${myBidTag}
+            </div>
+          </div>
+          <div class="sched-abc-col">
+            <div class="sched-abc-label">ABC</div>
+            <div class="sched-abc-val">${s.abc}</div>
+            <div class="sched-lots">${s.lots.length} lot${s.lots.length > 1 ? 's' : ''}</div>
+          </div>
+        </div>
+        <div class="sched-card-actions">
+          <button class="sched-btn" onclick="openDrawer('${s.id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Details
+          </button>
+          ${primaryBtn}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderSchedule();
+}
+
+function filterSchedule(val) {
+  activeSearch = val.toLowerCase();
+  renderSchedule();
+}
+
+// ── Drawer ──
+function openDrawer(id) {
+  const s = SCHEDULE.find(x => x.id === id);
+  if (!s) return;
+  const sm = STATUS_META[s.status];
+
+  document.getElementById('drawerEyebrow').textContent = s.openingDate + ' · ' + s.openingTime;
+  document.getElementById('drawerTitle').textContent = s.name;
+  document.getElementById('drawerRef').textContent = s.id + ' · PhilGEPS: ' + s.philgeps;
+
+  const lotsHtml = s.lots.map(l => `
+    <div class="lot-item">
+      <div class="lot-item-left">
+        <div class="lot-item-num">${l.num}</div>
+        <div class="lot-item-name">${l.name}</div>
+        <div class="lot-item-desc">${l.desc}</div>
+      </div>
+      <div class="lot-item-abc">${l.abc}</div>
+    </div>`).join('');
+
+  const reqHtml = s.requirements.map(r => `
+    <div class="req-item">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      ${r}
+    </div>`).join('');
+
+  const tlHtml = s.timeline.map(t => `
+    <div class="tl-item">
+      <div class="tl-dot ${t.done ? 'done' : t.active ? 'active' : 'todo'}">${t.done ? '✓' : t.active ? '→' : '·'}</div>
+      <div>
+        <div class="tl-label">${t.label}</div>
+        <div class="tl-time">${t.time}</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('drawerBody').innerHTML = `
+    <div>
+      <div class="detail-section-title">Procurement Details</div>
+      <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="badge ${sm.badge}">${sm.label}</span></span></div>
+      <div class="detail-row"><span class="detail-key">Bid Opening</span><span class="detail-val">${s.openingDate} · ${s.openingTime}</span></div>
+      <div class="detail-row"><span class="detail-key">Submission Deadline</span><span class="detail-val">${s.deadline}</span></div>
+      <div class="detail-row"><span class="detail-key">Venue</span><span class="detail-val">${s.location}</span></div>
+      <div class="detail-row"><span class="detail-key">Total ABC</span><span class="detail-val mono">${s.abc}</span></div>
+      <div class="detail-row"><span class="detail-key">PhilGEPS Ref</span><span class="detail-val mono">${s.philgeps}</span></div>
+      ${s.myBid ? `<div class="detail-row"><span class="detail-key">Your Bid</span><span class="detail-val"><span class="badge badge-green">${s.myBid}</span></span></div>` : ''}
+    </div>
+    <div>
+      <div class="detail-section-title">Lots (${s.lots.length})</div>
+      <div class="lot-breakdown">${lotsHtml}</div>
+    </div>
+    <div>
+      <div class="detail-section-title">Eligibility Requirements</div>
+      <div class="req-list">${reqHtml}</div>
+    </div>
+    <div>
+      <div class="detail-section-title">Procurement Timeline</div>
+      <div class="timeline">${tlHtml}</div>
+    </div>`;
+
+  const primaryBtn = s.status === 'live'
+    ? `<a href="bid-live.html" class="sched-btn live-btn" style="text-decoration:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Watch Live</a>`
+    : (s.status === 'open' || s.status === 'upcoming')
+      ? `<a href="submit-bid.html" class="sched-btn primary" style="text-decoration:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Submit Bid</a>`
+      : '';
+
+  document.getElementById('drawerFooter').innerHTML = `
+    ${primaryBtn}
+    <button class="sched-btn" onclick="closeDrawer()">Close</button>`;
+
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+// Countdown to next opening
+(function() {
+  const target = new Date('2026-04-10T14:00:00+08:00');
+  function tick() {
+    const diff = target - new Date();
+    if (diff <= 0) return;
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor(diff % 86400000 / 3600000);
+    const m = Math.floor(diff % 3600000 / 60000);
+    const sc = Math.floor(diff % 60000 / 1000);
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v).padStart(2,'0'); };
+    set('cd-days', d); set('cd-hours', h); set('cd-mins', m); set('cd-secs', sc);
+  }
+  tick(); setInterval(tick, 1000);
+})();
+
+renderSchedule();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Active &amp; Upcoming Bid Openings — YesParency</title>
+<link rel="stylesheet" href="assets/shared.css"/>
+<style>
+  main { padding: 48px 52px; }
+  @media (max-width: 1100px) { main { padding: 40px 32px; } }
+  @media (max-width: 768px)  { main { padding: 28px 16px; } }
+  @media (max-width: 480px)  { main { padding: 20px 12px; } }
+</style>
+</head>
+<body>
+
+<div class="page-hero">
+  <div class="page-eyebrow">Procurement Details</div>
+  <h1 class="page-title">Active &amp; Upcoming Bid Openings</h1>
+  <p class="page-sub">All procurement activities conducted in accordance with Republic Act No. 9184. Click any item to view full procurement details.</p>
+</div>
+
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="filterCards('all', this)">All</button>
+  <button class="filter-btn live-btn" onclick="filterCards('is-live', this)">Live Now</button>
+  <button class="filter-btn" onclick="filterCards('is-open', this)">Open for Submission</button>
+  <button class="filter-btn" onclick="filterCards('is-upcoming', this)">Upcoming</button>
+  <button class="filter-btn" onclick="filterCards('is-closed', this)">Closed</button>
+</div>
+
+<main>
+  <div class="schedule-grid">
+    <div class="schedule-card is-live" onclick="window.location.href='bid-live.html'" style="cursor:pointer;">
+      <div class="card-status status-live"><div class="live-dot"></div> Live Now</div>
+      <div class="card-title">Supply and Delivery of Science Laboratory Equipment for College of Arts and Sciences</div>
+      <div class="card-meta">
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Opening Today — March 26, 2026 at 10:00 AM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>BAC Conference Room, Admin Building</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>ABC: ₱2,450,000.00</div>
+      </div>
+      <div class="card-abc">Ref No: <span>SLSU-BAC-2026-003</span> &nbsp;·&nbsp; PhilGEPS: <span>8821047</span></div>
+    </div>
+    <div class="schedule-card is-open">
+      <div class="card-status status-open">● Open for Submission</div>
+      <div class="card-title">Construction of New Multi-Purpose Hall at SLSU Main Campus</div>
+      <div class="card-meta">
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Bid Opening: April 3, 2026 at 10:00 AM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Submission Deadline: April 2, 2026, 5:00 PM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>ABC: ₱18,750,000.00</div>
+      </div>
+      <div class="card-abc">Ref No: <span>SLSU-BAC-2026-007</span> &nbsp;·&nbsp; PhilGEPS: <span>8834502</span></div>
+    </div>
+    <div class="schedule-card is-upcoming">
+      <div class="card-status status-upcoming">◆ Upcoming</div>
+      <div class="card-title">Supply of Information Technology Equipment and Peripherals for CIT</div>
+      <div class="card-meta">
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Bid Opening: April 10, 2026 at 2:00 PM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Submission Deadline: April 9, 2026, 5:00 PM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>ABC: ₱3,200,000.00</div>
+      </div>
+      <div class="card-abc">Ref No: <span>SLSU-BAC-2026-011</span> &nbsp;·&nbsp; PhilGEPS: <span>8841289</span></div>
+    </div>
+    <div class="schedule-card is-upcoming">
+      <div class="card-status status-upcoming">◆ Upcoming</div>
+      <div class="card-title">Procurement of Office Supplies and Materials for All Departments FY 2026</div>
+      <div class="card-meta">
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Bid Opening: April 17, 2026 at 10:00 AM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Submission Deadline: April 16, 2026, 5:00 PM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>ABC: ₱980,000.00</div>
+      </div>
+      <div class="card-abc">Ref No: <span>SLSU-BAC-2026-014</span> &nbsp;·&nbsp; PhilGEPS: <span>8849301</span></div>
+    </div>
+    <div class="schedule-card is-upcoming">
+      <div class="card-status status-upcoming">◆ Upcoming</div>
+      <div class="card-title">Repair and Rehabilitation of SLSU Gymnasium Roofing</div>
+      <div class="card-meta">
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Bid Opening: April 24, 2026 at 2:00 PM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Submission Deadline: April 23, 2026, 5:00 PM</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>ABC: ₱5,600,000.00</div>
+      </div>
+      <div class="card-abc">Ref No: <span>SLSU-BAC-2026-016</span> &nbsp;·&nbsp; PhilGEPS: <span>8852774</span></div>
+    </div>
+    <div class="schedule-card is-closed">
+      <div class="card-status status-closed">✕ Closed</div>
+      <div class="card-title">Procurement of Janitorial and Maintenance Services FY 2026</div>
+      <div class="card-meta">
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Opened: March 15, 2026</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Notice of Award Released</div>
+        <div class="card-meta-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>ABC: ₱1,800,000.00</div>
+      </div>
+      <div class="card-abc">Ref No: <span>SLSU-BAC-2026-001</span></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-bottom" style="border-top:none; padding-top:0;">
+    <span>© 2026 Southern Luzon State University · Procurement Office · YesParency v1.0</span>
+    <a href="yesparency-landing.html">← Back to Home</a>
+  </div>
+</footer>
+
+<script src="assets/shared.js"></script>
+</body>
+</html>

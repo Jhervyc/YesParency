@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>My Bids — YesParency</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+<style>
+  .page-body { padding: 26px 28px; flex: 1; }
+
+  /* ─── FILTER / SEARCH BAR ─── */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .search-wrap {
+    flex: 1; min-width: 200px; position: relative;
+  }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); opacity: .4; pointer-events: none; }
+  .search-input {
+    width: 100%; padding: 9px 12px 9px 34px;
+    border: 1px solid var(--border-d); border-radius: 7px;
+    font-size: .83rem; font-family: 'DM Sans', sans-serif;
+    background: var(--card-bg); color: var(--text); outline: none;
+    transition: border-color .2s;
+  }
+  .search-input:focus { border-color: var(--green-nat); }
+
+  .filter-tabs { display: flex; gap: 4px; }
+  .ftab {
+    padding: 8px 16px; border-radius: 7px; font-size: .8rem; font-weight: 500;
+    border: 1px solid var(--border-d); background: var(--card-bg);
+    color: var(--text-dim); cursor: pointer; transition: all .15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .ftab:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .ftab.active { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+
+  .btn-new-bid {
+    padding: 9px 18px; border-radius: 7px;
+    background: var(--gold); color: var(--green-base);
+    border: none; font-size: .82rem; font-weight: 700;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; gap: 6px;
+    transition: background .15s; white-space: nowrap;
+    text-decoration: none;
+  }
+  .btn-new-bid:hover { background: var(--gold-light); }
+
+  /* ─── BID CARDS ─── */
+  .bids-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .bid-card {
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 10px; overflow: hidden;
+    transition: box-shadow .2s, border-color .2s;
+  }
+  .bid-card:hover { border-color: rgba(12,58,27,.2); box-shadow: 0 4px 16px rgba(12,58,27,.07); }
+
+  .bid-card-main {
+    display: flex; align-items: stretch; gap: 0;
+  }
+  .bid-card-accent {
+    width: 4px; flex-shrink: 0;
+  }
+  .accent-gold    { background: var(--gold); }
+  .accent-blue    { background: var(--blue); }
+  .accent-green   { background: var(--green-nat); }
+  .accent-red     { background: var(--red); }
+  .accent-gray    { background: #ccc; }
+
+  .bid-card-body {
+    flex: 1; padding: 16px 20px;
+    display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap;
+  }
+  .bid-card-info { flex: 1; min-width: 200px; }
+  .bid-ref-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; flex-wrap: wrap; }
+  .bid-ref  { font-family: 'DM Mono', monospace; font-size: .7rem; color: var(--text-dim); }
+  .bid-name { font-size: .92rem; font-weight: 600; color: var(--text); margin-bottom: 8px; line-height: 1.4; }
+  .bid-meta-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .bid-meta-item { display: flex; align-items: center; gap: 5px; font-size: .75rem; color: var(--text-dim); }
+  .bid-meta-item svg { opacity: .45; flex-shrink: 0; }
+
+  .bid-card-lots { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+  .lot-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 7px 10px; border-radius: 6px; background: var(--dash-bg);
+    border: 1px solid var(--border-d);
+  }
+  .lot-row-name { font-size: .75rem; font-weight: 500; color: var(--text); }
+  .lot-row-price { font-family: 'DM Mono', monospace; font-size: .75rem; font-weight: 700; color: var(--green-base); }
+
+  .bid-card-actions {
+    display: flex; flex-direction: column; align-items: flex-end;
+    justify-content: space-between; gap: 10px; padding: 16px 20px 16px 0;
+    min-width: 140px;
+  }
+  .bid-action-btn {
+    padding: 7px 14px; border-radius: 6px; font-size: .76rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    border: 1px solid var(--border-d); background: var(--card-bg);
+    color: var(--text-dim); transition: all .15s; text-decoration: none;
+    display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  }
+  .bid-action-btn:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .bid-action-btn.primary { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+  .bid-action-btn.primary:hover { background: var(--green-mid); }
+  .bid-action-btn.danger { color: var(--red); border-color: rgba(218,33,40,.25); }
+  .bid-action-btn.danger:hover { background: rgba(218,33,40,.06); }
+
+  /* ─── LOCKED BADGE ─── */
+  .locked-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: 'DM Mono', monospace; font-size: .62rem; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 4px;
+    background: rgba(218,33,40,.07); color: #b01a1f;
+    border: 1px solid rgba(218,33,40,.18);
+  }
+
+  /* ─── EDIT REQUEST MODAL ─── */
+  .modal-overlay { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,.5); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--card-bg); border-radius: 12px; padding: 32px 36px;
+    width: 100%; max-width: 480px; box-shadow: 0 24px 64px rgba(0,0,0,.18);
+    position: relative; animation: modalIn .2s ease;
+  }
+  @keyframes modalIn { from { opacity:0; transform: translateY(12px) scale(.98); } to { opacity:1; transform: none; } }
+  .modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none; cursor: pointer; color: var(--text-dim); font-size: 1.2rem; }
+  .modal-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .modal-sub   { font-size: .8rem; color: var(--text-dim); margin-bottom: 20px; line-height: 1.55; }
+  .modal-field { margin-bottom: 16px; }
+  .modal-field label { display: block; font-size: .76rem; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+  .modal-field select,
+  .modal-field textarea {
+    width: 100%; padding: 9px 12px; border-radius: 7px;
+    border: 1px solid var(--border-d); font-size: .84rem;
+    font-family: 'DM Sans', sans-serif; color: var(--text);
+    background: var(--dash-bg); outline: none; transition: border-color .2s;
+  }
+  .modal-field textarea { resize: vertical; min-height: 90px; }
+  .modal-field select:focus, .modal-field textarea:focus { border-color: var(--green-nat); }
+  .modal-warning {
+    background: rgba(253,185,19,.08); border: 1px solid rgba(253,185,19,.22);
+    border-radius: 7px; padding: 10px 13px; font-size: .77rem;
+    color: #7a5500; line-height: 1.55; margin-bottom: 18px;
+    display: flex; gap: 8px;
+  }
+  .modal-warning svg { flex-shrink: 0; margin-top: 1px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .btn-cancel { padding: 9px 20px; border-radius: 7px; border: 1px solid var(--border-d); background: var(--card-bg); font-size: .82rem; font-weight: 600; color: var(--text-dim); cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .btn-cancel:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .btn-request { padding: 9px 20px; border-radius: 7px; background: var(--green-base); color: var(--white); border: none; font-size: .82rem; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .15s; }
+  .btn-request:hover { background: var(--green-mid); }
+
+  /* ─── BID DETAIL DRAWER ─── */
+  .drawer-overlay { display: none; position: fixed; inset: 0; z-index: 998; background: rgba(0,0,0,.4); }
+  .drawer-overlay.open { display: block; }
+  .drawer {
+    position: fixed; top: 0; right: -520px; bottom: 0; width: 500px; max-width: 95vw;
+    background: var(--card-bg); z-index: 999; box-shadow: -8px 0 40px rgba(0,0,0,.15);
+    display: flex; flex-direction: column; transition: right .3s ease;
+    overflow: hidden;
+  }
+  .drawer.open { right: 0; }
+  .drawer-header {
+    background: var(--green-base); padding: 20px 24px;
+    border-bottom: 3px solid var(--gold);
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  }
+  .drawer-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--white); line-height: 1.3; }
+  .drawer-ref   { font-family: 'DM Mono', monospace; font-size: .68rem; color: rgba(255,255,255,.5); margin-top: 3px; }
+  .drawer-close { background: none; border: none; cursor: pointer; color: rgba(255,255,255,.6); font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+  .drawer-close:hover { color: var(--white); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+  .detail-section-title {
+    font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px;
+    padding-bottom: 7px; border-bottom: 1px solid var(--border-d);
+  }
+  .detail-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: .81rem; border-bottom: 1px solid var(--border-d); }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { color: var(--text-dim); flex-shrink: 0; }
+  .detail-val { font-weight: 600; color: var(--text); text-align: right; }
+  .detail-val.mono { font-family: 'DM Mono', monospace; }
+
+  .envelope-block {
+    border: 1px solid var(--border-d); border-radius: 8px; overflow: hidden;
+  }
+  .envelope-header {
+    padding: 10px 14px; display: flex; align-items: center; gap: 8px;
+    font-size: .78rem; font-weight: 600;
+  }
+  .env-header-1 { background: rgba(43,87,151,.08); color: var(--blue); }
+  .env-header-2 { background: rgba(253,185,19,.1); color: #8a6000; }
+  .envelope-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .env-doc-item { display: flex; align-items: center; gap: 8px; font-size: .78rem; color: var(--text); }
+  .env-doc-item svg { color: var(--green-nat); flex-shrink: 0; }
+
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+  .tl-item { display: flex; gap: 12px; align-items: flex-start; padding-bottom: 14px; position: relative; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-item:not(:last-child)::before { content: ''; position: absolute; left: 9px; top: 22px; bottom: 0; width: 2px; background: var(--border-d); }
+  .tl-dot { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .6rem; font-weight: 700; z-index: 1; }
+  .tl-dot.done   { background: var(--green-nat); color: var(--white); }
+  .tl-dot.active { background: var(--gold); color: var(--green-base); }
+  .tl-dot.todo   { background: var(--border-d); color: var(--text-dim); border: 1px solid var(--border-d); }
+  .tl-content { flex: 1; }
+  .tl-label { font-size: .81rem; font-weight: 600; color: var(--text); }
+  .tl-time  { font-size: .71rem; color: var(--text-dim); margin-top: 2px; }
+
+  .drawer-footer {
+    padding: 14px 24px; border-top: 1px solid var(--border-d);
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+
+  /* ─── EMPTY STATE ─── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+  .empty-icon { margin-bottom: 12px; opacity: .25; }
+  .empty-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .empty-sub { font-size: .82rem; line-height: 1.6; }
+
+  @media (max-width: 768px) {
+    .page-body { padding: 16px; }
+    .bid-card-main { flex-wrap: wrap; }
+    .bid-card-actions { flex-direction: row; padding: 0 16px 14px; min-width: unset; }
+    .bid-card-lots { min-width: unset; width: 100%; }
+    .filter-tabs { flex-wrap: wrap; }
+    .drawer { width: 100%; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="dash-sidebar" id="sidebar">
+  <a href="yesparency-landing.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div><div class="brand-name">YesParency</div><div class="brand-sub">SLSU Procurement</div></div>
+  </a>
+  <div class="sidebar-profile">
+    <div class="profile-avatar">JC</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Juan M. Cruz</div>
+      <div class="profile-role">Registered Bidder</div>
+      <div class="profile-verified">Account Verified</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a href="bidder-dashboard.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="submit-bid.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      Submit a Bid
+    </a>
+    <a href="my-bids.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      My Bids
+    </a>
+    <div class="nav-section-label">Information</div>
+    <a href="bid-schedule.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Bid Schedule
+    </a>
+    <a href="notifications.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Notifications <span class="nav-badge">3</span>
+    </a>
+    <div class="nav-section-label">Account</div>
+    <a href="profile-settings.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile &amp; Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="dash-main">
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb"><a href="bidder-dashboard.html">Dashboard</a><span class="topbar-sep">/</span></span>
+      <span class="topbar-page">My Bids</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-dot"></div></div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar">JC</div>
+    </div>
+  </header>
+
+  <main class="page-body">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" type="text" placeholder="Search by project name or ref no..." oninput="filterBids(this.value)"/>
+      </div>
+      <div class="filter-tabs">
+        <button class="ftab active" onclick="setFilter('all',this)">All <span id="cnt-all"></span></button>
+        <button class="ftab" onclick="setFilter('submitted',this)">Submitted</button>
+        <button class="ftab" onclick="setFilter('under-review',this)">Under Review</button>
+        <button class="ftab" onclick="setFilter('awarded',this)">Awarded</button>
+        <button class="ftab" onclick="setFilter('not-awarded',this)">Not Awarded</button>
+      </div>
+      <a href="submit-bid.html" class="btn-new-bid">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Bid
+      </a>
+    </div>
+
+    <!-- BIDS LIST -->
+    <div class="bids-list" id="bidsList"></div>
+
+  </main>
+</div>
+
+<!-- EDIT REQUEST MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeEditModal()">✕</button>
+    <div class="modal-title">Request Bid Amendment</div>
+    <div class="modal-sub">Submit a formal request to the BAC to unlock your bid for editing. Requests are subject to BAC approval and must be submitted before the submission deadline.</div>
+    <div class="modal-warning">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Approved amendments are logged in the audit trail. The BAC may deny requests at their discretion. You cannot request an amendment after the submission deadline.</span>
+    </div>
+    <div class="modal-field">
+      <label>Reason for Amendment <span style="color:var(--red)">*</span></label>
+      <select id="amendReason">
+        <option value="">Select reason...</option>
+        <option>Correction of typographical error in bid price</option>
+        <option>Update of bid security amount</option>
+        <option>Replacement of expired document</option>
+        <option>Correction of technical specification compliance</option>
+        <option>Other (specify below)</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Details / Justification <span style="color:var(--red)">*</span></label>
+      <textarea id="amendDetails" placeholder="Describe the specific changes you need to make and why..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-request" onclick="submitEditRequest()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- BID DETAIL DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-title" id="drawerTitle">—</div>
+      <div class="drawer-ref" id="drawerRef">—</div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-footer" id="drawerFooter"></div>
+</div>
+
+<script src="assets/dashboard.js"></script>
+<script>
+const BIDS = [
+  {
+    id: 'BID-0042-001',
+    ref: 'SLSU-BAC-2026-011',
+    name: 'Supply of Information Technology Equipment and Peripherals for CIT',
+    submitted: 'March 25, 2026 at 4:47 PM',
+    deadline: 'April 9, 2026 at 5:00 PM',
+    opening: 'April 10, 2026 at 2:00 PM',
+    receipt: 'OR-2026-004821',
+    status: 'under-review',
+    locked: true,
+    editRequest: null,
+    lots: [
+      { name: 'Lot 1 — High-End Workstations', price: '₱1,350,000.00', abc: '₱1,400,000.00' },
+      { name: 'Lot 2 — Mid-Range Desktops',    price: '₱1,050,000.00', abc: '₱1,100,000.00' },
+    ],
+    env1Docs: ['DTI Registration Certificate', 'Mayor\'s Permit 2026', 'BIR Form 2303', 'PhilGEPS Certificate', 'SLCC Statement'],
+    env2Docs: ['Financial Bid Form — Lot 1 (Signed)', 'Financial Bid Form — Lot 2 (Signed)', 'Bid Security — Surety Bond'],
+    timeline: [
+      { label: 'Bid Documents Purchased', time: 'March 25, 2026 · 9:12 AM', done: true },
+      { label: 'Bid Submitted & Locked', time: 'March 25, 2026 · 4:47 PM', done: true },
+      { label: 'Eligibility Review (Envelope 1)', time: 'April 10, 2026 · 2:00 PM', active: true },
+      { label: 'Financial Bid Opening (Envelope 2)', time: 'April 10, 2026 · After Env. 1', done: false },
+      { label: 'Post-Qualification', time: 'Within 3 days of opening', done: false },
+      { label: 'Notice of Award', time: 'Pending', done: false },
+    ]
+  },
+  {
+    id: 'BID-0042-002',
+    ref: 'SLSU-BAC-2026-007',
+    name: 'Construction of New Multi-Purpose Hall at SLSU Main Campus',
+    submitted: 'March 24, 2026 at 3:22 PM',
+    deadline: 'April 2, 2026 at 5:00 PM',
+    opening: 'April 3, 2026 at 10:00 AM',
+    receipt: 'OR-2026-004799',
+    status: 'submitted',
+    locked: true,
+    editRequest: 'pending',
+    lots: [
+      { name: 'Lot 1 — Full Construction', price: '₱18,200,000.00', abc: '₱18,750,000.00' },
+    ],
+    env1Docs: ['SEC Registration', 'Mayor\'s Permit 2026', 'BIR Form 2303', 'PhilGEPS Certificate', 'PCAB License', 'Audited Financial Statements'],
+    env2Docs: ['Financial Bid Form — Lot 1 (Signed)', 'Bid Security — Manager\'s Check'],
+    timeline: [
+      { label: 'Bid Documents Purchased', time: 'March 22, 2026 · 10:05 AM', done: true },
+      { label: 'Bid Submitted & Locked', time: 'March 24, 2026 · 3:22 PM', done: true },
+      { label: 'Amendment Request Submitted', time: 'March 26, 2026 · 8:30 AM', done: true },
+      { label: 'Amendment Request — Pending BAC Approval', time: 'Awaiting response', active: true },
+      { label: 'Bid Opening (Envelope 1 & 2)', time: 'April 3, 2026 · 10:00 AM', done: false },
+      { label: 'Post-Qualification', time: 'Pending', done: false },
+    ]
+  },
+  {
+    id: 'BID-0042-003',
+    ref: 'SLSU-BAC-2026-001',
+    name: 'Procurement of Janitorial and Maintenance Services FY 2026',
+    submitted: 'February 28, 2026 at 2:10 PM',
+    deadline: 'March 14, 2026 at 5:00 PM',
+    opening: 'March 15, 2026 at 10:00 AM',
+    receipt: 'OR-2026-003901',
+    status: 'awarded',
+    locked: true,
+    editRequest: null,
+    lots: [
+      { name: 'Lot 1 — Janitorial Services', price: '₱1,720,000.00', abc: '₱1,800,000.00' },
+    ],
+    env1Docs: ['DTI Registration', 'Mayor\'s Permit 2026', 'BIR Form 2303', 'PhilGEPS Certificate'],
+    env2Docs: ['Financial Bid Form — Lot 1 (Signed)', 'Bid Security — Surety Bond'],
+    timeline: [
+      { label: 'Bid Submitted & Locked', time: 'Feb 28, 2026 · 2:10 PM', done: true },
+      { label: 'Eligibility Review Passed', time: 'March 15, 2026 · 10:30 AM', done: true },
+      { label: 'Lowest Calculated Bid', time: 'March 15, 2026 · 11:00 AM', done: true },
+      { label: 'Post-Qualification Passed', time: 'March 18, 2026', done: true },
+      { label: 'Notice of Award Issued', time: 'March 20, 2026', done: true },
+    ]
+  },
+  {
+    id: 'BID-0042-004',
+    ref: 'SLSU-BAC-2026-002',
+    name: 'Supply of Office Furniture and Fixtures',
+    submitted: 'January 15, 2026 at 1:45 PM',
+    deadline: 'January 20, 2026 at 5:00 PM',
+    opening: 'January 21, 2026 at 10:00 AM',
+    receipt: 'OR-2026-000412',
+    status: 'not-awarded',
+    locked: true,
+    editRequest: null,
+    lots: [
+      { name: 'Lot 1 — Office Furniture', price: '₱980,000.00', abc: '₱1,050,000.00' },
+    ],
+    env1Docs: ['DTI Registration', 'Mayor\'s Permit 2026', 'BIR Form 2303', 'PhilGEPS Certificate'],
+    env2Docs: ['Financial Bid Form — Lot 1 (Signed)', 'Bid Security — Cash'],
+    timeline: [
+      { label: 'Bid Submitted & Locked', time: 'Jan 15, 2026 · 1:45 PM', done: true },
+      { label: 'Eligibility Review Passed', time: 'Jan 21, 2026 · 10:15 AM', done: true },
+      { label: 'Financial Bid Opened', time: 'Jan 21, 2026 · 10:45 AM', done: true },
+      { label: 'Post-Qualification', time: 'Jan 24, 2026', done: true },
+      { label: 'Not Awarded — Lower bid received', time: 'Jan 28, 2026', done: true },
+    ]
+  }
+];
+
+const STATUS_META = {
+  'submitted':    { label: 'Submitted',    badge: 'badge-blue',  accent: 'accent-blue' },
+  'under-review': { label: 'Under Review', badge: 'badge-gold',  accent: 'accent-gold' },
+  'awarded':      { label: 'Awarded',      badge: 'badge-green', accent: 'accent-green' },
+  'not-awarded':  { label: 'Not Awarded',  badge: 'badge-gray',  accent: 'accent-gray' },
+};
+
+let activeFilter = 'all';
+let activeSearch = '';
+let editTargetId = null;
+
+function renderBids() {
+  const list = document.getElementById('bidsList');
+  const filtered = BIDS.filter(b => {
+    const matchFilter = activeFilter === 'all' || b.status === activeFilter;
+    const matchSearch = !activeSearch || b.name.toLowerCase().includes(activeSearch) || b.ref.toLowerCase().includes(activeSearch) || b.id.toLowerCase().includes(activeSearch);
+    return matchFilter && matchSearch;
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <div class="empty-title">No bids found</div>
+      <div class="empty-sub">Try adjusting your filter or search, or <a href="submit-bid.html" style="color:var(--green-nat);font-weight:600;">submit a new bid</a>.</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(b => {
+    const sm = STATUS_META[b.status];
+    const lotsHtml = b.lots.map(l => `
+      <div class="lot-row">
+        <span class="lot-row-name">${l.name}</span>
+        <span class="lot-row-price">${l.price}</span>
+      </div>`).join('');
+
+    const editBtn = b.locked && (b.status === 'submitted' || b.status === 'under-review')
+      ? `<button class="bid-action-btn danger" onclick="openEditModal('${b.id}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Request Edit
+        </button>`
+      : '';
+
+    const amendPending = b.editRequest === 'pending'
+      ? `<span class="badge badge-gold" style="font-size:.62rem;">Edit Request Pending</span>` : '';
+
+    const liveBtn = b.status === 'under-review'
+      ? `<a href="bid-live.html" class="bid-action-btn primary">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          Watch Live
+        </a>` : '';
+
+    return `<div class="bid-card" data-status="${b.status}" data-name="${b.name.toLowerCase()}" data-ref="${b.ref.toLowerCase()}" data-id="${b.id.toLowerCase()}">
+      <div class="bid-card-main">
+        <div class="bid-card-accent ${sm.accent}"></div>
+        <div class="bid-card-body">
+          <div class="bid-card-info">
+            <div class="bid-ref-row">
+              <span class="bid-ref">${b.id}</span>
+              <span class="badge ${sm.badge}">${sm.label}</span>
+              ${b.locked ? '<span class="locked-tag"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Locked</span>' : ''}
+              ${amendPending}
+            </div>
+            <div class="bid-name">${b.name}</div>
+            <div class="bid-meta-row">
+              <div class="bid-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${b.ref}</div>
+              <div class="bid-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Submitted: ${b.submitted}</div>
+              <div class="bid-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>${b.lots.length} Lot${b.lots.length > 1 ? 's' : ''}</div>
+            </div>
+          </div>
+          <div class="bid-card-lots">${lotsHtml}</div>
+        </div>
+        <div class="bid-card-actions">
+          <button class="bid-action-btn" onclick="openDrawer('${b.id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            View Details
+          </button>
+          ${liveBtn}
+          ${editBtn}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderBids();
+}
+
+function filterBids(val) {
+  activeSearch = val.toLowerCase();
+  renderBids();
+}
+
+// ── Edit Request Modal ──
+function openEditModal(id) {
+  editTargetId = id;
+  document.getElementById('amendReason').value = '';
+  document.getElementById('amendDetails').value = '';
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal() { document.getElementById('editModal').classList.remove('open'); }
+function submitEditRequest() {
+  const reason = document.getElementById('amendReason').value;
+  const details = document.getElementById('amendDetails').value.trim();
+  if (!reason) { alert('Please select a reason for the amendment.'); return; }
+  if (!details) { alert('Please provide details for your request.'); return; }
+  const bid = BIDS.find(b => b.id === editTargetId);
+  if (bid) bid.editRequest = 'pending';
+  closeEditModal();
+  renderBids();
+  alert('Your amendment request has been submitted to the BAC. You will be notified once it is reviewed.');
+}
+
+// ── Bid Detail Drawer ──
+function openDrawer(id) {
+  const b = BIDS.find(x => x.id === id);
+  if (!b) return;
+  const sm = STATUS_META[b.status];
+  document.getElementById('drawerTitle').textContent = b.name;
+  document.getElementById('drawerRef').textContent = b.id + ' · ' + b.ref;
+
+  const tlHtml = b.timeline.map(t => `
+    <div class="tl-item">
+      <div class="tl-dot ${t.done ? 'done' : t.active ? 'active' : 'todo'}">${t.done ? '✓' : t.active ? '→' : '·'}</div>
+      <div class="tl-content">
+        <div class="tl-label">${t.label}</div>
+        <div class="tl-time">${t.time}</div>
+      </div>
+    </div>`).join('');
+
+  const env1Docs = b.env1Docs.map(d => `<div class="env-doc-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>${d}</div>`).join('');
+  const env2Docs = b.env2Docs.map(d => `<div class="env-doc-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>${d}</div>`).join('');
+
+  const lotsHtml = b.lots.map(l => `
+    <div class="detail-row">
+      <span class="detail-key">${l.name}</span>
+      <span class="detail-val mono">${l.price} <span style="font-size:.68rem;color:var(--text-dim);font-weight:400;">/ ABC ${l.abc}</span></span>
+    </div>`).join('');
+
+  document.getElementById('drawerBody').innerHTML = `
+    <div class="detail-section">
+      <div class="detail-section-title">Procurement Details</div>
+      <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="badge ${sm.badge}">${sm.label}</span></span></div>
+      <div class="detail-row"><span class="detail-key">Project Ref</span><span class="detail-val mono">${b.ref}</span></div>
+      <div class="detail-row"><span class="detail-key">Bid Opening</span><span class="detail-val">${b.opening}</span></div>
+      <div class="detail-row"><span class="detail-key">Submission Deadline</span><span class="detail-val">${b.deadline}</span></div>
+      <div class="detail-row"><span class="detail-key">Receipt No.</span><span class="detail-val mono">${b.receipt}</span></div>
+      <div class="detail-row"><span class="detail-key">Bid Locked</span><span class="detail-val">${b.locked ? '🔒 Yes — Edit Request Required' : '🔓 Unlocked'}</span></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Bid Prices by Lot</div>
+      ${lotsHtml}
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Submitted Documents</div>
+      <div class="envelope-block" style="margin-bottom:10px;">
+        <div class="envelope-header env-header-1">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Envelope 1 — Eligibility &amp; Technical
+        </div>
+        <div class="envelope-body">${env1Docs}</div>
+      </div>
+      <div class="envelope-block">
+        <div class="envelope-header env-header-2">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Envelope 2 — Financial Bid
+        </div>
+        <div class="envelope-body">${env2Docs}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Bid Timeline</div>
+      <div class="timeline">${tlHtml}</div>
+    </div>`;
+
+  const canEdit = b.locked && (b.status === 'submitted' || b.status === 'under-review');
+  document.getElementById('drawerFooter').innerHTML = `
+    ${b.status === 'under-review' ? `<a href="bid-live.html" class="bid-action-btn primary" style="text-decoration:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Watch Live Opening</a>` : ''}
+    ${canEdit ? `<button class="bid-action-btn danger" onclick="closeDrawer();openEditModal('${b.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Request Edit</button>` : ''}
+    <button class="bid-action-btn" onclick="closeDrawer()">Close</button>`;
+
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeDrawer(); closeEditModal(); }
+});
+
+// Init
+renderBids();
+</script>
+</body>
+</html>
+

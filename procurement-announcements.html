@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Procurement Announcements — YesParency</title>
+<link rel="stylesheet" href="assets/shared.css"/>
+<style>
+  main { padding: 48px 52px; }
+  @media (max-width: 1100px) { main { padding: 40px 32px; } }
+  @media (max-width: 768px)  { main { padding: 28px 16px; } }
+  @media (max-width: 480px)  { main { padding: 20px 12px; } }
+</style>
+</head>
+<body>
+
+<div class="page-hero">
+  <div class="page-eyebrow">News &amp; Notices</div>
+  <h1 class="page-title">Procurement Announcements</h1>
+  <p class="page-sub">Official notices, invitations to bid, and important deadlines from the SLSU Bids and Awards Committee.</p>
+</div>
+
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="filterAnn('all', this)">All</button>
+  <button class="filter-btn" onclick="filterAnn('tag-bid', this)">Invitation to Bid</button>
+  <button class="filter-btn" onclick="filterAnn('tag-notice', this)">Notices</button>
+  <button class="filter-btn" onclick="filterAnn('tag-deadline', this)">Deadlines</button>
+  <button class="filter-btn" onclick="filterAnn('tag-award', this)">Awards</button>
+</div>
+
+<main>
+  <div class="ann-list">
+    <div class="ann-card" data-tag="tag-bid">
+      <div class="ann-date-block"><div class="ann-day">26</div><div class="ann-month">Mar</div></div>
+      <div class="ann-body">
+        <span class="ann-tag tag-bid">Invitation to Bid</span>
+        <div class="ann-title">ITB: Supply and Delivery of Laboratory Equipment for the College of Arts and Sciences</div>
+        <div class="ann-excerpt">The Bids and Awards Committee of SLSU invites PhilGEPS-registered suppliers to bid for the supply and delivery of laboratory equipment. Total ABC: ₱2,450,000.00. Deadline for submission of bids is April 2, 2026.</div>
+      </div>
+    </div>
+    <div class="ann-card" data-tag="tag-notice">
+      <div class="ann-date-block"><div class="ann-day">24</div><div class="ann-month">Mar</div></div>
+      <div class="ann-body">
+        <span class="ann-tag tag-notice">Notice</span>
+        <div class="ann-title">Pre-Bid Conference: Renovation of Science and Technology Building</div>
+        <div class="ann-excerpt">A pre-bid conference will be held on March 28, 2026 at 2:00 PM at the BAC Conference Room. All interested bidders are encouraged to attend. Bidding documents are available at the Procurement Office.</div>
+      </div>
+    </div>
+    <div class="ann-card" data-tag="tag-deadline">
+      <div class="ann-date-block"><div class="ann-day">20</div><div class="ann-month">Mar</div></div>
+      <div class="ann-body">
+        <span class="ann-tag tag-deadline">Deadline Reminder</span>
+        <div class="ann-title">Final Call: IT Equipment Procurement — Submission Closes April 9</div>
+        <div class="ann-excerpt">This is a reminder that the deadline for submission of bids for the IT Equipment and Peripherals project (SLSU-BAC-2026-011) is on April 9, 2026 at 5:00 PM. Late submissions will not be accepted.</div>
+      </div>
+    </div>
+    <div class="ann-card" data-tag="tag-award">
+      <div class="ann-date-block"><div class="ann-day">15</div><div class="ann-month">Mar</div></div>
+      <div class="ann-body">
+        <span class="ann-tag tag-award">Notice of Award</span>
+        <div class="ann-title">Notice of Award: Janitorial and Maintenance Services Contract FY 2026</div>
+        <div class="ann-excerpt">The BAC has issued a Notice of Award for the Janitorial and Maintenance Services Contract (SLSU-BAC-2026-001). The awarded bidder has been notified and is required to submit post-qualification documents within five (5) calendar days.</div>
+      </div>
+    </div>
+    <div class="ann-card" data-tag="tag-bid">
+      <div class="ann-date-block"><div class="ann-day">12</div><div class="ann-month">Mar</div></div>
+      <div class="ann-body">
+        <span class="ann-tag tag-bid">Invitation to Bid</span>
+        <div class="ann-title">ITB: Construction of New Multi-Purpose Hall at SLSU Main Campus</div>
+        <div class="ann-excerpt">SLSU invites eligible contractors to bid for the construction of a new multi-purpose hall. Total ABC: ₱18,750,000.00. Pre-bid conference on March 20, 2026. Bid opening on April 3, 2026 at 10:00 AM.</div>
+      </div>
+    </div>
+    <div class="ann-card" data-tag="tag-notice">
+      <div class="ann-date-block"><div class="ann-day">08</div><div class="ann-month">Mar</div></div>
+      <div class="ann-body">
+        <span class="ann-tag tag-notice">Notice</span>
+        <div class="ann-title">Annual Procurement Plan (APP) FY 2026 — Published</div>
+        <div class="ann-excerpt">The SLSU Procurement Office has published the Annual Procurement Plan for Fiscal Year 2026. The APP is available for download at the Procurement Office and on the PhilGEPS portal.</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-bottom" style="border-top:none; padding-top:0;">
+    <span>© 2026 Southern Luzon State University · Procurement Office · YesParency v1.0</span>
+    <a href="yesparency-landing.html">← Back to Home</a>
+  </div>
+</footer>
+
+<script src="assets/shared.js"></script>
+</body>
+</html>

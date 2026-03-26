@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bidder Accounts — YesParency Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+<style>
+  .dash-sidebar { background: #0a2e1a; }
+  .admin-role-badge {
+    margin: 0 12px 8px; padding: 5px 10px; border-radius: 5px;
+    background: rgba(253,185,19,.1); border: 1px solid rgba(253,185,19,.2);
+    font-family: 'DM Mono', monospace; font-size: .58rem;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gold); display: flex; align-items: center; gap: 5px;
+  }
+  .page-body { padding: 26px 28px; flex: 1; }
+
+  /* ─── TOOLBAR ─── */
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .search-wrap { flex: 1; min-width: 200px; position: relative; }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); opacity: .4; pointer-events: none; }
+  .search-input {
+    width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--border-d);
+    border-radius: 7px; font-size: .83rem; font-family: 'DM Sans', sans-serif;
+    background: var(--card-bg); color: var(--text); outline: none; transition: border-color .2s;
+  }
+  .search-input:focus { border-color: var(--green-nat); }
+  .filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ftab {
+    padding: 8px 14px; border-radius: 7px; font-size: .78rem; font-weight: 500;
+    border: 1px solid var(--border-d); background: var(--card-bg);
+    color: var(--text-dim); cursor: pointer; transition: all .15s; font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .ftab:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .ftab.active { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+  .ftab-count {
+    background: rgba(255,255,255,.2); color: inherit;
+    font-family: 'DM Mono', monospace; font-size: .62rem; font-weight: 700;
+    padding: 1px 6px; border-radius: 99px;
+  }
+  .ftab:not(.active) .ftab-count { background: var(--border-d); color: var(--text-dim); }
+
+  /* ─── BIDDER CARDS ─── */
+  .bidder-list { display: flex; flex-direction: column; gap: 10px; }
+  .bidder-card {
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 10px; overflow: hidden;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .bidder-card:hover { border-color: rgba(12,58,27,.2); box-shadow: 0 3px 14px rgba(12,58,27,.07); }
+  .bidder-card-inner { display: flex; align-items: stretch; }
+  .bidder-accent { width: 4px; flex-shrink: 0; }
+  .ba-verified  { background: var(--green-nat); }
+  .ba-pending   { background: var(--gold); }
+  .ba-expiring  { background: #f59e0b; }
+  .ba-expired   { background: var(--red); }
+  .ba-suspended { background: #6b7f6b; }
+
+  .bidder-body { flex: 1; padding: 14px 18px; display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+  .bidder-avatar-wrap { flex-shrink: 0; }
+  .bidder-avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: .82rem; font-weight: 700;
+    color: var(--white); background: var(--green-nat);
+  }
+
+  .bidder-info { flex: 1; min-width: 180px; }
+  .bidder-name { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .bidder-biz  { font-size: .78rem; color: var(--text-dim); margin-bottom: 6px; }
+  .bidder-meta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .bidder-meta-item { display: flex; align-items: center; gap: 4px; font-size: .72rem; color: var(--text-dim); }
+  .bidder-meta-item svg { opacity: .45; flex-shrink: 0; }
+
+  .bidder-docs { display: flex; flex-direction: column; gap: 4px; min-width: 160px; flex-shrink: 0; }
+  .doc-status-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .72rem; }
+  .doc-status-name { color: var(--text-dim); }
+  .doc-days { font-family: 'DM Mono', monospace; font-size: .68rem; font-weight: 600; }
+  .doc-days.ok      { color: var(--green-nat); }
+  .doc-days.warn    { color: #f59e0b; }
+  .doc-days.expired { color: var(--red); }
+
+  .bidder-actions {
+    display: flex; flex-direction: column; gap: 5px;
+    padding: 14px 16px 14px 0; justify-content: center; flex-shrink: 0;
+  }
+  .act-btn {
+    padding: 6px 13px; border-radius: 6px; font-size: .74rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; text-decoration: none;
+    border: 1px solid var(--border-d); background: var(--card-bg); color: var(--text-dim);
+    transition: all .15s; display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  }
+  .act-btn:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .act-btn.approve { background: rgba(73,122,58,.1); color: #2d6b1f; border-color: rgba(73,122,58,.2); }
+  .act-btn.approve:hover { background: rgba(73,122,58,.2); }
+  .act-btn.danger  { color: #b01a1f; border-color: rgba(218,33,40,.2); }
+  .act-btn.danger:hover  { background: rgba(218,33,40,.06); }
+  .act-btn.warn    { color: #8a6000; border-color: rgba(253,185,19,.3); background: rgba(253,185,19,.06); }
+
+  /* ─── DRAWER ─── */
+  .drawer-overlay { display: none; position: fixed; inset: 0; z-index: 998; background: rgba(0,0,0,.4); }
+  .drawer-overlay.open { display: block; }
+  .drawer {
+    position: fixed; top: 0; right: -580px; bottom: 0; width: 560px; max-width: 96vw;
+    background: var(--card-bg); z-index: 999;
+    box-shadow: -8px 0 40px rgba(0,0,0,.15);
+    display: flex; flex-direction: column; transition: right .3s ease;
+  }
+  .drawer.open { right: 0; }
+  .drawer-header {
+    background: #0a2e1a; padding: 16px 20px; border-bottom: 3px solid var(--gold);
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  }
+  .drawer-avatar {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: .88rem; font-weight: 700;
+    color: var(--green-base); background: var(--gold);
+  }
+  .drawer-title { font-family: 'Playfair Display', serif; font-size: .95rem; font-weight: 700; color: var(--white); line-height: 1.3; }
+  .drawer-sub   { font-size: .75rem; color: rgba(255,255,255,.5); margin-top: 2px; }
+  .drawer-ref   { font-family: 'DM Mono', monospace; font-size: .65rem; color: rgba(255,255,255,.35); margin-top: 3px; }
+  .drawer-close { background: none; border: none; cursor: pointer; color: rgba(255,255,255,.5); font-size: 1.2rem; flex-shrink: 0; }
+  .drawer-close:hover { color: var(--white); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .drawer-footer { padding: 12px 20px; border-top: 1px solid var(--border-d); display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .d-section-title {
+    font-family: 'DM Mono', monospace; font-size: .6rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border-d);
+  }
+  .d-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: .79rem; border-bottom: 1px solid var(--border-d); }
+  .d-row:last-child { border-bottom: none; }
+  .d-key { color: var(--text-dim); flex-shrink: 0; }
+  .d-val { font-weight: 600; color: var(--text); text-align: right; }
+  .d-val.mono { font-family: 'DM Mono', monospace; }
+
+  .doc-table-mini { width: 100%; border-collapse: collapse; }
+  .doc-table-mini th {
+    text-align: left; font-family: 'DM Mono', monospace; font-size: .58rem;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim);
+    padding: 0 10px 7px; border-bottom: 1px solid var(--border-d);
+  }
+  .doc-table-mini td { padding: 8px 10px; font-size: .78rem; border-bottom: 1px solid var(--border-d); vertical-align: middle; }
+  .doc-table-mini tr:last-child td { border-bottom: none; }
+
+  .bid-history-item {
+    display: flex; align-items: center; gap: 10px; padding: 8px 0;
+    border-bottom: 1px solid var(--border-d); font-size: .78rem;
+  }
+  .bid-history-item:last-child { border-bottom: none; }
+  .bhi-ref  { font-family: 'DM Mono', monospace; font-size: .7rem; color: var(--text-dim); flex-shrink: 0; }
+  .bhi-name { flex: 1; color: var(--text); font-weight: 500; }
+  .bhi-date { font-size: .7rem; color: var(--text-dim); flex-shrink: 0; }
+
+  /* ─── EMPTY ─── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: .85rem; }
+
+  @media (max-width: 768px) {
+    .page-body { padding: 16px; }
+    .bidder-docs { display: none; }
+    .bidder-actions { flex-direction: row; padding: 0 14px 12px; }
+    .drawer { width: 100%; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="dash-sidebar" id="sidebar">
+  <a href="admin-dashboard.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div><div class="brand-name">YesParency</div><div class="brand-sub">SLSU Procurement</div></div>
+  </a>
+  <div class="sidebar-profile">
+    <div class="profile-avatar" style="background:#2b5797;">MZ</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Maridel C. Zabella</div>
+      <div class="profile-role">BAC Chairperson</div>
+      <div class="profile-verified">Super Administrator</div>
+    </div>
+  </div>
+  <div class="admin-role-badge">
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Admin Access
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="admin-dashboard.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <div class="nav-section-label">Procurement</div>
+    <a href="admin-procurements.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Procurements
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Bid Openings
+    </a>
+    <a href="admin-bid-submissions.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Bid Submissions
+    </a>
+    <div class="nav-section-label">Management</div>
+    <a href="admin-bidder-accounts.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Bidder Accounts
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Announcements
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Audit Trail
+    </a>
+    <div class="nav-section-label">System</div>
+    <a href="#" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="dash-main">
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb"><a href="admin-dashboard.html">Admin</a><span class="topbar-sep">/</span></span>
+      <span class="topbar-page">Bidder Accounts</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-dot"></div></div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar" style="background:#2b5797;">MZ</div>
+    </div>
+  </header>
+
+  <main class="page-body">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" type="text" placeholder="Search by name, business, or bidder ID..." oninput="filterBidders(this.value)"/>
+      </div>
+      <div class="filter-tabs">
+        <button class="ftab active" onclick="setFilter('all',this)">All <span class="ftab-count" id="cnt-all">0</span></button>
+        <button class="ftab" onclick="setFilter('pending',this)">Pending <span class="ftab-count" id="cnt-pending">0</span></button>
+        <button class="ftab" onclick="setFilter('verified',this)">Verified</button>
+        <button class="ftab" onclick="setFilter('expiring',this)">Doc Expiring</button>
+        <button class="ftab" onclick="setFilter('expired',this)">Doc Expired</button>
+        <button class="ftab" onclick="setFilter('suspended',this)">Suspended</button>
+      </div>
+    </div>
+    <div class="bidder-list" id="bidderList"></div>
+  </main>
+</div>
+
+<!-- DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="drawer-avatar" id="dAvatar">—</div>
+      <div>
+        <div class="drawer-title" id="dTitle">—</div>
+        <div class="drawer-sub" id="dSub">—</div>
+        <div class="drawer-ref" id="dRef">—</div>
+      </div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="dBody"></div>
+  <div class="drawer-footer" id="dFooter"></div>
+</div>
+
+<script src="assets/dashboard.js"></script>
+<script>
+const BIDDERS = [
+  {
+    id: 'BDR-2024-00089', initials: 'JC', color: '#497a3a',
+    name: 'Juan M. Cruz', biz: 'Cruz General Trading',
+    email: 'juan.cruz@example.com', mobile: '+63 917 123 4567',
+    philgeps: 'PG-2024-00123456', tin: '123-456-789-000',
+    type: 'Sole Proprietorship', address: '123 Rizal St., Sogod, Southern Leyte',
+    status: 'verified', memberSince: 'Feb 14, 2024', bids: 5, awards: 1,
+    docs: [
+      { name: 'DTI Registration',       expiry: 'Dec 15, 2026', days: 264, status: 'ok' },
+      { name: "Mayor's Permit (2026)",   expiry: 'Apr 25, 2026', days: 30,  status: 'warn' },
+      { name: 'BIR Form 2303',           expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: 'PhilGEPS Certificate',    expiry: 'Apr 20, 2026', days: 25,  status: 'warn' },
+      { name: 'Valid Gov. ID',           expiry: 'Mar 10, 2028', days: 714, status: 'ok' },
+      { name: 'SLCC Statement',          expiry: 'Mar 1, 2026',  days: -25, status: 'expired' },
+    ],
+    bidHistory: [
+      { ref: 'BID-0042-001', name: 'IT Equipment — CIT', date: 'Mar 25, 2026', status: 'submitted' },
+      { ref: 'BID-0042-002', name: 'Multi-Purpose Hall', date: 'Mar 24, 2026', status: 'submitted' },
+      { ref: 'BID-0042-004', name: 'Janitorial Services', date: 'Feb 28, 2026', status: 'awarded' },
+    ]
+  },
+  {
+    id: 'BDR-2024-00012', initials: 'AS', color: '#2b5797',
+    name: 'Maria Santos', biz: 'Apex Scientific Supply Co.',
+    email: 'maria@apexscientific.com', mobile: '+63 918 234 5678',
+    philgeps: 'PG-2023-00098712', tin: '234-567-890-000',
+    type: 'Corporation', address: 'Brgy. Poblacion, Maasin City, Southern Leyte',
+    status: 'verified', memberSince: 'Jun 3, 2023', bids: 8, awards: 3,
+    docs: [
+      { name: 'SEC Registration',        expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: "Mayor's Permit (2026)",   expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: 'BIR Form 2303',           expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: 'PhilGEPS Certificate',    expiry: 'Jun 3, 2026',  days: 69,  status: 'ok' },
+      { name: 'Valid Gov. ID',           expiry: 'Aug 15, 2027', days: 507, status: 'ok' },
+      { name: 'SLCC Statement',          expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+    ],
+    bidHistory: [
+      { ref: 'BID-0001-003', name: 'Science Lab Equipment', date: 'Mar 25, 2026', status: 'compliant' },
+    ]
+  },
+  {
+    id: 'BDR-2024-00034', initials: 'LT', color: '#0f4a22',
+    name: 'Roberto Lim', biz: 'LabTech Philippines Inc.',
+    email: 'roberto@labtech.ph', mobile: '+63 919 345 6789',
+    philgeps: 'PG-2022-00071234', tin: '345-678-901-000',
+    type: 'Corporation', address: 'Tacloban City, Leyte',
+    status: 'expiring', memberSince: 'Mar 12, 2022', bids: 12, awards: 4,
+    docs: [
+      { name: 'SEC Registration',        expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: "Mayor's Permit (2026)",   expiry: 'Apr 10, 2026', days: 15,  status: 'warn' },
+      { name: 'BIR Form 2303',           expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: 'PhilGEPS Certificate',    expiry: 'Mar 30, 2026', days: 4,   status: 'warn' },
+      { name: 'Valid Gov. ID',           expiry: 'Nov 20, 2027', days: 604, status: 'ok' },
+      { name: 'SLCC Statement',          expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+    ],
+    bidHistory: [
+      { ref: 'BID-0002-003', name: 'Science Lab Equipment', date: 'Mar 25, 2026', status: 'compliant' },
+    ]
+  },
+  {
+    id: 'BDR-2026-00201', initials: 'RS', color: '#8a6000',
+    name: 'Ramon Santos', biz: 'Santos Supply Co.',
+    email: 'ramon@santossupply.com', mobile: '+63 920 456 7890',
+    philgeps: 'PG-2026-00201234', tin: '456-789-012-000',
+    type: 'Sole Proprietorship', address: 'Ormoc City, Leyte',
+    status: 'pending', memberSince: 'Mar 25, 2026', bids: 0, awards: 0,
+    docs: [
+      { name: 'DTI Registration',        expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: "Mayor's Permit (2026)",   expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: 'BIR Form 2303',           expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: 'PhilGEPS Certificate',    expiry: 'Mar 25, 2027', days: 364, status: 'ok' },
+      { name: 'Valid Gov. ID',           expiry: 'Jan 15, 2028', days: 660, status: 'ok' },
+    ],
+    bidHistory: []
+  },
+  {
+    id: 'BDR-2026-00202', initials: 'AL', color: '#8a6000',
+    name: 'Ana Lim', biz: 'Lim Trading Corp.',
+    email: 'ana@limtrading.com', mobile: '+63 921 567 8901',
+    philgeps: 'PG-2026-00202345', tin: '567-890-123-000',
+    type: 'Corporation', address: 'Cebu City, Cebu',
+    status: 'pending', memberSince: 'Mar 24, 2026', bids: 0, awards: 0,
+    docs: [
+      { name: 'SEC Registration',        expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: "Mayor's Permit (2026)",   expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: 'BIR Form 2303',           expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: 'PhilGEPS Certificate',    expiry: 'Mar 24, 2027', days: 363, status: 'ok' },
+      { name: 'Valid Gov. ID',           expiry: 'Feb 20, 2028', days: 696, status: 'ok' },
+    ],
+    bidHistory: []
+  },
+  {
+    id: 'BDR-2023-00055', initials: 'TS', color: '#6b7f6b',
+    name: 'Pedro Garcia', biz: 'Garcia Builders Inc.',
+    email: 'pedro@garciabuilders.com', mobile: '+63 922 678 9012',
+    philgeps: 'PG-2023-00055678', tin: '678-901-234-000',
+    type: 'Corporation', address: 'Davao City, Davao del Sur',
+    status: 'suspended', memberSince: 'Sep 8, 2023', bids: 3, awards: 0,
+    docs: [
+      { name: 'SEC Registration',        expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: "Mayor's Permit (2026)",   expiry: 'Dec 31, 2026', days: 280, status: 'ok' },
+      { name: 'BIR Form 2303',           expiry: 'Mar 1, 2026',  days: -25, status: 'expired' },
+      { name: 'PhilGEPS Certificate',    expiry: 'Feb 15, 2026', days: -39, status: 'expired' },
+      { name: 'Valid Gov. ID',           expiry: 'Dec 10, 2027', days: 624, status: 'ok' },
+    ],
+    bidHistory: [
+      { ref: 'BID-0011-007', name: 'Multi-Purpose Hall', date: 'Mar 25, 2026', status: 'submitted' },
+    ]
+  },
+];
+
+const ACCOUNT_STATUS = {
+  verified:  { label: 'Verified',       badge: 'badge-green', accent: 'ba-verified' },
+  pending:   { label: 'Pending Review', badge: 'badge-gold',  accent: 'ba-pending' },
+  expiring:  { label: 'Doc Expiring',   badge: 'badge-gold',  accent: 'ba-expiring' },
+  expired:   { label: 'Doc Expired',    badge: 'badge-red',   accent: 'ba-expired' },
+  suspended: { label: 'Suspended',      badge: 'badge-gray',  accent: 'ba-suspended' },
+};
+const BID_STATUS_BADGE = {
+  submitted: 'badge-blue', compliant: 'badge-green', awarded: 'badge-green',
+  'not-awarded': 'badge-gray', disqualified: 'badge-red',
+};
+
+let activeFilter = 'all', activeSearch = '';
+
+function updateCounts() {
+  document.getElementById('cnt-all').textContent     = BIDDERS.length;
+  document.getElementById('cnt-pending').textContent = BIDDERS.filter(b => b.status === 'pending').length;
+}
+
+function render() {
+  const list = document.getElementById('bidderList');
+  const filtered = BIDDERS.filter(b => {
+    const mf = activeFilter === 'all' || b.status === activeFilter;
+    const ms = !activeSearch || b.name.toLowerCase().includes(activeSearch) ||
+               b.biz.toLowerCase().includes(activeSearch) || b.id.toLowerCase().includes(activeSearch);
+    return mf && ms;
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state">No bidder accounts found.</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(b => {
+    const as = ACCOUNT_STATUS[b.status];
+    const expiredDocs  = b.docs.filter(d => d.status === 'expired');
+    const expiringDocs = b.docs.filter(d => d.status === 'warn');
+
+    const docSummary = b.docs.slice(0, 4).map(d => `
+      <div class="doc-status-row">
+        <span class="doc-status-name">${d.name.split(' ')[0]}</span>
+        <span class="doc-days ${d.status === 'expired' ? 'expired' : d.status === 'warn' ? 'warn' : 'ok'}">
+          ${d.days < 0 ? 'EXPIRED' : d.days + 'd'}
+        </span>
+      </div>`).join('');
+
+    const primaryBtn = b.status === 'pending'
+      ? `<button class="act-btn approve" onclick="approveAccount('${b.id}')">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Approve
+        </button>`
+      : b.status === 'suspended'
+        ? `<button class="act-btn warn" onclick="reinstateAccount('${b.id}')">Reinstate</button>`
+        : '';
+
+    const warnBanner = (expiredDocs.length || expiringDocs.length) && b.status !== 'pending'
+      ? `<div style="font-size:.7rem;color:${expiredDocs.length ? '#b01a1f' : '#8a6000'};margin-top:5px;display:flex;align-items:center;gap:4px;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          ${expiredDocs.length ? expiredDocs.length + ' expired doc' + (expiredDocs.length > 1 ? 's' : '') : ''}
+          ${expiringDocs.length ? expiringDocs.length + ' expiring soon' : ''}
+        </div>` : '';
+
+    return `<div class="bidder-card">
+      <div class="bidder-card-inner">
+        <div class="bidder-accent ${as.accent}"></div>
+        <div class="bidder-body">
+          <div class="bidder-avatar-wrap">
+            <div class="bidder-avatar" style="background:${b.color};">${b.initials}</div>
+          </div>
+          <div class="bidder-info">
+            <div class="bidder-name">${b.name}</div>
+            <div class="bidder-biz">${b.biz}</div>
+            <div class="bidder-meta">
+              <div class="bidder-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${b.id}</div>
+              <div class="bidder-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>${b.email}</div>
+              <span class="badge ${as.badge}" style="font-size:.62rem;">${as.label}</span>
+              <span class="badge badge-gray" style="font-size:.62rem;">${b.bids} bid${b.bids !== 1 ? 's' : ''}</span>
+            </div>
+            ${warnBanner}
+          </div>
+          <div class="bidder-docs">
+            <div style="font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;">Documents</div>
+            ${docSummary}
+          </div>
+        </div>
+        <div class="bidder-actions">
+          <button class="act-btn" onclick="openDrawer('${b.id}')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            View
+          </button>
+          ${primaryBtn}
+          ${b.status !== 'pending' && b.status !== 'suspended'
+            ? `<button class="act-btn danger" onclick="suspendAccount('${b.id}')">Suspend</button>` : ''}
+          ${b.status === 'pending'
+            ? `<button class="act-btn danger" onclick="rejectAccount('${b.id}')">Reject</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+function filterBidders(val) { activeSearch = val.toLowerCase(); render(); }
+
+function openDrawer(id) {
+  const b = BIDDERS.find(x => x.id === id);
+  if (!b) return;
+  const as = ACCOUNT_STATUS[b.status];
+
+  document.getElementById('dAvatar').textContent = b.initials;
+  document.getElementById('dAvatar').style.background = b.color;
+  document.getElementById('dTitle').textContent = b.name;
+  document.getElementById('dSub').textContent = b.biz + ' · ' + b.type;
+  document.getElementById('dRef').textContent = b.id + ' · PhilGEPS: ' + b.philgeps;
+
+  const docsHtml = `<table class="doc-table-mini">
+    <thead><tr><th>Document</th><th>Expiry</th><th>Status</th></tr></thead>
+    <tbody>${b.docs.map(d => `
+      <tr>
+        <td style="font-weight:500;color:var(--text);">${d.name}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:.72rem;">${d.expiry}</td>
+        <td>
+          ${d.status === 'expired'
+            ? `<span class="badge badge-red" style="font-size:.6rem;">Expired</span>`
+            : d.status === 'warn'
+              ? `<span class="badge badge-gold" style="font-size:.6rem;">${d.days}d left</span>`
+              : `<span class="badge badge-green" style="font-size:.6rem;">${d.days}d</span>`}
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+
+  const historyHtml = b.bidHistory.length
+    ? b.bidHistory.map(h => `
+      <div class="bid-history-item">
+        <span class="bhi-ref">${h.ref}</span>
+        <span class="bhi-name">${h.name}</span>
+        <span class="badge ${BID_STATUS_BADGE[h.status] || 'badge-gray'}" style="font-size:.6rem;">${h.status}</span>
+        <span class="bhi-date">${h.date}</span>
+      </div>`).join('')
+    : `<div style="font-size:.78rem;color:var(--text-dim);padding:6px 0;">No bids submitted yet.</div>`;
+
+  document.getElementById('dBody').innerHTML = `
+    <div>
+      <div class="d-section-title">Account Information</div>
+      <div class="d-row"><span class="d-key">Status</span><span class="d-val"><span class="badge ${as.badge}">${as.label}</span></span></div>
+      <div class="d-row"><span class="d-key">Member Since</span><span class="d-val">${b.memberSince}</span></div>
+      <div class="d-row"><span class="d-key">Email</span><span class="d-val">${b.email}</span></div>
+      <div class="d-row"><span class="d-key">Mobile</span><span class="d-val mono">${b.mobile}</span></div>
+      <div class="d-row"><span class="d-key">TIN</span><span class="d-val mono">${b.tin}</span></div>
+      <div class="d-row"><span class="d-key">Business Type</span><span class="d-val">${b.type}</span></div>
+      <div class="d-row"><span class="d-key">Address</span><span class="d-val" style="max-width:220px;">${b.address}</span></div>
+      <div class="d-row"><span class="d-key">Total Bids</span><span class="d-val">${b.bids}</span></div>
+      <div class="d-row"><span class="d-key">Awards</span><span class="d-val">${b.awards}</span></div>
+    </div>
+    <div>
+      <div class="d-section-title">Eligibility Documents</div>
+      ${docsHtml}
+    </div>
+    <div>
+      <div class="d-section-title">Bid History</div>
+      ${historyHtml}
+    </div>`;
+
+  const footerBtns = b.status === 'pending'
+    ? `<button class="act-btn approve" onclick="approveAccount('${b.id}');closeDrawer()">Approve Account</button>
+       <button class="act-btn danger" onclick="rejectAccount('${b.id}');closeDrawer()">Reject</button>`
+    : b.status === 'suspended'
+      ? `<button class="act-btn warn" onclick="reinstateAccount('${b.id}');closeDrawer()">Reinstate Account</button>`
+      : `<button class="act-btn danger" onclick="suspendAccount('${b.id}');closeDrawer()">Suspend Account</button>`;
+
+  document.getElementById('dFooter').innerHTML = `${footerBtns}<button class="act-btn" onclick="closeDrawer()">Close</button>`;
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+
+function approveAccount(id) {
+  const b = BIDDERS.find(x => x.id === id);
+  if (b) b.status = 'verified';
+  render(); updateCounts();
+  alert(`Account approved: ${BIDDERS.find(x => x.id === id)?.name}`);
+}
+function rejectAccount(id) {
+  if (!confirm('Reject this registration? The bidder will be notified.')) return;
+  const i = BIDDERS.findIndex(x => x.id === id);
+  if (i > -1) BIDDERS.splice(i, 1);
+  render(); updateCounts();
+}
+function suspendAccount(id) {
+  if (!confirm('Suspend this account? The bidder will lose access to submit bids.')) return;
+  const b = BIDDERS.find(x => x.id === id);
+  if (b) b.status = 'suspended';
+  render(); updateCounts();
+}
+function reinstateAccount(id) {
+  const b = BIDDERS.find(x => x.id === id);
+  if (b) b.status = 'verified';
+  render(); updateCounts();
+  alert('Account reinstated.');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+updateCounts();
+render();
+</script>
+</body>
+</html>
