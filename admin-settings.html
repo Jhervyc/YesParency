@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>System Settings — YesParency Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+<style>
+  .dash-sidebar { background: #0a2e1a; }
+  .admin-role-badge {
+    margin: 0 12px 8px; padding: 5px 10px; border-radius: 5px;
+    background: rgba(253,185,19,.1); border: 1px solid rgba(253,185,19,.2);
+    font-family: 'DM Mono', monospace; font-size: .58rem;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gold); display: flex; align-items: center; gap: 5px;
+  }
+  .superadmin-banner {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(43,87,151,.08); border: 1px solid rgba(43,87,151,.2);
+    border-radius: 8px; padding: 11px 16px; margin-bottom: 22px;
+    font-size: .8rem; color: var(--text);
+  }
+  .superadmin-banner svg { color: var(--blue); flex-shrink: 0; }
+  .superadmin-banner strong { color: var(--green-base); }
+
+  .page-body { padding: 26px 28px; flex: 1; }
+
+  /* ─── TABS ─── */
+  .settings-tabs {
+    display: flex; gap: 4px; border-bottom: 2px solid var(--border-d); margin-bottom: 24px;
+  }
+  .stab {
+    padding: 10px 20px; font-size: .84rem; font-weight: 500;
+    color: var(--text-dim); cursor: pointer; border: none;
+    background: none; font-family: 'DM Sans', sans-serif;
+    border-bottom: 2px solid transparent; margin-bottom: -2px;
+    transition: color .15s, border-color .15s;
+  }
+  .stab:hover { color: var(--green-base); }
+  .stab.active { color: var(--green-base); border-bottom-color: var(--green-base); font-weight: 600; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: flex; flex-direction: column; gap: 20px; }
+
+  /* ─── SETTING CARDS ─── */
+  .setting-card {
+    background: var(--card-bg); border: 1px solid var(--border-d); border-radius: 10px; overflow: hidden;
+  }
+  .setting-card-header {
+    padding: 14px 20px; border-bottom: 1px solid var(--border-d);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .setting-card-title {
+    font-size: .88rem; font-weight: 600; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .setting-card-title svg { color: var(--green-base); opacity: .7; }
+  .setting-card-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* ─── SETTING ROWS ─── */
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border-d);
+  }
+  .setting-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .setting-row:first-child { padding-top: 0; }
+  .setting-info { flex: 1; }
+  .setting-label { font-size: .84rem; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+  .setting-desc  { font-size: .74rem; color: var(--text-dim); line-height: 1.5; }
+  .setting-control { flex-shrink: 0; }
+
+  /* Toggle */
+  .toggle-switch { position: relative; width: 42px; height: 24px; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; background: #ccc;
+    border-radius: 99px; cursor: pointer; transition: background .2s;
+  }
+  .toggle-slider::before {
+    content: ''; position: absolute; width: 18px; height: 18px;
+    border-radius: 50%; background: white; left: 3px; top: 3px; transition: transform .2s;
+  }
+  .toggle-switch input:checked + .toggle-slider { background: var(--green-nat); }
+  .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+  /* Input / Select */
+  .setting-input, .setting-select {
+    padding: 8px 12px; border: 1px solid var(--border-d); border-radius: 7px;
+    font-size: .83rem; font-family: 'DM Sans', sans-serif; color: var(--text);
+    background: var(--dash-bg); outline: none; transition: border-color .2s;
+    min-width: 140px;
+  }
+  .setting-input:focus, .setting-select:focus { border-color: var(--green-nat); }
+  .setting-input.mono { font-family: 'DM Mono', monospace; }
+
+  /* Number stepper */
+  .stepper { display: flex; align-items: center; gap: 0; }
+  .stepper-btn {
+    width: 32px; height: 34px; border: 1px solid var(--border-d); background: var(--dash-bg);
+    font-size: 1rem; cursor: pointer; color: var(--text-dim); transition: all .15s;
+    display: flex; align-items: center; justify-content: center; font-family: 'DM Sans', sans-serif;
+  }
+  .stepper-btn:first-child { border-radius: 7px 0 0 7px; }
+  .stepper-btn:last-child  { border-radius: 0 7px 7px 0; }
+  .stepper-btn:hover { background: var(--green-tint); color: var(--green-base); border-color: var(--green-nat); }
+  .stepper-val {
+    width: 48px; height: 34px; border: 1px solid var(--border-d); border-left: none; border-right: none;
+    text-align: center; font-family: 'DM Mono', monospace; font-size: .88rem; font-weight: 700;
+    color: var(--text); background: var(--card-bg); outline: none;
+  }
+
+  /* ─── ADMIN USERS TABLE ─── */
+  .admin-table { width: 100%; border-collapse: collapse; }
+  .admin-table th {
+    text-align: left; font-family: 'DM Mono', monospace; font-size: .6rem;
+    font-weight: 600; color: var(--text-dim); letter-spacing: .08em; text-transform: uppercase;
+    padding: 0 14px 10px; border-bottom: 1px solid var(--border-d);
+  }
+  .admin-table td { padding: 12px 14px; font-size: .82rem; border-bottom: 1px solid var(--border-d); vertical-align: middle; }
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-table tbody tr:hover td { background: var(--dash-bg); }
+  .admin-avatar {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: .65rem; font-weight: 700; color: var(--white);
+  }
+  .admin-name { font-weight: 600; color: var(--text); }
+  .admin-email { font-size: .72rem; color: var(--text-dim); margin-top: 1px; }
+  .role-badge {
+    font-family: 'DM Mono', monospace; font-size: .6rem; font-weight: 700;
+    padding: 3px 8px; border-radius: 4px; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .rb-super  { background: rgba(253,185,19,.15); color: #8a6000; border: 1px solid rgba(253,185,19,.25); }
+  .rb-admin  { background: rgba(43,87,151,.1);   color: var(--blue); border: 1px solid rgba(43,87,151,.2); }
+  .rb-viewer { background: rgba(107,127,107,.1); color: var(--muted); border: 1px solid rgba(107,127,107,.18); }
+  .tbl-btn {
+    padding: 4px 10px; border-radius: 5px; font-size: .72rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    border: 1px solid var(--border-d); background: var(--card-bg); color: var(--text-dim);
+    transition: all .15s;
+  }
+  .tbl-btn:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .tbl-btn.danger { color: #b01a1f; border-color: rgba(218,33,40,.2); }
+  .tbl-btn.danger:hover { background: rgba(218,33,40,.06); }
+
+  /* ─── DANGER ZONE ─── */
+  .danger-zone { border: 1px solid rgba(218,33,40,.25); border-radius: 10px; overflow: hidden; }
+  .danger-zone-header {
+    padding: 12px 18px; background: rgba(218,33,40,.06);
+    border-bottom: 1px solid rgba(218,33,40,.15);
+    font-size: .84rem; font-weight: 600; color: #b01a1f;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .danger-zone-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .danger-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .danger-info .danger-label { font-size: .84rem; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+  .danger-info .danger-desc  { font-size: .74rem; color: var(--text-dim); }
+  .btn-danger {
+    padding: 8px 18px; border-radius: 7px; background: rgba(218,33,40,.08);
+    border: 1px solid rgba(218,33,40,.25); font-size: .8rem; font-weight: 600;
+    color: #b01a1f; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: background .15s; white-space: nowrap;
+  }
+  .btn-danger:hover { background: rgba(218,33,40,.16); }
+
+  /* Save button */
+  .save-bar {
+    display: flex; justify-content: flex-end; padding-top: 4px;
+  }
+  .btn-save {
+    padding: 10px 26px; border-radius: 7px; background: var(--green-base); color: var(--white);
+    border: none; font-size: .84rem; font-weight: 700; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: background .15s;
+  }
+  .btn-save:hover { background: var(--green-mid); }
+
+  @media (max-width: 768px) {
+    .page-body { padding: 16px; }
+    .setting-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .settings-tabs { overflow-x: auto; }
+    .stab { white-space: nowrap; }
+    .admin-table thead { display: none; }
+    .admin-table td { display: block; padding: 5px 12px; }
+    .admin-table tr { display: block; border-bottom: 1px solid var(--border-d); }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="dash-sidebar" id="sidebar">
+  <a href="admin-dashboard.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div><div class="brand-name">YesParency</div><div class="brand-sub">SLSU Procurement</div></div>
+  </a>
+  <div class="sidebar-profile">
+    <div class="profile-avatar" style="background:#2b5797;">MZ</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Maridel C. Zabella</div>
+      <div class="profile-role">BAC Chairperson</div>
+      <div class="profile-verified">Super Administrator</div>
+    </div>
+  </div>
+  <div class="admin-role-badge">
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Admin Access
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="admin-dashboard.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <div class="nav-section-label">Procurement</div>
+    <a href="admin-procurements.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Procurements
+    </a>
+    <a href="admin-bid-openings.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Bid Openings
+    </a>
+    <a href="admin-bid-submissions.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Bid Submissions
+    </a>
+    <div class="nav-section-label">Management</div>
+    <a href="admin-bidder-accounts.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Bidder Accounts <span class="nav-badge">4</span>
+    </a>
+    <a href="admin-announcements.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Announcements
+    </a>
+    <a href="admin-audit-trail.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Audit Trail
+    </a>
+    <div class="nav-section-label">System</div>
+    <a href="admin-settings.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="dash-main">
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb"><a href="admin-dashboard.html">Admin</a><span class="topbar-sep">/</span></span>
+      <span class="topbar-page">System Settings</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-dot"></div></div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar" style="background:#2b5797;">MZ</div>
+    </div>
+  </header>
+  <main class="page-body">
+    <div class="superadmin-banner">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span>This page is accessible to <strong>Super Administrators only</strong>. Changes made here affect the entire YesParency system and are recorded in the audit trail.</span>
+    </div>
+    <div class="settings-tabs">
+      <button class="stab active" onclick="switchTab('general')">General</button>
+      <button class="stab" onclick="switchTab('signatures')">Signatures</button>
+      <button class="stab" onclick="switchTab('users')">Admin Users</button>
+      <button class="stab" onclick="switchTab('security')">Security</button>
+      <button class="stab" onclick="switchTab('system')">System</button>
+    </div>
+
+    <!-- GENERAL TAB -->
+    <div class="tab-panel active" id="panel-general">
+      <div class="setting-card">
+        <div class="setting-card-header">
+          <div class="setting-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Institution</div>
+        </div>
+        <div class="setting-card-body">
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Institution Name</div><div class="setting-desc">Displayed on all public-facing pages and documents.</div></div>
+            <input class="setting-input" type="text" value="Southern Luzon State University"/>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Procurement Office Name</div><div class="setting-desc">Used in official announcements and bid documents.</div></div>
+            <input class="setting-input" type="text" value="SLSU Procurement Office"/>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Fiscal Year</div><div class="setting-desc">Current active fiscal year for procurement tracking.</div></div>
+            <input class="setting-input" type="text" value="2026" style="width:100px;"/>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Official Email</div><div class="setting-desc">Used for system notifications and bidder communications.</div></div>
+            <input class="setting-input" type="email" value="procurement@slsu.edu.ph"/>
+          </div>
+        </div>
+      </div>
+      <div class="setting-card">
+        <div class="setting-card-header">
+          <div class="setting-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Notifications</div>
+        </div>
+        <div class="setting-card-body">
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Email Notifications</div><div class="setting-desc">Send email alerts to bidders for deadlines, bid openings, and awards.</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Document Expiry Reminders</div><div class="setting-desc">Notify bidders 30 days before their eligibility documents expire.</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Expiry Grace Period</div><div class="setting-desc">Days after document expiry before account is automatically suspended.</div></div>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="step('grace',-1)">−</button>
+              <input class="stepper-val" id="grace" type="number" value="15" min="1" max="60"/>
+              <button class="stepper-btn" onclick="step('grace',1)">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="save-bar"><button class="btn-save" onclick="saved()">Save Changes</button></div>
+    </div>
+
+    <!-- SIGNATURES TAB -->
+    <div class="tab-panel" id="panel-signatures">
+      <div class="setting-card">
+        <div class="setting-card-header">
+          <div class="setting-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Multi-Signature Threshold</div>
+        </div>
+        <div class="setting-card-body">
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Total BAC Officers</div><div class="setting-desc">Total number of officers registered in the system who can sign.</div></div>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="step('totalOfficers',-1)">−</button>
+              <input class="stepper-val" id="totalOfficers" type="number" value="5" min="3" max="10"/>
+              <button class="stepper-btn" onclick="step('totalOfficers',1)">+</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Required Signatures (M-of-N)</div>
+              <div class="setting-desc">Minimum number of officer signatures required to unlock each envelope during a bid opening. Must be more than half of total officers.</div>
+            </div>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="step('reqSigs',-1)">−</button>
+              <input class="stepper-val" id="reqSigs" type="number" value="3" min="2" max="10"/>
+              <button class="stepper-btn" onclick="step('reqSigs',1)">+</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Signature Timeout</div><div class="setting-desc">Minutes an officer has to authenticate after being prompted during a live session.</div></div>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="step('sigTimeout',-1)">−</button>
+              <input class="stepper-val" id="sigTimeout" type="number" value="10" min="2" max="30"/>
+              <button class="stepper-btn" onclick="step('sigTimeout',1)">+</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Require Chairperson Signature</div><div class="setting-desc">The BAC Chairperson must always be one of the required signatories.</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Sequential Envelope Enforcement</div><div class="setting-desc">Envelope 2 (Financial) cannot be opened until Envelope 1 (Eligibility) is fully verified. Cannot be disabled.</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked disabled/><span class="toggle-slider" style="opacity:.5;cursor:not-allowed;"></span></label>
+          </div>
+        </div>
+      </div>
+      <div class="save-bar"><button class="btn-save" onclick="saved()">Save Changes</button></div>
+    </div>
+
+    <!-- ADMIN USERS TAB -->
+    <div class="tab-panel" id="panel-users">
+      <div class="setting-card">
+        <div class="setting-card-header">
+          <div class="setting-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Admin &amp; Officer Accounts</div>
+          <button class="tbl-btn" onclick="alert('Invite admin form — coming soon.')">+ Invite Admin</button>
+        </div>
+        <table class="admin-table">
+          <thead><tr><th>Officer</th><th>Role</th><th>Can Sign</th><th>Last Login</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div style="display:flex;align-items:center;gap:9px;"><div class="admin-avatar" style="background:#2b5797;">MZ</div><div><div class="admin-name">Maridel C. Zabella</div><div class="admin-email">m.zabella@slsu.edu.ph</div></div></div></td>
+              <td><span class="role-badge rb-super">Super Admin</span></td>
+              <td><span class="badge badge-green" style="font-size:.6rem;">Yes</span></td>
+              <td style="font-size:.76rem;color:var(--text-dim);">Mar 26, 2026 · 8:45 AM</td>
+              <td><span class="badge badge-green" style="font-size:.6rem;">Active</span></td>
+              <td><button class="tbl-btn" disabled style="opacity:.35;">Edit</button></td>
+            </tr>
+            <tr>
+              <td><div style="display:flex;align-items:center;gap:9px;"><div class="admin-avatar" style="background:#497a3a;">RS</div><div><div class="admin-name">Ramon Santos</div><div class="admin-email">r.santos@slsu.edu.ph</div></div></div></td>
+              <td><span class="role-badge rb-admin">BAC Member</span></td>
+              <td><span class="badge badge-green" style="font-size:.6rem;">Yes</span></td>
+              <td style="font-size:.76rem;color:var(--text-dim);">Mar 26, 2026 · 9:02 AM</td>
+              <td><span class="badge badge-green" style="font-size:.6rem;">Active</span></td>
+              <td style="display:flex;gap:5px;"><button class="tbl-btn" onclick="alert('Edit role')">Edit</button><button class="tbl-btn danger" onclick="alert('Revoke access')">Revoke</button></td>
+            </tr>
+            <tr>
+              <td><div style="display:flex;align-items:center;gap:9px;"><div class="admin-avatar" style="background:#8a6000;">AL</div><div><div class="admin-name">Ana Lim</div><div class="admin-email">a.lim@slsu.edu.ph</div></div></div></td>
+              <td><span class="role-badge rb-admin">BAC Member</span></td>
+              <td><span class="badge badge-green" style="font-size:.6rem;">Yes</span></td>
+              <td style="font-size:.76rem;color:var(--text-dim);">Mar 25, 2026 · 4:30 PM</td>
+              <td><span class="badge badge-green" style="font-size:.6rem;">Active</span></td>
+              <td style="display:flex;gap:5px;"><button class="tbl-btn" onclick="alert('Edit role')">Edit</button><button class="tbl-btn danger" onclick="alert('Revoke access')">Revoke</button></td>
+            </tr>
+            <tr>
+              <td><div style="display:flex;align-items:center;gap:9px;"><div class="admin-avatar" style="background:#0f4a22;">PG</div><div><div class="admin-name">Pedro Garcia</div><div class="admin-email">p.garcia@slsu.edu.ph</div></div></div></td>
+              <td><span class="role-badge rb-admin">BAC Secretariat</span></td>
+              <td><span class="badge badge-green" style="font-size:.6rem;">Yes</span></td>
+              <td style="font-size:.76rem;color:var(--text-dim);">Mar 24, 2026 · 2:15 PM</td>
+              <td><span class="badge badge-green" style="font-size:.6rem;">Active</span></td>
+              <td style="display:flex;gap:5px;"><button class="tbl-btn" onclick="alert('Edit role')">Edit</button><button class="tbl-btn danger" onclick="alert('Revoke access')">Revoke</button></td>
+            </tr>
+            <tr>
+              <td><div style="display:flex;align-items:center;gap:9px;"><div class="admin-avatar" style="background:#6b3a2a;">MC</div><div><div class="admin-name">Maria Cruz</div><div class="admin-email">m.cruz@slsu.edu.ph</div></div></div></td>
+              <td><span class="role-badge rb-viewer">TWG Observer</span></td>
+              <td><span class="badge badge-gray" style="font-size:.6rem;">No</span></td>
+              <td style="font-size:.76rem;color:var(--text-dim);">Mar 20, 2026 · 11:00 AM</td>
+              <td><span class="badge badge-green" style="font-size:.6rem;">Active</span></td>
+              <td style="display:flex;gap:5px;"><button class="tbl-btn" onclick="alert('Edit role')">Edit</button><button class="tbl-btn danger" onclick="alert('Revoke access')">Revoke</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECURITY TAB -->
+    <div class="tab-panel" id="panel-security">
+      <div class="setting-card">
+        <div class="setting-card-header">
+          <div class="setting-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Authentication &amp; Access</div>
+        </div>
+        <div class="setting-card-body">
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Two-Factor Authentication (Admin)</div><div class="setting-desc">Require 2FA for all admin and officer logins.</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Session Timeout (minutes)</div><div class="setting-desc">Automatically log out inactive admin sessions.</div></div>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="step('sessionTimeout',-5)">−</button>
+              <input class="stepper-val" id="sessionTimeout" type="number" value="30" min="5" max="120" style="width:56px;"/>
+              <button class="stepper-btn" onclick="step('sessionTimeout',5)">+</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Max Failed Login Attempts</div><div class="setting-desc">Lock account after this many consecutive failed logins.</div></div>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="step('maxFails',-1)">−</button>
+              <input class="stepper-val" id="maxFails" type="number" value="3" min="2" max="10"/>
+              <button class="stepper-btn" onclick="step('maxFails',1)">+</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Public Observer Access</div><div class="setting-desc">Allow unauthenticated public users to watch live bid openings.</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-label">Bidder Registration</div><div class="setting-desc">Allow new bidders to register. Disable to freeze new registrations.</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
+      <div class="save-bar"><button class="btn-save" onclick="saved()">Save Changes</button></div>
+    </div>
+
+    <!-- SYSTEM TAB -->
+    <div class="tab-panel" id="panel-system">
+      <div class="setting-card">
+        <div class="setting-card-header">
+          <div class="setting-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>System Information</div>
+        </div>
+        <div class="setting-card-body">
+          <div class="setting-row"><div class="setting-info"><div class="setting-label">System Version</div></div><span style="font-family:'DM Mono',monospace;font-size:.8rem;color:var(--text-dim);">YesParency v1.0.0</span></div>
+          <div class="setting-row"><div class="setting-info"><div class="setting-label">Deployment</div></div><span style="font-family:'DM Mono',monospace;font-size:.8rem;color:var(--text-dim);">Hostinger · slsu-yesparency.edu.ph</span></div>
+          <div class="setting-row"><div class="setting-info"><div class="setting-label">Database</div></div><span class="badge badge-green" style="font-size:.62rem;">Connected · MySQL 8.0</span></div>
+          <div class="setting-row"><div class="setting-info"><div class="setting-label">Audit Trail</div></div><span class="badge badge-green" style="font-size:.62rem;">Recording · 34 entries</span></div>
+          <div class="setting-row"><div class="setting-info"><div class="setting-label">Last Backup</div></div><span style="font-size:.8rem;color:var(--text-dim);">March 26, 2026 · 3:00 AM</span></div>
+        </div>
+      </div>
+      <div class="danger-zone">
+        <div class="danger-zone-header"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Danger Zone</div>
+        <div class="danger-zone-body">
+          <div class="danger-row">
+            <div class="danger-info"><div class="danger-label">Force Backup Now</div><div class="danger-desc">Trigger an immediate database and audit trail backup.</div></div>
+            <button class="btn-danger" onclick="alert('Backup initiated.')">Run Backup</button>
+          </div>
+          <div class="danger-row">
+            <div class="danger-info"><div class="danger-label">Maintenance Mode</div><div class="danger-desc">Take the system offline for maintenance. All active sessions will be terminated.</div></div>
+            <button class="btn-danger" onclick="if(confirm('Enable maintenance mode? All users will be logged out.')){}">Enable Maintenance</button>
+          </div>
+          <div class="danger-row">
+            <div class="danger-info"><div class="danger-label">Reset System Settings</div><div class="danger-desc">Restore all settings to factory defaults. This cannot be undone.</div></div>
+            <button class="btn-danger" onclick="if(confirm('Reset all settings to defaults? This cannot be undone.')){}">Reset to Defaults</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="assets/dashboard.js"></script>
+<script>
+  function switchTab(name) {
+    document.querySelectorAll('.stab').forEach((t,i) => {
+      const tabs = ['general','signatures','users','security','system'];
+      t.classList.toggle('active', tabs[i] === name);
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => {
+      p.classList.toggle('active', p.id === 'panel-' + name);
+    });
+  }
+  function step(id, delta) {
+    const el = document.getElementById(id);
+    const min = parseInt(el.min) || 1;
+    const max = parseInt(el.max) || 999;
+    el.value = Math.min(max, Math.max(min, parseInt(el.value) + delta));
+  }
+  function saved() {
+    const btn = event.target;
+    btn.textContent = '✓ Saved';
+    btn.style.background = 'var(--green-nat)';
+    setTimeout(() => { btn.textContent = 'Save Changes'; btn.style.background = ''; }, 2000);
+  }
+</script>
+</body>
+</html>

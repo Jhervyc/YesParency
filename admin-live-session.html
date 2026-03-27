@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Live Bid Opening — Admin Control — YesParency</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+<style>
+  body { background: #080d08; }
+  .dash-sidebar { background: #060e06; border-right: 1px solid rgba(253,185,19,.1); }
+  .admin-role-badge {
+    margin: 0 12px 8px; padding: 5px 10px; border-radius: 5px;
+    background: rgba(253,185,19,.1); border: 1px solid rgba(253,185,19,.2);
+    font-family: 'DM Mono', monospace; font-size: .58rem;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gold); display: flex; align-items: center; gap: 5px;
+  }
+  .dash-topbar { background: #0a2e1a; border-bottom: 2px solid var(--gold); }
+  .topbar-breadcrumb, .topbar-breadcrumb a { color: rgba(255,255,255,.4); }
+  .topbar-page { color: var(--white); }
+  .topbar-btn { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.1); color: rgba(255,255,255,.6); }
+  .topbar-divider { background: rgba(255,255,255,.1); }
+
+  /* ─── LAYOUT ─── */
+  .session-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 0;
+    height: calc(100vh - 62px);
+    overflow: hidden;
+  }
+
+  /* ─── LEFT: VIDEO + CONTROLS ─── */
+  .session-left {
+    display: flex; flex-direction: column;
+    border-right: 1px solid rgba(255,255,255,.07);
+    overflow: hidden;
+  }
+
+  /* Session info bar */
+  .session-infobar {
+    background: #0a2e1a; padding: 10px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(253,185,19,.15); flex-wrap: wrap; gap: 8px;
+    flex-shrink: 0;
+  }
+  .session-title { font-family: 'Playfair Display', serif; font-size: .88rem; font-weight: 700; color: var(--white); }
+  .session-meta  { font-size: .7rem; color: rgba(255,255,255,.4); margin-top: 2px; }
+  .session-badges { display: flex; align-items: center; gap: 8px; }
+  .live-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(218,33,40,.2); border: 1px solid rgba(218,33,40,.45);
+    color: #ff7a7e; font-family: 'DM Mono', monospace; font-size: .68rem;
+    font-weight: 700; letter-spacing: .08em; padding: 4px 10px; border-radius: 999px;
+  }
+  .observer-count { font-family: 'DM Mono', monospace; font-size: .7rem; color: rgba(255,255,255,.4); }
+
+  /* Video */
+  .video-area {
+    flex: 1; background: #000; position: relative;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .video-placeholder {
+    width: 100%; height: 100%; background: #0a140a;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; position: relative;
+  }
+  .video-placeholder::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 50% at 50% 40%, rgba(73,122,58,.08) 0%, transparent 65%);
+  }
+  .video-placeholder::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background-image: linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,.012) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .video-cam-icon { opacity: .1; position: relative; z-index: 1; }
+  .video-stream-label { font-family: 'DM Mono', monospace; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.2); position: relative; z-index: 1; }
+  .video-overlay-badge {
+    position: absolute; top: 14px; left: 14px; z-index: 10;
+    background: var(--red); color: var(--white);
+    font-family: 'DM Mono', monospace; font-size: .62rem; font-weight: 700;
+    letter-spacing: .1em; padding: 3px 9px; border-radius: 4px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .video-timer {
+    position: absolute; top: 14px; right: 14px; z-index: 10;
+    background: rgba(0,0,0,.65); color: var(--white);
+    font-family: 'DM Mono', monospace; font-size: .75rem;
+    padding: 3px 9px; border-radius: 4px; letter-spacing: .06em;
+  }
+
+  /* ─── ENVELOPE UNLOCK PANEL ─── */
+  .unlock-panel {
+    background: #0c160c; border-top: 1px solid rgba(255,255,255,.07);
+    padding: 16px 20px; flex-shrink: 0;
+  }
+  .unlock-panel-title {
+    font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--gold); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .unlock-panel-title .phase-badge {
+    background: rgba(253,185,19,.15); border: 1px solid rgba(253,185,19,.25);
+    padding: 2px 8px; border-radius: 4px; font-size: .58rem;
+  }
+
+  /* Threshold indicator */
+  .threshold-bar {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  }
+  .threshold-label { font-size: .74rem; color: rgba(255,255,255,.5); flex-shrink: 0; }
+  .threshold-dots { display: flex; gap: 6px; }
+  .t-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: .65rem; font-weight: 700;
+    border: 2px solid rgba(255,255,255,.15); color: rgba(255,255,255,.3);
+    background: rgba(255,255,255,.04); transition: all .3s;
+  }
+  .t-dot.signed { background: var(--green-nat); border-color: var(--green-nat); color: var(--white); }
+  .t-dot.required { border-color: var(--gold); color: var(--gold); background: rgba(253,185,19,.1); animation: pulse-gold 1.4s ease-in-out infinite; }
+  @keyframes pulse-gold { 0%,100% { box-shadow: 0 0 0 0 rgba(253,185,19,.6); } 50% { box-shadow: 0 0 0 6px rgba(253,185,19,0); } }
+  .threshold-status { font-size: .74rem; font-weight: 600; flex-shrink: 0; }
+  .threshold-status.ok      { color: var(--green-nat); }
+  .threshold-status.pending { color: var(--gold); }
+  .threshold-status.locked  { color: rgba(255,255,255,.3); }
+
+  /* Officer signature rows */
+  .officer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .officer-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 7px;
+    border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03);
+    transition: all .2s;
+  }
+  .officer-row.signed { border-color: rgba(73,122,58,.35); background: rgba(73,122,58,.08); }
+  .officer-row.signing { border-color: rgba(253,185,19,.4); background: rgba(253,185,19,.06); animation: pulse-border .8s ease-in-out infinite alternate; }
+  @keyframes pulse-border { from { border-color: rgba(253,185,19,.2); } to { border-color: rgba(253,185,19,.6); } }
+  .officer-avatar {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: .65rem; font-weight: 700; color: var(--white);
+  }
+  .officer-info { flex: 1; min-width: 0; }
+  .officer-name { font-size: .76rem; font-weight: 600; color: rgba(255,255,255,.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .officer-role { font-size: .62rem; color: rgba(255,255,255,.35); margin-top: 1px; }
+  .officer-status { flex-shrink: 0; }
+  .sig-check { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .65rem; }
+  .sig-check.done    { background: var(--green-nat); color: var(--white); }
+  .sig-check.pending { background: rgba(253,185,19,.2); color: var(--gold); border: 1px solid rgba(253,185,19,.4); }
+  .sig-check.waiting { background: rgba(255,255,255,.06); color: rgba(255,255,255,.25); border: 1px solid rgba(255,255,255,.1); }
+  .btn-sign-now {
+    padding: 4px 10px; border-radius: 5px; font-size: .68rem; font-weight: 700;
+    background: var(--gold); color: var(--green-base); border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: background .15s; white-space: nowrap;
+  }
+  .btn-sign-now:hover { background: var(--gold-light); }
+
+  /* Unlock button */
+  .unlock-action { display: flex; align-items: center; gap: 12px; }
+  .btn-unlock {
+    flex: 1; padding: 11px; border-radius: 8px; font-size: .86rem; font-weight: 700;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; border: none;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all .2s;
+  }
+  .btn-unlock.locked   { background: rgba(255,255,255,.06); color: rgba(255,255,255,.25); cursor: not-allowed; }
+  .btn-unlock.ready    { background: var(--gold); color: var(--green-base); }
+  .btn-unlock.ready:hover { background: var(--gold-light); transform: translateY(-1px); }
+  .btn-unlock.unlocked { background: rgba(73,122,58,.2); color: var(--green-nat); border: 1px solid rgba(73,122,58,.3); cursor: default; }
+  .unlock-note { font-size: .68rem; color: rgba(255,255,255,.3); line-height: 1.5; }
+
+  /* ─── RIGHT: SIDEBAR PANEL ─── */
+  .session-right {
+    background: #0c160c; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .panel-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,.07); flex-shrink: 0; }
+  .ptab {
+    flex: 1; padding: 10px 6px; text-align: center;
+    font-size: .7rem; font-weight: 600; letter-spacing: .03em;
+    color: rgba(255,255,255,.35); cursor: pointer;
+    border-bottom: 2px solid transparent; transition: color .2s, border-color .2s;
+  }
+  .ptab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .tab-pane { display: none; flex: 1; overflow-y: auto; flex-direction: column; }
+  .tab-pane.active { display: flex; }
+
+  /* Bids tab */
+  .bids-list { padding: 10px; display: flex; flex-direction: column; gap: 7px; }
+  .bid-item {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+    border-radius: 7px; padding: 10px 12px;
+  }
+  .bid-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .bid-item-num    { font-family: 'DM Mono', monospace; font-size: .62rem; color: rgba(255,255,255,.3); }
+  .bid-item-name   { font-size: .78rem; font-weight: 600; color: var(--white); margin-bottom: 3px; }
+  .bid-item-price  { font-family: 'Playfair Display', serif; font-size: .95rem; font-weight: 700; color: var(--gold); }
+  .bid-item-price.sealed { filter: blur(5px); color: rgba(255,255,255,.2); font-size: .82rem; cursor: not-allowed; user-select: none; }
+  .bid-item-meta   { font-size: .67rem; color: rgba(255,255,255,.3); margin-top: 3px; }
+  .rank-badge-sm {
+    font-family: 'DM Mono', monospace; font-size: .6rem; font-weight: 700;
+    padding: 2px 7px; border-radius: 99px;
+  }
+  .rb-1 { background: rgba(253,185,19,.2); color: var(--gold); border: 1px solid rgba(253,185,19,.3); }
+  .rb-n { background: rgba(255,255,255,.06); color: rgba(255,255,255,.4); border: 1px solid rgba(255,255,255,.1); }
+
+  /* Audit tab */
+  .audit-list { padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+  .audit-entry {
+    display: flex; gap: 9px; align-items: flex-start;
+    padding: 7px 9px; border-radius: 5px; background: rgba(255,255,255,.03);
+    border-left: 3px solid transparent;
+  }
+  .audit-entry.sig  { border-left-color: var(--gold); }
+  .audit-entry.open { border-left-color: var(--green-nat); }
+  .audit-entry.sys  { border-left-color: rgba(255,255,255,.15); }
+  .audit-time { font-family: 'DM Mono', monospace; font-size: .6rem; color: rgba(255,255,255,.28); flex-shrink: 0; padding-top: 1px; }
+  .audit-text { font-size: .72rem; color: rgba(255,255,255,.6); line-height: 1.4; }
+  .audit-text strong { color: var(--white); }
+  .audit-tag {
+    display: inline-block; font-size: .56rem; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; padding: 1px 5px; border-radius: 3px; margin-right: 4px;
+  }
+  .tag-sig  { background: rgba(253,185,19,.15); color: var(--gold); }
+  .tag-open { background: rgba(73,122,58,.15); color: #5aad4e; }
+  .tag-sys  { background: rgba(255,255,255,.07); color: rgba(255,255,255,.4); }
+
+  /* Chat tab */
+  .chat-wrap { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .chat-msg { display: flex; gap: 7px; align-items: flex-start; }
+  .chat-avatar { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .62rem; font-weight: 700; }
+  .ca-admin { background: var(--gold); color: var(--green-base); }
+  .ca-pub   { background: rgba(255,255,255,.12); color: rgba(255,255,255,.65); }
+  .chat-body { flex: 1; }
+  .chat-name { font-size: .62rem; font-weight: 600; color: rgba(255,255,255,.4); margin-bottom: 2px; }
+  .chat-name.admin-name { color: var(--gold); }
+  .chat-text { font-size: .74rem; color: rgba(255,255,255,.7); line-height: 1.4; }
+  .chat-time { font-size: .58rem; color: rgba(255,255,255,.2); margin-top: 2px; }
+  .chat-input-wrap { padding: 8px 10px; border-top: 1px solid rgba(255,255,255,.07); display: flex; gap: 6px; }
+  .chat-input {
+    flex: 1; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09);
+    border-radius: 5px; padding: 6px 10px; color: var(--white); font-size: .75rem;
+    font-family: 'DM Sans', sans-serif; outline: none; transition: border-color .2s;
+  }
+  .chat-input::placeholder { color: rgba(255,255,255,.2); }
+  .chat-input:focus { border-color: rgba(253,185,19,.35); }
+  .chat-send { background: var(--gold); color: var(--green-base); border: none; border-radius: 5px; padding: 6px 10px; cursor: pointer; font-weight: 700; font-size: .72rem; transition: background .15s; }
+  .chat-send:hover { background: var(--gold-light); }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 1024px) {
+    .session-layout { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; height: auto; }
+    .session-left  { border-right: none; border-bottom: 1px solid rgba(255,255,255,.07); }
+    .session-right { height: 480px; }
+    .officer-grid  { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .session-infobar { padding: 8px 14px; }
+    .unlock-panel { padding: 12px 14px; }
+    .officer-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="dash-sidebar" id="sidebar">
+  <a href="admin-dashboard.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div><div class="brand-name">YesParency</div><div class="brand-sub">SLSU Procurement</div></div>
+  </a>
+  <div class="sidebar-profile">
+    <div class="profile-avatar" style="background:#2b5797;">MZ</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Maridel C. Zabella</div>
+      <div class="profile-role">BAC Chairperson</div>
+      <div class="profile-verified">Super Administrator</div>
+    </div>
+  </div>
+  <div class="admin-role-badge">
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Admin Access
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="admin-dashboard.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <div class="nav-section-label">Procurement</div>
+    <a href="admin-procurements.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Procurements
+    </a>
+    <a href="admin-bid-openings.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Bid Openings
+    </a>
+    <a href="admin-bid-submissions.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Bid Submissions
+    </a>
+    <div class="nav-section-label">Management</div>
+    <a href="admin-bidder-accounts.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Bidder Accounts
+    </a>
+    <a href="admin-audit-trail.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Audit Trail
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="dash-main">
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb">
+        <a href="admin-bid-openings.html">Bid Openings</a>
+        <span class="topbar-sep">/</span>
+      </span>
+      <span class="topbar-page">Live Session — SLSU-BAC-2026-003</span>
+    </div>
+    <div class="topbar-right">
+      <div class="live-pill"><div class="live-dot"></div> LIVE</div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar" style="background:#2b5797;">MZ</div>
+    </div>
+  </header>
+
+  <div class="session-layout">
+
+    <!-- LEFT -->
+    <div class="session-left">
+
+      <!-- Session info bar -->
+      <div class="session-infobar">
+        <div>
+          <div class="session-title">Supply and Delivery of Science Laboratory Equipment — CAS</div>
+          <div class="session-meta">SLSU-BAC-2026-003 · March 26, 2026 · 10:00 AM · BAC Conference Room</div>
+        </div>
+        <div class="session-badges">
+          <div class="observer-count" id="obsCount">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.4;vertical-align:-2px;margin-right:3px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span id="obsNum">47</span> watching
+          </div>
+          <div class="live-pill"><div class="live-dot"></div> LIVE</div>
+        </div>
+      </div>
+
+      <!-- Video -->
+      <div class="video-area">
+        <div class="video-placeholder">
+          <svg class="video-cam-icon" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          <div class="video-stream-label">Live Stream — BAC Conference Room</div>
+          <div class="video-overlay-badge"><div class="live-dot"></div> LIVE</div>
+          <div class="video-timer" id="streamTimer">00:34:12</div>
+        </div>
+      </div>
+
+      <!-- Envelope Unlock Panel -->
+      <div class="unlock-panel">
+
+        <!-- Phase tabs -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <button class="ptab active" id="phaseBtn1" onclick="setPhase(1)" style="flex:none;padding:6px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.4);font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;">
+            Envelope 1
+          </button>
+          <button class="ptab" id="phaseBtn2" onclick="setPhase(2)" style="flex:none;padding:6px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.4);font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;">
+            Envelope 2
+          </button>
+        </div>
+
+        <div id="envelopePanel"></div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="session-right">
+      <div class="panel-tabs">
+        <div class="ptab active" onclick="switchTab('bids',this)">Bids</div>
+        <div class="ptab" onclick="switchTab('audit',this)">Audit Trail</div>
+        <div class="ptab" onclick="switchTab('chat',this)">Chat</div>
+      </div>
+
+      <!-- BIDS TAB -->
+      <div class="tab-pane active" id="tab-bids">
+        <div class="bids-list" id="bidsList"></div>
+      </div>
+
+      <!-- AUDIT TAB -->
+      <div class="tab-pane" id="tab-audit">
+        <div class="audit-list" id="auditList">
+          <div class="audit-entry sys">
+            <div class="audit-time">09:58</div>
+            <div class="audit-text"><span class="audit-tag tag-sys">SYSTEM</span>Session BO-2026-003 initiated. 3 bids sealed.</div>
+          </div>
+          <div class="audit-entry sys">
+            <div class="audit-time">09:48</div>
+            <div class="audit-text"><span class="audit-tag tag-sys">SUBMIT</span><strong>Apex Scientific Supply Co.</strong> — Envelopes 1 &amp; 2 received. Timestamp locked.</div>
+          </div>
+          <div class="audit-entry sys">
+            <div class="audit-time">09:52</div>
+            <div class="audit-text"><span class="audit-tag tag-sys">SUBMIT</span><strong>LabTech Philippines Inc.</strong> — Envelopes 1 &amp; 2 received. Timestamp locked.</div>
+          </div>
+          <div class="audit-entry sys">
+            <div class="audit-time">09:55</div>
+            <div class="audit-text"><span class="audit-tag tag-sys">SUBMIT</span><strong>SciEquip Solutions Corp.</strong> — Envelopes 1 &amp; 2 received. Timestamp locked.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHAT TAB -->
+      <div class="tab-pane" id="tab-chat">
+        <div class="chat-wrap">
+          <div class="chat-messages" id="chatMessages">
+            <div class="chat-msg">
+              <div class="chat-avatar ca-admin">B</div>
+              <div class="chat-body">
+                <div class="chat-name admin-name">BAC Secretariat</div>
+                <div class="chat-text">The bid opening has commenced. All 3 bidders are present. We will now proceed to open Envelope 1.</div>
+                <div class="chat-time">10:02 AM</div>
+              </div>
+            </div>
+            <div class="chat-msg">
+              <div class="chat-avatar ca-pub">J</div>
+              <div class="chat-body">
+                <div class="chat-name">Juan D. (Public)</div>
+                <div class="chat-text">Can the BAC confirm the ABC for this project?</div>
+                <div class="chat-time">10:04 AM</div>
+              </div>
+            </div>
+            <div class="chat-msg">
+              <div class="chat-avatar ca-admin">B</div>
+              <div class="chat-body">
+                <div class="chat-name admin-name">BAC Secretariat</div>
+                <div class="chat-text">The Approved Budget for the Contract (ABC) is ₱2,450,000.00 as published in the Invitation to Bid.</div>
+                <div class="chat-time">10:05 AM</div>
+              </div>
+            </div>
+          </div>
+          <div class="chat-input-wrap">
+            <input class="chat-input" id="chatInput" type="text" placeholder="Broadcast to public observers..."/>
+            <button class="chat-send" onclick="sendChat()">Send</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /session-right -->
+  </div><!-- /session-layout -->
+</div><!-- /dash-main -->
+
+<script src="assets/dashboard.js"></script>
+<script>
+// ── Officers (5 total, 3-of-5 threshold required) ──
+const OFFICERS = [
+  { id: 'MZ', initials: 'MZ', name: 'Maridel C. Zabella',  role: 'BAC Chairperson',    color: '#2b5797', isMe: true  },
+  { id: 'RS', initials: 'RS', name: 'Ramon Santos',         role: 'BAC Member',          color: '#497a3a', isMe: false },
+  { id: 'AL', initials: 'AL', name: 'Ana Lim',              role: 'BAC Member',          color: '#8a6000', isMe: false },
+  { id: 'PG', initials: 'PG', name: 'Pedro Garcia',         role: 'BAC Secretariat',     color: '#0f4a22', isMe: false },
+  { id: 'MC', initials: 'MC', name: 'Maria Cruz',           role: 'TWG Representative',  color: '#6b3a2a', isMe: false },
+];
+const THRESHOLD = 3;
+
+// State per envelope
+const state = {
+  1: { signed: ['RS', 'AL'], unlocked: false },
+  2: { signed: [], unlocked: false },
+};
+
+let currentPhase = 1;
+
+// Bids data
+const BIDS = [
+  { num: '#1', name: 'Apex Scientific Supply Co.',  submitted: '9:48 AM', env1: 'compliant', price: '₱2,180,000.00', rank: 1 },
+  { num: '#2', name: 'LabTech Philippines Inc.',    submitted: '9:52 AM', env1: 'compliant', price: '₱2,310,500.00', rank: 2 },
+  { num: '#3', name: 'SciEquip Solutions Corp.',    submitted: '9:55 AM', env1: 'under-review', price: '₱2,398,000.00', rank: 3 },
+];
+
+// ── Render envelope panel ──
+function renderEnvelopePanel() {
+  const s = state[currentPhase];
+  const sigCount = s.signed.length;
+  const isReady  = sigCount >= THRESHOLD;
+  const isLocked = currentPhase === 2 && !state[1].unlocked;
+
+  // Threshold dots
+  const dotsHtml = OFFICERS.map((o, i) => {
+    const signed = s.signed.includes(o.id);
+    const isRequired = !signed && i < THRESHOLD;
+    return `<div class="t-dot ${signed ? 'signed' : isRequired && !isReady ? 'required' : ''}" title="${o.name}">${signed ? '✓' : o.initials}</div>`;
+  }).join('');
+
+  const thresholdStatus = isLocked
+    ? `<span class="threshold-status locked">Locked — Open Envelope 1 first</span>`
+    : isReady
+      ? `<span class="threshold-status ok">✓ Threshold met (${sigCount}/${THRESHOLD})</span>`
+      : `<span class="threshold-status pending">${sigCount}/${THRESHOLD} signatures</span>`;
+
+  // Officer rows
+  const officerRows = OFFICERS.map(o => {
+    const signed = s.signed.includes(o.id);
+    const canSign = !signed && !isLocked && !s.unlocked;
+    return `<div class="officer-row ${signed ? 'signed' : canSign && o.isMe ? 'signing' : ''}">
+      <div class="officer-avatar" style="background:${o.color};">${o.initials}</div>
+      <div class="officer-info">
+        <div class="officer-name">${o.name}${o.isMe ? ' (You)' : ''}</div>
+        <div class="officer-role">${o.role}</div>
+      </div>
+      <div class="officer-status">
+        ${signed
+          ? `<div class="sig-check done">✓</div>`
+          : canSign && o.isMe
+            ? `<button class="btn-sign-now" onclick="signEnvelope('${o.id}')">Sign</button>`
+            : canSign
+              ? `<div class="sig-check pending" title="Awaiting signature">…</div>`
+              : `<div class="sig-check waiting">—</div>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Unlock button
+  let unlockBtn;
+  if (s.unlocked) {
+    unlockBtn = `<button class="btn-unlock unlocked" disabled>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+      Envelope ${currentPhase} Unlocked
+    </button>`;
+  } else if (isLocked) {
+    unlockBtn = `<button class="btn-unlock locked" disabled>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Locked — Complete Envelope 1 First
+    </button>`;
+  } else if (isReady) {
+    unlockBtn = `<button class="btn-unlock ready" onclick="unlockEnvelope()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+      Unlock Envelope ${currentPhase} — Open Now
+    </button>`;
+  } else {
+    unlockBtn = `<button class="btn-unlock locked" disabled>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Waiting for ${THRESHOLD - sigCount} more signature${THRESHOLD - sigCount !== 1 ? 's' : ''}…
+    </button>`;
+  }
+
+  const envLabel = currentPhase === 1
+    ? 'Envelope 1 — Eligibility &amp; Technical Documents'
+    : 'Envelope 2 — Financial Bid';
+
+  document.getElementById('envelopePanel').innerHTML = `
+    <div class="unlock-panel-title">
+      ${envLabel}
+      <span class="phase-badge">${THRESHOLD}-of-${OFFICERS.length} Signatures Required</span>
+    </div>
+    <div class="threshold-bar">
+      <span class="threshold-label">Signatures:</span>
+      <div class="threshold-dots">${dotsHtml}</div>
+      ${thresholdStatus}
+    </div>
+    <div class="officer-grid">${officerRows}</div>
+    <div class="unlock-action">
+      ${unlockBtn}
+    </div>
+    ${!s.unlocked && !isLocked ? `<div class="unlock-note" style="margin-top:8px;">Each signature is recorded in the audit trail with a timestamp. Once ${THRESHOLD} officers have signed, the Unlock button becomes active. The envelope will be opened on the live stream.</div>` : ''}`;
+
+  // Update phase buttons
+  document.getElementById('phaseBtn1').style.background = currentPhase === 1 ? 'rgba(253,185,19,.15)' : 'rgba(255,255,255,.04)';
+  document.getElementById('phaseBtn1').style.color      = currentPhase === 1 ? 'var(--gold)' : 'rgba(255,255,255,.4)';
+  document.getElementById('phaseBtn1').style.borderColor= currentPhase === 1 ? 'rgba(253,185,19,.3)' : 'rgba(255,255,255,.1)';
+  document.getElementById('phaseBtn2').style.background = currentPhase === 2 ? 'rgba(253,185,19,.15)' : 'rgba(255,255,255,.04)';
+  document.getElementById('phaseBtn2').style.color      = currentPhase === 2 ? 'var(--gold)' : 'rgba(255,255,255,.4)';
+  document.getElementById('phaseBtn2').style.borderColor= currentPhase === 2 ? 'rgba(253,185,19,.3)' : 'rgba(255,255,255,.1)';
+}
+
+function setPhase(n) {
+  currentPhase = n;
+  renderEnvelopePanel();
+  renderBids();
+}
+
+function signEnvelope(officerId) {
+  const s = state[currentPhase];
+  if (s.signed.includes(officerId) || s.unlocked) return;
+  s.signed.push(officerId);
+  const officer = OFFICERS.find(o => o.id === officerId);
+  addAuditEntry('sig', `<strong>${officer.name}</strong> authenticated — Envelope ${currentPhase} signature ${s.signed.length}/${THRESHOLD} recorded.`);
+  renderEnvelopePanel();
+}
+
+function unlockEnvelope() {
+  const s = state[currentPhase];
+  if (s.signed.length < THRESHOLD || s.unlocked) return;
+  if (!confirm(`Unlock Envelope ${currentPhase} and reveal contents on the live stream? This action is irreversible and will be recorded in the audit trail.`)) return;
+  s.unlocked = true;
+  addAuditEntry('open', `Envelope ${currentPhase} unlocked. ${currentPhase === 1 ? 'Eligibility documents revealed.' : 'Financial bids revealed on live stream.'}`);
+  renderEnvelopePanel();
+  renderBids();
+
+  if (currentPhase === 1) {
+    // Auto-advance prompt
+    setTimeout(() => {
+      if (confirm('Envelope 1 opened. Proceed to Envelope 2 (Financial Bids)?')) {
+        setPhase(2);
+      }
+    }, 800);
+  } else {
+    addAuditEntry('open', 'Bid prices revealed. Abstract of Bids being generated.');
+  }
+}
+
+// ── Bids ──
+function renderBids() {
+  const env1Open = state[1].unlocked;
+  const env2Open = state[2].unlocked;
+  document.getElementById('bidsList').innerHTML = BIDS.map(b => {
+    const priceHtml = env2Open
+      ? `<div class="bid-item-price">${b.price}</div>`
+      : `<div class="bid-item-price sealed">₱0,000,000</div>`;
+    const rankHtml = env2Open
+      ? `<span class="rank-badge-sm ${b.rank === 1 ? 'rb-1' : 'rb-n'}">${b.rank === 1 ? 'LOWEST' : b.rank + 'nd'}</span>` : '';
+    const statusHtml = env1Open
+      ? `<span class="badge ${b.env1 === 'compliant' ? 'badge-green' : 'badge-gold'}" style="font-size:.58rem;">${b.env1}</span>` : '';
+    return `<div class="bid-item">
+      <div class="bid-item-header">
+        <span class="bid-item-num">${b.num} · ${b.submitted}</span>
+        ${rankHtml}
+      </div>
+      <div class="bid-item-name">${b.name}</div>
+      ${priceHtml}
+      <div class="bid-item-meta">${statusHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Audit ──
+function addAuditEntry(type, text) {
+  const list = document.getElementById('auditList');
+  const now = new Date();
+  const time = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  const tagMap = { sig: 'tag-sig', open: 'tag-open', sys: 'tag-sys' };
+  const labelMap = { sig: 'SIGNATURE', open: 'OPENED', sys: 'SYSTEM' };
+  const entry = document.createElement('div');
+  entry.className = `audit-entry ${type}`;
+  entry.innerHTML = `<div class="audit-time">${time}</div><div class="audit-text"><span class="audit-tag ${tagMap[type]}">${labelMap[type]}</span>${text}</div>`;
+  list.appendChild(entry);
+  list.scrollTop = list.scrollHeight;
+}
+
+// ── Tab switching ──
+function switchTab(name, el) {
+  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── Stream timer ──
+let elapsed = 34 * 60 + 12;
+setInterval(() => {
+  elapsed++;
+  const h = Math.floor(elapsed / 3600);
+  const m = Math.floor((elapsed % 3600) / 60);
+  const s = elapsed % 60;
+  document.getElementById('streamTimer').textContent =
+    (h ? String(h).padStart(2,'0') + ':' : '') +
+    String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}, 1000);
+
+// ── Observer count ──
+setInterval(() => {
+  document.getElementById('obsNum').textContent = 47 + Math.floor(Math.random() * 6 - 2);
+}, 5000);
+
+// ── Chat ──
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  const msgs = document.getElementById('chatMessages');
+  const now = new Date();
+  const h = now.getHours(), m = String(now.getMinutes()).padStart(2,'0');
+  const time = `${h > 12 ? h-12 : h}:${m} ${h >= 12 ? 'PM' : 'AM'}`;
+  const msg = document.createElement('div');
+  msg.className = 'chat-msg';
+  msg.innerHTML = `
+    <div class="chat-avatar ca-admin">B</div>
+    <div class="chat-body">
+      <div class="chat-name admin-name">BAC Secretariat (You)</div>
+      <div class="chat-text">${text.replace(/</g,'&lt;')}</div>
+      <div class="chat-time">${time}</div>
+    </div>`;
+  msgs.appendChild(msg);
+  msgs.scrollTop = msgs.scrollHeight;
+  input.value = '';
+}
+document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+
+// ── Init ──
+renderEnvelopePanel();
+renderBids();
+
+// Pre-populate audit entries for the 2 already-signed officers
+addAuditEntry('sig', '<strong>Ramon Santos</strong> authenticated — Envelope 1 signature 1/3 recorded.');
+addAuditEntry('sig', '<strong>Ana Lim</strong> authenticated — Envelope 1 signature 2/3 recorded.');
+</script>
+</body>
+</html>

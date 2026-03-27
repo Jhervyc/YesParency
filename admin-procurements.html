@@ -237,7 +237,7 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Procurements
     </a>
-    <a href="#" class="nav-item">
+    <a href="admin-bid-openings.html" class="nav-item">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
       Bid Openings
     </a>
@@ -250,16 +250,16 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Bidder Accounts <span class="nav-badge">4</span>
     </a>
-    <a href="#" class="nav-item">
+    <a href="admin-announcements.html" class="nav-item">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       Announcements
     </a>
-    <a href="#" class="nav-item">
+    <a href="admin-audit-trail.html" class="nav-item">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Audit Trail
     </a>
     <div class="nav-section-label">System</div>
-    <a href="#" class="nav-item">
+    <a href="admin-settings.html" class="nav-item">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
       Settings
     </a>
@@ -425,7 +425,7 @@ const PROCS = [
     location: 'BAC Conference Room, Admin Building',
     abc: '₱2,450,000.00', philgeps: '8821047', bids: 3, lots: 1, mode: 'Public Bidding',
     lots_data: [
-      { num: 'Lot 1', name: 'Laboratory Equipment — Full Package', abc: '₱2,450,000.00', desc: 'Microscopes, centrifuges, spectrophotometers, and related lab equipment.' }
+      { num: 'Lot 1', name: 'Laboratory Equipment — Full Package', abc: '₱2,450,000.00', desc: 'Microscopes, centrifuges, spectrophotometers, and related lab equipment.', bidders: 3 }
     ],
     bids_data: [
       { rank: '1st', name: 'Apex Scientific Supply Co.', price: '₱2,180,000.00' },
@@ -440,7 +440,7 @@ const PROCS = [
     location: 'BAC Conference Room, Admin Building',
     abc: '₱18,750,000.00', philgeps: '8834502', bids: 12, lots: 1, mode: 'Public Bidding',
     lots_data: [
-      { num: 'Lot 1', name: 'Full Construction Package', abc: '₱18,750,000.00', desc: 'Complete construction of a 2-storey multi-purpose hall.' }
+      { num: 'Lot 1', name: 'Full Construction Package', abc: '₱18,750,000.00', desc: 'Complete construction of a 2-storey multi-purpose hall.', bidders: 12 }
     ],
     bids_data: []
   },
@@ -451,9 +451,9 @@ const PROCS = [
     location: 'BAC Conference Room, Admin Building',
     abc: '₱3,200,000.00', philgeps: '8841289', bids: 9, lots: 3, mode: 'Public Bidding',
     lots_data: [
-      { num: 'Lot 1', name: 'High-End Workstations & Servers', abc: '₱1,400,000.00', desc: 'Intel Core i9 / Xeon workstations, rack servers, UPS units.' },
-      { num: 'Lot 2', name: 'Mid-Range Desktop Computers', abc: '₱1,100,000.00', desc: 'Intel Core i5 desktop units with monitors.' },
-      { num: 'Lot 3', name: 'Peripherals & Accessories', abc: '₱700,000.00', desc: 'Keyboards, mice, webcams, headsets, network switches.' },
+      { num: 'Lot 1', name: 'High-End Workstations & Servers', abc: '₱1,400,000.00', desc: 'Intel Core i9 / Xeon workstations, rack servers, UPS units.', bidders: 4 },
+      { num: 'Lot 2', name: 'Mid-Range Desktop Computers', abc: '₱1,100,000.00', desc: 'Intel Core i5 desktop units with monitors.', bidders: 3 },
+      { num: 'Lot 3', name: 'Peripherals & Accessories', abc: '₱700,000.00', desc: 'Keyboards, mice, webcams, headsets, network switches.', bidders: 2 },
     ],
     bids_data: []
   },
@@ -464,7 +464,7 @@ const PROCS = [
     location: 'BAC Conference Room, Admin Building',
     abc: '₱980,000.00', philgeps: '8849301', bids: 5, lots: 1, mode: 'Public Bidding',
     lots_data: [
-      { num: 'Lot 1', name: 'Office Supplies — Full Package', abc: '₱980,000.00', desc: 'Bond paper, ink cartridges, folders, pens, and other consumables.' }
+      { num: 'Lot 1', name: 'Office Supplies — Full Package', abc: '₱980,000.00', desc: 'Bond paper, ink cartridges, folders, pens, and other consumables.', bidders: 5 }
     ],
     bids_data: []
   },
@@ -475,7 +475,7 @@ const PROCS = [
     location: 'BAC Conference Room, Admin Building',
     abc: '₱5,600,000.00', philgeps: '8852774', bids: 0, lots: 1, mode: 'Public Bidding',
     lots_data: [
-      { num: 'Lot 1', name: 'Roofing Rehabilitation', abc: '₱5,600,000.00', desc: 'Full replacement and rehabilitation of gymnasium roofing system.' }
+      { num: 'Lot 1', name: 'Roofing Rehabilitation', abc: '₱5,600,000.00', desc: 'Full replacement and rehabilitation of gymnasium roofing system.', bidders: 0 }
     ],
     bids_data: []
   },
@@ -486,7 +486,7 @@ const PROCS = [
     location: 'BAC Conference Room, Admin Building',
     abc: '₱1,800,000.00', philgeps: '8810022', bids: 7, lots: 1, mode: 'Public Bidding',
     lots_data: [
-      { num: 'Lot 1', name: 'Janitorial & Maintenance Services', abc: '₱1,800,000.00', desc: 'Full janitorial and maintenance services for all SLSU buildings.' }
+      { num: 'Lot 1', name: 'Janitorial & Maintenance Services', abc: '₱1,800,000.00', desc: 'Full janitorial and maintenance services for all SLSU buildings.', bidders: 7 }
     ],
     bids_data: [
       { rank: '1st', name: 'Cruz General Trading', price: '₱1,720,000.00' },
@@ -521,7 +521,7 @@ function render() {
     const sm = SM[p.status];
     const liveDot = p.status === 'live' ? `<span class="status-dot sd-live"></span>` : '';
     const primaryBtn = p.status === 'live'
-      ? `<a href="bid-live.html" class="proc-btn live"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Go Live</a>`
+      ? `<a href="admin-live-session.html" class="proc-btn live"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Go Live</a>`
       : p.status !== 'closed'
         ? `<button class="proc-btn primary" onclick="openDrawer('${p.id}')">Manage</button>`
         : '';
@@ -539,9 +539,17 @@ function render() {
               <span class="badge ${sm.badge}" style="font-size:.62rem;">${liveDot}${sm.label}</span>
               <span class="badge badge-gray" style="font-size:.62rem;">${p.lots} Lot${p.lots > 1 ? 's' : ''}</span>
             </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:7px;">
+              ${p.lots_data.map(l => `
+                <div style="display:flex;align-items:center;gap:5px;font-size:.71rem;color:var(--text-dim);">
+                  <span style="font-family:'DM Mono',monospace;font-weight:600;color:var(--text);">${l.num}:</span>
+                  <span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--green-base);">${l.bidders}</span>
+                  bidder${l.bidders !== 1 ? 's' : ''}
+                </div>`).join('')}
+            </div>
           </div>
           <div class="proc-stats">
-            <div class="proc-stat"><div class="proc-stat-val">${p.bids}</div><div class="proc-stat-label">Bids</div></div>
+            <div class="proc-stat"><div class="proc-stat-val">${p.bids}</div><div class="proc-stat-label">Total Bids</div></div>
             <div class="proc-stat"><div class="proc-stat-val">${p.lots}</div><div class="proc-stat-label">Lots</div></div>
           </div>
           <div class="proc-abc">
@@ -586,7 +594,10 @@ function openDrawer(id) {
         <div class="lot-row-name">${l.name}</div>
         <div class="lot-row-desc">${l.desc}</div>
       </div>
-      <div class="lot-row-abc">${l.abc}</div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div class="lot-row-abc">${l.abc}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--text-dim);margin-top:3px;">${l.bidders} bidder${l.bidders !== 1 ? 's' : ''}</div>
+      </div>
     </div>`).join('');
 
   const bidsHtml = p.bids_data.length
@@ -619,7 +630,7 @@ function openDrawer(id) {
     </div>`;
 
   const liveBtn = p.status === 'live'
-    ? `<a href="bid-live.html" class="proc-btn live" style="text-decoration:none;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Open Live Session</a>` : '';
+    ? `<a href="admin-live-session.html" class="proc-btn live" style="text-decoration:none;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Open Live Session</a>` : '';
   const editBtn = p.status !== 'live' && p.status !== 'closed'
     ? `<button class="proc-btn" onclick="closeDrawer();editProc('${p.id}')">Edit</button>` : '';
 

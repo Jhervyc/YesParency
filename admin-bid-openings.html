@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bid Openings — YesParency Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+<style>
+  .dash-sidebar { background: #0a2e1a; }
+  .admin-role-badge {
+    margin: 0 12px 8px; padding: 5px 10px; border-radius: 5px;
+    background: rgba(253,185,19,.1); border: 1px solid rgba(253,185,19,.2);
+    font-family: 'DM Mono', monospace; font-size: .58rem;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gold); display: flex; align-items: center; gap: 5px;
+  }
+  .page-body { padding: 26px 28px; flex: 1; }
+
+  /* ─── LIVE BANNER ─── */
+  .live-banner {
+    background: var(--green-base); border-radius: 10px; padding: 16px 22px;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    margin-bottom: 22px; border: 1px solid rgba(218,33,40,.3);
+    flex-wrap: wrap;
+  }
+  .live-banner-left { display: flex; align-items: center; gap: 14px; }
+  .live-pulse {
+    width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(218,33,40,.2); border: 2px solid rgba(218,33,40,.5);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .live-banner-title { font-family: 'Playfair Display', serif; font-size: .95rem; font-weight: 700; color: var(--white); margin-bottom: 2px; }
+  .live-banner-meta  { font-size: .74rem; color: rgba(255,255,255,.5); }
+  .live-banner-right { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-go-live {
+    padding: 9px 20px; border-radius: 7px; background: var(--red); color: var(--white);
+    border: none; font-size: .82rem; font-weight: 700; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: background .15s;
+    display: flex; align-items: center; gap: 7px; text-decoration: none;
+  }
+  .btn-go-live:hover { background: #b01a1f; }
+
+  /* ─── TOOLBAR ─── */
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ftab {
+    padding: 8px 14px; border-radius: 7px; font-size: .78rem; font-weight: 500;
+    border: 1px solid var(--border-d); background: var(--card-bg);
+    color: var(--text-dim); cursor: pointer; transition: all .15s; font-family: 'DM Sans', sans-serif;
+  }
+  .ftab:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .ftab.active { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+
+  /* ─── OPENING CARDS ─── */
+  .opening-list { display: flex; flex-direction: column; gap: 12px; }
+  .opening-card {
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 10px; overflow: hidden;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .opening-card:hover { border-color: rgba(12,58,27,.2); box-shadow: 0 3px 14px rgba(12,58,27,.07); }
+  .opening-card-inner { display: flex; align-items: stretch; }
+  .oc-accent { width: 4px; flex-shrink: 0; }
+  .oca-live      { background: var(--red); }
+  .oca-scheduled { background: var(--blue); }
+  .oca-completed { background: var(--green-nat); }
+  .oca-cancelled { background: #ccc; }
+
+  .oc-body { flex: 1; padding: 14px 18px; display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+
+  .oc-date {
+    flex-shrink: 0; text-align: center;
+    background: var(--green-base); border-radius: 8px;
+    padding: 9px 13px; min-width: 52px;
+  }
+  .oc-day   { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; color: var(--gold); line-height: 1; }
+  .oc-month { font-size: .58rem; color: rgba(255,255,255,.45); text-transform: uppercase; letter-spacing: .07em; margin-top: 2px; }
+  .oc-time  { font-size: .58rem; color: rgba(255,255,255,.35); margin-top: 3px; font-family: 'DM Mono', monospace; }
+
+  .oc-info { flex: 1; min-width: 200px; }
+  .oc-ref  { font-family: 'DM Mono', monospace; font-size: .67rem; color: var(--text-dim); margin-bottom: 4px; }
+  .oc-name { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: 7px; line-height: 1.35; }
+  .oc-meta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .oc-meta-item { display: flex; align-items: center; gap: 5px; font-size: .72rem; color: var(--text-dim); }
+  .oc-meta-item svg { opacity: .45; flex-shrink: 0; }
+
+  /* Phase progress */
+  .phase-track {
+    display: flex; align-items: center; gap: 0;
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-d);
+  }
+  .phase-step {
+    display: flex; align-items: center; gap: 5px;
+    font-size: .68rem; color: var(--text-dim); flex-shrink: 0;
+  }
+  .phase-step.done   { color: var(--green-nat); }
+  .phase-step.active { color: var(--gold); font-weight: 600; }
+  .phase-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-d); flex-shrink: 0; }
+  .phase-step.done   .phase-dot { background: var(--green-nat); }
+  .phase-step.active .phase-dot { background: var(--gold); animation: pulse-gold 1.4s ease-in-out infinite; }
+  @keyframes pulse-gold { 0%,100% { box-shadow: 0 0 0 0 rgba(253,185,19,.7); } 50% { box-shadow: 0 0 0 5px rgba(253,185,19,0); } }
+  .phase-line { flex: 1; height: 1px; background: var(--border-d); min-width: 12px; }
+  .phase-line.done { background: var(--green-nat); }
+
+  .oc-stats { display: flex; gap: 18px; align-items: center; flex-shrink: 0; }
+  .oc-stat { text-align: center; }
+  .oc-stat-val   { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--text); line-height: 1; }
+  .oc-stat-label { font-family: 'DM Mono', monospace; font-size: .58rem; letter-spacing: .07em; text-transform: uppercase; color: var(--text-dim); margin-top: 2px; }
+
+  .oc-actions {
+    display: flex; flex-direction: column; gap: 5px;
+    padding: 14px 16px 14px 0; justify-content: center; flex-shrink: 0;
+  }
+  .oc-btn {
+    padding: 6px 14px; border-radius: 6px; font-size: .74rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; text-decoration: none;
+    border: 1px solid var(--border-d); background: var(--card-bg); color: var(--text-dim);
+    transition: all .15s; display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  }
+  .oc-btn:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .oc-btn.live  { background: rgba(218,33,40,.08); color: var(--red); border-color: rgba(218,33,40,.22); }
+  .oc-btn.live:hover { background: rgba(218,33,40,.16); }
+  .oc-btn.primary { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+  .oc-btn.primary:hover { background: var(--green-mid); }
+
+  /* ─── CONDUCT MODAL (signature + envelope control) ─── */
+  .modal-overlay { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--card-bg); border-radius: 12px; width: 100%; max-width: 560px;
+    max-height: 92vh; overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,.25); animation: modalIn .2s ease;
+  }
+  @keyframes modalIn { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: none; } }
+  .modal-header {
+    background: #0a2e1a; padding: 18px 22px; border-bottom: 3px solid var(--gold);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-header-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--white); }
+  .modal-header-sub   { font-size: .72rem; color: rgba(255,255,255,.45); margin-top: 2px; }
+  .modal-close { background: none; border: none; cursor: pointer; color: rgba(255,255,255,.5); font-size: 1.2rem; }
+  .modal-close:hover { color: var(--white); }
+  .modal-body { padding: 22px; }
+  .modal-footer { padding: 14px 22px; border-top: 1px solid var(--border-d); display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* Signature pad */
+  .sig-pad-wrap {
+    border: 2px dashed var(--border-d); border-radius: 8px;
+    background: var(--dash-bg); padding: 20px; text-align: center;
+    margin-bottom: 16px; transition: border-color .2s;
+  }
+  .sig-pad-wrap.signed { border-color: var(--green-nat); border-style: solid; background: rgba(73,122,58,.04); }
+  .sig-pad-icon { margin-bottom: 10px; }
+  .sig-pad-label { font-size: .84rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .sig-pad-sub   { font-size: .74rem; color: var(--text-dim); margin-bottom: 14px; }
+  .btn-sign {
+    padding: 10px 24px; border-radius: 7px; background: var(--green-base); color: var(--white);
+    border: none; font-size: .84rem; font-weight: 700; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: background .15s;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .btn-sign:hover { background: var(--green-mid); }
+  .sig-confirmed {
+    display: none; align-items: center; gap: 10px;
+    background: rgba(73,122,58,.1); border: 1px solid rgba(73,122,58,.25);
+    border-radius: 7px; padding: 10px 14px; font-size: .82rem; color: #2d6b1f; font-weight: 600;
+  }
+  .sig-confirmed.show { display: flex; }
+
+  /* Envelope steps */
+  .envelope-steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .env-step {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border-d);
+    background: var(--dash-bg); transition: all .2s;
+  }
+  .env-step.active { border-color: var(--gold); background: rgba(253,185,19,.06); }
+  .env-step.done   { border-color: rgba(73,122,58,.3); background: rgba(73,122,58,.05); }
+  .env-step.locked { opacity: .45; }
+  .env-step-num {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: .72rem; font-weight: 700;
+    background: var(--border-d); color: var(--text-dim);
+  }
+  .env-step.active .env-step-num { background: var(--gold); color: var(--green-base); }
+  .env-step.done   .env-step-num { background: var(--green-nat); color: var(--white); }
+  .env-step-info { flex: 1; }
+  .env-step-title { font-size: .84rem; font-weight: 600; color: var(--text); }
+  .env-step-sub   { font-size: .72rem; color: var(--text-dim); margin-top: 2px; }
+  .env-step-action {
+    padding: 6px 14px; border-radius: 6px; font-size: .76rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; border: none;
+    background: var(--green-base); color: var(--white); transition: background .15s;
+  }
+  .env-step-action:hover { background: var(--green-mid); }
+  .env-step-action:disabled { opacity: .35; cursor: not-allowed; }
+  .env-step-done-tag {
+    font-family: 'DM Mono', monospace; font-size: .65rem; font-weight: 700;
+    color: #2d6b1f; background: rgba(73,122,58,.12); border: 1px solid rgba(73,122,58,.2);
+    padding: 3px 9px; border-radius: 4px;
+  }
+
+  /* Bidder results table */
+  .results-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .results-table th {
+    text-align: left; font-family: 'DM Mono', monospace; font-size: .58rem;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim);
+    padding: 0 10px 7px; border-bottom: 1px solid var(--border-d);
+  }
+  .results-table td { padding: 9px 10px; font-size: .79rem; border-bottom: 1px solid var(--border-d); vertical-align: middle; }
+  .results-table tr:last-child td { border-bottom: none; }
+  .rank-1 { background: rgba(253,185,19,.2); color: #8a6000; border: 1px solid rgba(253,185,19,.3); }
+  .rank-n { background: var(--dash-bg); color: var(--text-dim); border: 1px solid var(--border-d); }
+  .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-family: 'DM Mono', monospace; font-size: .62rem; font-weight: 700; }
+
+  /* Info / warning boxes */
+  .info-box {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: rgba(43,87,151,.07); border: 1px solid rgba(43,87,151,.16);
+    border-radius: 7px; padding: 11px 13px; font-size: .78rem; color: var(--text); line-height: 1.55;
+    margin-bottom: 14px;
+  }
+  .info-box svg { flex-shrink: 0; color: var(--blue); margin-top: 1px; }
+  .warn-box {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: rgba(253,185,19,.08); border: 1px solid rgba(253,185,19,.22);
+    border-radius: 7px; padding: 11px 13px; font-size: .78rem; color: #7a5500; line-height: 1.55;
+    margin-bottom: 14px;
+  }
+  .warn-box svg { flex-shrink: 0; margin-top: 1px; }
+
+  .section-label {
+    font-family: 'DM Mono', monospace; font-size: .6rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border-d);
+  }
+
+  .btn-cancel { padding: 9px 20px; border-radius: 7px; border: 1px solid var(--border-d); background: var(--card-bg); font-size: .82rem; font-weight: 600; color: var(--text-dim); cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .btn-primary { padding: 9px 22px; border-radius: 7px; background: var(--green-base); color: var(--white); border: none; font-size: .82rem; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .15s; }
+  .btn-primary:hover { background: var(--green-mid); }
+  .btn-primary:disabled { opacity: .35; cursor: not-allowed; }
+
+  /* ─── EMPTY ─── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: .85rem; }
+
+  @media (max-width: 768px) {
+    .page-body { padding: 16px; }
+    .oc-stats { display: none; }
+    .oc-actions { flex-direction: row; padding: 0 14px 12px; }
+    .modal-box { max-width: 100%; margin: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="dash-sidebar" id="sidebar">
+  <a href="admin-dashboard.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div><div class="brand-name">YesParency</div><div class="brand-sub">SLSU Procurement</div></div>
+  </a>
+  <div class="sidebar-profile">
+    <div class="profile-avatar" style="background:#2b5797;">MZ</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Maridel C. Zabella</div>
+      <div class="profile-role">BAC Chairperson</div>
+      <div class="profile-verified">Super Administrator</div>
+    </div>
+  </div>
+  <div class="admin-role-badge">
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Admin Access
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="admin-dashboard.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <div class="nav-section-label">Procurement</div>
+    <a href="admin-procurements.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Procurements
+    </a>
+    <a href="admin-bid-openings.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Bid Openings
+    </a>
+    <a href="admin-bid-submissions.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Bid Submissions
+    </a>
+    <div class="nav-section-label">Management</div>
+    <a href="admin-bidder-accounts.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Bidder Accounts <span class="nav-badge">4</span>
+    </a>
+    <a href="admin-announcements.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Announcements
+    </a>
+    <a href="admin-audit-trail.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Audit Trail
+    </a>
+    <div class="nav-section-label">System</div>
+    <a href="admin-settings.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="dash-main">
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb"><a href="admin-dashboard.html">Admin</a><span class="topbar-sep">/</span></span>
+      <span class="topbar-page">Bid Openings</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-dot"></div></div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar" style="background:#2b5797;">MZ</div>
+    </div>
+  </header>
+
+  <main class="page-body">
+
+    <!-- LIVE BANNER -->
+    <div class="live-banner">
+      <div class="live-banner-left">
+        <div class="live-pulse">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        </div>
+        <div>
+          <div class="live-banner-title">Science Lab Equipment — Bid Opening In Progress</div>
+          <div class="live-banner-meta">SLSU-BAC-2026-003 · Started 10:00 AM · 3 bidders · 47 public observers</div>
+        </div>
+      </div>
+      <div class="live-banner-right">
+        <a href="admin-live-session.html" class="btn-go-live">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          Join Live Session
+        </a>
+        <a href="admin-live-session.html" class="oc-btn">Manage Opening</a>
+      </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="filter-tabs">
+        <button class="ftab active" onclick="setFilter('all',this)">All</button>
+        <button class="ftab" onclick="setFilter('live',this)">🔴 Live</button>
+        <button class="ftab" onclick="setFilter('scheduled',this)">Scheduled</button>
+        <button class="ftab" onclick="setFilter('completed',this)">Completed</button>
+        <button class="ftab" onclick="setFilter('cancelled',this)">Cancelled</button>
+      </div>
+    </div>
+
+    <!-- LIST -->
+    <div class="opening-list" id="openingList"></div>
+
+  </main>
+</div>
+
+<!-- CONDUCT MODAL -->
+<div class="modal-overlay" id="conductModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <div class="modal-header-title" id="mTitle">Conduct Bid Opening</div>
+        <div class="modal-header-sub" id="mSub">—</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="mBody"></div>
+    <div class="modal-footer" id="mFooter"></div>
+  </div>
+</div>
+
+<script src="assets/dashboard.js"></script>
+<script>
+const OPENINGS = [
+  {
+    id: 'BO-2026-003', procId: 'SLSU-BAC-2026-003', status: 'live',
+    name: 'Supply and Delivery of Science Laboratory Equipment — CAS',
+    day: '26', month: 'Mar', time: '10:00 AM',
+    date: 'March 26, 2026', venue: 'BAC Conference Room, Admin Building',
+    officer: 'Maridel C. Zabella', bidders: 3, observers: 47,
+    phase: 'env2', // 'pre' | 'env1' | 'env2' | 'post'
+    phases: [
+      { key: 'pre',  label: 'Session Started',           done: true,   active: false },
+      { key: 'env1', label: 'Envelope 1 Opened',         done: true,   active: false },
+      { key: 'env2', label: 'Envelope 2 Opening',        done: false,  active: true  },
+      { key: 'post', label: 'Post-Qualification Notice', done: false,  active: false },
+    ],
+    results: [
+      { rank: 1, bidder: 'Apex Scientific Supply Co.',  price: '₱2,180,000.00', status: 'compliant' },
+      { rank: 2, bidder: 'LabTech Philippines Inc.',    price: '₱2,310,500.00', status: 'compliant' },
+      { rank: 3, bidder: 'SciEquip Solutions Corp.',    price: '₱2,398,000.00', status: 'under-review' },
+    ]
+  },
+  {
+    id: 'BO-2026-007', procId: 'SLSU-BAC-2026-007', status: 'scheduled',
+    name: 'Construction of New Multi-Purpose Hall at SLSU Main Campus',
+    day: '03', month: 'Apr', time: '10:00 AM',
+    date: 'April 3, 2026', venue: 'BAC Conference Room, Admin Building',
+    officer: 'Maridel C. Zabella', bidders: 12, observers: 0,
+    phase: 'pre',
+    phases: [
+      { key: 'pre',  label: 'Session Start',             done: false, active: false },
+      { key: 'env1', label: 'Envelope 1 Opening',        done: false, active: false },
+      { key: 'env2', label: 'Envelope 2 Opening',        done: false, active: false },
+      { key: 'post', label: 'Post-Qualification Notice', done: false, active: false },
+    ],
+    results: []
+  },
+  {
+    id: 'BO-2026-011', procId: 'SLSU-BAC-2026-011', status: 'scheduled',
+    name: 'Supply of IT Equipment and Peripherals for CIT',
+    day: '10', month: 'Apr', time: '2:00 PM',
+    date: 'April 10, 2026', venue: 'BAC Conference Room, Admin Building',
+    officer: 'Maridel C. Zabella', bidders: 9, observers: 0,
+    phase: 'pre',
+    phases: [
+      { key: 'pre',  label: 'Session Start',             done: false, active: false },
+      { key: 'env1', label: 'Envelope 1 Opening',        done: false, active: false },
+      { key: 'env2', label: 'Envelope 2 Opening',        done: false, active: false },
+      { key: 'post', label: 'Post-Qualification Notice', done: false, active: false },
+    ],
+    results: []
+  },
+  {
+    id: 'BO-2026-001', procId: 'SLSU-BAC-2026-001', status: 'completed',
+    name: 'Procurement of Janitorial and Maintenance Services FY 2026',
+    day: '15', month: 'Mar', time: '10:00 AM',
+    date: 'March 15, 2026', venue: 'BAC Conference Room, Admin Building',
+    officer: 'Maridel C. Zabella', bidders: 7, observers: 31,
+    phase: 'post',
+    phases: [
+      { key: 'pre',  label: 'Session Started',           done: true, active: false },
+      { key: 'env1', label: 'Envelope 1 Opened',         done: true, active: false },
+      { key: 'env2', label: 'Envelope 2 Opened',         done: true, active: false },
+      { key: 'post', label: 'Post-Qualification Issued', done: true, active: false },
+    ],
+    results: [
+      { rank: 1, bidder: 'Cruz General Trading',  price: '₱1,720,000.00', status: 'awarded' },
+      { rank: 2, bidder: 'CleanPro Services Corp.', price: '₱1,755,000.00', status: 'not-awarded' },
+    ]
+  },
+];
+
+const STATUS_META = {
+  live:      { label: 'Live Now',   badge: 'badge-red',   accent: 'oca-live' },
+  scheduled: { label: 'Scheduled', badge: 'badge-blue',  accent: 'oca-scheduled' },
+  completed: { label: 'Completed', badge: 'badge-green', accent: 'oca-completed' },
+  cancelled: { label: 'Cancelled', badge: 'badge-gray',  accent: 'oca-cancelled' },
+};
+
+let activeFilter = 'all';
+
+function render() {
+  const list = document.getElementById('openingList');
+  const filtered = OPENINGS.filter(o => activeFilter === 'all' || o.status === activeFilter);
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state">No bid openings found.</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(o => {
+    const sm = STATUS_META[o.status];
+    const liveDot = o.status === 'live'
+      ? `<span style="width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block;animation:pulse-red 1.4s ease-in-out infinite;margin-right:4px;"></span>` : '';
+
+    const phasesHtml = o.phases.map((p, i) => {
+      const isLast = i === o.phases.length - 1;
+      return `<div class="phase-step ${p.done ? 'done' : p.active ? 'active' : ''}">
+        <div class="phase-dot"></div>
+        ${p.label}
+      </div>${!isLast ? `<div class="phase-line ${p.done ? 'done' : ''}"></div>` : ''}`;
+    }).join('');
+
+    const primaryBtn = o.status === 'live'
+      ? `<a href="admin-live-session.html" class="oc-btn live" style="text-decoration:none;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Join Live</a>
+         <a href="admin-live-session.html" class="oc-btn primary" style="text-decoration:none;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Manage</a>`
+      : o.status === 'scheduled'
+        ? `<button class="oc-btn primary" onclick="openConductModal('${o.procId}')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            Start Live
+           </button>`
+        : `<button class="oc-btn" onclick="openConductModal('${o.procId}')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            View Results
+           </button>`;
+
+    return `<div class="opening-card">
+      <div class="opening-card-inner">
+        <div class="oc-accent ${sm.accent}"></div>
+        <div class="oc-body">
+          <div class="oc-date">
+            <div class="oc-day">${o.day}</div>
+            <div class="oc-month">${o.month}</div>
+            <div class="oc-time">${o.time}</div>
+          </div>
+          <div class="oc-info">
+            <div class="oc-ref">${o.id} · ${o.procId}</div>
+            <div class="oc-name">${o.name}</div>
+            <div class="oc-meta">
+              <div class="oc-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${o.venue}</div>
+              <div class="oc-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${o.officer}</div>
+              <span class="badge ${sm.badge}" style="font-size:.62rem;">${liveDot}${sm.label}</span>
+            </div>
+            <div class="phase-track">${phasesHtml}</div>
+          </div>
+          <div class="oc-stats">
+            <div class="oc-stat"><div class="oc-stat-val">${o.bidders}</div><div class="oc-stat-label">Bidders</div></div>
+            <div class="oc-stat"><div class="oc-stat-val">${o.observers}</div><div class="oc-stat-label">Observers</div></div>
+          </div>
+        </div>
+        <div class="oc-actions">${primaryBtn}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+// ── Conduct Modal ──
+let modalState = { sigDone: false, env1Done: false, env2Done: false };
+
+function openConductModal(procId) {
+  const o = OPENINGS.find(x => x.procId === procId);
+  if (!o) return;
+  modalState = { sigDone: o.status === 'live' || o.status === 'completed', env1Done: o.phases[1].done, env2Done: o.phases[2].done };
+
+  if (o.status === 'scheduled') {
+    document.getElementById('mTitle').textContent = 'Start Live Session';
+    document.getElementById('mSub').textContent = o.procId + ' · ' + o.date + ' · ' + o.time;
+    renderPreSessionBody(o);
+  } else {
+    document.getElementById('mTitle').textContent = o.status === 'completed' ? 'Bid Opening Results' : 'Conduct Bid Opening';
+    document.getElementById('mSub').textContent = o.procId + ' · ' + o.date + ' · ' + o.time;
+    renderModalBody(o);
+  }
+  document.getElementById('conductModal').classList.add('open');
+}
+
+function renderPreSessionBody(o) {
+  const OFFICERS_LIST = [
+    { id: 'MZ', name: 'Maridel C. Zabella',  role: 'BAC Chairperson',   color: '#2b5797', status: 'confirmed' },
+    { id: 'RS', name: 'Ramon Santos',         role: 'BAC Member',         color: '#497a3a', status: 'confirmed' },
+    { id: 'AL', name: 'Ana Lim',              role: 'BAC Member',         color: '#8a6000', status: 'pending' },
+    { id: 'PG', name: 'Pedro Garcia',         role: 'BAC Secretariat',    color: '#0f4a22', status: 'pending' },
+    { id: 'MC', name: 'Maria Cruz',           role: 'TWG Representative', color: '#6b3a2a', status: 'invited' },
+  ];
+
+  const officerRows = OFFICERS_LIST.map(off => {
+    const statusBadge = off.status === 'confirmed'
+      ? `<span class="badge badge-green" style="font-size:.6rem;">Confirmed</span>`
+      : off.status === 'pending'
+        ? `<span class="badge badge-gold" style="font-size:.6rem;">Pending</span>`
+        : `<span class="badge badge-gray" style="font-size:.6rem;">Invited</span>`;
+    const resendBtn = off.status !== 'confirmed'
+      ? `<button onclick="resendInvite('${off.id}')" style="background:none;border:none;color:var(--blue);font-size:.72rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0 0 0 8px;">Resend</button>` : '';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border-d);">
+      <div style="width:30px;height:30px;border-radius:50%;background:${off.color};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:.65rem;font-weight:700;color:#fff;flex-shrink:0;">${off.id}</div>
+      <div style="flex:1;">
+        <div style="font-size:.82rem;font-weight:600;color:var(--text);">${off.name}</div>
+        <div style="font-size:.7rem;color:var(--text-dim);">${off.role}</div>
+      </div>
+      <div style="display:flex;align-items:center;">${statusBadge}${resendBtn}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('mBody').innerHTML = `
+    <div class="section-label">Session Details</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+      <div style="padding:10px 13px;background:var(--dash-bg);border:1px solid var(--border-d);border-radius:7px;">
+        <div style="font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;">Project</div>
+        <div style="font-size:.8rem;font-weight:600;color:var(--text);">${o.name.length > 50 ? o.name.slice(0,50)+'…' : o.name}</div>
+      </div>
+      <div style="padding:10px 13px;background:var(--dash-bg);border:1px solid var(--border-d);border-radius:7px;">
+        <div style="font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;">Schedule</div>
+        <div style="font-size:.8rem;font-weight:600;color:var(--text);">${o.date} · ${o.time}</div>
+      </div>
+      <div style="padding:10px 13px;background:var(--dash-bg);border:1px solid var(--border-d);border-radius:7px;">
+        <div style="font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;">Bidders</div>
+        <div style="font-size:.8rem;font-weight:600;color:var(--text);">${o.bidders} submitted</div>
+      </div>
+      <div style="padding:10px 13px;background:var(--dash-bg);border:1px solid var(--border-d);border-radius:7px;">
+        <div style="font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;">Threshold</div>
+        <div style="font-size:.8rem;font-weight:600;color:var(--text);">3-of-5 signatures required</div>
+      </div>
+    </div>
+
+    <div class="section-label">Camera &amp; Stream Configuration</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--dash-bg);border:1px solid var(--border-d);border-radius:7px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-nat)" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          <div>
+            <div style="font-size:.82rem;font-weight:600;color:var(--text);">Primary Camera</div>
+            <div style="font-size:.7rem;color:var(--text-dim);">BAC Conference Room — Wide Angle</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge badge-green" style="font-size:.6rem;">Ready</span>
+          <select style="padding:4px 8px;border-radius:5px;border:1px solid var(--border-d);font-size:.74rem;font-family:'DM Sans',sans-serif;background:var(--card-bg);color:var(--text);outline:none;">
+            <option>720p HD</option><option selected>1080p Full HD</option><option>480p</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--dash-bg);border:1px solid var(--border-d);border-radius:7px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          <div>
+            <div style="font-size:.82rem;font-weight:600;color:var(--text);">Secondary Camera</div>
+            <div style="font-size:.7rem;color:var(--text-dim);">Document Close-Up — Table View</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge badge-gold" style="font-size:.6rem;">Standby</span>
+          <select style="padding:4px 8px;border-radius:5px;border:1px solid var(--border-d);font-size:.74rem;font-family:'DM Sans',sans-serif;background:var(--card-bg);color:var(--text);outline:none;">
+            <option selected>720p HD</option><option>1080p Full HD</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--dash-bg);border:1px solid var(--border-d);border-radius:7px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-nat)" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <div>
+            <div style="font-size:.82rem;font-weight:600;color:var(--text);">Audio</div>
+            <div style="font-size:.7rem;color:var(--text-dim);">Conference Room Microphone Array</div>
+          </div>
+        </div>
+        <span class="badge badge-green" style="font-size:.6rem;">Ready</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--dash-bg);border:1px solid var(--border-d);border-radius:7px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-nat)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <div>
+            <div style="font-size:.82rem;font-weight:600;color:var(--text);">Stream Relay</div>
+            <div style="font-size:.7rem;color:var(--text-dim);">RTMP · YesParency CDN · Latency: 2.1s</div>
+          </div>
+        </div>
+        <span class="badge badge-green" style="font-size:.6rem;">Connected</span>
+      </div>
+    </div>
+
+    <div class="section-label">Officer Invitations <span style="font-weight:400;color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:.72rem;letter-spacing:0;text-transform:none;">— 3-of-5 signatures required to unlock envelopes</span></div>
+    <div style="margin-bottom:6px;">${officerRows}</div>
+    <button onclick="inviteAll()" style="margin-top:10px;padding:7px 16px;border-radius:6px;border:1px solid var(--border-d);background:var(--card-bg);font-size:.78rem;font-weight:600;color:var(--blue);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;">
+      + Send Invitation to All Pending Officers
+    </button>
+
+    <div class="warn-box" style="margin-top:16px;margin-bottom:0;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Starting the live session will begin the public broadcast. Ensure all cameras are ready and at least 3 officers are present before proceeding.</span>
+    </div>`;
+
+  document.getElementById('mFooter').innerHTML = `
+    <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+    <button class="btn-primary" onclick="goLive('${o.procId}')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Go Live Now
+    </button>`;
+}
+
+function resendInvite(id) { alert('Invitation resent to officer ' + id + '.'); }
+function inviteAll()      { alert('Invitations sent to all pending officers.'); }
+function goLive(procId) {
+  const o = OPENINGS.find(x => x.procId === procId);
+  if (o) o.status = 'live';
+  closeModal();
+  render();
+  window.location.href = 'admin-live-session.html';
+}
+
+function renderModalBody(o) {
+  const isCompleted = o.status === 'completed';
+
+  if (isCompleted) {
+    // ── Results view ──
+    const resultsHtml = o.results.length ? o.results.map(r => `
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:8px;background:var(--dash-bg);border:1px solid var(--border-d);margin-bottom:8px;">
+        <span class="rank-badge ${r.rank === 1 ? 'rank-1' : 'rank-n'}" style="flex-shrink:0;">${r.rank}</span>
+        <div style="flex:1;">
+          <div style="font-size:.84rem;font-weight:600;color:var(--text);">${r.bidder}</div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:700;color:var(--green-base);">${r.price}</div>
+        <span class="badge ${r.status === 'awarded' || r.status === 'compliant' ? 'badge-green' : r.status === 'under-review' ? 'badge-gold' : 'badge-gray'}" style="font-size:.6rem;">${r.status}</span>
+      </div>`).join('') : `<div style="font-size:.82rem;color:var(--text-dim);padding:12px 0;">No results recorded.</div>`;
+
+    const phasesHtml = o.phases.map(p => `
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border-d);font-size:.8rem;">
+        <span style="width:18px;height:18px;border-radius:50%;background:${p.done ? 'var(--green-nat)' : 'var(--border-d)'};display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:${p.done ? '#fff' : 'var(--text-dim)'};flex-shrink:0;">${p.done ? '✓' : '·'}</span>
+        <span style="color:${p.done ? 'var(--text)' : 'var(--text-dim)'};">${p.label}</span>
+      </div>`).join('');
+
+    document.getElementById('mBody').innerHTML = `
+      <div class="section-label">Session Summary</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+        <div style="padding:10px 13px;background:var(--dash-bg);border:1px solid var(--border-d);border-radius:7px;">
+          <div style="font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px;">Date</div>
+          <div style="font-size:.82rem;font-weight:600;color:var(--text);">${o.date} · ${o.time}</div>
+        </div>
+        <div style="padding:10px 13px;background:var(--dash-bg);border:1px solid var(--border-d);border-radius:7px;">
+          <div style="font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px;">Presiding Officer</div>
+          <div style="font-size:.82rem;font-weight:600;color:var(--text);">${o.officer}</div>
+        </div>
+        <div style="padding:10px 13px;background:var(--dash-bg);border:1px solid var(--border-d);border-radius:7px;">
+          <div style="font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px;">Bidders</div>
+          <div style="font-size:.82rem;font-weight:600;color:var(--text);">${o.bidders} submitted</div>
+        </div>
+        <div style="padding:10px 13px;background:var(--dash-bg);border:1px solid var(--border-d);border-radius:7px;">
+          <div style="font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px;">Public Observers</div>
+          <div style="font-size:.82rem;font-weight:600;color:var(--text);">${o.observers} connected</div>
+        </div>
+      </div>
+      <div class="section-label">Bid Results</div>
+      ${resultsHtml}
+      <div class="section-label" style="margin-top:16px;">Opening Phases</div>
+      ${phasesHtml}`;
+
+    document.getElementById('mFooter').innerHTML = `<button class="btn-cancel" onclick="closeModal()">Close</button>`;
+    return;
+  }
+
+  const sigHtml = `
+    <div class="section-label">Digital Signature Authentication</div>
+    <div class="sig-pad-wrap ${modalState.sigDone ? 'signed' : ''}" id="sigPad">
+      <div class="sig-pad-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="${modalState.sigDone ? 'var(--green-nat)' : 'var(--text-dim)'}" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/></svg>
+      </div>
+      <div class="sig-pad-label">${modalState.sigDone ? 'Signature Authenticated' : 'Authentication Required'}</div>
+      <div class="sig-pad-sub">${modalState.sigDone ? 'Maridel C. Zabella · BAC Chairperson · ' + o.date : 'The BAC Chairperson must authenticate with a digital signature before any envelope can be opened.'}</div>
+      ${!modalState.sigDone ? `<button class="btn-sign" onclick="authenticate()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Authenticate with Digital Signature</button>` : ''}
+      <div class="sig-confirmed ${modalState.sigDone ? 'show' : ''}" id="sigConfirmed">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        Authenticated — Maridel C. Zabella · Recorded in audit trail
+      </div>
+    </div>`;
+
+  const envelopesHtml = `
+    <div class="section-label" style="margin-top:4px;">Two-Envelope Opening Sequence</div>
+    <div class="info-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>Envelopes must be opened in sequence per RA 9184. Envelope 2 (Financial) cannot be opened until Envelope 1 (Eligibility) is verified. Each action requires your digital signature and is recorded in the audit trail.</span>
+    </div>
+    <div class="envelope-steps">
+      <div class="env-step ${modalState.env1Done ? 'done' : modalState.sigDone ? 'active' : 'locked'}">
+        <div class="env-step-num">${modalState.env1Done ? '✓' : '1'}</div>
+        <div class="env-step-info">
+          <div class="env-step-title">Envelope 1 — Eligibility &amp; Technical Documents</div>
+          <div class="env-step-sub">Verify bidder eligibility and technical compliance for all ${o.bidders} submitted bids.</div>
+        </div>
+        ${modalState.env1Done
+          ? `<span class="env-step-done-tag">Opened</span>`
+          : `<button class="env-step-action" ${!modalState.sigDone ? 'disabled' : ''} onclick="openEnvelope(1)">Open Envelope 1</button>`}
+      </div>
+      <div class="env-step ${modalState.env2Done ? 'done' : modalState.env1Done ? 'active' : 'locked'}">
+        <div class="env-step-num">${modalState.env2Done ? '✓' : '2'}</div>
+        <div class="env-step-info">
+          <div class="env-step-title">Envelope 2 — Financial Bid</div>
+          <div class="env-step-sub">Reveal and record bid prices for all compliant bidders. Prices will be displayed on the live stream.</div>
+        </div>
+        ${modalState.env2Done
+          ? `<span class="env-step-done-tag">Opened</span>`
+          : `<button class="env-step-action" ${!modalState.env1Done ? 'disabled' : ''} onclick="openEnvelope(2)">Open Envelope 2</button>`}
+      </div>
+    </div>`;
+
+  const resultsHtml = o.results.length ? `
+    <div class="section-label">Bid Results</div>
+    <table class="results-table">
+      <thead><tr><th>Rank</th><th>Bidder</th><th>Bid Price</th><th>Status</th></tr></thead>
+      <tbody>${o.results.map(r => `
+        <tr>
+          <td><span class="rank-badge ${r.rank === 1 ? 'rank-1' : 'rank-n'}">${r.rank}</span></td>
+          <td style="font-weight:500;">${r.bidder}</td>
+          <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--green-base);">${r.price}</td>
+          <td><span class="badge ${r.status === 'awarded' || r.status === 'compliant' ? 'badge-green' : r.status === 'under-review' ? 'badge-gold' : 'badge-gray'}" style="font-size:.62rem;">${r.status}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>` : '';
+
+  const liveStreamHtml = `
+    <div class="section-label" style="margin-top:4px;">Live Stream</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--dash-bg);border:1px solid var(--border-d);border-radius:7px;">
+      <div style="font-size:.8rem;color:var(--text);">Public broadcast is <strong>${o.status === 'live' ? 'active' : 'not started'}</strong> — ${o.observers} observers connected</div>
+      <a href="admin-live-session.html" class="oc-btn live" style="text-decoration:none;font-size:.74rem;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        ${o.status === 'live' ? 'Join Stream' : 'Start Stream'}
+      </a>
+    </div>`;
+
+  document.getElementById('mBody').innerHTML = sigHtml + envelopesHtml + liveStreamHtml;
+
+  document.getElementById('mFooter').innerHTML =
+    `<button class="btn-cancel" onclick="closeModal()">Close</button>
+     <button class="btn-primary" id="btnFinalize" onclick="finalizeOpening()" ${!modalState.env2Done ? 'disabled' : ''}>Finalize &amp; Issue Post-Qualification</button>`;
+}
+
+function authenticate() {
+  modalState.sigDone = true;
+  const o = OPENINGS.find(x => x.status === 'live') || OPENINGS[0];
+  renderModalBody(o);
+}
+
+function openEnvelope(num) {
+  const o = OPENINGS.find(x => x.status === 'live') || OPENINGS[0];
+  if (num === 1) {
+    if (!confirm('Open Envelope 1 for all ' + o.bidders + ' bidders? This action will be recorded in the audit trail.')) return;
+    modalState.env1Done = true;
+    o.phases[1].done = true; o.phases[1].active = false;
+    o.phases[2].active = true;
+  } else {
+    if (!confirm('Open Envelope 2 (Financial Bids) for all compliant bidders? Bid prices will be revealed on the live stream.')) return;
+    modalState.env2Done = true;
+    o.phases[2].done = true; o.phases[2].active = false;
+    o.phases[3].active = true;
+  }
+  renderModalBody(o);
+  render();
+}
+
+function finalizeOpening() {
+  if (!confirm('Finalize this bid opening and issue the Notice of Post-Qualification to the Lowest Calculated Bidder?')) return;
+  const o = OPENINGS.find(x => x.status === 'live');
+  if (o) {
+    o.status = 'completed';
+    o.phases[3].done = true; o.phases[3].active = false;
+  }
+  closeModal();
+  render();
+  alert('Bid opening finalized. Notice of Post-Qualification has been issued and recorded in the audit trail.');
+}
+
+function closeModal() { document.getElementById('conductModal').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+render();
+</script>
+</body>
+</html>

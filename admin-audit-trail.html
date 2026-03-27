@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Audit Trail — YesParency Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+<style>
+  .dash-sidebar { background: #0a2e1a; }
+  .admin-role-badge {
+    margin: 0 12px 8px; padding: 5px 10px; border-radius: 5px;
+    background: rgba(253,185,19,.1); border: 1px solid rgba(253,185,19,.2);
+    font-family: 'DM Mono', monospace; font-size: .58rem;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gold); display: flex; align-items: center; gap: 5px;
+  }
+  .page-body { padding: 26px 28px; flex: 1; }
+
+  /* ─── INTEGRITY BANNER ─── */
+  .integrity-banner {
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(73,122,58,.08); border: 1px solid rgba(73,122,58,.2);
+    border-radius: 9px; padding: 12px 18px; margin-bottom: 20px;
+  }
+  .integrity-icon { color: var(--green-nat); flex-shrink: 0; }
+  .integrity-text { flex: 1; font-size: .8rem; color: var(--text); line-height: 1.5; }
+  .integrity-text strong { color: var(--green-base); }
+  .integrity-hash {
+    font-family: 'DM Mono', monospace; font-size: .65rem; color: var(--text-dim);
+    background: var(--dash-bg); border: 1px solid var(--border-d);
+    border-radius: 5px; padding: 4px 10px; flex-shrink: 0;
+  }
+
+  /* ─── TOOLBAR ─── */
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .search-wrap { flex: 1; min-width: 200px; position: relative; }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); opacity: .4; pointer-events: none; }
+  .search-input {
+    width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--border-d);
+    border-radius: 7px; font-size: .83rem; font-family: 'DM Sans', sans-serif;
+    background: var(--card-bg); color: var(--text); outline: none; transition: border-color .2s;
+  }
+  .search-input:focus { border-color: var(--green-nat); }
+  .filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ftab {
+    padding: 7px 13px; border-radius: 7px; font-size: .76rem; font-weight: 500;
+    border: 1px solid var(--border-d); background: var(--card-bg);
+    color: var(--text-dim); cursor: pointer; transition: all .15s; font-family: 'DM Sans', sans-serif;
+  }
+  .ftab:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .ftab.active { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+  .btn-export {
+    padding: 8px 16px; border-radius: 7px; border: 1px solid var(--border-d);
+    background: var(--card-bg); font-size: .78rem; font-weight: 600; color: var(--text-dim);
+    cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .15s;
+    display: flex; align-items: center; gap: 6px; white-space: nowrap;
+  }
+  .btn-export:hover { border-color: var(--green-nat); color: var(--green-base); }
+
+  /* ─── DATE FILTER ─── */
+  .date-filter { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .date-input {
+    padding: 7px 10px; border: 1px solid var(--border-d); border-radius: 6px;
+    font-size: .78rem; font-family: 'DM Mono', monospace; color: var(--text);
+    background: var(--card-bg); outline: none; transition: border-color .2s;
+  }
+  .date-input:focus { border-color: var(--green-nat); }
+  .date-sep { font-size: .74rem; color: var(--text-dim); }
+
+  /* ─── AUDIT TABLE ─── */
+  .audit-card {
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 10px; overflow: hidden;
+  }
+  .audit-table { width: 100%; border-collapse: collapse; }
+  .audit-table th {
+    text-align: left; font-family: 'DM Mono', monospace; font-size: .6rem;
+    font-weight: 600; color: var(--text-dim); letter-spacing: .08em; text-transform: uppercase;
+    padding: 10px 14px; border-bottom: 1px solid var(--border-d); background: var(--dash-bg);
+    white-space: nowrap;
+  }
+  .audit-table td {
+    padding: 11px 14px; font-size: .8rem; border-bottom: 1px solid var(--border-d);
+    vertical-align: middle;
+  }
+  .audit-table tr:last-child td { border-bottom: none; }
+  .audit-table tbody tr:hover td { background: var(--dash-bg); }
+
+  /* Event type tag */
+  .event-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: 'DM Mono', monospace; font-size: .6rem; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 4px; white-space: nowrap;
+  }
+  .et-sig      { background: rgba(253,185,19,.15); color: #8a6000; border: 1px solid rgba(253,185,19,.25); }
+  .et-open     { background: rgba(73,122,58,.12);  color: #2d6b1f; border: 1px solid rgba(73,122,58,.22); }
+  .et-submit   { background: rgba(43,87,151,.1);   color: var(--blue); border: 1px solid rgba(43,87,151,.2); }
+  .et-access   { background: rgba(107,127,107,.1); color: var(--muted); border: 1px solid rgba(107,127,107,.18); }
+  .et-account  { background: rgba(73,122,58,.1);   color: #2d6b1f; border: 1px solid rgba(73,122,58,.2); }
+  .et-system   { background: rgba(255,255,255,.06); color: var(--text-dim); border: 1px solid var(--border-d); }
+  .et-alert    { background: rgba(218,33,40,.08);  color: #b01a1f; border: 1px solid rgba(218,33,40,.18); }
+  .et-edit     { background: rgba(253,185,19,.1);  color: #8a6000; border: 1px solid rgba(253,185,19,.2); }
+
+  .event-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Columns */
+  .col-seq   { font-family: 'DM Mono', monospace; font-size: .68rem; color: var(--text-dim); }
+  .col-ts    { font-family: 'DM Mono', monospace; font-size: .72rem; color: var(--text); white-space: nowrap; }
+  .col-actor { font-size: .8rem; font-weight: 500; color: var(--text); }
+  .col-actor-role { font-size: .68rem; color: var(--text-dim); margin-top: 1px; }
+  .col-desc  { font-size: .8rem; color: var(--text); line-height: 1.4; }
+  .col-desc .ref { font-family: 'DM Mono', monospace; font-size: .72rem; color: var(--blue); }
+  .col-hash  { font-family: 'DM Mono', monospace; font-size: .62rem; color: var(--text-dim); }
+
+  /* Detail expand */
+  .expand-btn {
+    background: none; border: none; cursor: pointer; color: var(--blue);
+    font-size: .72rem; font-weight: 600; font-family: 'DM Sans', sans-serif;
+    padding: 0; transition: color .15s;
+  }
+  .expand-btn:hover { color: var(--green-base); }
+  .detail-row { display: none; }
+  .detail-row.open { display: table-row; }
+  .detail-cell {
+    padding: 0 14px 12px; background: rgba(43,87,151,.03);
+    border-bottom: 1px solid var(--border-d);
+  }
+  .detail-inner {
+    background: var(--dash-bg); border: 1px solid var(--border-d);
+    border-radius: 7px; padding: 12px 14px;
+    font-family: 'DM Mono', monospace; font-size: .72rem; color: var(--text-dim);
+    line-height: 1.7;
+  }
+  .detail-inner strong { color: var(--text); }
+
+  /* Pagination */
+  .pagination {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px; border-top: 1px solid var(--border-d);
+    font-size: .78rem; color: var(--text-dim); flex-wrap: wrap; gap: 8px;
+  }
+  .page-btns { display: flex; gap: 4px; }
+  .page-btn {
+    padding: 5px 11px; border-radius: 5px; border: 1px solid var(--border-d);
+    background: var(--card-bg); font-size: .76rem; font-weight: 500;
+    color: var(--text-dim); cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: all .15s;
+  }
+  .page-btn:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .page-btn.active { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+  .page-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+  /* Empty */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: .85rem; }
+
+  @media (max-width: 900px) {
+    .page-body { padding: 16px; }
+    .audit-table thead { display: none; }
+    .audit-table td { display: block; padding: 5px 12px; }
+    .audit-table td:first-child { padding-top: 12px; }
+    .audit-table td:last-child  { padding-bottom: 12px; }
+    .audit-table tr { display: block; border-bottom: 1px solid var(--border-d); }
+    .col-hash { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="dash-sidebar" id="sidebar">
+  <a href="admin-dashboard.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div><div class="brand-name">YesParency</div><div class="brand-sub">SLSU Procurement</div></div>
+  </a>
+  <div class="sidebar-profile">
+    <div class="profile-avatar" style="background:#2b5797;">MZ</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Maridel C. Zabella</div>
+      <div class="profile-role">BAC Chairperson</div>
+      <div class="profile-verified">Super Administrator</div>
+    </div>
+  </div>
+  <div class="admin-role-badge">
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Admin Access
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="admin-dashboard.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <div class="nav-section-label">Procurement</div>
+    <a href="admin-procurements.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Procurements
+    </a>
+    <a href="admin-bid-openings.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Bid Openings
+    </a>
+    <a href="admin-bid-submissions.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Bid Submissions
+    </a>
+    <div class="nav-section-label">Management</div>
+    <a href="admin-bidder-accounts.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Bidder Accounts <span class="nav-badge">4</span>
+    </a>
+    <a href="admin-announcements.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Announcements
+    </a>
+    <a href="admin-audit-trail.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Audit Trail
+    </a>
+    <div class="nav-section-label">System</div>
+    <a href="admin-settings.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="dash-main">
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb"><a href="admin-dashboard.html">Admin</a><span class="topbar-sep">/</span></span>
+      <span class="topbar-page">Audit Trail</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-dot"></div></div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar" style="background:#2b5797;">MZ</div>
+    </div>
+  </header>
+
+  <main class="page-body">
+
+    <!-- Integrity Banner -->
+    <div class="integrity-banner">
+      <svg class="integrity-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <div class="integrity-text">
+        <strong>Audit Trail Integrity Verified</strong> — All entries are append-only and cryptographically chained. No entries have been modified or deleted. Last integrity check: <strong>March 26, 2026 at 10:42 AM</strong>.
+      </div>
+      <div class="integrity-hash">Chain: a3f9c2…d84e1b</div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" type="text" placeholder="Search by actor, event, or reference..." oninput="filterLogs(this.value)"/>
+      </div>
+      <div class="filter-tabs">
+        <button class="ftab active" onclick="setFilter('all',this)">All</button>
+        <button class="ftab" onclick="setFilter('sig',this)">Signatures</button>
+        <button class="ftab" onclick="setFilter('open',this)">Envelope Opens</button>
+        <button class="ftab" onclick="setFilter('submit',this)">Submissions</button>
+        <button class="ftab" onclick="setFilter('account',this)">Accounts</button>
+        <button class="ftab" onclick="setFilter('access',this)">Access</button>
+        <button class="ftab" onclick="setFilter('alert',this)">Alerts</button>
+      </div>
+    </div>
+    <div class="toolbar" style="margin-top:-10px;">
+      <div class="date-filter">
+        <span class="date-sep">From</span>
+        <input class="date-input" type="date" id="dateFrom" value="2026-03-26" onchange="render()"/>
+        <span class="date-sep">to</span>
+        <input class="date-input" type="date" id="dateTo" value="2026-03-26" onchange="render()"/>
+      </div>
+      <div style="flex:1;"></div>
+      <button class="btn-export" onclick="exportCSV()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="audit-card">
+      <table class="audit-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Timestamp</th>
+            <th>Event Type</th>
+            <th>Actor</th>
+            <th>Description</th>
+            <th>Reference</th>
+            <th>Hash</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="auditBody"></tbody>
+      </table>
+      <div class="pagination" id="pagination"></div>
+    </div>
+
+  </main>
+</div>
+
+<script src="assets/dashboard.js"></script>
+<script>
+const LOGS = [
+  { id: 34, ts: '2026-03-26 10:42:11', type: 'access',  actor: 'Maridel C. Zabella', role: 'BAC Chairperson',   desc: 'Audit trail viewed.', ref: 'SESSION-0089', hash: 'a3f9c2', detail: 'IP: 192.168.1.10 · Browser: Chrome 123 · Action: READ audit_log' },
+  { id: 33, ts: '2026-03-26 10:34:02', type: 'open',    actor: 'Maridel C. Zabella', role: 'BAC Chairperson',   desc: 'Envelope 2 (Financial Bids) unlocked. Bid prices revealed on live stream. Abstract of Bids generation triggered.', ref: 'BO-2026-003', hash: 'd84e1b', detail: 'Session: BO-2026-003 · Signatures: MZ, RS, AL (3/3 threshold met) · Envelope: Financial Bid · Bidders affected: 3' },
+  { id: 32, ts: '2026-03-26 10:28:44', type: 'sig',     actor: 'Ana Lim',             role: 'BAC Member',        desc: 'Digital signature authenticated for Envelope 2 unlock. Signature 3/3 — threshold met.', ref: 'BO-2026-003', hash: 'f12a3c', detail: 'Officer: Ana Lim (BDR-OFFICER-003) · Envelope: 2 · Sequence: 3 of 3 · Threshold: REACHED · Session: BO-2026-003' },
+  { id: 31, ts: '2026-03-26 10:27:19', type: 'sig',     actor: 'Ramon Santos',        role: 'BAC Member',        desc: 'Digital signature authenticated for Envelope 2 unlock. Signature 2/3.', ref: 'BO-2026-003', hash: 'b77d4f', detail: 'Officer: Ramon Santos (BDR-OFFICER-002) · Envelope: 2 · Sequence: 2 of 3 · Session: BO-2026-003' },
+  { id: 30, ts: '2026-03-26 10:26:05', type: 'sig',     actor: 'Maridel C. Zabella', role: 'BAC Chairperson',   desc: 'Digital signature authenticated for Envelope 2 unlock. Signature 1/3.', ref: 'BO-2026-003', hash: 'c44e8a', detail: 'Officer: Maridel C. Zabella (BDR-OFFICER-001) · Envelope: 2 · Sequence: 1 of 3 · Session: BO-2026-003' },
+  { id: 29, ts: '2026-03-26 10:14:30', type: 'open',    actor: 'Maridel C. Zabella', role: 'BAC Chairperson',   desc: 'Envelope 1 (Eligibility & Technical) unlocked. All 3 bidders\' eligibility documents revealed.', ref: 'BO-2026-003', hash: 'e91b2d', detail: 'Session: BO-2026-003 · Signatures: MZ, RS, AL (3/3) · Bidders: Apex Scientific, LabTech Philippines, SciEquip Solutions' },
+  { id: 28, ts: '2026-03-26 10:03:22', type: 'system',  actor: 'SYSTEM',              role: 'Automated',         desc: 'Bid opening session BO-2026-003 initiated. Live stream started. 47 public observers connected.', ref: 'BO-2026-003', hash: '7f3c1e', detail: 'Session ID: BO-2026-003 · Project: SLSU-BAC-2026-003 · Stream: ACTIVE · Observers: 47 · Bids sealed: 3' },
+  { id: 27, ts: '2026-03-26 09:55:14', type: 'submit',  actor: 'SciEquip Solutions Corp.', role: 'Registered Bidder', desc: 'Two-envelope bid submitted and encrypted. Envelope 1 & 2 locked. Timestamp recorded.', ref: 'BID-0003-003', hash: '2a8f5c', detail: 'Bidder: SciEquip Solutions Corp. (BDR-2024-00078) · Project: SLSU-BAC-2026-003 · Lots: 1 · Docs: 11/12 · Receipt: OR-2026-004112' },
+  { id: 26, ts: '2026-03-26 09:52:07', type: 'submit',  actor: 'LabTech Philippines Inc.', role: 'Registered Bidder', desc: 'Two-envelope bid submitted and encrypted. Envelope 1 & 2 locked. Timestamp recorded.', ref: 'BID-0002-003', hash: '9d1b7a', detail: 'Bidder: LabTech Philippines Inc. (BDR-2024-00034) · Project: SLSU-BAC-2026-003 · Lots: 1 · Docs: 12/12 · Receipt: OR-2026-004105' },
+  { id: 25, ts: '2026-03-26 09:48:33', type: 'submit',  actor: 'Apex Scientific Supply Co.', role: 'Registered Bidder', desc: 'Two-envelope bid submitted and encrypted. Envelope 1 & 2 locked. Timestamp recorded.', ref: 'BID-0001-003', hash: '4c6e2f', detail: 'Bidder: Apex Scientific Supply Co. (BDR-2024-00012) · Project: SLSU-BAC-2026-003 · Lots: 1 · Docs: 12/12 · Receipt: OR-2026-004100' },
+  { id: 24, ts: '2026-03-26 09:15:44', type: 'account', actor: 'Maridel C. Zabella', role: 'BAC Chairperson',   desc: 'Bidder account approved. PhilGEPS registration verified. Account status set to Verified.', ref: 'BDR-2024-00012', hash: '8b3d9c', detail: 'Bidder: Maria Santos · Business: Apex Scientific Supply Co. · Action: APPROVE · Previous status: Pending · New status: Verified' },
+  { id: 23, ts: '2026-03-25 16:47:22', type: 'submit',  actor: 'Juan M. Cruz',        role: 'Registered Bidder', desc: 'Two-envelope bid submitted and encrypted for IT Equipment project. Lots 1 & 2.', ref: 'BID-0042-001', hash: '1f7a4b', detail: 'Bidder: Juan M. Cruz (BDR-2024-00089) · Project: SLSU-BAC-2026-011 · Lots: 1, 2 · Docs: 12/12 · Receipt: OR-2026-004821' },
+  { id: 22, ts: '2026-03-25 15:30:11', type: 'edit',    actor: 'Juan M. Cruz',        role: 'Registered Bidder', desc: 'Bid amendment request submitted for Multi-Purpose Hall project. Reason: Typographical error in bid price.', ref: 'BID-0042-002', hash: '6e2c8d', detail: 'Bidder: Juan M. Cruz · Bid: BID-0042-002 · Project: SLSU-BAC-2026-007 · Reason: Correction of typographical error in bid price · Status: Pending BAC approval' },
+  { id: 21, ts: '2026-03-25 14:22:05', type: 'access',  actor: 'TechSource Philippines', role: 'Registered Bidder', desc: 'Bid documents downloaded for SLSU-BAC-2026-011.', ref: 'SLSU-BAC-2026-011', hash: '3a9f1c', detail: 'Bidder: TechSource Philippines (BDR-2024-00055) · Document: Bidding Documents v1.0 · Action: DOWNLOAD · IP: 203.177.12.44' },
+  { id: 20, ts: '2026-03-24 15:22:18', type: 'submit',  actor: 'Juan M. Cruz',        role: 'Registered Bidder', desc: 'Two-envelope bid submitted for Multi-Purpose Hall. Bid locked.', ref: 'BID-0042-002', hash: '5d8b3e', detail: 'Bidder: Juan M. Cruz (BDR-2024-00089) · Project: SLSU-BAC-2026-007 · Lots: 1 · Docs: 12/12 · Receipt: OR-2026-004799' },
+  { id: 19, ts: '2026-03-20 11:05:33', type: 'account', actor: 'Maridel C. Zabella', role: 'BAC Chairperson',   desc: 'Notice of Award issued to Cruz General Trading for Janitorial Services contract.', ref: 'SLSU-BAC-2026-001', hash: 'c7f2a1', detail: 'Project: SLSU-BAC-2026-001 · Awarded to: Juan M. Cruz (BDR-2024-00089) · Amount: ₱1,720,000.00 · Action: ISSUE_NOA' },
+  { id: 18, ts: '2026-03-15 10:30:44', type: 'open',    actor: 'Maridel C. Zabella', role: 'BAC Chairperson',   desc: 'Envelope 2 opened for Janitorial Services. Bid prices recorded in Abstract of Bids.', ref: 'BO-2026-001', hash: 'e4b9c2', detail: 'Session: BO-2026-001 · Bidders: 7 · Lowest: Cruz General Trading ₱1,720,000.00 · 2nd: CleanPro Services ₱1,755,000.00' },
+  { id: 17, ts: '2026-03-15 10:00:12', type: 'system',  actor: 'SYSTEM',              role: 'Automated',         desc: 'Bid opening session BO-2026-001 initiated. 31 public observers connected.', ref: 'BO-2026-001', hash: 'a1d3f7', detail: 'Session ID: BO-2026-001 · Project: SLSU-BAC-2026-001 · Bids sealed: 7 · Observers: 31' },
+  { id: 16, ts: '2026-03-10 09:22:55', type: 'account', actor: 'Maridel C. Zabella', role: 'BAC Chairperson',   desc: 'Bidder account verified. Eligibility documents reviewed and approved.', ref: 'BDR-2024-00089', hash: 'b8e4c1', detail: 'Bidder: Juan M. Cruz · Business: Cruz General Trading · Action: VERIFY · Documents reviewed: 5/5 · PhilGEPS: Confirmed' },
+  { id: 15, ts: '2026-03-08 14:11:30', type: 'alert',   actor: 'SYSTEM',              role: 'Automated',         desc: 'Failed login attempt detected. 3 consecutive failures for account juan.cruz@example.com. Account temporarily locked.', ref: 'BDR-2024-00089', hash: 'd2f6a9', detail: 'IP: 203.177.12.55 · Attempts: 3 · Action: ACCOUNT_LOCK · Duration: 30 minutes · Notification sent to registered email' },
+  { id: 14, ts: '2026-02-28 14:10:22', type: 'submit',  actor: 'Juan M. Cruz',        role: 'Registered Bidder', desc: 'Two-envelope bid submitted for Janitorial Services. Bid locked.', ref: 'BID-0042-004', hash: '7c3e1b', detail: 'Bidder: Juan M. Cruz (BDR-2024-00089) · Project: SLSU-BAC-2026-001 · Lots: 1 · Docs: 12/12 · Receipt: OR-2026-003901' },
+];
+
+const TYPE_META = {
+  sig:     { label: 'SIGNATURE',  cls: 'et-sig',    dot: '#8a6000' },
+  open:    { label: 'ENV OPEN',   cls: 'et-open',   dot: '#2d6b1f' },
+  submit:  { label: 'SUBMIT',     cls: 'et-submit', dot: 'var(--blue)' },
+  access:  { label: 'ACCESS',     cls: 'et-access', dot: 'var(--muted)' },
+  account: { label: 'ACCOUNT',    cls: 'et-account',dot: '#2d6b1f' },
+  system:  { label: 'SYSTEM',     cls: 'et-system', dot: 'var(--text-dim)' },
+  alert:   { label: 'ALERT',      cls: 'et-alert',  dot: '#b01a1f' },
+  edit:    { label: 'EDIT REQ',   cls: 'et-edit',   dot: '#8a6000' },
+};
+
+const PAGE_SIZE = 10;
+let activeFilter = 'all', activeSearch = '', currentPage = 1;
+const openRows = new Set();
+
+function getFiltered() {
+  return LOGS.filter(l => {
+    const mf = activeFilter === 'all' || l.type === activeFilter;
+    const ms = !activeSearch || l.actor.toLowerCase().includes(activeSearch) ||
+               l.desc.toLowerCase().includes(activeSearch) || l.ref.toLowerCase().includes(activeSearch);
+    return mf && ms;
+  });
+}
+
+function render() {
+  const filtered = getFiltered();
+  const total = filtered.length;
+  const pages = Math.ceil(total / PAGE_SIZE);
+  currentPage = Math.min(currentPage, pages || 1);
+  const slice = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const tbody = document.getElementById('auditBody');
+  if (!slice.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No audit entries found.</td></tr>`;
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = slice.map(l => {
+    const tm = TYPE_META[l.type] || TYPE_META.system;
+    const isOpen = openRows.has(l.id);
+    return `<tr>
+      <td class="col-seq">${l.id}</td>
+      <td class="col-ts">${l.ts}</td>
+      <td><span class="event-tag ${tm.cls}"><span class="event-dot" style="background:${tm.dot};"></span>${tm.label}</span></td>
+      <td>
+        <div class="col-actor">${l.actor}</div>
+        <div class="col-actor-role">${l.role}</div>
+      </td>
+      <td class="col-desc">${l.desc}</td>
+      <td><span class="ref">${l.ref}</span></td>
+      <td class="col-hash">${l.hash}…</td>
+      <td><button class="expand-btn" onclick="toggleDetail(${l.id})">${isOpen ? '▲ Hide' : '▼ Details'}</button></td>
+    </tr>
+    <tr class="detail-row ${isOpen ? 'open' : ''}" id="detail-${l.id}">
+      <td colspan="8" class="detail-cell">
+        <div class="detail-inner">
+          <strong>Full Event Detail</strong><br>
+          ${l.detail}<br><br>
+          <strong>Integrity Hash:</strong> ${l.hash}d4f2a9c1e8b3…<br>
+          <strong>Previous Hash:</strong> ${(l.id - 1).toString(16).padStart(6,'0')}…<br>
+          <strong>Sequence:</strong> #${l.id} · <strong>Timestamp:</strong> ${l.ts} UTC+8
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Pagination
+  const pag = document.getElementById('pagination');
+  const start = (currentPage - 1) * PAGE_SIZE + 1;
+  const end   = Math.min(currentPage * PAGE_SIZE, total);
+  let pageBtns = '';
+  for (let i = 1; i <= pages; i++) {
+    if (i === 1 || i === pages || Math.abs(i - currentPage) <= 1) {
+      pageBtns += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+    } else if (Math.abs(i - currentPage) === 2) {
+      pageBtns += `<span style="padding:0 4px;color:var(--text-dim);">…</span>`;
+    }
+  }
+  pag.innerHTML = `
+    <span>Showing ${start}–${end} of ${total} entries</span>
+    <div class="page-btns">
+      <button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>← Prev</button>
+      ${pageBtns}
+      <button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === pages ? 'disabled' : ''}>Next →</button>
+    </div>`;
+}
+
+function toggleDetail(id) {
+  if (openRows.has(id)) openRows.delete(id); else openRows.add(id);
+  render();
+}
+function goPage(p) { currentPage = p; render(); }
+function setFilter(f, btn) {
+  activeFilter = f; currentPage = 1;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+function filterLogs(val) { activeSearch = val.toLowerCase(); currentPage = 1; render(); }
+
+function exportCSV() {
+  const filtered = getFiltered();
+  const rows = [['#','Timestamp','Type','Actor','Role','Description','Reference','Hash']];
+  filtered.forEach(l => rows.push([l.id, l.ts, l.type, l.actor, l.role, `"${l.desc}"`, l.ref, l.hash]));
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'yesparency-audit-trail-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+render();
+</script>
+</body>
+</html>

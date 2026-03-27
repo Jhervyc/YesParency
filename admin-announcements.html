@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Announcements — YesParency Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/shared.css"/>
+<link rel="stylesheet" href="assets/dashboard.css"/>
+<style>
+  .dash-sidebar { background: #0a2e1a; }
+  .admin-role-badge {
+    margin: 0 12px 8px; padding: 5px 10px; border-radius: 5px;
+    background: rgba(253,185,19,.1); border: 1px solid rgba(253,185,19,.2);
+    font-family: 'DM Mono', monospace; font-size: .58rem;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gold); display: flex; align-items: center; gap: 5px;
+  }
+  .page-body { padding: 26px 28px; flex: 1; }
+
+  /* ─── TOOLBAR ─── */
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .search-wrap { flex: 1; min-width: 200px; position: relative; }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); opacity: .4; pointer-events: none; }
+  .search-input {
+    width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--border-d);
+    border-radius: 7px; font-size: .83rem; font-family: 'DM Sans', sans-serif;
+    background: var(--card-bg); color: var(--text); outline: none; transition: border-color .2s;
+  }
+  .search-input:focus { border-color: var(--green-nat); }
+  .filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ftab {
+    padding: 8px 14px; border-radius: 7px; font-size: .78rem; font-weight: 500;
+    border: 1px solid var(--border-d); background: var(--card-bg);
+    color: var(--text-dim); cursor: pointer; transition: all .15s; font-family: 'DM Sans', sans-serif;
+  }
+  .ftab:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .ftab.active { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+  .btn-new {
+    padding: 9px 18px; border-radius: 7px; background: var(--gold); color: var(--green-base);
+    border: none; font-size: .82rem; font-weight: 700; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 6px;
+    transition: background .15s; white-space: nowrap;
+  }
+  .btn-new:hover { background: var(--gold-light); }
+
+  /* ─── ANNOUNCEMENT CARDS ─── */
+  .ann-list { display: flex; flex-direction: column; gap: 10px; }
+  .ann-card {
+    background: var(--card-bg); border: 1px solid var(--border-d);
+    border-radius: 10px; overflow: hidden;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .ann-card:hover { border-color: rgba(12,58,27,.2); box-shadow: 0 3px 14px rgba(12,58,27,.07); }
+  .ann-card-inner { display: flex; align-items: stretch; }
+  .ann-accent { width: 4px; flex-shrink: 0; }
+  .aa-bid      { background: var(--blue); }
+  .aa-notice   { background: var(--green-nat); }
+  .aa-deadline { background: var(--red); }
+  .aa-award    { background: var(--gold); }
+  .aa-draft    { background: #ccc; }
+
+  .ann-body { flex: 1; padding: 14px 18px; }
+  .ann-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+  .ann-title { font-size: .9rem; font-weight: 600; color: var(--text); line-height: 1.35; flex: 1; }
+  .ann-badges { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
+  .ann-excerpt { font-size: .78rem; color: var(--text-dim); line-height: 1.6; margin-bottom: 10px; }
+  .ann-meta { display: flex; gap: 14px; flex-wrap: wrap; }
+  .ann-meta-item { display: flex; align-items: center; gap: 5px; font-size: .71rem; color: var(--text-dim); }
+  .ann-meta-item svg { opacity: .45; flex-shrink: 0; }
+
+  .ann-actions {
+    display: flex; flex-direction: column; gap: 5px;
+    padding: 14px 16px 14px 0; justify-content: center; flex-shrink: 0;
+  }
+  .act-btn {
+    padding: 6px 13px; border-radius: 6px; font-size: .74rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; text-decoration: none;
+    border: 1px solid var(--border-d); background: var(--card-bg); color: var(--text-dim);
+    transition: all .15s; display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  }
+  .act-btn:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .act-btn.primary { background: var(--green-base); color: var(--white); border-color: var(--green-base); }
+  .act-btn.primary:hover { background: var(--green-mid); }
+  .act-btn.danger  { color: #b01a1f; border-color: rgba(218,33,40,.2); }
+  .act-btn.danger:hover { background: rgba(218,33,40,.06); }
+
+  /* ─── COMPOSE MODAL ─── */
+  .modal-overlay { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--card-bg); border-radius: 12px; width: 100%; max-width: 620px;
+    max-height: 92vh; overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,.2); animation: modalIn .2s ease;
+  }
+  @keyframes modalIn { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: none; } }
+  .modal-header {
+    background: #0a2e1a; padding: 18px 22px; border-bottom: 3px solid var(--gold);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-header-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--white); }
+  .modal-close { background: none; border: none; cursor: pointer; color: rgba(255,255,255,.5); font-size: 1.2rem; }
+  .modal-close:hover { color: var(--white); }
+  .modal-body { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+  .modal-footer { padding: 14px 22px; border-top: 1px solid var(--border-d); display: flex; gap: 8px; justify-content: flex-end; }
+
+  .field-group { display: flex; flex-direction: column; gap: 5px; }
+  .field-label { font-size: .76rem; font-weight: 600; color: var(--text); }
+  .field-label .req { color: var(--red); margin-left: 2px; }
+  .field-input, .field-select, .field-textarea {
+    padding: 9px 12px; border: 1px solid var(--border-d); border-radius: 7px;
+    font-size: .84rem; font-family: 'DM Sans', sans-serif; color: var(--text);
+    background: var(--dash-bg); outline: none; transition: border-color .2s;
+  }
+  .field-input:focus, .field-select:focus, .field-textarea:focus { border-color: var(--green-nat); }
+  .field-textarea { resize: vertical; min-height: 100px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .char-count { font-size: .7rem; color: var(--text-dim); text-align: right; margin-top: 3px; }
+
+  /* Preview */
+  .preview-box {
+    border: 1px solid var(--border-d); border-radius: 8px; overflow: hidden;
+  }
+  .preview-label {
+    font-family: 'DM Mono', monospace; font-size: .6rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-dim); padding: 8px 12px;
+    background: var(--dash-bg); border-bottom: 1px solid var(--border-d);
+  }
+  .preview-content { padding: 14px 16px; }
+  .preview-tag { display: inline-block; font-size: .64rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 9px; border-radius: 4px; margin-bottom: 8px; }
+  .preview-title { font-size: .92rem; font-weight: 600; color: var(--text); margin-bottom: 6px; line-height: 1.4; }
+  .preview-body  { font-size: .8rem; color: var(--text-dim); line-height: 1.65; }
+
+  .btn-cancel { padding: 9px 20px; border-radius: 7px; border: 1px solid var(--border-d); background: var(--card-bg); font-size: .82rem; font-weight: 600; color: var(--text-dim); cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .btn-draft  { padding: 9px 20px; border-radius: 7px; border: 1px solid var(--border-d); background: var(--card-bg); font-size: .82rem; font-weight: 600; color: var(--text-dim); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .15s; }
+  .btn-draft:hover { border-color: var(--green-nat); color: var(--green-base); }
+  .btn-publish { padding: 9px 22px; border-radius: 7px; background: var(--green-base); color: var(--white); border: none; font-size: .82rem; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .15s; display: flex; align-items: center; gap: 6px; }
+  .btn-publish:hover { background: var(--green-mid); }
+
+  /* ─── EMPTY ─── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: .85rem; }
+
+  @media (max-width: 768px) {
+    .page-body { padding: 16px; }
+    .ann-actions { flex-direction: row; padding: 0 14px 12px; }
+    .field-row { grid-template-columns: 1fr; }
+    .modal-box { max-width: 100%; margin: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="dash-sidebar" id="sidebar">
+  <a href="admin-dashboard.html" class="sidebar-brand">
+    <div class="brand-seal">Y</div>
+    <div><div class="brand-name">YesParency</div><div class="brand-sub">SLSU Procurement</div></div>
+  </a>
+  <div class="sidebar-profile">
+    <div class="profile-avatar" style="background:#2b5797;">MZ</div>
+    <div style="flex:1;overflow:hidden;">
+      <div class="profile-name">Maridel C. Zabella</div>
+      <div class="profile-role">BAC Chairperson</div>
+      <div class="profile-verified">Super Administrator</div>
+    </div>
+  </div>
+  <div class="admin-role-badge">
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Admin Access
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="admin-dashboard.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <div class="nav-section-label">Procurement</div>
+    <a href="admin-procurements.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Procurements
+    </a>
+    <a href="admin-bid-openings.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Bid Openings
+    </a>
+    <a href="admin-bid-submissions.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Bid Submissions
+    </a>
+    <div class="nav-section-label">Management</div>
+    <a href="admin-bidder-accounts.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Bidder Accounts <span class="nav-badge">4</span>
+    </a>
+    <a href="admin-announcements.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Announcements
+    </a>
+    <a href="admin-audit-trail.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Audit Trail
+    </a>
+    <div class="nav-section-label">System</div>
+    <a href="admin-settings.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="yesparency-landing.html" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="dash-main">
+  <header class="dash-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-breadcrumb"><a href="admin-dashboard.html">Admin</a><span class="topbar-sep">/</span></span>
+      <span class="topbar-page">Announcements</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-dot"></div></div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-avatar" style="background:#2b5797;">MZ</div>
+    </div>
+  </header>
+
+  <main class="page-body">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" type="text" placeholder="Search announcements..." oninput="filterAnn(this.value)"/>
+      </div>
+      <div class="filter-tabs">
+        <button class="ftab active" onclick="setFilter('all',this)">All</button>
+        <button class="ftab" onclick="setFilter('published',this)">Published</button>
+        <button class="ftab" onclick="setFilter('draft',this)">Drafts</button>
+        <button class="ftab" onclick="setFilter('bid',this)">ITB</button>
+        <button class="ftab" onclick="setFilter('notice',this)">Notices</button>
+        <button class="ftab" onclick="setFilter('deadline',this)">Deadlines</button>
+        <button class="ftab" onclick="setFilter('award',this)">Awards</button>
+      </div>
+      <button class="btn-new" onclick="openCompose()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Announcement
+      </button>
+    </div>
+
+    <div class="ann-list" id="annList"></div>
+  </main>
+</div>
+
+<!-- COMPOSE MODAL -->
+<div class="modal-overlay" id="composeModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-header-title" id="modalTitle">New Announcement</div>
+      <button class="modal-close" onclick="closeCompose()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Type <span class="req">*</span></label>
+          <select class="field-select" id="fType" onchange="updatePreview()">
+            <option value="bid">Invitation to Bid</option>
+            <option value="notice">Notice</option>
+            <option value="deadline">Deadline Reminder</option>
+            <option value="award">Notice of Award</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Related Project</label>
+          <select class="field-select" id="fProject" onchange="updatePreview()">
+            <option value="">— None —</option>
+            <option value="SLSU-BAC-2026-003">SLSU-BAC-2026-003 · Science Lab Equipment</option>
+            <option value="SLSU-BAC-2026-007">SLSU-BAC-2026-007 · Multi-Purpose Hall</option>
+            <option value="SLSU-BAC-2026-011">SLSU-BAC-2026-011 · IT Equipment for CIT</option>
+            <option value="SLSU-BAC-2026-014">SLSU-BAC-2026-014 · Office Supplies</option>
+            <option value="SLSU-BAC-2026-016">SLSU-BAC-2026-016 · Gymnasium Roofing</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Title <span class="req">*</span></label>
+        <input class="field-input" type="text" id="fTitle" placeholder="e.g. ITB: Supply of Laboratory Equipment for CAS" oninput="updatePreview()"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Body <span class="req">*</span></label>
+        <textarea class="field-textarea" id="fBody" placeholder="Write the full announcement text here..." oninput="updatePreview();updateCharCount()"></textarea>
+        <div class="char-count"><span id="charCount">0</span> characters</div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Publish Date</label>
+          <input class="field-input" type="date" id="fDate" value="2026-03-26"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Visibility</label>
+          <select class="field-select" id="fVisibility">
+            <option value="public">Public (All Users)</option>
+            <option value="bidders">Registered Bidders Only</option>
+            <option value="internal">Internal (Admin Only)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Live Preview -->
+      <div class="preview-box">
+        <div class="preview-label">Preview</div>
+        <div class="preview-content" id="previewContent">
+          <span class="preview-tag tag-bid">Invitation to Bid</span>
+          <div class="preview-title">Your announcement title will appear here</div>
+          <div class="preview-body">Your announcement body will appear here...</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeCompose()">Cancel</button>
+      <button class="btn-draft" onclick="saveAnn('draft')">Save as Draft</button>
+      <button class="btn-publish" onclick="saveAnn('published')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Publish
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/dashboard.js"></script>
+<script>
+const TYPE_META = {
+  bid:      { label: 'Invitation to Bid', badge: 'badge-blue',  accent: 'aa-bid',      tagClass: 'tag-bid' },
+  notice:   { label: 'Notice',            badge: 'badge-green', accent: 'aa-notice',   tagClass: 'tag-notice' },
+  deadline: { label: 'Deadline Reminder', badge: 'badge-red',   accent: 'aa-deadline', tagClass: 'tag-deadline' },
+  award:    { label: 'Notice of Award',   badge: 'badge-gold',  accent: 'aa-award',    tagClass: 'tag-award' },
+  draft:    { label: 'Draft',             badge: 'badge-gray',  accent: 'aa-draft',    tagClass: 'tag-notice' },
+};
+
+let ANNOUNCEMENTS = [
+  {
+    id: 1, type: 'bid', status: 'published',
+    title: 'ITB: Supply and Delivery of Laboratory Equipment for the College of Arts and Sciences',
+    body: 'The Bids and Awards Committee of SLSU invites PhilGEPS-registered suppliers to bid for the supply and delivery of laboratory equipment. Total ABC: ₱2,450,000.00. Deadline for submission of bids is April 2, 2026.',
+    project: 'SLSU-BAC-2026-003', date: 'March 26, 2026', visibility: 'public', views: 142,
+  },
+  {
+    id: 2, type: 'notice', status: 'published',
+    title: 'Pre-Bid Conference: Renovation of Science and Technology Building',
+    body: 'A pre-bid conference will be held on March 28, 2026 at 2:00 PM at the BAC Conference Room. All interested bidders are encouraged to attend. Bidding documents are available at the Procurement Office.',
+    project: 'SLSU-BAC-2026-007', date: 'March 24, 2026', visibility: 'public', views: 89,
+  },
+  {
+    id: 3, type: 'deadline', status: 'published',
+    title: 'Final Call: IT Equipment Procurement — Submission Closes April 9',
+    body: 'This is a reminder that the deadline for submission of bids for the IT Equipment and Peripherals project (SLSU-BAC-2026-011) is on April 9, 2026 at 5:00 PM. Late submissions will not be accepted.',
+    project: 'SLSU-BAC-2026-011', date: 'March 20, 2026', visibility: 'bidders', views: 67,
+  },
+  {
+    id: 4, type: 'award', status: 'published',
+    title: 'Notice of Award: Janitorial and Maintenance Services Contract FY 2026',
+    body: 'The BAC has issued a Notice of Award for the Janitorial and Maintenance Services Contract (SLSU-BAC-2026-001). The awarded bidder has been notified and is required to submit post-qualification documents within five (5) calendar days.',
+    project: 'SLSU-BAC-2026-001', date: 'March 20, 2026', visibility: 'public', views: 203,
+  },
+  {
+    id: 5, type: 'bid', status: 'published',
+    title: 'ITB: Construction of New Multi-Purpose Hall at SLSU Main Campus',
+    body: 'SLSU invites eligible contractors to bid for the construction of a new multi-purpose hall. Total ABC: ₱18,750,000.00. Pre-bid conference on March 20, 2026. Bid opening on April 3, 2026 at 10:00 AM.',
+    project: 'SLSU-BAC-2026-007', date: 'March 12, 2026', visibility: 'public', views: 318,
+  },
+  {
+    id: 6, type: 'notice', status: 'draft',
+    title: 'Annual Procurement Plan (APP) FY 2026 — Published',
+    body: 'The SLSU Procurement Office has published the Annual Procurement Plan for Fiscal Year 2026. The APP is available for download at the Procurement Office and on the PhilGEPS portal.',
+    project: '', date: 'March 8, 2026', visibility: 'public', views: 0,
+  },
+];
+
+let activeFilter = 'all', activeSearch = '';
+let editingId = null;
+
+function render() {
+  const list = document.getElementById('annList');
+  const filtered = ANNOUNCEMENTS.filter(a => {
+    const mf = activeFilter === 'all' || a.status === activeFilter || a.type === activeFilter;
+    const ms = !activeSearch || a.title.toLowerCase().includes(activeSearch) || a.body.toLowerCase().includes(activeSearch);
+    return mf && ms;
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state">No announcements found.</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(a => {
+    const tm = TYPE_META[a.type];
+    const isDraft = a.status === 'draft';
+    const visIcon = a.visibility === 'public'
+      ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Public`
+      : a.visibility === 'bidders'
+        ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Bidders Only`
+        : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Internal`;
+
+    return `<div class="ann-card">
+      <div class="ann-card-inner">
+        <div class="ann-accent ${isDraft ? 'aa-draft' : tm.accent}"></div>
+        <div class="ann-body">
+          <div class="ann-header">
+            <div class="ann-title">${a.title}</div>
+            <div class="ann-badges">
+              <span class="badge ${isDraft ? 'badge-gray' : tm.badge}" style="font-size:.62rem;">${isDraft ? 'Draft' : tm.label}</span>
+              ${a.project ? `<span class="badge badge-gray" style="font-size:.6rem;">${a.project}</span>` : ''}
+            </div>
+          </div>
+          <div class="ann-excerpt">${a.body.length > 160 ? a.body.slice(0,160)+'…' : a.body}</div>
+          <div class="ann-meta">
+            <div class="ann-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${a.date}</div>
+            <div class="ann-meta-item">${visIcon}</div>
+            ${!isDraft ? `<div class="ann-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${a.views} views</div>` : ''}
+          </div>
+        </div>
+        <div class="ann-actions">
+          <button class="act-btn" onclick="editAnn(${a.id})">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </button>
+          ${isDraft
+            ? `<button class="act-btn primary" onclick="publishDraft(${a.id})">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Publish
+               </button>`
+            : `<button class="act-btn" onclick="unpublish(${a.id})">Unpublish</button>`}
+          <button class="act-btn danger" onclick="deleteAnn(${a.id})">Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+function filterAnn(val) { activeSearch = val.toLowerCase(); render(); }
+
+// ── Compose ──
+function openCompose(id) {
+  editingId = id || null;
+  document.getElementById('modalTitle').textContent = id ? 'Edit Announcement' : 'New Announcement';
+  if (id) {
+    const a = ANNOUNCEMENTS.find(x => x.id === id);
+    document.getElementById('fType').value       = a.type;
+    document.getElementById('fProject').value    = a.project;
+    document.getElementById('fTitle').value      = a.title;
+    document.getElementById('fBody').value       = a.body;
+    document.getElementById('fVisibility').value = a.visibility;
+  } else {
+    document.getElementById('fType').value       = 'bid';
+    document.getElementById('fProject').value    = '';
+    document.getElementById('fTitle').value      = '';
+    document.getElementById('fBody').value       = '';
+    document.getElementById('fVisibility').value = 'public';
+  }
+  updatePreview();
+  updateCharCount();
+  document.getElementById('composeModal').classList.add('open');
+}
+function closeCompose() { document.getElementById('composeModal').classList.remove('open'); }
+
+function updatePreview() {
+  const type  = document.getElementById('fType').value;
+  const title = document.getElementById('fTitle').value || 'Your announcement title will appear here';
+  const body  = document.getElementById('fBody').value  || 'Your announcement body will appear here...';
+  const tm = TYPE_META[type];
+  document.getElementById('previewContent').innerHTML = `
+    <span class="preview-tag ${tm.tagClass}">${tm.label}</span>
+    <div class="preview-title">${title}</div>
+    <div class="preview-body">${body}</div>`;
+}
+
+function updateCharCount() {
+  document.getElementById('charCount').textContent = document.getElementById('fBody').value.length;
+}
+
+function saveAnn(status) {
+  const title = document.getElementById('fTitle').value.trim();
+  const body  = document.getElementById('fBody').value.trim();
+  if (!title || !body) { alert('Title and body are required.'); return; }
+
+  const data = {
+    type:       document.getElementById('fType').value,
+    project:    document.getElementById('fProject').value,
+    title, body, status,
+    date:       new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }),
+    visibility: document.getElementById('fVisibility').value,
+    views: 0,
+  };
+
+  if (editingId) {
+    const idx = ANNOUNCEMENTS.findIndex(x => x.id === editingId);
+    ANNOUNCEMENTS[idx] = { ...ANNOUNCEMENTS[idx], ...data };
+  } else {
+    data.id = Date.now();
+    ANNOUNCEMENTS.unshift(data);
+  }
+  closeCompose();
+  render();
+}
+
+function editAnn(id)      { openCompose(id); }
+function publishDraft(id) { ANNOUNCEMENTS.find(x => x.id === id).status = 'published'; render(); }
+function unpublish(id)    { ANNOUNCEMENTS.find(x => x.id === id).status = 'draft'; render(); }
+function deleteAnn(id) {
+  if (!confirm('Delete this announcement? This cannot be undone.')) return;
+  ANNOUNCEMENTS = ANNOUNCEMENTS.filter(x => x.id !== id);
+  render();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCompose(); });
+render();
+</script>
+</body>
+</html>
