@@ -62,6 +62,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--white); color: var(
 .logo-text .sys-name { font-family: 'Playfair Display', serif; font-size: 1.18rem; font-weight: 700; color: var(--white); letter-spacing: -.01em; }
 .logo-text .sys-sub  { font-size: .67rem; color: rgba(255,255,255,.5); letter-spacing: .08em; text-transform: uppercase; }
 
+/* Desktop nav */
 .site-header nav { display: flex; align-items: center; gap: 6px; }
 .nav-pill {
   display: flex; align-items: center; gap: 8px;
@@ -100,6 +101,34 @@ body { font-family: 'DM Sans', sans-serif; background: var(--white); color: var(
   transition: background .2s, transform .15s, box-shadow .2s; text-decoration: none;
 }
 .btn-signin:hover { background: var(--gold-light); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(253,185,19,.35); }
+
+/* Hamburger button — hidden on desktop */
+.nav-hamburger {
+  display: none; background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,.8); padding: 6px; border-radius: 6px;
+  transition: background .2s;
+}
+.nav-hamburger:hover { background: rgba(255,255,255,.1); }
+
+/* Mobile nav drawer */
+.mobile-nav {
+  display: none; position: fixed; top: 70px; left: 0; right: 0; z-index: 98;
+  background: rgba(12,58,27,.98); backdrop-filter: blur(16px);
+  border-bottom: 2px solid var(--gold);
+  flex-direction: column; padding: 12px 16px 16px;
+  gap: 6px;
+}
+.mobile-nav.open { display: flex; }
+.mobile-nav .nav-pill {
+  padding: 12px 16px; border-radius: 8px; font-size: .88rem;
+  border: 1px solid rgba(255,255,255,.08);
+}
+.mobile-nav .nav-pill:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.15); }
+.mobile-nav .live-badge { padding: 12px 16px; border-radius: 8px; justify-content: flex-start; }
+.mobile-nav .btn-signin {
+  padding: 12px 16px; border-radius: 8px; text-align: center;
+  font-size: .88rem; display: block;
+}
 
 /* ─── LOGIN MODAL ─── */
 .modal-overlay {
@@ -331,13 +360,11 @@ footer {
 
 /* Mobile */
 @media (max-width: 768px) {
-  /* Header */
+  /* Header — show hamburger, hide desktop nav */
   .site-header { padding: 0 16px; height: 60px; }
+  .site-header nav { display: none; }
+  .nav-hamburger { display: flex; }
   .logo-text .sys-sub { display: none; }
-  .nav-pill { padding: 7px 12px; font-size: .78rem; gap: 5px; }
-  .nav-pill svg { display: none; }
-  .live-badge { padding: 7px 10px; font-size: .75rem; letter-spacing: .04em; }
-  .btn-signin { padding: 7px 16px; font-size: .78rem; }
 
   /* Sections & pages */
   section { padding: 44px 16px; }
@@ -364,6 +391,7 @@ footer {
 
   /* Modal */
   .modal-box { padding: 28px 20px; margin: 16px; max-width: calc(100% - 32px); border-radius: 12px; }
+  .form-row { flex-direction: column; align-items: flex-start; gap: 8px; }
 
   /* Buttons */
   .btn-primary, .btn-outline { padding: 12px 24px; font-size: .85rem; width: 100%; text-align: center; }
