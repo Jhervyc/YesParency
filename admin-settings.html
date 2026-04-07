@@ -146,6 +146,51 @@
   .tbl-btn.danger { color: #b01a1f; border-color: rgba(218,33,40,.2); }
   .tbl-btn.danger:hover { background: rgba(218,33,40,.06); }
 
+  /* ─── MODALS ─── */
+  .s-modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,.55); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center;
+  }
+  .s-modal-overlay.open { display: flex; }
+  .s-modal {
+    background: var(--card-bg); border-radius: 12px; width: 100%; max-width: 480px;
+    box-shadow: 0 24px 64px rgba(0,0,0,.2); animation: sModalIn .2s ease; overflow: hidden;
+  }
+  @keyframes sModalIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: none; } }
+  .s-modal-header {
+    background: #0a2e1a; padding: 16px 20px; border-bottom: 3px solid var(--gold);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .s-modal-title { font-family: 'Playfair Display', serif; font-size: .95rem; font-weight: 700; color: var(--white); }
+  .s-modal-close { background: none; border: none; cursor: pointer; color: rgba(255,255,255,.5); font-size: 1.2rem; }
+  .s-modal-close:hover { color: var(--white); }
+  .s-modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .s-modal-footer { padding: 14px 20px; border-top: 1px solid var(--border-d); display: flex; gap: 8px; justify-content: flex-end; }
+  .s-field { display: flex; flex-direction: column; gap: 5px; }
+  .s-label { font-size: .76rem; font-weight: 600; color: var(--text); }
+  .s-label .req { color: var(--red); margin-left: 2px; }
+  .s-input, .s-select {
+    padding: 9px 12px; border: 1px solid var(--border-d); border-radius: 7px;
+    font-size: .84rem; font-family: 'DM Sans', sans-serif; color: var(--text);
+    background: var(--dash-bg); outline: none; transition: border-color .2s;
+  }
+  .s-input:focus, .s-select:focus { border-color: var(--green-nat); }
+  .s-input[readonly] { background: var(--dash-bg); color: var(--text-dim); cursor: not-allowed; }
+  .s-hint { font-size: .71rem; color: var(--text-dim); }
+  .perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .perm-item {
+    display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+    border: 1px solid var(--border-d); border-radius: 7px; background: var(--dash-bg); cursor: pointer;
+  }
+  .perm-item input[type="checkbox"] { accent-color: var(--green-base); width: 14px; height: 14px; flex-shrink: 0; }
+  .perm-item label { font-size: .78rem; color: var(--text); cursor: pointer; }
+  .s-btn-cancel { padding: 9px 20px; border-radius: 7px; border: 1px solid var(--border-d); background: var(--card-bg); font-size: .82rem; font-weight: 600; color: var(--text-dim); cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .s-btn-save   { padding: 9px 22px; border-radius: 7px; background: var(--green-base); color: var(--white); border: none; font-size: .82rem; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .15s; }
+  .s-btn-save:hover { background: var(--green-mid); }
+  .s-btn-invite { padding: 9px 22px; border-radius: 7px; background: var(--gold); color: var(--green-base); border: none; font-size: .82rem; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .15s; }
+  .s-btn-invite:hover { background: var(--gold-light); }
+
   /* ─── DANGER ZONE ─── */
   .danger-zone { border: 1px solid rgba(218,33,40,.25); border-radius: 10px; overflow: hidden; }
   .danger-zone-header {
@@ -385,53 +430,19 @@
     <div class="tab-panel" id="panel-users">
       <div class="setting-card">
         <div class="setting-card-header">
-          <div class="setting-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Admin &amp; Officer Accounts</div>
-          <button class="tbl-btn" onclick="alert('Invite admin form — coming soon.')">+ Invite Admin</button>
+          <div class="setting-card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Admin &amp; Officer Accounts
+          </div>
+          <button class="tbl-btn" onclick="openInviteModal()" style="background:var(--gold);color:var(--green-base);border-color:var(--gold);font-weight:700;">
+            + Invite Admin
+          </button>
         </div>
         <table class="admin-table">
-          <thead><tr><th>Officer</th><th>Role</th><th>Can Sign</th><th>Last Login</th><th>Status</th><th></th></tr></thead>
-          <tbody>
-            <tr>
-              <td><div style="display:flex;align-items:center;gap:9px;"><div class="admin-avatar" style="background:#2b5797;">MZ</div><div><div class="admin-name">Maridel C. Zabella</div><div class="admin-email">m.zabella@slsu.edu.ph</div></div></div></td>
-              <td><span class="role-badge rb-super">Super Admin</span></td>
-              <td><span class="badge badge-green" style="font-size:.6rem;">Yes</span></td>
-              <td style="font-size:.76rem;color:var(--text-dim);">Mar 26, 2026 · 8:45 AM</td>
-              <td><span class="badge badge-green" style="font-size:.6rem;">Active</span></td>
-              <td><button class="tbl-btn" disabled style="opacity:.35;">Edit</button></td>
-            </tr>
-            <tr>
-              <td><div style="display:flex;align-items:center;gap:9px;"><div class="admin-avatar" style="background:#497a3a;">RS</div><div><div class="admin-name">Ramon Santos</div><div class="admin-email">r.santos@slsu.edu.ph</div></div></div></td>
-              <td><span class="role-badge rb-admin">BAC Member</span></td>
-              <td><span class="badge badge-green" style="font-size:.6rem;">Yes</span></td>
-              <td style="font-size:.76rem;color:var(--text-dim);">Mar 26, 2026 · 9:02 AM</td>
-              <td><span class="badge badge-green" style="font-size:.6rem;">Active</span></td>
-              <td style="display:flex;gap:5px;"><button class="tbl-btn" onclick="alert('Edit role')">Edit</button><button class="tbl-btn danger" onclick="alert('Revoke access')">Revoke</button></td>
-            </tr>
-            <tr>
-              <td><div style="display:flex;align-items:center;gap:9px;"><div class="admin-avatar" style="background:#8a6000;">AL</div><div><div class="admin-name">Ana Lim</div><div class="admin-email">a.lim@slsu.edu.ph</div></div></div></td>
-              <td><span class="role-badge rb-admin">BAC Member</span></td>
-              <td><span class="badge badge-green" style="font-size:.6rem;">Yes</span></td>
-              <td style="font-size:.76rem;color:var(--text-dim);">Mar 25, 2026 · 4:30 PM</td>
-              <td><span class="badge badge-green" style="font-size:.6rem;">Active</span></td>
-              <td style="display:flex;gap:5px;"><button class="tbl-btn" onclick="alert('Edit role')">Edit</button><button class="tbl-btn danger" onclick="alert('Revoke access')">Revoke</button></td>
-            </tr>
-            <tr>
-              <td><div style="display:flex;align-items:center;gap:9px;"><div class="admin-avatar" style="background:#0f4a22;">PG</div><div><div class="admin-name">Pedro Garcia</div><div class="admin-email">p.garcia@slsu.edu.ph</div></div></div></td>
-              <td><span class="role-badge rb-admin">BAC Secretariat</span></td>
-              <td><span class="badge badge-green" style="font-size:.6rem;">Yes</span></td>
-              <td style="font-size:.76rem;color:var(--text-dim);">Mar 24, 2026 · 2:15 PM</td>
-              <td><span class="badge badge-green" style="font-size:.6rem;">Active</span></td>
-              <td style="display:flex;gap:5px;"><button class="tbl-btn" onclick="alert('Edit role')">Edit</button><button class="tbl-btn danger" onclick="alert('Revoke access')">Revoke</button></td>
-            </tr>
-            <tr>
-              <td><div style="display:flex;align-items:center;gap:9px;"><div class="admin-avatar" style="background:#6b3a2a;">MC</div><div><div class="admin-name">Maria Cruz</div><div class="admin-email">m.cruz@slsu.edu.ph</div></div></div></td>
-              <td><span class="role-badge rb-viewer">TWG Observer</span></td>
-              <td><span class="badge badge-gray" style="font-size:.6rem;">No</span></td>
-              <td style="font-size:.76rem;color:var(--text-dim);">Mar 20, 2026 · 11:00 AM</td>
-              <td><span class="badge badge-green" style="font-size:.6rem;">Active</span></td>
-              <td style="display:flex;gap:5px;"><button class="tbl-btn" onclick="alert('Edit role')">Edit</button><button class="tbl-btn danger" onclick="alert('Revoke access')">Revoke</button></td>
-            </tr>
-          </tbody>
+          <thead>
+            <tr><th>Officer</th><th>Role</th><th>Can Sign</th><th>Last Login</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody id="adminTableBody"></tbody>
         </table>
       </div>
     </div>
@@ -525,9 +536,7 @@
   }
   function step(id, delta) {
     const el = document.getElementById(id);
-    const min = parseInt(el.min) || 1;
-    const max = parseInt(el.max) || 999;
-    el.value = Math.min(max, Math.max(min, parseInt(el.value) + delta));
+    el.value = Math.min(parseInt(el.max)||999, Math.max(parseInt(el.min)||1, parseInt(el.value) + delta));
   }
   function saved() {
     const btn = event.target;
@@ -535,6 +544,169 @@
     btn.style.background = 'var(--green-nat)';
     setTimeout(() => { btn.textContent = 'Save Changes'; btn.style.background = ''; }, 2000);
   }
+
+  // ── Admin users data ──
+  const ADMINS = [
+    { id:'MZ', initials:'MZ', color:'#2b5797', name:'Maridel C. Zabella', email:'m.zabella@slsu.edu.ph', role:'super',  canSign:true,  lastLogin:'Mar 26, 2026 · 8:45 AM',  status:'active', isSelf:true  },
+    { id:'RS', initials:'RS', color:'#497a3a', name:'Ramon Santos',        email:'r.santos@slsu.edu.ph', role:'bac',    canSign:true,  lastLogin:'Mar 26, 2026 · 9:02 AM',  status:'active', isSelf:false },
+    { id:'AL', initials:'AL', color:'#8a6000', name:'Ana Lim',             email:'a.lim@slsu.edu.ph',    role:'bac',    canSign:true,  lastLogin:'Mar 25, 2026 · 4:30 PM',  status:'active', isSelf:false },
+    { id:'PG', initials:'PG', color:'#0f4a22', name:'Pedro Garcia',        email:'p.garcia@slsu.edu.ph', role:'sec',    canSign:true,  lastLogin:'Mar 24, 2026 · 2:15 PM',  status:'active', isSelf:false },
+    { id:'MC', initials:'MC', color:'#6b3a2a', name:'Maria Cruz',          email:'m.cruz@slsu.edu.ph',   role:'viewer', canSign:false, lastLogin:'Mar 20, 2026 · 11:00 AM', status:'active', isSelf:false },
+  ];
+  const ROLE_META = {
+    super:  { label:'Super Admin',     cls:'rb-super'  },
+    bac:    { label:'BAC Member',      cls:'rb-admin'  },
+    sec:    { label:'BAC Secretariat', cls:'rb-admin'  },
+    viewer: { label:'TWG Observer',    cls:'rb-viewer' },
+  };
+
+  function renderAdminTable() {
+    document.getElementById('adminTableBody').innerHTML = ADMINS.map(a => {
+      const rm = ROLE_META[a.role] || ROLE_META.viewer;
+      const canSignBadge = a.canSign ? `<span class="badge badge-green" style="font-size:.6rem;">Yes</span>` : `<span class="badge badge-gray" style="font-size:.6rem;">No</span>`;
+      const statusBadge  = a.status === 'active' ? `<span class="badge badge-green" style="font-size:.6rem;">Active</span>` : `<span class="badge badge-red" style="font-size:.6rem;">Revoked</span>`;
+      const actions = a.isSelf
+        ? `<button class="tbl-btn" disabled style="opacity:.35;">Edit</button>`
+        : a.status === 'active'
+          ? `<div style="display:flex;gap:5px;"><button class="tbl-btn" onclick="openEditModal('${a.id}')">Edit Role</button><button class="tbl-btn danger" onclick="revokeAdmin('${a.id}')">Revoke</button></div>`
+          : `<button class="tbl-btn" onclick="reinstateAdmin('${a.id}')">Reinstate</button>`;
+      return `<tr>
+        <td><div style="display:flex;align-items:center;gap:9px;"><div class="admin-avatar" style="background:${a.color};">${a.initials}</div><div><div class="admin-name">${a.name}</div><div class="admin-email">${a.email}</div></div></div></td>
+        <td><span class="role-badge ${rm.cls}">${rm.label}</span></td>
+        <td>${canSignBadge}</td>
+        <td style="font-size:.76rem;color:var(--text-dim);">${a.lastLogin}</td>
+        <td>${statusBadge}</td>
+        <td>${actions}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── Edit Role Modal ──
+  let editingId = null;
+  function openEditModal(id) {
+    const a = ADMINS.find(x => x.id === id);
+    editingId = id;
+    document.getElementById('editName').value  = a.name;
+    document.getElementById('editEmail').value = a.email;
+    document.getElementById('editRole').value  = a.role;
+    document.getElementById('editCanSign').checked = a.canSign;
+    document.getElementById('editModal').classList.add('open');
+  }
+  function closeEditModal() { document.getElementById('editModal').classList.remove('open'); }
+  function saveEditRole() {
+    const a = ADMINS.find(x => x.id === editingId);
+    a.role    = document.getElementById('editRole').value;
+    a.canSign = document.getElementById('editCanSign').checked;
+    closeEditModal(); renderAdminTable();
+  }
+
+  // ── Invite Admin Modal ──
+  function openInviteModal() { document.getElementById('inviteModal').classList.add('open'); }
+  function closeInviteModal() { document.getElementById('inviteModal').classList.remove('open'); }
+  function sendInvite() {
+    const name  = document.getElementById('inviteName').value.trim();
+    const email = document.getElementById('inviteEmail').value.trim();
+    const role  = document.getElementById('inviteRole').value;
+    if (!name || !email) { alert('Name and email are required.'); return; }
+    const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    const colors = ['#2b5797','#497a3a','#8a6000','#0f4a22','#6b3a2a','#4a2b7a'];
+    ADMINS.push({ id:'NEW-'+Date.now(), initials, color:colors[ADMINS.length%colors.length], name, email, role, canSign:document.getElementById('inviteCanSign').checked, lastLogin:'Never', status:'active', isSelf:false });
+    closeInviteModal();
+    document.getElementById('inviteName').value = '';
+    document.getElementById('inviteEmail').value = '';
+    renderAdminTable();
+    alert('Invitation sent to ' + email + '. They will receive login instructions by email.');
+  }
+
+  function revokeAdmin(id) {
+    const a = ADMINS.find(x => x.id === id);
+    if (!confirm('Revoke access for ' + a.name + '? They will no longer be able to log in.')) return;
+    a.status = 'revoked'; renderAdminTable();
+  }
+  function reinstateAdmin(id) { ADMINS.find(x => x.id === id).status = 'active'; renderAdminTable(); }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeEditModal(); closeInviteModal(); } });
+  renderAdminTable();
 </script>
+
+<!-- EDIT ROLE MODAL -->
+<div class="s-modal-overlay" id="editModal">
+  <div class="s-modal">
+    <div class="s-modal-header">
+      <div class="s-modal-title">Edit Role &amp; Permissions</div>
+      <button class="s-modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="s-modal-body">
+      <div class="s-field"><label class="s-label">Name</label><input class="s-input" id="editName" type="text" readonly/></div>
+      <div class="s-field"><label class="s-label">Email</label><input class="s-input" id="editEmail" type="email" readonly/></div>
+      <div class="s-field">
+        <label class="s-label">Role <span class="req">*</span></label>
+        <select class="s-select" id="editRole">
+          <option value="bac">BAC Member</option>
+          <option value="sec">BAC Secretariat</option>
+          <option value="viewer">TWG Observer</option>
+          <option value="super">Super Admin</option>
+        </select>
+        <span class="s-hint">Super Admin has full system access including Settings. Assign with caution.</span>
+      </div>
+      <div class="s-field">
+        <label class="s-label">Permissions</label>
+        <div class="perm-grid">
+          <label class="perm-item"><input type="checkbox" id="editCanSign"/><label for="editCanSign">Can Sign Envelopes</label></label>
+          <label class="perm-item"><input type="checkbox" checked disabled/><label>View Bid Submissions</label></label>
+          <label class="perm-item"><input type="checkbox" checked disabled/><label>View Audit Trail</label></label>
+          <label class="perm-item"><input type="checkbox" checked disabled/><label>Manage Announcements</label></label>
+        </div>
+      </div>
+    </div>
+    <div class="s-modal-footer">
+      <button class="s-btn-cancel" onclick="closeEditModal()">Cancel</button>
+      <button class="s-btn-save" onclick="saveEditRole()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVITE ADMIN MODAL -->
+<div class="s-modal-overlay" id="inviteModal">
+  <div class="s-modal">
+    <div class="s-modal-header">
+      <div class="s-modal-title">Invite Admin / Officer</div>
+      <button class="s-modal-close" onclick="closeInviteModal()">✕</button>
+    </div>
+    <div class="s-modal-body">
+      <div class="s-field"><label class="s-label">Full Name <span class="req">*</span></label><input class="s-input" id="inviteName" type="text" placeholder="e.g. Juan Dela Cruz"/></div>
+      <div class="s-field">
+        <label class="s-label">Email Address <span class="req">*</span></label>
+        <input class="s-input" id="inviteEmail" type="email" placeholder="officer@slsu.edu.ph"/>
+        <span class="s-hint">An invitation email with login instructions will be sent to this address.</span>
+      </div>
+      <div class="s-field">
+        <label class="s-label">Role <span class="req">*</span></label>
+        <select class="s-select" id="inviteRole">
+          <option value="bac">BAC Member</option>
+          <option value="sec">BAC Secretariat</option>
+          <option value="viewer">TWG Observer</option>
+          <option value="super">Super Admin</option>
+        </select>
+      </div>
+      <div class="s-field">
+        <label class="s-label">Permissions</label>
+        <div class="perm-grid">
+          <label class="perm-item"><input type="checkbox" id="inviteCanSign"/><label for="inviteCanSign">Can Sign Envelopes</label></label>
+          <label class="perm-item"><input type="checkbox" checked disabled/><label>View Bid Submissions</label></label>
+          <label class="perm-item"><input type="checkbox" checked disabled/><label>View Audit Trail</label></label>
+          <label class="perm-item"><input type="checkbox" checked disabled/><label>Manage Announcements</label></label>
+        </div>
+      </div>
+    </div>
+    <div class="s-modal-footer">
+      <button class="s-btn-cancel" onclick="closeInviteModal()">Cancel</button>
+      <button class="s-btn-invite" onclick="sendInvite()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Send Invitation
+      </button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

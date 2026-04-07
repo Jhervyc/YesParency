@@ -10,15 +10,59 @@ document.querySelectorAll('.nav-item').forEach(item => {
   });
 });
 
-// Mobile sidebar toggle — close on outside click
+// Sidebar backdrop — inject once
+const backdrop = document.createElement('div');
+backdrop.className = 'sidebar-backdrop';
+backdrop.id = 'sidebarBackdrop';
+document.body.appendChild(backdrop);
+
+function openSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.classList.add('open');
+  backdrop.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.classList.remove('open');
+  backdrop.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Backdrop click closes sidebar
+backdrop.addEventListener('click', closeSidebar);
+
+// Sidebar toggle button — replace inline onclick with proper handler
+document.addEventListener('DOMContentLoaded', () => {
+  const toggleBtn = document.querySelector('.sidebar-toggle');
+  if (toggleBtn) {
+    // Remove inline onclick
+    toggleBtn.removeAttribute('onclick');
+    toggleBtn.addEventListener('click', () => {
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar && sidebar.classList.contains('open')) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    });
+  }
+});
+
+// Close sidebar on nav item click (mobile)
 document.addEventListener('click', e => {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
   if (
     sidebar.classList.contains('open') &&
-    !sidebar.contains(e.target) &&
-    !e.target.closest('.sidebar-toggle')
+    e.target.closest('.nav-item') &&
+    window.innerWidth <= 768
   ) {
-    sidebar.classList.remove('open');
+    closeSidebar();
   }
+});
+
+// Close on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSidebar();
 });
