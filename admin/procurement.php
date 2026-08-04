@@ -59,122 +59,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Procurements</title>
-    <style>
-        .status-tabs {
-            margin: 15px 0;
-            display: flex;
-            gap: 10px;
-        }
-        .tab-btn {
-            padding: 8px 16px;
-            text-decoration: none;
-            color: #333;
-            border: 1px solid #ccc;
-            background-color: #f4f4f4;
-            border-radius: 4px;
-            text-transform: capitalize;
-        }
-        .tab-btn.active {
-            background-color: #007bff;
-            color: #fff;
-            border-color: #007bff;
-        }
-        .procurement-card {
-            border: 1px solid #e0e0e0;
-            padding: 15px;
-            margin-bottom: 12px;
-            border-radius: 6px;
-        }
-        .action-btns {
-            margin-top: 10px;
-            display: flex;
-            gap: 8px;
-        }
-        .status-badge {
-            text-transform: uppercase;
-            font-weight: bold;
-            font-size: 12px;
-            padding: 2px 6px;
-            border-radius: 3px;
-            background: #e9ecef;
-        }
-    </style>
+    <title>Procurements | YesParency</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../dashboard.css">
 </head>
-<body>
-    Hello <?php echo htmlspecialchars($_SESSION["username"]) . "<br>"; ?> 
-    <?php include("utils/side-nav.html"); ?>
+<body class="dash-body">
 
-    <div>
-        <h2>Procurement</h2>
-        <a href="create_procurement.php">Add Procurement</a>
+<div class="dash-overlay" id="dashOverlay" onclick="closeSidebar()"></div>
+
+<!-- ========================= -->
+<!-- SIDEBAR                   -->
+<!-- ========================= -->
+<aside class="sidebar" id="sidebar">
+    <a class="sidebar-brand" href="../index.php">
+        <img src="../images/procure.jpg" alt="YesParency">
+        <div class="sidebar-brand-text">
+            <div class="name">YesParency</div>
+            <div class="sub">Admin Panel</div>
+        </div>
+    </a>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Overview</div>
+        <a href="dashboard.php" class="nav-item">
+            <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+        </a>
+        <a href="bid_submissions.php" class="nav-item">
+            <i class="bi bi-broadcast"></i><span>Bid Opening</span>
+        </a>
+
+        <div class="nav-section-label">Procurement</div>
+        <a href="procurement.php" class="nav-item active">
+            <i class="bi bi-folder2-open"></i><span>Procurements</span>
+        </a>
+        <a href="create_procurement.php" class="nav-item">
+            <i class="bi bi-plus-circle"></i><span>Create Procurement</span>
+        </a>
+        <a href="bid_submissions.php" class="nav-item">
+            <i class="bi bi-inbox"></i><span>Bid Submissions</span>
+        </a>
+
+        <div class="nav-section-label">Management</div>
+        <a href="account-management.php" class="nav-item">
+            <i class="bi bi-people"></i><span>Bidder Accounts</span>
+        </a>
+        <a href="dashboard.php" class="nav-item">
+            <i class="bi bi-megaphone"></i><span>Announcements</span>
+        </a>
+        <a href="dashboard.php" class="nav-item">
+            <i class="bi bi-journal-text"></i><span>Audit Trail</span>
+        </a>
+
+        <div class="nav-section-label">System</div>
+        <a href="dashboard.php" class="nav-item">
+            <i class="bi bi-gear"></i><span>Settings</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-user">
+            <div class="user-avatar"><i class="bi bi-person"></i></div>
+            <div class="user-info">
+                <div class="uname"><?= htmlspecialchars($_SESSION['username']) ?></div>
+                <div class="urole">Administrator</div>
+            </div>
+        </div>
+        <a href="../logout.php" class="btn-logout">
+            <i class="bi bi-box-arrow-left"></i><span>Logout</span>
+        </a>
     </div>
+</aside>
 
-    <!-- Status Tabs (5 Buttons matching database ENUMs) -->
-    <div class="status-tabs">
-        <a href="procurement.php?status=all" class="tab-btn <?= $status_filter === 'all' ? 'active' : '' ?>">All</a>
-        <a href="procurement.php?status=draft" class="tab-btn <?= $status_filter === 'draft' ? 'active' : '' ?>">Draft</a>
-        <a href="procurement.php?status=open" class="tab-btn <?= $status_filter === 'open' ? 'active' : '' ?>">Open</a>
-        <a href="procurement.php?status=closed" class="tab-btn <?= $status_filter === 'closed' ? 'active' : '' ?>">Closed</a>
-        <a href="procurement.php?status=awarded" class="tab-btn <?= $status_filter === 'awarded' ? 'active' : '' ?>">Awarded</a>
+<!-- ========================= -->
+<!-- TOPBAR                    -->
+<!-- ========================= -->
+<div class="topbar" id="topbar">
+    <div class="topbar-left">
+        <button class="toggle-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+            <i class="bi bi-list"></i>
+        </button>
+        <span class="topbar-title">Procurements</span>
     </div>
+    <div class="topbar-right">
+        <div class="topbar-badge">
+            <i class="bi bi-bell"></i>
+            <span class="badge-dot"></span>
+        </div>
+        <div class="topbar-avatar"><i class="bi bi-person"></i></div>
+    </div>
+</div>
 
-    <div>
-        <h3>Available Procurements</h3>
+<!-- ========================= -->
+<!-- MAIN CONTENT              -->
+<!-- ========================= -->
+<main class="dash-main" id="dashMain">
+    <div class="dash-content">
 
-        <?php if (mysqli_num_rows($result) > 0): ?>
-            <?php while ($row = mysqli_fetch_assoc($result)): ?>
-                <?php $current_status = strtolower($row['status']); ?>
-                <div class="procurement-card">
-                    <div>
-                        <strong>Title:</strong> <?= htmlspecialchars($row['title']) ?><br>
-                        <strong>PhilGEPS Ref:</strong> <?= htmlspecialchars($row['philgeps_ref_no'] ?? 'N/A') ?><br>
-                        <strong>ABC:</strong> ₱<?= number_format($row['abc'], 2) ?><br>
-                        <strong>Mode:</strong> <?= htmlspecialchars($row['procurement_mode'] ?? 'N/A') ?><br>
-                        <strong>Status:</strong> <span class="status-badge"><?= htmlspecialchars($row['status']) ?></span>
+        <!-- Page header -->
+        <div class="page-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div>
+                <h2>Procurements</h2>
+                <p>Manage all procurement records and their status.</p>
+            </div>
+            <a href="create_procurement.php" class="btn-register" style="text-decoration:none;">
+                <i class="bi bi-plus-circle"></i> New Procurement
+            </a>
+        </div>
+
+        <!-- Status filter tabs -->
+        <div class="proc-filter-tabs">
+            <a href="procurement.php?status=all"     class="proc-tab <?= $status_filter === 'all'     ? 'active' : '' ?>"><i class="bi bi-grid"></i> All</a>
+            <a href="procurement.php?status=draft"   class="proc-tab <?= $status_filter === 'draft'   ? 'active' : '' ?>"><i class="bi bi-pencil-square"></i> Draft</a>
+            <a href="procurement.php?status=open"    class="proc-tab <?= $status_filter === 'open'    ? 'active' : '' ?>"><i class="bi bi-unlock"></i> Open</a>
+            <a href="procurement.php?status=closed"  class="proc-tab <?= $status_filter === 'closed'  ? 'active' : '' ?>"><i class="bi bi-lock"></i> Closed</a>
+            <a href="procurement.php?status=awarded" class="proc-tab <?= $status_filter === 'awarded' ? 'active' : '' ?>"><i class="bi bi-award"></i> Awarded</a>
+        </div>
+
+        <!-- Procurement list -->
+        <div class="dash-panel" style="margin-top:0;">
+
+            <?php if (mysqli_num_rows($result) > 0): ?>
+
+                <div class="proc-table-list">
+                <?php while ($row = mysqli_fetch_assoc($result)): ?>
+                    <?php $current_status = strtolower($row['status']); ?>
+
+                    <div class="proc-row">
+
+                        <div class="proc-row-status-bar <?= $current_status ?>"></div>
+
+                        <div class="proc-row-body">
+                            <div class="proc-row-main">
+                                <div class="proc-row-title">
+                                    <?= htmlspecialchars($row['title']) ?>
+                                </div>
+                                <div class="proc-row-meta">
+                                    <span><i class="bi bi-hash"></i> <?= htmlspecialchars($row['philgeps_ref_no'] ?? 'N/A') ?></span>
+                                    <span><i class="bi bi-cash"></i> ₱<?= number_format($row['abc'], 2) ?></span>
+                                    <span><i class="bi bi-briefcase"></i> <?= htmlspecialchars($row['procurement_mode'] ?? 'N/A') ?></span>
+                                </div>
+                            </div>
+
+                            <div class="proc-row-actions">
+                                <span class="proc-status-pill <?= $current_status ?>">
+                                    <?= htmlspecialchars($row['status']) ?>
+                                </span>
+
+                                <?php if ($current_status === 'draft'): ?>
+                                    <a href="review_procurement.php?id=<?= $row['id'] ?>" class="proc-action-btn review">
+                                        <i class="bi bi-eye"></i> Review
+                                    </a>
+                                <?php endif; ?>
+
+                                <?php if (in_array($current_status, ['draft'])): ?>
+                                    <a href="manage_lots.php?id=<?= $row['id'] ?>" class="proc-action-btn manage">
+                                        <i class="bi bi-sliders"></i> Manage
+                                    </a>
+                                <?php endif; ?>
+
+                                <form method="POST" action="procurement.php?status=<?= urlencode($status_filter) ?>" style="display:inline;" onsubmit="return confirm('Delete this procurement and all associated files? This cannot be undone.');">
+                                    <input type="hidden" name="procurement_id" value="<?= $row['id'] ?>">
+                                    <button type="submit" name="delete_procurement" class="proc-action-btn delete">
+                                        <i class="bi bi-trash3"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
                     </div>
-                    <div class="action-btns">
-                        <!-- Review & Publish (For Drafts) -->
-                        <?php if ($current_status === 'draft'): ?>
-                            <a href="review_procurement.php?id=<?= $row['id']; ?>">
-                                <button type="button">Review & Publish</button>
-                            </a>
-                        <?php endif; ?>
 
-                        <!-- Manage Lots / Details -->
-                        <?php if (in_array($current_status, ['draft', 'open'])): ?>
-                            <a href="manage_lots.php?id=<?= $row['id'] ?>">
-                                <button type="button">Manage Procurement</button>
-                            </a>
-                        <?php endif; ?>
-
-                        <form method="POST" action="procurement.php?status=<?= urlencode($status_filter) ?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this procurement?');">
-                            <input type="hidden" name="procurement_id" value="<?= $row['id'] ?>">
-                            <button type="submit" name="delete_procurement">Delete</button>
-                        </form>
-                    </div>
+                <?php endwhile; ?>
                 </div>
-            <?php endwhile; ?>
-        <?php else: ?>
-            <p>No procurements found for status "<?= htmlspecialchars($status_filter) ?>".</p>
-        <?php endif; ?>
 
-        <?php mysqli_stmt_close($stmt); ?>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="bi bi-folder2-open"></i>
+                    <p>No procurements found for status "<?= htmlspecialchars($status_filter) ?>".</p>
+                </div>
+            <?php endif; ?>
+
+            <?php mysqli_stmt_close($stmt); ?>
+
+        </div>
+
     </div>
+</main>
 
-    <!-- Alert Dialogs -->
-    <?php if (isset($_SESSION['alert_error'])): ?>
-        <script>
-            alert(<?= json_encode($_SESSION['alert_error']); ?>);
-        </script>
-        <?php unset($_SESSION['alert_error']); ?>
-    <?php endif; ?>
+<!-- Session alerts -->
+<?php if (isset($_SESSION['alert_error'])): ?>
+    <div class="toast-alert error" id="toastAlert">
+        <i class="bi bi-x-circle-fill"></i>
+        <?= htmlspecialchars($_SESSION['alert_error']) ?>
+    </div>
+    <?php unset($_SESSION['alert_error']); ?>
+<?php endif; ?>
 
-    <?php if (isset($_SESSION['alert_success'])): ?>
-        <script>
-            alert(<?= json_encode($_SESSION['alert_success']); ?>);
-        </script>
-        <?php unset($_SESSION['alert_success']); ?>
-    <?php endif; ?>
+<?php if (isset($_SESSION['alert_success'])): ?>
+    <div class="toast-alert success" id="toastAlert">
+        <i class="bi bi-check-circle-fill"></i>
+        <?= htmlspecialchars($_SESSION['alert_success']) ?>
+    </div>
+    <?php unset($_SESSION['alert_success']); ?>
+<?php endif; ?>
+
+<script>
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('dashOverlay');
+
+    function toggleSidebar() {
+        if (window.innerWidth <= 768) {
+            sidebar.classList.toggle('mobile-open');
+            overlay.classList.toggle('active');
+        } else {
+            document.body.classList.toggle('sidebar-collapsed');
+        }
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('active');
+    }
+
+    // Auto-dismiss toast
+    const toast = document.getElementById('toastAlert');
+    if (toast) {
+        setTimeout(() => toast.classList.add('hide'), 4000);
+    }
+</script>
+
 </body>
 </html>
