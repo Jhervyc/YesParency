@@ -1,51 +1,58 @@
 <?php 
+    session_start();
+
     include ("config/db_connect.php");
 
-    $error   = "";
-    $success = "";
+    $error   = $_SESSION['error'] ?? "";
+    $success = $_SESSION['success'] ?? "";
+
+    unset($_SESSION['error'], $_SESSION['success']);
 
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        $firstname       = trim($_POST['firstname']);
-        $lastname        = trim($_POST['lastname']);
-        $email           = trim($_POST['email']);
-        $username        = trim($_POST['username']);
-        $password        = $_POST['password'];
-        $confirmPassword = $_POST['confirm_password'];
-        $status          = "active";
+        $firstname       = trim($_POST['firstname'] ?? '');
+        $lastname        = trim($_POST['lastname'] ?? '');
+        $email           = trim($_POST['email'] ?? '');
+        $username        = trim($_POST['username'] ?? '');
+        $password        = $_POST['password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
 
-        if ($password !== $confirmPassword) {
-            $error = "Passwords do not match.";
-        } else {
-            /* Check existing username/email */
-            $check = $conn->prepare(
-                "SELECT user_id FROM users
-                WHERE username = ? OR email = ?"
-            );
+        // 1. Backend Validation for Empty Fields
+        if (empty($firstname) || empty($lastname) || empty($email) || empty($username) || empty($password) || empty($confirmPassword)) {
+            $_SESSION['error'] = "All fields are required.";
+        } 
+        // 2. Validate Email Format
+        elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = "Please enter a valid email address.";
+        }
+        // 3. Match Passwords
+        elseif ($password !== $confirmPassword) {
+            $_SESSION['error'] = "Passwords do not match.";
+        } 
+        // 4. Check for existing username or email
+        else {
+            $check = $conn->prepare("SELECT user_id FROM users WHERE username = ? OR email = ?");
             $check->bind_param("ss", $username, $email);
             $check->execute();
             $result = $check->get_result();
 
             if ($result->num_rows > 0) {
-                $error = "Username or Email already exists.";
+                $_SESSION['error'] = "Username or Email already exists.";
             } else {
-                /* Hash password */
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-                /* Insert user */
-                $stmt = $conn->prepare(
-                    "INSERT INTO users
-                    (firstname, lastname, email, username, password)
-                    VALUES (?, ?, ?, ?, ?)"
-                );
+                $stmt = $conn->prepare("INSERT INTO users (firstname, lastname, email, username, password) VALUES (?, ?, ?, ?, ?)");
                 $stmt->bind_param("sssss", $firstname, $lastname, $email, $username, $hashedPassword);
 
                 if ($stmt->execute()) {
-                    $success = "Registration successful! You can now log in.";
+                    $_SESSION['success'] = "Registration successful! You can now log in.";
                 } else {
-                    $error = "Error: " . $stmt->error;
+                    $_SESSION['error'] = "Error: " . $stmt->error;
                 }
             }
         }
+        
+        header("Location: register.php");
+        exit();
     }
 ?>
 <!DOCTYPE html>
@@ -155,7 +162,7 @@
                 </div>
             <?php endif; ?>
 
-            <form action="<?= htmlspecialchars($_SERVER["PHP_SELF"]) ?>" method="POST" novalidate>
+            <form action="<?= htmlspecialchars($_SERVER["PHP_SELF"]) ?>" method="POST">
 
                 <!-- Row 1: Name -->
                 <div class="form-row">

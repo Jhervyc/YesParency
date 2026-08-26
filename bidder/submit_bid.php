@@ -61,11 +61,17 @@
             $errors[] = "Please upload a valid Bid Receipt / Proof of Payment.";
         }
 
+        // --- 1. UPDATED VALIDATION FOR MULTIPLE FILES PER LOT ---
         foreach ($selected_lots as $lot_id) {
-            if (empty($_FILES['eligibility_docs']['name'][$lot_id])) {
+            // Check Eligibility Docs (At least one file required per selected lot)
+            $elig_names = array_filter($_FILES['eligibility_docs']['name'][$lot_id] ?? []);
+            if (empty($elig_names)) {
                 $errors[] = "Missing Eligibility & Technical document for Lot #{$lot_id}.";
             }
-            if (empty($_FILES['financial_docs']['name'][$lot_id])) {
+
+            // Check Financial Docs (At least one file required per selected lot)
+            $fin_names = array_filter($_FILES['financial_docs']['name'][$lot_id] ?? []);
+            if (empty($fin_names)) {
                 $errors[] = "Missing Financial Proposal document for Lot #{$lot_id}.";
             }
         }
@@ -95,6 +101,7 @@
 
                 $doc_stmt = $conn->prepare("INSERT INTO bid_documents (bid_id, document_type, document_name, file_path) VALUES (?, ?, ?, ?)");
                 
+                // --- 2. PROCESS RECEIPT FILE ---
                 $receipt_file = $_FILES['bid_receipt'];
                 $receipt_ext = strtolower(pathinfo($receipt_file['name'], PATHINFO_EXTENSION));
                 $receipt_target = $upload_dir . "receipt_bid_" . $bid_id . "_" . time() . "." . $receipt_ext;
@@ -109,6 +116,7 @@
                     throw new Exception("Failed to save Bid Receipt.");
                 }
 
+                // --- 3. UPDATED FILE PROCESSING FOR MULTIPLE LOT FILES ---
                 foreach ($selected_lots as $lot_id) {
                     $types = [
                         'eligibility' => $_FILES['eligibility_docs'],
@@ -116,22 +124,32 @@
                     ];
 
                     foreach ($types as $doc_type => $file_array) {
-                        if (isset($file_array['error'][$lot_id]) && $file_array['error'][$lot_id] === UPLOAD_ERR_OK) {
-                            $orig_filename = basename($file_array['name'][$lot_id]);
-                            $file_tmp = $file_array['tmp_name'][$lot_id];
-                            $target = $upload_dir . bin2hex(random_bytes(16)) . ".enc";
-                            $result = encryptFile($file_tmp, $target, $doc_type);
+                        if (isset($file_array['name'][$lot_id]) && is_array($file_array['name'][$lot_id])) {
+                            
+                            // Loop through each uploaded file for this lot
+                            foreach ($file_array['name'][$lot_id] as $index => $raw_filename) {
+                                if (empty($raw_filename)) continue;
 
-                            if ($result['success']) {
-                                $uploaded_file_paths[] = $target;
-                                $display_name = ucfirst($doc_type) . " ({$orig_filename})";
-                                $doc_stmt->bind_param("isss", $bid_id, $doc_type, $display_name, $target);
-                                $doc_stmt->execute();
-                            } else {
-                                throw new Exception($result['message']);
+                                $err_code = $file_array['error'][$lot_id][$index];
+                                if ($err_code === UPLOAD_ERR_OK) {
+                                    $orig_filename = basename($raw_filename);
+                                    $file_tmp = $file_array['tmp_name'][$lot_id][$index];
+                                    $target = $upload_dir . bin2hex(random_bytes(16)) . ".enc";
+                                    
+                                    $result = encryptFile($file_tmp, $target, $doc_type);
+
+                                    if ($result['success']) {
+                                        $uploaded_file_paths[] = $target;
+                                        $display_name = ucfirst($doc_type) . " ({$orig_filename})";
+                                        $doc_stmt->bind_param("isss", $bid_id, $doc_type, $display_name, $target);
+                                        $doc_stmt->execute();
+                                    } else {
+                                        throw new Exception($result['message']);
+                                    }
+                                } else {
+                                    throw new Exception("Error uploading a {$doc_type} document for Lot #{$lot_id}.");
+                                }
                             }
-                        } else {
-                            throw new Exception("Error uploading {$doc_type} document for Lot #{$lot_id}.");
                         }
                     }
                 }
@@ -307,14 +325,21 @@
                             <span>Required — must match the procurement fee</span>
                         </div>
                     </div>
-                    <label class="file-upload-label" for="bid_receipt">
-                        <i class="bi bi-upload"></i> Choose File
-                        <input type="file" name="bid_receipt" id="bid_receipt"
-                               accept=".pdf,.jpg,.jpeg,.png" required
-                               onchange="showFileName(this, 'fn-receipt')">
+                    <!-- Hidden real input -->
+                    <input type="file" name="bid_receipt" id="bid_receipt"
+                           accept=".pdf,.jpg,.jpeg,.png" required
+                           style="display:none;">
+                    <!-- Separate picker so we can reset it -->
+                    <input type="file" id="receipt_pick"
+                           accept=".pdf,.jpg,.jpeg,.png"
+                           style="display:none;"
+                           onchange="stackReceipt(this)">
+                    <label class="file-upload-label"
+                           onclick="event.preventDefault(); document.getElementById('receipt_pick').click();">
+                        <i class="bi bi-plus-circle"></i> Add File
                     </label>
                 </div>
-                <span class="file-name-display" id="fn-receipt"></span>
+                <div class="file-stack-list" id="fn-receipt"></div>
             </div>
 
             <!-- ========================= -->
@@ -345,6 +370,7 @@
 
                             <div class="reg-grid" style="margin-top:14px;">
 
+                                <!-- Eligibility (stacking) -->
                                 <div class="form-group">
                                     <label>Eligibility &amp; Technical Documents</label>
                                     <div class="file-upload-card" style="flex-direction:column; align-items:flex-start; gap:10px;">
@@ -352,21 +378,31 @@
                                             <i class="bi bi-file-earmark-check" style="font-size:18px;"></i>
                                             <div>
                                                 <strong>Eligibility Documents</strong>
-                                                <span>PDF, DOC, DOCX, ZIP</span>
+                                                <span>PDF, DOC, DOCX, ZIP — add one at a time, they stack</span>
                                             </div>
                                         </div>
-                                        <label class="file-upload-label" for="elig_<?= $lot['id'] ?>">
-                                            <i class="bi bi-upload"></i> Choose File
-                                            <input type="file"
-                                                   name="eligibility_docs[<?= $lot['id'] ?>]"
-                                                   id="elig_<?= $lot['id'] ?>"
-                                                   accept=".pdf,.doc,.docx,.zip"
-                                                   onchange="showFileName(this, 'fn-elig-<?= $lot['id'] ?>')">
+                                        <!-- Hidden real input submitted to backend -->
+                                        <input type="file"
+                                               name="eligibility_docs[<?= $lot['id'] ?>][]"
+                                               id="elig_<?= $lot['id'] ?>"
+                                               accept=".pdf,.doc,.docx,.zip"
+                                               multiple
+                                               style="display:none;">
+                                        <!-- Picker trigger (separate, resets each time) -->
+                                        <input type="file"
+                                               id="elig_pick_<?= $lot['id'] ?>"
+                                               accept=".pdf,.doc,.docx,.zip"
+                                               style="display:none;"
+                                               onchange="stackFiles(this, 'elig_<?= $lot['id'] ?>', 'fn-elig-<?= $lot['id'] ?>')">
+                                        <label class="file-upload-label"
+                                               onclick="event.preventDefault(); document.getElementById('elig_pick_<?= $lot['id'] ?>').click();">
+                                            <i class="bi bi-plus-circle"></i> Add File
                                         </label>
                                     </div>
-                                    <span class="file-name-display" id="fn-elig-<?= $lot['id'] ?>"></span>
+                                    <div class="file-stack-list" id="fn-elig-<?= $lot['id'] ?>"></div>
                                 </div>
 
+                                <!-- Financial (stacking) -->
                                 <div class="form-group">
                                     <label>Financial Proposal Form</label>
                                     <div class="file-upload-card" style="flex-direction:column; align-items:flex-start; gap:10px;">
@@ -374,19 +410,26 @@
                                             <i class="bi bi-file-earmark-bar-graph" style="font-size:18px;"></i>
                                             <div>
                                                 <strong>Financial Documents</strong>
-                                                <span>PDF, DOC, DOCX, ZIP</span>
+                                                <span>PDF, DOC, DOCX, ZIP — add one at a time, they stack</span>
                                             </div>
                                         </div>
-                                        <label class="file-upload-label" for="fin_<?= $lot['id'] ?>">
-                                            <i class="bi bi-upload"></i> Choose File
-                                            <input type="file"
-                                                   name="financial_docs[<?= $lot['id'] ?>]"
-                                                   id="fin_<?= $lot['id'] ?>"
-                                                   accept=".pdf,.doc,.docx,.zip"
-                                                   onchange="showFileName(this, 'fn-fin-<?= $lot['id'] ?>')">
+                                        <input type="file"
+                                               name="financial_docs[<?= $lot['id'] ?>][]"
+                                               id="fin_<?= $lot['id'] ?>"
+                                               accept=".pdf,.doc,.docx,.zip"
+                                               multiple
+                                               style="display:none;">
+                                        <input type="file"
+                                               id="fin_pick_<?= $lot['id'] ?>"
+                                               accept=".pdf,.doc,.docx,.zip"
+                                               style="display:none;"
+                                               onchange="stackFiles(this, 'fin_<?= $lot['id'] ?>', 'fn-fin-<?= $lot['id'] ?>')">
+                                        <label class="file-upload-label"
+                                               onclick="event.preventDefault(); document.getElementById('fin_pick_<?= $lot['id'] ?>').click();">
+                                            <i class="bi bi-plus-circle"></i> Add File
                                         </label>
                                     </div>
-                                    <span class="file-name-display" id="fn-fin-<?= $lot['id'] ?>"></span>
+                                    <div class="file-stack-list" id="fn-fin-<?= $lot['id'] ?>"></div>
                                 </div>
 
                             </div>
@@ -429,54 +472,106 @@
     }
 
     function toggleLotUploads(checkbox) {
-        const lotId   = checkbox.getAttribute('data-lot-id');
-        const section = document.getElementById('lot-section-' + lotId);
-        const card    = document.getElementById('card-' + lotId);
-        const eligInput = document.getElementById('elig_' + lotId);
-        const finInput  = document.getElementById('fin_' + lotId);
+        const lotId     = checkbox.getAttribute('data-lot-id');
+        const section   = document.getElementById('lot-section-' + lotId);
+        const card      = document.getElementById('card-' + lotId);
         const noMsg     = document.getElementById('noLotsMsg');
 
         if (checkbox.checked) {
             section.classList.remove('hidden');
             card.classList.add('selected');
-            eligInput.required = true;
-            finInput.required  = true;
         } else {
             section.classList.add('hidden');
             card.classList.remove('selected');
-            eligInput.required = false;
-            finInput.required  = false;
-            eligInput.value    = '';
-            finInput.value     = '';
+            // Clear the real inputs and lists for this lot
+            ['elig_' + lotId, 'fin_' + lotId].forEach(id => {
+                const inp = document.getElementById(id);
+                if (inp) { const dt = new DataTransfer(); inp.files = dt.files; }
+                const list = document.getElementById('fn-' + id.replace('_', '-'));
+                if (list) list.innerHTML = '';
+            });
         }
 
-        // Hide hint if any lot is selected
         const anyChecked = document.querySelectorAll('.lot-checkbox:checked').length > 0;
         noMsg.style.display = anyChecked ? 'none' : 'flex';
     }
 
-    // Filename display
-    function showFileName(input, targetId) {
-        const el = document.getElementById(targetId);
-        if (!el) return;
-        if (input.files[0]) {
-            el.innerHTML =
-                '<i class="bi bi-paperclip"></i> ' + input.files[0].name +
-                '<button type="button" class="file-remove-btn" onclick="removeFile(\'' + input.name.replace(/[\[\]]/g,'\\\\$&') + '\',\'' + targetId + '\')">' +
-                '<i class="bi bi-x-circle-fill"></i></button>';
-        } else {
-            el.innerHTML = '';
-        }
+    // Receipt — single file with stack UI (same as lot docs)
+    function stackReceipt(picker) {
+        const real = document.getElementById('bid_receipt');
+        const dt   = new DataTransfer();
+
+        // Receipt only keeps the latest file (backend expects single file)
+        if (picker.files[0]) dt.items.add(picker.files[0]);
+        real.files = dt.files;
+        picker.value = '';
+        renderFileStack('bid_receipt', 'fn-receipt');
     }
 
-    function removeFile(inputName, targetId) {
-        const label    = document.querySelector('input[name="' + inputName + '"]').closest('label');
-        const oldInput = label.querySelector('input[type="file"]');
-        const newInput = oldInput.cloneNode(true);
-        newInput.value = '';
-        oldInput.replaceWith(newInput);
-        const el = document.getElementById(targetId);
-        if (el) el.innerHTML = '';
+    function clearReceipt() {
+        const inp = document.getElementById('bid_receipt');
+        inp.files = new DataTransfer().files;
+        document.getElementById('fn-receipt').innerHTML = '';
+    }
+
+    // Stack files into a hidden real input using DataTransfer
+    function stackFiles(picker, realInputId, listId) {
+        const realInput = document.getElementById(realInputId);
+        const dt        = new DataTransfer();
+
+        // Keep existing files
+        Array.from(realInput.files).forEach(f => dt.items.add(f));
+
+        // Add newly picked files (skip duplicates by name)
+        const existingNames = new Set(Array.from(realInput.files).map(f => f.name));
+        Array.from(picker.files).forEach(f => {
+            if (!existingNames.has(f.name)) dt.items.add(f);
+        });
+
+        realInput.files = dt.files;
+
+        // Reset the picker so the same file can be added again later if needed
+        picker.value = '';
+
+        renderFileStack(realInputId, listId);
+    }
+
+    // Render the stacked file list with remove buttons
+    function renderFileStack(realInputId, listId) {
+        const realInput = document.getElementById(realInputId);
+        const el        = document.getElementById(listId);
+        if (!el) return;
+
+        if (!realInput.files || realInput.files.length === 0) {
+            el.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+        Array.from(realInput.files).forEach((file, idx) => {
+            html +=
+                '<div class="file-stack-item">' +
+                    '<i class="bi bi-file-earmark"></i>' +
+                    '<span>' + file.name + '</span>' +
+                    '<small>' + (file.size / 1024).toFixed(1) + ' KB</small>' +
+                    '<button type="button" class="file-remove-btn" ' +
+                            'onclick="removeStackedFile(\'' + realInputId + '\', ' + idx + ', \'' + listId + '\')">' +
+                        '<i class="bi bi-x-circle-fill"></i>' +
+                    '</button>' +
+                '</div>';
+        });
+        el.innerHTML = html;
+    }
+
+    // Remove a specific file from the stack
+    function removeStackedFile(realInputId, indexToRemove, listId) {
+        const realInput = document.getElementById(realInputId);
+        const dt        = new DataTransfer();
+        Array.from(realInput.files).forEach((f, i) => {
+            if (i !== indexToRemove) dt.items.add(f);
+        });
+        realInput.files = dt.files;
+        renderFileStack(realInputId, listId);
     }
 </script>
 

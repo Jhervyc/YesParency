@@ -145,4 +145,20 @@ CREATE TABLE awards (
     REFERENCES users(id)
 );
 
+-- =================== System table =======================
+CREATE TABLE IF NOT EXISTS system_settings (
+    setting_key VARCHAR(100) PRIMARY KEY,
+    setting_value TEXT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Seed default settings matching your UI
+INSERT INTO system_settings (setting_key, setting_value) VALUES
+    ('org_name', 'YesParency'),
+    ('short_name', 'YSP'),
+    ('official_website', 'https://example.gov.ph'),
+    ('contact_email', 'procurement@example.gov.ph'),
+    ('address', 'Full office address...'),
+    ('maintenance_mode', '0')
+ON DUPLICATE KEY UPDATE setting_key = VALUES(setting_key);
 

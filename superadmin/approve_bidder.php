@@ -12,10 +12,10 @@ $conn->begin_transaction();
 
 try{
 
-    // Revert to normal user
+    // Update user account
     $stmt = $conn->prepare("
         UPDATE users
-        SET role = 'user',
+        SET role = 'bidder',
             status = 'active'
         WHERE user_id = ?
     ");
@@ -26,7 +26,7 @@ try{
     // Update application status
     $stmt = $conn->prepare("
         UPDATE bidder_profiles
-        SET application_status = 'rejected'
+        SET application_status = 'approved'
         WHERE user_id = ?
     ");
 
@@ -35,13 +35,13 @@ try{
 
     $conn->commit();
 
-    header("Location: account-mamangement.php");
+    header("Location: account-management.php");
     exit();
 
 }catch(Exception $e){
 
     $conn->rollback();
 
-    die("Failed to reject bidder.");
+    die("Failed to approve bidder.");
 
 }

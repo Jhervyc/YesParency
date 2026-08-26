@@ -11,7 +11,3 @@
     }catch(mysqli_sql_exception){
         echo "can't connect";
     }
-
-    if($conn){
-        echo "you are connected <br>";
-    }

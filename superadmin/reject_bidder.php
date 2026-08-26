@@ -35,7 +35,7 @@ try{
 
     $conn->commit();
 
-    header("Location: account-mamangement.php");
+    header("Location: account.php");
     exit();
 
 }catch(Exception $e){

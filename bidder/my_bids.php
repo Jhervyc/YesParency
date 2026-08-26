@@ -229,7 +229,7 @@ $status_config = [
                                             <i class="bi <?= $icon ?>" style="color:<?= $docColor ?>; font-size:15px; flex-shrink:0;"></i>
                                             <span><?= htmlspecialchars($doc['document_name']) ?></span>
                                             <?php if ($isReceipt && !empty($doc['file_path'])): ?>
-                                                <a href="../<?= htmlspecialchars($doc['file_path']) ?>" target="_blank" class="mb-doc-view">
+                                                <a href="<?= htmlspecialchars($doc['file_path']) ?>" target="_blank" class="mb-doc-view">
                                                     <i class="bi bi-box-arrow-up-right"></i>
                                                 </a>
                                             <?php else: ?>
