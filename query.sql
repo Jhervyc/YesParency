@@ -162,3 +162,64 @@ INSERT INTO system_settings (setting_key, setting_value) VALUES
     ('maintenance_mode', '0')
 ON DUPLICATE KEY UPDATE setting_key = VALUES(setting_key);
 
+-- =================== System Notifications Table =======================
+-- Handles announcements targeted to Everyone ('all'), Specific Roles ('role'), or Individual Users ('user')
+CREATE TABLE IF NOT EXISTS system_notifications (
+    notification_id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    target_type ENUM('all', 'role', 'user') NOT NULL DEFAULT 'all',
+    target_role ENUM('user', 'bidder', 'admin', 'superadmin') NULL,
+    target_user_id INT NULL,
+    created_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (target_user_id) 
+        REFERENCES users(user_id) 
+        ON DELETE CASCADE,
+        
+    FOREIGN KEY (created_by) 
+        REFERENCES users(user_id) 
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =================== User Notification Reads Table =======================
+-- Tracks read status and timestamps per user without duplicating notification text
+CREATE TABLE IF NOT EXISTS user_notification_reads (
+    notification_id INT NOT NULL,
+    user_id INT NOT NULL,
+    read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (notification_id, user_id),
+
+    FOREIGN KEY (notification_id) 
+        REFERENCES system_notifications(notification_id) 
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (user_id) 
+        REFERENCES users(user_id) 
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =================== Audit Trail / System Logs Table =======================
+CREATE TABLE IF NOT EXISTS audit_logs (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL, -- NULL allows logging system-generated actions or unauthenticated attempts (e.g., failed logins)
+    action VARCHAR(50) NOT NULL, -- e.g., 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'TOGGLE_MAINTENANCE'
+    module VARCHAR(50) NOT NULL, -- e.g., 'procurements', 'bids', 'users', 'settings', 'auth'
+    record_id INT NULL, -- Primary Key ID of the affected record (e.g., procurement_id or bid_id)
+    description TEXT NOT NULL, -- Human-readable summary (e.g., 'Approved bidder profile for Business ABC')
+    old_values JSON NULL, -- JSON snapshot of data BEFORE change (for UPDATE/DELETE)
+    new_values JSON NULL, -- JSON snapshot of data AFTER change (for CREATE/UPDATE)
+    ip_address VARCHAR(45) NULL, -- Supports IPv4 and IPv6
+    user_agent VARCHAR(255) NULL, -- Client browser / device details
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id) 
+        REFERENCES users(user_id) 
+        ON DELETE SET NULL,
+        
+    INDEX idx_user_action (user_id, action),
+    INDEX idx_module_record (module, record_id),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

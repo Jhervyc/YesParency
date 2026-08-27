@@ -69,6 +69,29 @@ $users_result = $conn->query("
 function pct($part, $total) {
     return $total > 0 ? round($part / $total * 100) : 0;
 }
+
+
+
+// ── Stats for user donut ─────────────────────────────────────────────────────
+$user_counts = [
+    'admin'  => $total_admins,
+    'bidder' => $total_bidders,
+    'user'   => $total_normal,
+];
+$user_colors = [
+    'admin'  => '#219653',
+    'bidder' => '#F0B92E',
+    'user'   => '#2F6FED',
+];
+$user_grad = '';
+$user_cur = 0;
+foreach ($user_counts as $role_key => $cnt) {
+    $end = $user_cur + pct($cnt, $total_users);
+    $user_grad .= "{$user_colors[$role_key]} {$user_cur}% {$end}%, ";
+    $user_cur = $end;
+}
+$user_grad = rtrim($user_grad, ', ');
+if (!$user_grad || $total_users == 0) $user_grad = '#e5eae4 0% 100%';
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -187,6 +210,17 @@ function pct($part, $total) {
         }
         @media (max-width: 900px) {
             .dash-two-col { grid-template-columns: 1fr; }
+        }
+
+        /* ── Bid Schedule (1/4) & Pending Bids (3/5) row ── */
+        .dash-schedule-bids-row {
+            display: grid;
+            grid-template-columns: 1fr 2.4fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 1024px) {
+            .dash-schedule-bids-row { grid-template-columns: 1fr; }
         }
 
         /* Pending bid card row */
@@ -334,62 +368,14 @@ function pct($part, $total) {
             border-color: #06251b;
             color: #ffc107;
         }
+
+
     </style>
 </head>
 <body class="dash-body">
 
-<div class="dash-overlay" id="dashOverlay" onclick="closeSidebar()"></div>
-
-<!-- SIDEBAR -->
-<aside class="sidebar" id="sidebar">
-    <a class="sidebar-brand" href="../index.php">
-        <img src="../images/procure.jpg" alt="YesParency">
-        <div class="sidebar-brand-text">
-            <div class="name">YesParency</div>
-            <div class="sub">Super Admin Panel</div>
-        </div>
-    </a>
-    <nav class="sidebar-nav">
-        <div class="nav-section-label">Overview</div>
-        <a href="dashboard.php" class="nav-item active"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
-        <a href="bid_submissions.php" class="nav-item"><i class="bi bi-broadcast"></i><span>Bid Opening</span></a>
-        <div class="nav-section-label">Procurement</div>
-        <a href="procurement.php" class="nav-item"><i class="bi bi-folder2-open"></i><span>Procurements</span></a>
-        <a href="bid_submissions.php" class="nav-item"><i class="bi bi-inbox"></i><span>Bid Submissions</span></a>
-        <div class="nav-section-label">Management</div>
-        <a href="account-management.php" class="nav-item"><i class="bi bi-people"></i><span>Bidder Accounts</span></a>
-        <a href="dashboard.php" class="nav-item"><i class="bi bi-megaphone"></i><span>Announcements</span></a>
-        <a href="dashboard.php" class="nav-item"><i class="bi bi-journal-text"></i><span>Audit Trail</span></a>
-        <div class="nav-section-label">Super Admin</div>
-        <a href="user-role-management.php" class="nav-item"><i class="bi bi-person-gear"></i><span>User & Role Management</span></a>
-        <div class="nav-section-label">System</div>
-        <a href="settings.php" class="nav-item"><i class="bi bi-gear"></i><span>Settings</span></a>
-    </nav>
-    <div class="sidebar-footer">
-        <div class="sidebar-user">
-            <div class="user-avatar"><i class="bi bi-person"></i></div>
-            <div class="user-info">
-                <div class="uname"><?= htmlspecialchars($_SESSION['username']) ?></div>
-                <div class="urole">Super Administrator</div>
-            </div>
-        </div>
-        <a href="../logout.php" class="btn-logout">
-            <i class="bi bi-box-arrow-left"></i><span>Logout</span>
-        </a>
-    </div>
-</aside>
-
-<!-- TOPBAR -->
-<div class="topbar" id="topbar">
-    <div class="topbar-left">
-        <button class="toggle-btn" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
-        <span class="topbar-title">Super Admin Dashboard</span>
-    </div>
-    <div class="topbar-right">
-        <div class="topbar-badge"><i class="bi bi-bell"></i><span class="badge-dot"></span></div>
-        <div class="topbar-avatar"><i class="bi bi-person"></i></div>
-    </div>
-</div>
+<?php include("components/sidebar.php"); ?>
+<?php include("components/topbar.php"); ?>
 
 <!-- MAIN -->
 <main class="dash-main" id="dashMain">
@@ -400,49 +386,53 @@ function pct($part, $total) {
         <p>System-wide overview — live data from the database.</p>
     </div>
 
-    <!-- ── Users panel ── -->
-    <div class="ap2-card" style="margin-bottom:20px;">
-        <div class="dsh-card-head">
-            <div class="dsh-card-head-icon" style="background:#e8f0ec;color:#06251b;">
-                <i class="bi bi-people"></i>
+    <!-- ════ USER STATISTICS PANEL ════ -->
+    <div class="sp-panel" style="margin-bottom:20px;">
+        <div class="sp-panel-head">
+            <div class="sp-panel-title">
+                <div class="sp-title-icon"><i class="bi bi-people"></i></div>
+                User Statistics
             </div>
-            <div class="dsh-card-head-text">
-                <div class="dsh-card-head-title">Users</div>
-                <div class="dsh-card-head-sub">All registered accounts</div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span class="sp-panel-sub">Breakdown by registered account role</span>
+                <a href="user-role-management.php" class="dsh-card-head-link">Manage <i class="bi bi-arrow-right"></i></a>
             </div>
-            <a href="user-role-management.php" class="dsh-card-head-link">Manage <i class="bi bi-arrow-right"></i></a>
         </div>
-        <div class="dsh-stat-row">
-            <div class="dsh-stat-item">
-                <div class="ap2-ring" style="background:conic-gradient(#06251b 0% 100%,#e7ece9 0%);">
-                    <div class="ap2-ring-inner"><i class="bi bi-people" style="color:#06251b;font-size:14px;"></i></div>
+
+        <div class="sp-stats-body">
+            <!-- Donut -->
+            <div class="sp-donut-wrap">
+                <div class="sp-donut" style="background:conic-gradient(<?= $user_grad ?>);"></div>
+                <div class="sp-donut-hole">
+                    <div class="sp-donut-num"><?= $total_users ?></div>
+                    <div class="sp-donut-lbl">Total<br>Users</div>
                 </div>
-                <div class="dsh-stat-num"><?= $total_users ?></div>
-                <div class="dsh-stat-lbl">Total Users</div>
             </div>
-            <div class="dsh-stat-divider"></div>
-            <div class="dsh-stat-item">
-                <div class="ap2-ring" style="background:conic-gradient(#43a047 0% <?= pct($total_admins,$total_users) ?>%,#e7ece9 0%);">
-                    <div class="ap2-ring-inner"><i class="bi bi-shield-check" style="color:#43a047;font-size:14px;"></i></div>
+
+            <!-- Legend -->
+            <div class="sp-legend">
+                <?php
+                $user_legend = [
+                    'admin'  => ['label' => 'Administrators', 'color' => '#219653', 'soft' => '#E4F5EA', 'count' => $total_admins],
+                    'bidder' => ['label' => 'Bidders',        'color' => '#C99A1D', 'soft' => '#FCF1CF', 'count' => $total_bidders],
+                    'user'   => ['label' => 'Normal Users',   'color' => '#2F6FED', 'soft' => '#E7EEFE', 'count' => $total_normal],
+                ];
+                foreach ($user_legend as $key => $l):
+                    $cnt = $l['count'];
+                    $p   = pct($cnt, $total_users);
+                ?>
+                <div class="sp-legend-row">
+                    <span class="sp-legend-dot" style="background:<?= $l['color'] ?>"></span>
+                    <span class="sp-legend-label"><?= $l['label'] ?></span>
+                    <span class="sp-legend-value"><?= $cnt ?></span>
+                    <span class="sp-legend-pct" style="color:<?= $l['color'] ?>; background:<?= $l['soft'] ?>"><?= $p ?>%</span>
                 </div>
-                <div class="dsh-stat-num"><?= $total_admins ?></div>
-                <div class="dsh-stat-lbl">Administrators</div>
-            </div>
-            <div class="dsh-stat-divider"></div>
-            <div class="dsh-stat-item">
-                <div class="ap2-ring" style="background:conic-gradient(#f9a825 0% <?= pct($total_bidders,$total_users) ?>%,#e7ece9 0%);">
-                    <div class="ap2-ring-inner"><i class="bi bi-person-badge" style="color:#f9a825;font-size:14px;"></i></div>
+                <?php endforeach; ?>
+                <div class="sp-legend-row sp-legend-total">
+                    <span class="sp-legend-dot" style="background:#F0B92E"></span>
+                    <span class="sp-legend-label">All Users</span>
+                    <span class="sp-legend-value" style="color:#F0B92E"><?= $total_users ?></span>
                 </div>
-                <div class="dsh-stat-num"><?= $total_bidders ?></div>
-                <div class="dsh-stat-lbl">Bidders</div>
-            </div>
-            <div class="dsh-stat-divider"></div>
-            <div class="dsh-stat-item">
-                <div class="ap2-ring" style="background:conic-gradient(#1565c0 0% <?= pct($total_normal,$total_users) ?>%,#e7ece9 0%);">
-                    <div class="ap2-ring-inner"><i class="bi bi-person" style="color:#1565c0;font-size:14px;"></i></div>
-                </div>
-                <div class="dsh-stat-num"><?= $total_normal ?></div>
-                <div class="dsh-stat-lbl">Normal Users</div>
             </div>
         </div>
     </div>
@@ -547,7 +537,7 @@ function pct($part, $total) {
     </div><!-- /.dash-two-col stats -->
 
     <!-- ── Calendar + Pending Bids ── -->
-    <div class="dash-two-col">
+    <div class="dash-schedule-bids-row">
 
         <!-- Calendar -->
         <div class="ap2-card">
@@ -623,7 +613,7 @@ function pct($part, $total) {
                 </div>
 
                 <!-- Legend -->
-                <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:#777;">
+                <div style="display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:12px;font-size:11px;color:#777;">
                     <span style="display:flex;align-items:center;gap:5px;">
                         <span style="width:8px;height:8px;border-radius:50%;background:#1f7a3d;display:inline-block;"></span> Bid Opening
                     </span>
@@ -792,23 +782,12 @@ function pct($part, $total) {
 </div>
 </main>
 
+
+
 <script>
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('dashOverlay');
 
-    function toggleSidebar() {
-        if (window.innerWidth <= 768) {
-            sidebar.classList.toggle('mobile-open');
-            overlay.classList.toggle('active');
-        } else {
-            document.body.classList.toggle('sidebar-collapsed');
-        }
-    }
 
-    function closeSidebar() {
-        sidebar.classList.remove('mobile-open');
-        overlay.classList.remove('active');
-    }
+
 </script>
 
 </body>

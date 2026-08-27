@@ -157,68 +157,8 @@
 </head>
 <body class="dash-body">
 
-<div class="dash-overlay" id="dashOverlay" onclick="closeSidebar()"></div>
-
-<!-- ========================= -->
-<!-- SIDEBAR                   -->
-<!-- ========================= -->
-<aside class="sidebar" id="sidebar">
-    <a class="sidebar-brand" href="../index.php">
-        <img src="../images/procure.jpg" alt="YesParency">
-        <div class="sidebar-brand-text">
-            <div class="name">YesParency</div>
-            <div class="sub">Super Admin Panel</div>
-        </div>
-    </a>
-    <nav class="sidebar-nav">
-        <div class="nav-section-label">Overview</div>
-        <a href="dashboard.php" class="nav-item"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
-        <a href="bid_submissions.php" class="nav-item"><i class="bi bi-broadcast"></i><span>Bid Opening</span></a>
-
-        <div class="nav-section-label">Procurement</div>
-        <a href="procurement.php" class="nav-item active"><i class="bi bi-folder2-open"></i><span>Procurements</span></a>
-        <a href="bid_submissions.php" class="nav-item"><i class="bi bi-inbox"></i><span>Bid Submissions</span></a>
-
-        <div class="nav-section-label">Management</div>
-        <a href="account-management.php" class="nav-item"><i class="bi bi-people"></i><span>Bidder Accounts</span></a>
-        <a href="dashboard.php" class="nav-item"><i class="bi bi-megaphone"></i><span>Announcements</span></a>
-        <a href="dashboard.php" class="nav-item"><i class="bi bi-journal-text"></i><span>Audit Trail</span></a>
-
-        <div class="nav-section-label">Super Admin</div>
-        <a href="user-role-management.php" class="nav-item"><i class="bi bi-person-gear"></i><span>User & Role Management</span></a>
-
-        <div class="nav-section-label">System</div>
-        <a href="settings.php" class="nav-item"><i class="bi bi-gear"></i><span>Settings</span></a>
-    </nav>
-    <div class="sidebar-footer">
-        <div class="sidebar-user">
-            <div class="user-avatar"><i class="bi bi-person"></i></div>
-            <div class="user-info">
-                <div class="uname"><?= htmlspecialchars($_SESSION['username']) ?></div>
-                <div class="urole">Super Administrator</div>
-            </div>
-        </div>
-        <a href="../logout.php" class="btn-logout">
-            <i class="bi bi-box-arrow-left"></i><span>Logout</span>
-        </a>
-    </div>
-</aside>
-
-<!-- ========================= -->
-<!-- TOPBAR                    -->
-<!-- ========================= -->
-<div class="topbar" id="topbar">
-    <div class="topbar-left">
-        <button class="toggle-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
-            <i class="bi bi-list"></i>
-        </button>
-        <span class="topbar-title">Procurement > Review & Publish</span>
-    </div>
-    <div class="topbar-right">
-        <div class="topbar-badge"><i class="bi bi-bell"></i></div>
-        <div class="topbar-avatar"><i class="bi bi-person"></i></div>
-    </div>
-</div>
+<?php include("components/sidebar.php"); ?>
+<?php include("components/topbar.php"); ?>
 
 <!-- ========================= -->
 <!-- MAIN CONTENT              -->
@@ -630,22 +570,7 @@
 <?php endif; ?>
 
 <script>
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('dashOverlay');
 
-    function toggleSidebar() {
-        if (window.innerWidth <= 768) {
-            sidebar.classList.toggle('mobile-open');
-            overlay.classList.toggle('active');
-        } else {
-            document.body.classList.toggle('sidebar-collapsed');
-        }
-    }
-
-    function closeSidebar() {
-        sidebar.classList.remove('mobile-open');
-        overlay.classList.remove('active');
-    }
 
     const toast = document.getElementById('toastAlert');
     if (toast) setTimeout(() => toast.classList.add('hide'), 4000);
