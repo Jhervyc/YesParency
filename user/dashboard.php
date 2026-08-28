@@ -1,14 +1,120 @@
 <?php
-    include ("utils/protect-page.php");
+include("utils/protect-page.php");
+
+$user_id   = (int)$_SESSION['user_id'];
+$user_role = $_SESSION['role'] ?? 'user';
+
+// ── 1. Fetch User & Bidder Profile ─────────────────────────────────────────────
+$user_stmt = $conn->prepare("
+    SELECT u.*, bp.profile_id, bp.business_name, bp.application_status, bp.created_at AS applied_at
+    FROM users u
+    LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id
+    WHERE u.user_id = ?
+");
+$user_stmt->bind_param("i", $user_id);
+$user_stmt->execute();
+$user_data = $user_stmt->get_result()->fetch_assoc();
+$user_stmt->close();
+
+$full_name      = trim(($user_data['firstname'] ?? '') . ' ' . ($user_data['lastname'] ?? '')) ?: htmlspecialchars($_SESSION['username'] ?? 'User');
+$username       = htmlspecialchars($user_data['username'] ?? $_SESSION['username'] ?? 'user');
+$email          = htmlspecialchars($user_data['email'] ?? '');
+$app_status     = strtolower($user_data['application_status'] ?? 'none');
+$business_name  = $user_data['business_name'] ?? '';
+$has_applied    = !empty($user_data['profile_id']);
+
+// ── 2. Procurement Statistics ──────────────────────────────────────────────────
+$total_open_res  = $conn->query("SELECT COUNT(*) FROM procurements WHERE status = 'open'");
+$total_open      = ($total_open_res && $row = $total_open_res->fetch_row()) ? (int)$row[0] : 0;
+
+$upcoming_res    = $conn->query("SELECT COUNT(*) FROM procurements WHERE opening_date >= NOW() AND status = 'open'");
+$upcoming_count  = ($upcoming_res && $row = $upcoming_res->fetch_row()) ? (int)$row[0] : 0;
+
+$today_open_res  = $conn->query("SELECT COUNT(*) FROM procurements WHERE DATE(opening_date) = CURDATE() AND status = 'open'");
+$today_openings  = ($today_open_res && $row = $today_open_res->fetch_row()) ? (int)$row[0] : 0;
+
+// ── 3. Unread Notifications Count ──────────────────────────────────────────────
+$notif_unread_stmt = $conn->prepare("
+    SELECT COUNT(*) 
+    FROM system_notifications sn
+    LEFT JOIN user_notification_reads unr 
+        ON sn.notification_id = unr.notification_id 
+        AND unr.user_id = ?
+    WHERE (sn.target_type = 'all'
+       OR (sn.target_type = 'role' AND sn.target_role = ?)
+       OR (sn.target_type = 'user' AND sn.target_user_id = ?))
+      AND unr.read_at IS NULL
+");
+$notif_unread_stmt->bind_param("isi", $user_id, $user_role, $user_id);
+$notif_unread_stmt->execute();
+$unread_notifs = (int)$notif_unread_stmt->get_result()->fetch_row()[0];
+$notif_unread_stmt->close();
+
+// ── 4. Open Procurements List ──────────────────────────────────────────────────
+$open_procs_result = $conn->query("
+    SELECT 
+        p.id,
+        p.philgeps_ref_no,
+        p.title,
+        p.abc,
+        p.procurement_mode,
+        p.closing_date,
+        p.opening_date,
+        (SELECT COUNT(*) FROM lots l WHERE l.procurement_id = p.id) AS lot_count
+    FROM procurements p
+    WHERE p.status = 'open'
+    ORDER BY p.closing_date ASC
+    LIMIT 5
+");
+
+// ── 5. Upcoming Bid Schedule ───────────────────────────────────────────────────
+$schedule_result = $conn->query("
+    SELECT 
+        id, philgeps_ref_no, title, opening_date, closing_date, abc
+    FROM procurements
+    WHERE status != 'draft'
+      AND opening_date IS NOT NULL 
+      AND opening_date >= CURDATE()
+    ORDER BY opening_date ASC
+    LIMIT 4
+");
+
+// ── 6. Recent Notifications ────────────────────────────────────────────────────
+$notifs_stmt = $conn->prepare("
+    SELECT sn.notification_id, sn.title, sn.message, sn.target_type, sn.target_role, sn.created_at,
+           u.firstname, u.lastname,
+           CASE WHEN unr.read_at IS NOT NULL THEN 1 ELSE 0 END AS is_read
+    FROM system_notifications sn
+    LEFT JOIN users u ON sn.created_by = u.user_id
+    LEFT JOIN user_notification_reads unr ON sn.notification_id = unr.notification_id AND unr.user_id = ?
+    WHERE sn.target_type = 'all'
+       OR (sn.target_type = 'role' AND sn.target_role = ?)
+       OR (sn.target_type = 'user' AND sn.target_user_id = ?)
+    ORDER BY sn.created_at DESC
+    LIMIT 3
+");
+$notifs_stmt->bind_param("isi", $user_id, $user_role, $user_id);
+$notifs_stmt->execute();
+$notifs_result = $notifs_stmt->get_result();
+
+function timeAgo($datetime) {
+    $time = strtotime($datetime);
+    $diff = time() - $time;
+    if ($diff < 60) return 'Just now';
+    if ($diff < 3600) return floor($diff / 60) . 'm ago';
+    if ($diff < 86400) return floor($diff / 3600) . 'h ago';
+    if ($diff < 604800) return floor($diff / 86400) . 'd ago';
+    return date('M j, Y', $time);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | YesParency</title>
+    <title>User Dashboard | YesParency</title>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -16,293 +122,985 @@
     <link rel="stylesheet" href="../style.css">
     <!-- Dashboard styles -->
     <link rel="stylesheet" href="../dashboard.css">
+    <style>
+        /* ── Hero Greeting Card ── */
+        .user-hero-card {
+            background: linear-gradient(135deg, #06251b 0%, #0a3a2a 65%, #104e39 100%);
+            border-radius: 20px;
+            padding: 28px 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px -6px rgba(6, 37, 27, 0.25);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .user-hero-card::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 193, 7, 0.12) 0%, rgba(255, 193, 7, 0) 70%);
+            pointer-events: none;
+        }
+
+        .hero-top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .hero-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.2;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hero-badge {
+            background: rgba(255, 193, 7, 0.18);
+            border: 1px solid rgba(255, 193, 7, 0.4);
+            color: #ffc107;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .hero-sub {
+            font-size: 13.5px;
+            color: #d1e5db;
+            line-height: 1.5;
+            max-width: 680px;
+            margin-bottom: 20px;
+        }
+
+        .hero-pills {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .hero-pill {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 7px 14px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hero-pill i {
+            color: #ffc107;
+        }
+
+        /* ── 4 Donut Stat Cards ── */
+        .ap2-stats-4-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .ap2-stats-4-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .ap2-stats-4-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stat-donut-card {
+            background: #ffffff;
+            border: 1px solid #eaeeec;
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+
+        .stat-donut-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16,36,26,.09);
+        }
+
+        .stat-donut-ring {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .stat-donut-inner {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .stat-donut-info {
+            line-height: 1.2;
+            min-width: 0;
+        }
+
+        .stat-donut-num {
+            font-size: 22px;
+            font-weight: 800;
+            color: #06251b;
+            line-height: 1.1;
+        }
+
+        .stat-donut-lbl {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #88968d;
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ── Accreditation Status Banner ── */
+        .accredit-banner {
+            border-radius: 16px;
+            padding: 18px 22px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+            border: 1px solid transparent;
+        }
+
+        .accredit-banner.not-registered {
+            background: linear-gradient(135deg, #f0f7f3 0%, #e2efe7 100%);
+            border-color: #cbe3d4;
+        }
+
+        .accredit-banner.pending {
+            background: linear-gradient(135deg, #fffbf0 0%, #fdf0cf 100%);
+            border-color: #fae099;
+        }
+
+        .accredit-banner.approved {
+            background: linear-gradient(135deg, #f2faf4 0%, #dcf1e3 100%);
+            border-color: #b7e3c4;
+        }
+
+        .accredit-banner.rejected {
+            background: linear-gradient(135deg, #fdf4f4 0%, #fbe1e1 100%);
+            border-color: #f5c2c2;
+        }
+
+        .accredit-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .accredit-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .not-registered .accredit-icon { background: #06251b; color: #ffc107; }
+        .pending .accredit-icon { background: #e67e22; color: #fff; }
+        .approved .accredit-icon { background: #219653; color: #fff; }
+        .rejected .accredit-icon { background: #c23b3b; color: #fff; }
+
+        .accredit-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #06251b;
+            margin-bottom: 2px;
+        }
+
+        .accredit-desc {
+            font-size: 12px;
+            color: #526359;
+            line-height: 1.4;
+        }
+
+        .accredit-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-size: 12.5px;
+            font-weight: 700;
+            text-decoration: none;
+            font-family: 'Poppins', sans-serif;
+            white-space: nowrap;
+            transition: all .2s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+
+        .accredit-btn.primary {
+            background: #06251b;
+            color: #ffc107;
+            border: 1px solid #06251b;
+        }
+
+        .accredit-btn.primary:hover {
+            background: #0a3a2a;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .accredit-btn.portal {
+            background: #219653;
+            color: #ffffff;
+            border: 1px solid #219653;
+        }
+
+        .accredit-btn.portal:hover {
+            background: #1b7e45;
+            transform: translateY(-1px);
+        }
+
+        /* ── Main Layout Grid ── */
+        .user-dash-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .user-dash-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── Panel Cards ── */
+        .dash-card {
+            background: #ffffff;
+            border: 1px solid #eaeeec;
+            border-radius: 18px;
+            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .dash-card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f4f2;
+            background: #fafcfb;
+        }
+
+        .dash-card-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #06251b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dash-card-link {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #1f7a3d;
+            background: #eef7f1;
+            padding: 5px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all .15s ease;
+        }
+
+        .dash-card-link:hover {
+            background: #06251b;
+            color: #ffc107;
+        }
+
+        /* ── Opportunity List Rows ── */
+        .opp-row {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f2f5f3;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            transition: background .12s ease;
+        }
+
+        .opp-row:last-child {
+            border-bottom: none;
+        }
+
+        .opp-row:hover {
+            background: #fbfdfc;
+        }
+
+        .opp-main {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .opp-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1a2a20;
+            margin-bottom: 4px;
+            line-height: 1.35;
+        }
+
+        .opp-meta {
+            font-size: 11.5px;
+            color: #728277;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .opp-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .opp-side {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .opp-abc {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: #06251b;
+            font-family: 'Space Grotesk', sans-serif;
+            margin-bottom: 3px;
+        }
+
+        .opp-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.3px;
+        }
+
+        .opp-status.open {
+            background: #e4f5ea;
+            color: #1f7a3d;
+        }
+
+        .opp-status.closing-soon {
+            background: #fff3e0;
+            color: #e67e22;
+        }
+
+        /* ── Schedule List Items ── */
+        .sched-item {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f2f5f3;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .sched-item:last-child {
+            border-bottom: none;
+        }
+
+        .sched-date-box {
+            width: 44px;
+            height: 48px;
+            border-radius: 10px;
+            background: #eef5f1;
+            border: 1px solid #d9e9df;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            text-align: center;
+            line-height: 1.1;
+        }
+
+        .sched-month {
+            font-size: 9.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #1f7a3d;
+        }
+
+        .sched-day {
+            font-size: 16px;
+            font-weight: 800;
+            color: #06251b;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .sched-info {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .sched-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #18261e;
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sched-sub {
+            font-size: 11px;
+            color: #728277;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ── Quick Actions Grid ── */
+        .qa-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 16px 20px;
+        }
+
+        .qa-btn {
+            background: #fafcfb;
+            border: 1px solid #eaeeec;
+            border-radius: 12px;
+            padding: 14px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: all .15s ease;
+        }
+
+        .qa-btn:hover {
+            background: #06251b;
+            border-color: #06251b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(6, 37, 27, 0.15);
+        }
+
+        .qa-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: #eef5f1;
+            color: #06251b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all .15s ease;
+        }
+
+        .qa-btn:hover .qa-icon {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .qa-label {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #16241d;
+            line-height: 1.2;
+            transition: color .15s ease;
+        }
+
+        .qa-btn:hover .qa-label {
+            color: #ffffff;
+        }
+
+        /* ── Notification Items ── */
+        .dash-notif-item {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f2f5f3;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            transition: background .12s ease;
+        }
+
+        .dash-notif-item:last-child {
+            border-bottom: none;
+        }
+
+        .dash-notif-item:hover {
+            background: #fbfdfc;
+        }
+
+        .dash-notif-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #219653;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+
+        .dash-notif-dot.unread {
+            background: #e67e22;
+            box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.2);
+        }
+
+        .dash-notif-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #16241d;
+            margin-bottom: 2px;
+        }
+
+        .dash-notif-time {
+            font-size: 11px;
+            color: #88968d;
+        }
+
+        /* ── Steps Accordion / Guide Box ── */
+        .guide-box {
+            padding: 16px 20px;
+            background: #fafcfb;
+            border-radius: 12px;
+            margin: 16px 20px;
+            border: 1px solid #edf1ef;
+        }
+
+        .guide-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .guide-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .guide-num {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #06251b;
+            color: #ffc107;
+            font-size: 10px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .guide-text {
+            font-size: 11.5px;
+            color: #4b5a51;
+            line-height: 1.4;
+        }
+    </style>
 </head>
 <body class="dash-body">
 
-<!-- Mobile overlay -->
-<div class="dash-overlay" id="dashOverlay" onclick="closeSidebar()"></div>
+<?php include("components/sidebar.php"); ?>
+<?php 
+$topbar_title = 'User Dashboard';
+include("components/topbar.php"); 
+?>
 
-<!-- ========================= -->
-<!-- SIDEBAR                   -->
-<!-- ========================= -->
-<aside class="sidebar" id="sidebar">
-
-    <!-- Brand -->
-    <a class="sidebar-brand" href="../index.php">
-        <img src="../images/procure.jpg" alt="YesParency">
-        <div class="sidebar-brand-text">
-            <div class="name">YesParency</div>
-            <div class="sub">Procurement System</div>
-        </div>
-    </a>
-
-    <!-- Nav -->
-    <nav class="sidebar-nav">
-
-        <div class="nav-section-label">Main</div>
-
-        <a href="dashboard.php" class="nav-item active">
-            <i class="bi bi-speedometer2"></i>
-            <span>Dashboard</span>
-        </a>
-
-        <a href="dashboard.php" class="nav-item">
-            <i class="bi bi-broadcast"></i>
-            <span>Bid Opening Live</span>
-        </a>
-
-        <a href="dashboard.php" class="nav-item">
-            <i class="bi bi-calendar-event"></i>
-            <span>Bid Schedule</span>
-        </a>
-
-        <a href="dashboard.php" class="nav-item">
-            <i class="bi bi-megaphone"></i>
-            <span>Announcements</span>
-        </a>
-
-        <div class="nav-section-label">Account</div>
-
-        <a href="bidder-registration.php" class="nav-item">
-            <i class="bi bi-person-plus"></i>
-            <span>Register as Bidder</span>
-        </a>
-
-    </nav>
-
-    <!-- Footer -->
-    <div class="sidebar-footer">
-        <div class="sidebar-user">
-            <div class="user-avatar">
-                <i class="bi bi-person"></i>
-            </div>
-            <div class="user-info">
-                <div class="uname"><?= htmlspecialchars($_SESSION['username']) ?></div>
-                <div class="urole"><?= htmlspecialchars($_SESSION['role']) ?></div>
-            </div>
-        </div>
-        <a href="../logout.php" class="btn-logout">
-            <i class="bi bi-box-arrow-left"></i>
-            <span>Logout</span>
-        </a>
-    </div>
-
-</aside>
-
-<!-- ========================= -->
-<!-- TOPBAR                    -->
-<!-- ========================= -->
-<div class="topbar" id="topbar">
-    <div class="topbar-left">
-        <button class="toggle-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
-            <i class="bi bi-list"></i>
-        </button>
-        <span class="topbar-title">Dashboard Overview</span>
-    </div>
-    <div class="topbar-right">
-        <div class="topbar-badge">
-            <i class="bi bi-bell"></i>
-            <span class="badge-dot"></span>
-        </div>
-        <div class="topbar-avatar">
-            <i class="bi bi-person"></i>
-        </div>
-    </div>
-</div>
-
-<!-- ========================= -->
-<!-- MAIN CONTENT              -->
-<!-- ========================= -->
+<!-- MAIN -->
 <main class="dash-main" id="dashMain">
-    <div class="dash-content">
+<div class="dash-content">
 
-        <!-- Page header -->
-        <div class="page-header">
-            <h2>Welcome back, <?= htmlspecialchars($_SESSION['username']) ?> 👋</h2>
-            <p>Here's what's happening in SLSU procurement today.</p>
+    <!-- ── Hero Greeting Card ── -->
+    <div class="user-hero-card">
+        <div class="hero-top-row">
+            <div class="hero-title">
+                <span>Welcome back, <?= htmlspecialchars($full_name) ?></span>
+            </div>
+            <div class="hero-badge">
+                <i class="bi bi-shield-check"></i> General User Portal
+            </div>
+        </div>
+        <p class="hero-sub">
+            Explore active SLSU procurement opportunities, review bidding schedules, and track official bulletins. To submit proposals, register your business as an accredited bidder.
+        </p>
+        <div class="hero-pills">
+            <div class="hero-pill">
+                <i class="bi bi-at"></i> @<?= $username ?>
+            </div>
+            <div class="hero-pill">
+                <i class="bi bi-calendar3"></i> <?= date('F j, Y') ?>
+            </div>
+            <div class="hero-pill">
+                <i class="bi bi-folder2-open"></i> <?= $total_open ?> Active Opportunities
+            </div>
+            <div class="hero-pill">
+                <i class="bi bi-bell"></i> <?= $unread_notifs ?> Unread Notices
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 4 Donut Stat Summary Cards ── -->
+    <div class="sad-section-label" style="font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#88968d; margin-bottom:10px;">Summary Overview</div>
+    <div class="ap2-stats-4-grid">
+        
+        <!-- 1. Active Opportunities -->
+        <div class="stat-donut-card">
+            <div class="stat-donut-ring" style="background:conic-gradient(#06251b 0% 100%, #e7ece9 0%);">
+                <div class="stat-donut-inner">
+                    <i class="bi bi-folder2-open" style="color:#06251b;"></i>
+                </div>
+            </div>
+            <div class="stat-donut-info">
+                <div class="stat-donut-num"><?= number_format($total_open) ?></div>
+                <div class="stat-donut-lbl">Active Procurements</div>
+            </div>
         </div>
 
-        <!-- Stat cards -->
-        <div class="dash-stats">
-
-            <div class="dash-stat-card green">
-                <div class="stat-icon-box green">
-                    <i class="bi bi-folder2-open"></i>
-                </div>
-                <div class="dash-stat-info">
-                    <h3>12</h3>
-                    <p>Active Procurements</p>
+        <!-- 2. Upcoming Openings -->
+        <div class="stat-donut-card">
+            <div class="stat-donut-ring" style="background:conic-gradient(#219653 0% 100%, #e7ece9 0%);">
+                <div class="stat-donut-inner">
+                    <i class="bi bi-calendar-event" style="color:#219653;"></i>
                 </div>
             </div>
+            <div class="stat-donut-info">
+                <div class="stat-donut-num" style="color:#219653;"><?= number_format($upcoming_count) ?></div>
+                <div class="stat-donut-lbl">Upcoming Openings</div>
+            </div>
+        </div>
 
-            <div class="dash-stat-card yellow">
-                <div class="stat-icon-box yellow">
-                    <i class="bi bi-broadcast"></i>
-                </div>
-                <div class="dash-stat-info">
-                    <h3>3</h3>
-                    <p>Live Bid Sessions</p>
+        <!-- 3. Openings Today / Live -->
+        <div class="stat-donut-card">
+            <div class="stat-donut-ring" style="background:conic-gradient(#e67e22 0% 100%, #e7ece9 0%);">
+                <div class="stat-donut-inner">
+                    <i class="bi bi-broadcast" style="color:#e67e22;"></i>
                 </div>
             </div>
+            <div class="stat-donut-info">
+                <div class="stat-donut-num" style="color:#e67e22;"><?= number_format($today_openings) ?></div>
+                <div class="stat-donut-lbl">Openings Today</div>
+            </div>
+        </div>
 
-            <div class="dash-stat-card blue">
-                <div class="stat-icon-box blue">
-                    <i class="bi bi-calendar-check"></i>
-                </div>
-                <div class="dash-stat-info">
-                    <h3>8</h3>
-                    <p>Upcoming Openings</p>
+        <!-- 4. Unread Notifications -->
+        <div class="stat-donut-card">
+            <div class="stat-donut-ring" style="background:conic-gradient(<?= $unread_notifs > 0 ? '#1565c0' : '#8B958E' ?> 0% 100%, #e7ece9 0%);">
+                <div class="stat-donut-inner">
+                    <i class="bi bi-bell-fill" style="color:<?= $unread_notifs > 0 ? '#1565c0' : '#8B958E' ?>;"></i>
                 </div>
             </div>
+            <div class="stat-donut-info">
+                <div class="stat-donut-num" style="color:<?= $unread_notifs > 0 ? '#1565c0' : '#8B958E' ?>;"><?= number_format($unread_notifs) ?></div>
+                <div class="stat-donut-lbl">Unread Notices</div>
+            </div>
+        </div>
 
-            <div class="dash-stat-card red">
-                <div class="stat-icon-box red">
-                    <i class="bi bi-megaphone"></i>
+    </div>
+
+    <!-- ── Accreditation Status Banner ── -->
+    <?php if ($app_status === 'approved'): ?>
+        <div class="accredit-banner approved">
+            <div class="accredit-left">
+                <div class="accredit-icon"><i class="bi bi-patch-check-fill"></i></div>
+                <div>
+                    <div class="accredit-title">Accredited Bidder Status Active</div>
+                    <div class="accredit-desc">Your business profile <strong><?= htmlspecialchars($business_name) ?></strong> is verified. You can participate and submit digital proposals.</div>
                 </div>
-                <div class="dash-stat-info">
-                    <h3>5</h3>
-                    <p>New Announcements</p>
+            </div>
+            <a href="../bidder/dashboard.php" class="accredit-btn portal">
+                <i class="bi bi-box-arrow-in-right"></i> Open Bidder Portal
+            </a>
+        </div>
+    <?php elseif ($app_status === 'pending'): ?>
+        <div class="accredit-banner pending">
+            <div class="accredit-left">
+                <div class="accredit-icon"><i class="bi bi-hourglass-split"></i></div>
+                <div>
+                    <div class="accredit-title">Bidder Application Under Review</div>
+                    <div class="accredit-desc">Your accreditation application for <strong><?= htmlspecialchars($business_name) ?></strong> is currently being validated by the BAC Secretariat.</div>
                 </div>
+            </div>
+            <span class="opp-status closing-soon" style="font-size:11px; padding:6px 12px;">
+                <i class="bi bi-clock-history"></i> Verification in Progress
+            </span>
+        </div>
+    <?php elseif ($app_status === 'rejected'): ?>
+        <div class="accredit-banner rejected">
+            <div class="accredit-left">
+                <div class="accredit-icon"><i class="bi bi-exclamation-octagon-fill"></i></div>
+                <div>
+                    <div class="accredit-title">Application Requires Attention</div>
+                    <div class="accredit-desc">Your previous registration was not approved. Please review requirements and resubmit your documents.</div>
+                </div>
+            </div>
+            <a href="bidder-registration.php" class="accredit-btn primary">
+                <i class="bi bi-arrow-repeat"></i> Update Application
+            </a>
+        </div>
+    <?php else: ?>
+        <div class="accredit-banner not-registered">
+            <div class="accredit-left">
+                <div class="accredit-icon"><i class="bi bi-person-plus-fill"></i></div>
+                <div>
+                    <div class="accredit-title">Participate in SLSU Procurement as an Accredited Supplier</div>
+                    <div class="accredit-desc">Register your business to download bidding documents, submit online price proposals, and receive direct BAC awards.</div>
+                </div>
+            </div>
+            <a href="bidder-registration.php" class="accredit-btn primary">
+                <i class="bi bi-person-plus"></i> Register as Bidder
+            </a>
+        </div>
+    <?php endif; ?>
+
+    <!-- ── Two-Column Grid ── -->
+    <div class="user-dash-grid">
+
+        <!-- ── LEFT COLUMN: Procurements & Schedule ── -->
+        <div>
+
+            <!-- 1. Active Procurements Panel -->
+            <div class="dash-card">
+                <div class="dash-card-head">
+                    <div class="dash-card-title">
+                        <i class="bi bi-folder2-open" style="color:#06251b;"></i>
+                        <span>Active Procurement Projects</span>
+                    </div>
+                    <a href="procurement.php" class="dash-card-link">View all →</a>
+                </div>
+
+                <?php if ($open_procs_result && $open_procs_result->num_rows > 0): ?>
+                    <?php while ($p = $open_procs_result->fetch_assoc()): 
+                        $isUrgent = false;
+                        $closeTime = $p['closing_date'] ? strtotime($p['closing_date']) : null;
+                        if ($closeTime && ($closeTime - time() < 86400 * 3) && $closeTime > time()) {
+                            $isUrgent = true;
+                        }
+                    ?>
+                        <div class="opp-row">
+                            <div class="opp-main">
+                                <div class="opp-title"><?= htmlspecialchars($p['title']) ?></div>
+                                <div class="opp-meta">
+                                    <span><i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($p['philgeps_ref_no'] ?: 'SLSU-BAC') ?></span>
+                                    <span><i class="bi bi-briefcase"></i> <?= htmlspecialchars($p['procurement_mode'] ?: 'Public Bidding') ?></span>
+                                    <?php if ($p['closing_date']): ?>
+                                        <span><i class="bi bi-calendar-x"></i> Closes: <?= date('M j, Y', strtotime($p['closing_date'])) ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <div class="opp-side">
+                                <div class="opp-abc">₱<?= number_format((float)$p['abc'], 2) ?></div>
+                                <?php if ($isUrgent): ?>
+                                    <span class="opp-status closing-soon"><i class="bi bi-hourglass-split"></i> Closing Soon</span>
+                                <?php else: ?>
+                                    <span class="opp-status open"><i class="bi bi-check-circle"></i> Open</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div style="padding:36px 20px; text-align:center; color:#88968d;">
+                        <i class="bi bi-inbox" style="font-size:32px; display:block; margin-bottom:8px;"></i>
+                        <p style="font-size:13px; font-weight:600;">No active public procurements at the moment.</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- 2. Upcoming Bid Schedule -->
+            <div class="dash-card" id="schedule">
+                <div class="dash-card-head">
+                    <div class="dash-card-title">
+                        <i class="bi bi-calendar-event" style="color:#219653;"></i>
+                        <span>Upcoming Bid Opening Schedule</span>
+                    </div>
+                </div>
+
+                <?php if ($schedule_result && $schedule_result->num_rows > 0): ?>
+                    <?php while ($s = $schedule_result->fetch_assoc()): 
+                        $openTimestamp = strtotime($s['opening_date']);
+                        $isToday = (date('Y-m-d', $openTimestamp) === date('Y-m-d'));
+                    ?>
+                        <div class="sched-item">
+                            <div class="sched-date-box" style="<?= $isToday ? 'background:#fdf0cf; border-color:#fad580;' : '' ?>">
+                                <div class="sched-month" style="<?= $isToday ? 'color:#97710a;' : '' ?>"><?= date('M', $openTimestamp) ?></div>
+                                <div class="sched-day" style="<?= $isToday ? 'color:#e67e22;' : '' ?>"><?= date('j', $openTimestamp) ?></div>
+                            </div>
+                            <div class="sched-info">
+                                <div class="sched-title" title="<?= htmlspecialchars($s['title']) ?>"><?= htmlspecialchars($s['title']) ?></div>
+                                <div class="sched-sub">
+                                    <span><i class="bi bi-clock"></i> <?= date('h:i A', $openTimestamp) ?></span>
+                                    <span><i class="bi bi-geo-alt"></i> BAC Conference Room</span>
+                                    <span><i class="bi bi-tag"></i> ₱<?= number_format((float)$s['abc'], 2) ?></span>
+                                </div>
+                            </div>
+                            <?php if ($isToday): ?>
+                                <span class="opp-status closing-soon"><i class="bi bi-broadcast"></i> TODAY</span>
+                            <?php endif; ?>
+                        </div>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div style="padding:32px 20px; text-align:center; color:#88968d;">
+                        <i class="bi bi-calendar-x" style="font-size:28px; display:block; margin-bottom:6px;"></i>
+                        <p style="font-size:12.5px; font-weight:600;">No scheduled bid opening sessions listed.</p>
+                    </div>
+                <?php endif; ?>
             </div>
 
         </div>
 
-        <!-- Content grid -->
-        <div class="dash-grid">
+        <!-- ── RIGHT COLUMN: Quick Actions, Notifications, Guide ── -->
+        <div>
 
-            <!-- Active procurements panel -->
-            <div class="dash-panel">
-                <div class="panel-header">
-                    <h4><i class="bi bi-folder2-open"></i> Active & Upcoming Procurements</h4>
-                    <a href="#" class="panel-link">View all →</a>
+            <!-- 1. Quick Actions -->
+            <div class="dash-card">
+                <div class="dash-card-head">
+                    <div class="dash-card-title">
+                        <i class="bi bi-lightning-charge-fill" style="color:#ffc107;"></i>
+                        <span>Quick Actions</span>
+                    </div>
                 </div>
-                <ul class="proc-list">
-
-                    <li class="proc-list-item">
-                        <div class="proc-list-dot live"></div>
-                        <div class="proc-list-info">
-                            <strong>Supply and Delivery of Science Laboratory Equipment</strong>
-                            <span>Opening Today · March 26, 2026 · 10:00 AM · BAC Conference Room</span>
-                        </div>
-                        <span class="proc-list-badge live">● LIVE</span>
-                    </li>
-
-                    <li class="proc-list-item">
-                        <div class="proc-list-dot open"></div>
-                        <div class="proc-list-info">
-                            <strong>Construction of New Multi-Purpose Hall at SLSU Main Campus</strong>
-                            <span>Deadline: April 2, 2026 · Opening: April 3, 2026</span>
-                        </div>
-                        <span class="proc-list-badge open">OPEN</span>
-                    </li>
-
-                    <li class="proc-list-item">
-                        <div class="proc-list-dot upcoming"></div>
-                        <div class="proc-list-info">
-                            <strong>Supply of Information Technology Equipment and Peripherals</strong>
-                            <span>Opening: April 10, 2026 · Submission: April 9, 2026</span>
-                        </div>
-                        <span class="proc-list-badge upcoming">UPCOMING</span>
-                    </li>
-
-                    <li class="proc-list-item">
-                        <div class="proc-list-dot closed"></div>
-                        <div class="proc-list-info">
-                            <strong>Procurement of Janitorial and Maintenance Services FY 2026</strong>
-                            <span>Opened: March 15, 2026 · Notice of Award Released</span>
-                        </div>
-                        <span class="proc-list-badge closed">CLOSED</span>
-                    </li>
-
-                </ul>
+                <div class="qa-grid">
+                    <a href="bidder-registration.php" class="qa-btn">
+                        <div class="qa-icon"><i class="bi bi-person-plus"></i></div>
+                        <div class="qa-label">Register as Bidder</div>
+                    </a>
+                    <a href="procurement.php" class="qa-btn">
+                        <div class="qa-icon"><i class="bi bi-folder2-open"></i></div>
+                        <div class="qa-label">Procurements</div>
+                    </a>
+                    <a href="notification.php" class="qa-btn">
+                        <div class="qa-icon"><i class="bi bi-bell"></i></div>
+                        <div class="qa-label">Notifications</div>
+                    </a>
+                    <a href="settings.php" class="qa-btn">
+                        <div class="qa-icon"><i class="bi bi-gear"></i></div>
+                        <div class="qa-label">Account Settings</div>
+                    </a>
+                </div>
             </div>
 
-            <!-- Right column -->
-            <div style="display: flex; flex-direction: column; gap: 24px;">
-
-                <!-- Quick actions -->
-                <div class="dash-panel">
-                    <div class="panel-header">
-                        <h4><i class="bi bi-lightning-charge"></i> Quick Actions</h4>
+            <!-- 2. Recent Notices & Bulletins -->
+            <div class="dash-card">
+                <div class="dash-card-head">
+                    <div class="dash-card-title">
+                        <i class="bi bi-megaphone-fill" style="color:#1565c0;"></i>
+                        <span>Official Notices</span>
                     </div>
-                    <div class="quick-actions">
-                        <a href="bidder-registration.php" class="quick-action-btn">
-                            <i class="bi bi-person-plus"></i>
-                            Register as Bidder
-                        </a>
-                        <a href="dashboard.php" class="quick-action-btn">
-                            <i class="bi bi-broadcast"></i>
-                            Watch Live Bid
-                        </a>
-                        <a href="dashboard.php" class="quick-action-btn">
-                            <i class="bi bi-calendar3"></i>
-                            Bid Schedule
-                        </a>
-                        <a href="dashboard.php" class="quick-action-btn">
-                            <i class="bi bi-megaphone"></i>
-                            Announcements
-                        </a>
-                    </div>
+                    <a href="notification.php" class="dash-card-link">View all →</a>
                 </div>
 
-                <!-- Announcements -->
-                <div class="dash-panel">
-                    <div class="panel-header">
-                        <h4><i class="bi bi-megaphone"></i> Announcements</h4>
-                        <a href="#" class="panel-link">View all →</a>
+                <?php if ($notifs_result && $notifs_result->num_rows > 0): ?>
+                    <?php while ($n = $notifs_result->fetch_assoc()): 
+                        $isUnread = ((int)$n['is_read'] === 0);
+                    ?>
+                        <div class="dash-notif-item">
+                            <div class="dash-notif-dot <?= $isUnread ? 'unread' : '' ?>"></div>
+                            <div style="min-width:0; flex:1;">
+                                <div class="dash-notif-title"><?= htmlspecialchars($n['title']) ?></div>
+                                <div style="font-size:11.5px; color:#63736a; line-height:1.4; margin-bottom:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
+                                    <?= htmlspecialchars($n['message']) ?>
+                                </div>
+                                <div class="dash-notif-time">
+                                    <i class="bi bi-clock"></i> <?= timeAgo($n['created_at']) ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div style="padding:28px 20px; text-align:center; color:#88968d;">
+                        <i class="bi bi-bell-slash" style="font-size:26px; display:block; margin-bottom:6px;"></i>
+                        <p style="font-size:12px; font-weight:600;">No active announcements.</p>
                     </div>
-                    <ul class="announcement-list">
-                        <li class="announcement-item">
-                            <div class="ann-icon"><i class="bi bi-info-circle"></i></div>
-                            <div class="ann-text">
-                                <strong>Pre-bid Conference Reminder</strong>
-                                <span>July 28, 2026</span>
-                            </div>
-                        </li>
-                        <li class="announcement-item">
-                            <div class="ann-icon"><i class="bi bi-file-earmark-text"></i></div>
-                            <div class="ann-text">
-                                <strong>Updated PhilGEPS Requirements</strong>
-                                <span>July 25, 2026</span>
-                            </div>
-                        </li>
-                        <li class="announcement-item">
-                            <div class="ann-icon"><i class="bi bi-calendar-check"></i></div>
-                            <div class="ann-text">
-                                <strong>Bid Opening Schedule — Q3 2026</strong>
-                                <span>July 20, 2026</span>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
+                <?php endif; ?>
+            </div>
 
+            <!-- 3. Supplier Accreditation Checklist Guide -->
+            <div class="dash-card">
+                <div class="dash-card-head">
+                    <div class="dash-card-title">
+                        <i class="bi bi-info-circle-fill" style="color:#06251b;"></i>
+                        <span>Accreditation Steps</span>
+                    </div>
+                </div>
+                <div class="guide-box">
+                    <div class="guide-item">
+                        <div class="guide-num">1</div>
+                        <div class="guide-text"><strong>Fill Business Information:</strong> Enter your registered company details, PhilGEPS number, and TIN.</div>
+                    </div>
+                    <div class="guide-item">
+                        <div class="guide-num">2</div>
+                        <div class="guide-text"><strong>Upload Legal Documents:</strong> Provide Mayor's Permit, DTI/SEC/CDA, and valid Government ID.</div>
+                    </div>
+                    <div class="guide-item">
+                        <div class="guide-num">3</div>
+                        <div class="guide-text"><strong>BAC Secretariat Evaluation:</strong> Once validated, your account will be activated for electronic bidding.</div>
+                    </div>
+                </div>
             </div>
 
         </div>
 
     </div>
+
+</div>
 </main>
-
-<script>
-    const sidebar  = document.getElementById('sidebar');
-    const overlay  = document.getElementById('dashOverlay');
-    const body     = document.body;
-
-    // Desktop: collapse/expand
-    function toggleSidebar() {
-        if (window.innerWidth <= 768) {
-            sidebar.classList.toggle('mobile-open');
-            overlay.classList.toggle('active');
-        } else {
-            body.classList.toggle('sidebar-collapsed');
-        }
-    }
-
-    function closeSidebar() {
-        sidebar.classList.remove('mobile-open');
-        overlay.classList.remove('active');
-    }
-</script>
 
 </body>
 </html>

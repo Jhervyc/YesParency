@@ -56,7 +56,7 @@ if ($search !== '') {
 }
 
 $sql = "
-    SELECT u.user_id, u.firstname, u.lastname, u.username, u.email, u.role, u.status,
+    SELECT u.user_id, u.firstname, u.lastname, u.username, u.email, u.role, u.status, u.profile_picture_url,
            bp.business_name, bp.application_status
     FROM users u
     LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id
@@ -185,6 +185,7 @@ $total_shown = $result->num_rows;
 
             $businessName = $row['business_name'] ?? 'No business profile';
             $initials     = strtoupper(substr($row['firstname'],0,1).substr($row['lastname'],0,1));
+            $avatarUrl    = !empty($row['profile_picture_url']) ? '../' . ltrim($row['profile_picture_url'], '/') : '';
         ?>
             <div class="proc-row <?= $isPending ? 'bsv-row-pending' : '' ?>">
                 <div class="proc-row-status-bar" style="background:<?= $barColor ?>"></div>
@@ -193,8 +194,12 @@ $total_shown = $result->num_rows;
                     <div class="proc-row-main" style="display:flex; align-items:center; gap:14px;">
                         <!-- Avatar -->
                         <div class="ap2-avatar ap2-avatar--<?= $row['role'] ?>"
-                             style="width:40px;height:40px;font-size:13px;border-radius:11px;flex-shrink:0;">
-                            <?= htmlspecialchars($initials) ?>
+                             style="width:40px;height:40px;font-size:13px;border-radius:11px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                            <?php if (!empty($avatarUrl)): ?>
+                                <img src="<?= htmlspecialchars($avatarUrl) ?>" alt="<?= htmlspecialchars($initials) ?>" style="width:100%;height:100%;object-fit:cover;border-radius:11px;">
+                            <?php else: ?>
+                                <?= htmlspecialchars($initials) ?>
+                            <?php endif; ?>
                         </div>
                         <div style="min-width:0;">
                             <div class="proc-row-title">

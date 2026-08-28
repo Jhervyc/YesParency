@@ -11,6 +11,11 @@ if ($status_filter !== 'all' && !in_array($status_filter, $valid_statuses)) {
 // ── Search ───────────────────────────────────────────────────────────────────
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
+// ── Pagination ───────────────────────────────────────────────────────────────
+$page     = max(1, (int)($_GET['page'] ?? 1));
+$per_page = 10;
+$offset   = ($page - 1) * $per_page;
+
 // ── Handle Delete ────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_procurement'])) {
     $procurement_id = isset($_POST['procurement_id']) ? intval($_POST['procurement_id']) : 0;
@@ -59,20 +64,45 @@ if (!$grad) $grad = '#e5eae4 0% 100%';
 if ($search !== '') {
     $like = '%' . $search . '%';
     if ($status_filter !== 'all') {
-        $stmt = mysqli_prepare($conn, "SELECT id, title, philgeps_ref_no, abc, procurement_mode, status FROM procurements WHERE LOWER(status) = ? AND (title LIKE ? OR philgeps_ref_no LIKE ?) ORDER BY id DESC");
-        mysqli_stmt_bind_param($stmt, "sss", $status_filter, $like, $like);
+        $count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements WHERE LOWER(status) = ? AND (title LIKE ? OR philgeps_ref_no LIKE ?)");
+        mysqli_stmt_bind_param($count_stmt, "sss", $status_filter, $like, $like);
+        mysqli_stmt_execute($count_stmt);
+        $total_shown = (int)mysqli_fetch_row(mysqli_stmt_get_result($count_stmt))[0];
+        mysqli_stmt_close($count_stmt);
+
+        $stmt = mysqli_prepare($conn, "SELECT id, title, philgeps_ref_no, abc, procurement_mode, status FROM procurements WHERE LOWER(status) = ? AND (title LIKE ? OR philgeps_ref_no LIKE ?) ORDER BY id DESC LIMIT ? OFFSET ?");
+        mysqli_stmt_bind_param($stmt, "sssii", $status_filter, $like, $like, $per_page, $offset);
     } else {
-        $stmt = mysqli_prepare($conn, "SELECT id, title, philgeps_ref_no, abc, procurement_mode, status FROM procurements WHERE title LIKE ? OR philgeps_ref_no LIKE ? ORDER BY id DESC");
-        mysqli_stmt_bind_param($stmt, "ss", $like, $like);
+        $count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements WHERE title LIKE ? OR philgeps_ref_no LIKE ?");
+        mysqli_stmt_bind_param($count_stmt, "ss", $like, $like);
+        mysqli_stmt_execute($count_stmt);
+        $total_shown = (int)mysqli_fetch_row(mysqli_stmt_get_result($count_stmt))[0];
+        mysqli_stmt_close($count_stmt);
+
+        $stmt = mysqli_prepare($conn, "SELECT id, title, philgeps_ref_no, abc, procurement_mode, status FROM procurements WHERE title LIKE ? OR philgeps_ref_no LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?");
+        mysqli_stmt_bind_param($stmt, "ssii", $like, $like, $per_page, $offset);
     }
 } else {
     if ($status_filter !== 'all') {
-        $stmt = mysqli_prepare($conn, "SELECT id, title, philgeps_ref_no, abc, procurement_mode, status FROM procurements WHERE LOWER(status) = ? ORDER BY id DESC");
-        mysqli_stmt_bind_param($stmt, "s", $status_filter);
+        $count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements WHERE LOWER(status) = ?");
+        mysqli_stmt_bind_param($count_stmt, "s", $status_filter);
+        mysqli_stmt_execute($count_stmt);
+        $total_shown = (int)mysqli_fetch_row(mysqli_stmt_get_result($count_stmt))[0];
+        mysqli_stmt_close($count_stmt);
+
+        $stmt = mysqli_prepare($conn, "SELECT id, title, philgeps_ref_no, abc, procurement_mode, status FROM procurements WHERE LOWER(status) = ? ORDER BY id DESC LIMIT ? OFFSET ?");
+        mysqli_stmt_bind_param($stmt, "sii", $status_filter, $per_page, $offset);
     } else {
-        $stmt = mysqli_prepare($conn, "SELECT id, title, philgeps_ref_no, abc, procurement_mode, status FROM procurements ORDER BY id DESC");
+        $count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements");
+        mysqli_stmt_execute($count_stmt);
+        $total_shown = (int)mysqli_fetch_row(mysqli_stmt_get_result($count_stmt))[0];
+        mysqli_stmt_close($count_stmt);
+
+        $stmt = mysqli_prepare($conn, "SELECT id, title, philgeps_ref_no, abc, procurement_mode, status FROM procurements ORDER BY id DESC LIMIT ? OFFSET ?");
+        mysqli_stmt_bind_param($stmt, "ii", $per_page, $offset);
     }
 }
+$total_pages = max(1, ceil($total_shown / $per_page));
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 ?><!DOCTYPE html>
@@ -238,9 +268,34 @@ $result = mysqli_stmt_get_result($stmt);
 
         <?php mysqli_stmt_close($stmt); ?>
 
-        <div class="sp-list-foot">
-            Showing <?= mysqli_num_rows($result) ?? 0 ?> procurement(s)
-        </div>
+        <!-- ── Pagination ── -->
+        <?php if ($total_pages > 1): ?>
+            <div class="ap2-pagination" style="padding:14px 20px; border-top:1px solid #edf1ee; display:flex; align-items:center; justify-content:space-between;">
+                <div class="ap2-pagination-info" style="font-size:12px; color:#88968d;">
+                    Showing <strong><?= min($total_shown, $offset + 1) ?></strong> to <strong><?= min($total_shown, $offset + $per_page) ?></strong> of <strong><?= number_format($total_shown) ?></strong> procurements
+                </div>
+                <div class="ap2-pagination-links" style="display:flex; gap:4px;">
+                    <?php if ($page > 1): ?>
+                        <a href="?search=<?= urlencode($search) ?>&status=<?= urlencode($status_filter) ?>&page=<?= $page - 1 ?>" class="vp-back-link" style="padding:4px 10px; font-size:11.5px;">
+                            <i class="bi bi-chevron-left"></i> Prev
+                        </a>
+                    <?php endif; ?>
+
+                    <?php for ($p = 1; $p <= $total_pages; $p++): ?>
+                        <a href="?search=<?= urlencode($search) ?>&status=<?= urlencode($status_filter) ?>&page=<?= $p ?>"
+                           class="vp-back-link" style="padding:4px 10px; font-size:11.5px; <?= $p === $page ? 'background:#06251b; color:#ffc107;' : '' ?>">
+                            <?= $p ?>
+                        </a>
+                    <?php endfor; ?>
+
+                    <?php if ($page < $total_pages): ?>
+                        <a href="?search=<?= urlencode($search) ?>&status=<?= urlencode($status_filter) ?>&page=<?= $page + 1 ?>" class="vp-back-link" style="padding:4px 10px; font-size:11.5px;">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 
 </div>

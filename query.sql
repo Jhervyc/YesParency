@@ -8,6 +8,7 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     role ENUM('user','bidder','admin','superadmin') NOT NULL DEFAULT 'user',
     status ENUM('pending','active','inactive') DEFAULT 'active',
+    profile_picture_url VARCHAR(2048) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

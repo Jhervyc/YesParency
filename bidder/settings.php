@@ -1,8 +1,8 @@
 <?php
 include("utils/protect-page.php");
 
-$user_id    = (int)$_SESSION['user_id'];
-$admin_role = $_SESSION['role'] ?? 'admin';
+$user_id     = (int)$_SESSION['user_id'];
+$bidder_role = $_SESSION['role'] ?? 'bidder';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. HANDLE PROFILE PICTURE UPLOAD
@@ -30,14 +30,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             if ($img_info === false) {
                 $avatar_error = "Uploaded file is not a valid image.";
             } else {
-                // Target root uploads/profile directory
+                // Ensure target uploads/profile folder exists in root
                 $upload_dir = realpath(__DIR__ . '/..') . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'profile';
                 if (!is_dir($upload_dir)) {
                     @mkdir($upload_dir, 0777, true);
                 }
 
                 // Generate safe, unique filename
-                $new_filename = 'avatar_admin_' . $user_id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                $new_filename = 'avatar_' . $user_id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
                 $target_path  = $upload_dir . DIRECTORY_SEPARATOR . $new_filename;
                 $db_rel_path  = 'uploads/profile/' . $new_filename;
 
@@ -63,11 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         $_SESSION['profile_picture_url'] = $db_rel_path;
                         $avatar_success = "Profile photo updated successfully!";
                     } else {
-                        $avatar_error = "Failed to save profile photo path in database.";
+                        $avatar_error = "Failed to save profile picture path in database.";
                     }
                     $upd_stmt->close();
                 } else {
-                    $avatar_error = "Failed to move uploaded photo to uploads/profile folder.";
+                    $avatar_error = "Failed to move uploaded photo to uploads folder. Please check directory permissions.";
                 }
             }
         }
@@ -110,51 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. HANDLE UPDATE PROFILE INFORMATION (Name & Email editable, Username locked)
-// ─────────────────────────────────────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_profile') {
-    $firstname = trim($_POST['firstname'] ?? '');
-    $lastname  = trim($_POST['lastname'] ?? '');
-    $email     = trim($_POST['email'] ?? '');
-
-    $prof_error   = '';
-    $prof_success = '';
-
-    if (empty($firstname) || empty($lastname)) {
-        $prof_error = "First name and last name are required.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $prof_error = "Please provide a valid official email address.";
-    } else {
-        // Check if email is already used by someone else
-        $chk = $conn->prepare("SELECT user_id FROM users WHERE email = ? AND user_id != ?");
-        $chk->bind_param("si", $email, $user_id);
-        $chk->execute();
-        if ($chk->get_result()->num_rows > 0) {
-            $prof_error = "The email address is already in use by another account.";
-        } else {
-            $upd = $conn->prepare("UPDATE users SET firstname = ?, lastname = ?, email = ? WHERE user_id = ?");
-            $upd->bind_param("sssi", $firstname, $lastname, $email, $user_id);
-            if ($upd->execute()) {
-                $prof_success = "Profile information updated successfully!";
-                $_SESSION['firstname'] = $firstname;
-                $_SESSION['lastname']  = $lastname;
-                $_SESSION['email']     = $email;
-            } else {
-                $prof_error = "Failed to update profile information. Please try again.";
-            }
-            $upd->close();
-        }
-        $chk->close();
-    }
-
-    $_SESSION['prof_error']   = $prof_error;
-    $_SESSION['prof_success'] = $prof_success;
-    header("Location: settings.php#profile-card");
-    exit();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 4. HANDLE CHANGE PASSWORD
+// 3. HANDLE CHANGE PASSWORD
 // ─────────────────────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'change_password') {
     $current_pw = $_POST['current_password'] ?? '';
@@ -202,38 +158,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // Flash Messages
 $avatar_error   = $_SESSION['avatar_error']   ?? ''; unset($_SESSION['avatar_error']);
 $avatar_success = $_SESSION['avatar_success'] ?? ''; unset($_SESSION['avatar_success']);
-$prof_error     = $_SESSION['prof_error']     ?? ''; unset($_SESSION['prof_error']);
-$prof_success   = $_SESSION['prof_success']   ?? ''; unset($_SESSION['prof_success']);
 $pw_error       = $_SESSION['pw_error']       ?? ''; unset($_SESSION['pw_error']);
 $pw_success     = $_SESSION['pw_success']     ?? ''; unset($_SESSION['pw_success']);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5. FETCH CURRENT ADMIN DATA
+// 4. FETCH CURRENT USER AND BIDDER PROFILE INFORMATION (READ-ONLY)
 // ─────────────────────────────────────────────────────────────────────────────
-$u_stmt = $conn->prepare("SELECT user_id, firstname, lastname, username, email, role, status, profile_picture_url, created_at FROM users WHERE user_id = ?");
-$u_stmt->bind_param("i", $user_id);
-$u_stmt->execute();
-$current_user = $u_stmt->get_result()->fetch_assoc();
-$u_stmt->close();
+$query = "
+    SELECT 
+        u.user_id,
+        u.firstname,
+        u.lastname,
+        u.username,
+        u.email,
+        u.role,
+        u.status AS user_status,
+        u.profile_picture_url,
+        u.created_at AS registered_at,
+        bp.business_name,
+        bp.philgeps_number,
+        bp.tin_number,
+        bp.business_type,
+        bp.year_established,
+        bp.business_address,
+        bp.business_email,
+        bp.business_phone,
+        bp.application_status
+    FROM users u
+    LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id
+    WHERE u.user_id = ?
+";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$data = $stmt->get_result()->fetch_assoc();
+$stmt->close();
 
-$firstname    = $current_user['firstname'] ?? '';
-$lastname     = $current_user['lastname']  ?? '';
-$fullname     = trim($firstname . ' ' . $lastname) ?: ($current_user['username'] ?? 'Administrator');
-$username     = $current_user['username'] ?? 'N/A';
-$admin_email  = $current_user['email'] ?? 'N/A';
-$role         = strtoupper($current_user['role'] ?? 'ADMIN');
-$status       = ucfirst($current_user['status'] ?? 'Active');
-$avatar_url   = !empty($current_user['profile_picture_url']) ? '../' . ltrim($current_user['profile_picture_url'], '/') : '';
-$member_since = !empty($current_user['created_at']) ? date('F j, Y', strtotime($current_user['created_at'])) : 'N/A';
+$fullname       = trim(($data['firstname'] ?? '') . ' ' . ($data['lastname'] ?? '')) ?: $data['username'];
+$username       = $data['username'] ?? 'N/A';
+$user_email     = $data['email'] ?? 'N/A';
+$role           = ucfirst($data['role'] ?? 'Bidder');
+$user_status    = ucfirst($data['user_status'] ?? 'Active');
+$avatar_url     = !empty($data['profile_picture_url']) ? '../' . ltrim($data['profile_picture_url'], '/') : '';
+$member_since   = !empty($data['registered_at']) ? date('F j, Y', strtotime($data['registered_at'])) : 'N/A';
 
-$initials = strtoupper(substr($firstname ?: 'A', 0, 1) . substr($lastname ?: 'D', 0, 1));
+$business_name   = $data['business_name'] ?? 'Not Specified';
+$philgeps_number = $data['philgeps_number'] ?? 'Not Specified';
+$tin_number      = $data['tin_number'] ?? 'Not Specified';
+$business_type   = $data['business_type'] ?? 'Not Specified';
+$year_est        = $data['year_established'] ?? 'Not Specified';
+$biz_address     = $data['business_address'] ?? 'Not Specified';
+$biz_email       = $data['business_email'] ?? $user_email;
+$biz_phone       = $data['business_phone'] ?? 'Not Specified';
+$app_status      = strtolower($data['application_status'] ?? 'approved');
+
+$initials = strtoupper(substr($data['firstname'] ?? 'B', 0, 1) . substr($data['lastname'] ?? 'P', 0, 1));
+if (trim($initials) === '') $initials = 'BP';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Settings | YesParency Admin Panel</title>
+    <title>Account Settings | YesParency Bidder Portal</title>
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -389,6 +376,12 @@ $initials = strtoupper(substr($firstname ?: 'A', 0, 1) . substr($lastname ?: 'D'
             height: 100%;
         }
 
+        .avatar-action-btns {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
         .btn-set-primary {
             background: #06251b;
             color: #ffc107;
@@ -437,7 +430,7 @@ $initials = strtoupper(substr($firstname ?: 'A', 0, 1) . substr($lastname ?: 'D'
             color: #ffffff;
         }
 
-        /* ── Profile Information (Editable & Locked Form) ── */
+        /* ── Profile Information (Read-Only) ── */
         .info-alert-box {
             background: #f4f8f5;
             border: 1px solid #dcebe1;
@@ -466,94 +459,62 @@ $initials = strtoupper(substr($firstname ?: 'A', 0, 1) . substr($lastname ?: 'D'
             color: #06251b;
         }
 
-        .form-grid-2 {
+        .readonly-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 16px;
         }
 
         @media (max-width: 640px) {
-            .form-grid-2 {
+            .readonly-grid {
                 grid-template-columns: 1fr;
             }
         }
 
-        .form-field-group {
+        .readonly-field-group {
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            margin-bottom: 14px;
+            gap: 5px;
         }
 
-        .form-field-group.span-2 {
+        .readonly-field-group.span-2 {
             grid-column: span 2;
         }
 
         @media (max-width: 640px) {
-            .form-field-group.span-2 {
+            .readonly-field-group.span-2 {
                 grid-column: span 1;
             }
         }
 
-        .field-label {
-            font-size: 11.5px;
+        .readonly-label {
+            font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .4px;
-            color: #55665a;
+            color: #88968d;
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
-        .field-input-wrap {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .field-input-wrap i.prefix-icon {
-            position: absolute;
-            left: 14px;
-            color: #88968d;
-            font-size: 14px;
-            pointer-events: none;
-        }
-
-        .field-input {
-            width: 100%;
-            padding: 10px 14px 10px 38px;
-            border: 1.5px solid #d4e0d8;
-            border-radius: 10px;
-            font-size: 12.5px;
-            font-family: 'Poppins', sans-serif;
-            color: #1a1a1a;
-            outline: none;
-            background: #ffffff;
-            transition: all .15s ease;
-        }
-
-        .field-input:focus {
-            border-color: #1f7a3d;
-            box-shadow: 0 0 0 3px rgba(31,122,61,0.1);
-        }
-
-        /* Locked / Readonly input state */
-        .field-input.locked {
+        .readonly-value-box {
             background: #fafcfb;
             border: 1.5px solid #eef2ef;
-            color: #4a5a50;
-            cursor: not-allowed;
-            padding-right: 36px;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 12.5px;
             font-weight: 600;
+            color: #06251b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 42px;
         }
 
-        .locked-badge-icon {
-            position: absolute;
-            right: 14px;
+        .readonly-value-box i.lock-icon {
             color: #aab5ae;
-            font-size: 13px;
-            pointer-events: none;
+            font-size: 12px;
         }
 
         .status-pill-badge {
@@ -568,10 +529,11 @@ $initials = strtoupper(substr($firstname ?: 'A', 0, 1) . substr($lastname ?: 'D'
             text-transform: uppercase;
         }
 
-        .status-pill-badge.active   { background: #e4f5ea; color: #1f7a3d; }
-        .status-pill-badge.admin    { background: #fef3c7; color: #d97706; }
+        .status-pill-badge.approved { background: #e4f5ea; color: #1f7a3d; }
+        .status-pill-badge.pending  { background: #fef3c7; color: #d97706; }
+        .status-pill-badge.rejected { background: #fee2e2; color: #dc2626; }
 
-        /* ── Password Change Form ── */
+        /* ── Change Password Form ── */
         .pw-form-group {
             display: flex;
             flex-direction: column;
@@ -722,7 +684,7 @@ $initials = strtoupper(substr($firstname ?: 'A', 0, 1) . substr($lastname ?: 'D'
 <?php include("components/sidebar.php"); ?>
 
 <?php 
-$topbar_title = 'Settings';
+$topbar_title = 'Account Settings';
 include("components/topbar.php"); 
 ?>
 
@@ -735,13 +697,13 @@ include("components/topbar.php");
     <!-- Page Header -->
     <div class="page-header" style="margin-bottom:24px;">
         <h2>Account Settings</h2>
-        <p>Manage your administrative profile avatar, personal details, and account security credentials.</p>
+        <p>Manage your bidder portal avatar, view verified credentials, and secure your login password.</p>
     </div>
 
     <!-- 2-Column Settings Layout -->
     <div class="settings-grid">
 
-        <!-- ── LEFT COLUMN: Profile Picture & Security Overview ── -->
+        <!-- ── LEFT COLUMN: Profile Picture & Quick Security ── -->
         <div class="settings-col-left">
 
             <!-- 1. Profile Picture Card -->
@@ -807,13 +769,13 @@ include("components/topbar.php");
                 </div>
             </div>
 
-            <!-- Quick Account Role / Overview Card -->
+            <!-- Quick Account Summary Card -->
             <div class="set-card">
                 <div class="set-card-head">
                     <span class="set-card-title">
-                        <i class="bi bi-shield-check" style="color:#2F6FED;"></i> Account Overview
+                        <i class="bi bi-shield-check" style="color:#2F6FED;"></i> Account Security
                     </span>
-                    <span class="status-pill-badge active"><?= htmlspecialchars($status) ?></span>
+                    <span class="status-pill-badge <?= $app_status ?>"><?= htmlspecialchars($data['application_status'] ?? 'Verified') ?></span>
                 </div>
                 <div class="set-card-body" style="font-size:12px; color:#55665a; line-height:1.6;">
                     <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid #f0f4f2; padding-bottom:6px;">
@@ -821,11 +783,11 @@ include("components/topbar.php");
                         <strong style="color:#06251b;"><?= $member_since ?></strong>
                     </div>
                     <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid #f0f4f2; padding-bottom:6px;">
-                        <span>System Role:</span>
-                        <strong style="color:#06251b;">BAC Secretariat Admin</strong>
+                        <span>Portal Role:</span>
+                        <strong style="color:#06251b;">Registered Bidder</strong>
                     </div>
                     <div style="display:flex; justify-content:space-between;">
-                        <span>Security Protection:</span>
+                        <span>2FA Protection:</span>
                         <span style="color:#1f7a3d; font-weight:700;"><i class="bi bi-shield-lock-fill"></i> Active</span>
                     </div>
                 </div>
@@ -833,98 +795,121 @@ include("components/topbar.php");
 
         </div>
 
-        <!-- ── RIGHT COLUMN: Personal Info (Editable with Locked Username) + Change Password ── -->
+        <!-- ── RIGHT COLUMN: Profile Info (Read-Only) + Change Password ── -->
         <div class="settings-col-right">
 
-            <!-- 2. Personal Information Card -->
-            <div class="set-card" id="profile-card">
+            <!-- 2. Profile Information Card (Read-Only) -->
+            <div class="set-card">
                 <div class="set-card-head">
                     <span class="set-card-title">
-                        <i class="bi bi-person-lines-fill" style="color:#1f7a3d;"></i> Personal &amp; Account Information
+                        <i class="bi bi-building-fill-check" style="color:#1f7a3d;"></i> Bidder &amp; Business Profile
                     </span>
-                    <span style="font-size:11.5px; font-weight:700; color:#88968d;">Administrator Info</span>
+                    <span style="font-size:11.5px; font-weight:700; color:#88968d; display:inline-flex; align-items:center; gap:4px;">
+                        <i class="bi bi-lock-fill" style="color:#aab5ae;"></i> Read-Only
+                    </span>
                 </div>
 
                 <div class="set-card-body">
-                    <?php if (!empty($prof_success)): ?>
-                        <div class="flash-alert success">
-                            <i class="bi bi-check-circle-fill"></i> <?= htmlspecialchars($prof_success) ?>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if (!empty($prof_error)): ?>
-                        <div class="flash-alert error">
-                            <i class="bi bi-exclamation-circle-fill"></i> <?= htmlspecialchars($prof_error) ?>
-                        </div>
-                    <?php endif; ?>
-
                     <div class="info-alert-box">
                         <i class="bi bi-info-circle-fill"></i>
                         <div class="info-alert-text">
-                            <strong>Profile Details:</strong> You can update your official name and contact email below. Your system username and role assignments are permanently locked for audit and security compliance.
+                            <strong>Official Verified Information:</strong> Profile credentials are tied to your validated PhilGEPS accreditation. To request corrections or changes to your company name, TIN, or registered email, please contact the BAC Secretariat.
                         </div>
                     </div>
 
-                    <form method="POST" action="settings.php">
-                        <input type="hidden" name="action" value="update_profile">
-
-                        <div class="form-grid-2">
-                            
-                            <!-- First Name (Editable) -->
-                            <div class="form-field-group">
-                                <label class="field-label" for="firstname"><i class="bi bi-person"></i> First Name</label>
-                                <div class="field-input-wrap">
-                                    <i class="bi bi-person prefix-icon"></i>
-                                    <input type="text" name="firstname" id="firstname" required class="field-input" value="<?= htmlspecialchars($firstname) ?>" placeholder="Enter first name">
-                                </div>
+                    <div class="readonly-grid">
+                        
+                        <!-- Full Name -->
+                        <div class="readonly-field-group">
+                            <span class="readonly-label"><i class="bi bi-person"></i> Authorized Representative</span>
+                            <div class="readonly-value-box">
+                                <span><?= htmlspecialchars($fullname) ?></span>
+                                <i class="bi bi-lock-fill lock-icon"></i>
                             </div>
-
-                            <!-- Last Name (Editable) -->
-                            <div class="form-field-group">
-                                <label class="field-label" for="lastname"><i class="bi bi-person"></i> Last Name</label>
-                                <div class="field-input-wrap">
-                                    <i class="bi bi-person prefix-icon"></i>
-                                    <input type="text" name="lastname" id="lastname" required class="field-input" value="<?= htmlspecialchars($lastname) ?>" placeholder="Enter last name">
-                                </div>
-                            </div>
-
-                            <!-- Username (LOCKED) -->
-                            <div class="form-field-group">
-                                <label class="field-label" for="username"><i class="bi bi-at"></i> Portal Username (Locked)</label>
-                                <div class="field-input-wrap">
-                                    <i class="bi bi-at prefix-icon"></i>
-                                    <input type="text" id="username" class="field-input locked" value="<?= htmlspecialchars($username) ?>" readonly disabled title="Username cannot be changed">
-                                    <i class="bi bi-lock-fill locked-badge-icon"></i>
-                                </div>
-                            </div>
-
-                            <!-- Role (LOCKED) -->
-                            <div class="form-field-group">
-                                <label class="field-label" for="role"><i class="bi bi-shield-check"></i> Account Role (Locked)</label>
-                                <div class="field-input-wrap">
-                                    <i class="bi bi-shield-check prefix-icon"></i>
-                                    <input type="text" id="role" class="field-input locked" value="BAC Secretariat / Admin" readonly disabled title="Role is assigned by system">
-                                    <i class="bi bi-lock-fill locked-badge-icon"></i>
-                                </div>
-                            </div>
-
-                            <!-- Email (Editable) -->
-                            <div class="form-field-group span-2">
-                                <label class="field-label" for="email"><i class="bi bi-envelope"></i> Official Email Address</label>
-                                <div class="field-input-wrap">
-                                    <i class="bi bi-envelope prefix-icon"></i>
-                                    <input type="email" name="email" id="email" required class="field-input" value="<?= htmlspecialchars($admin_email) ?>" placeholder="admin@domain.gov.ph">
-                                </div>
-                            </div>
-
                         </div>
 
-                        <div style="display:flex; justify-content:flex-end; margin-top:14px;">
-                            <button type="submit" class="btn-set-primary" style="width:auto; padding:10px 24px;">
-                                <i class="bi bi-check2-circle"></i> Save Profile Changes
-                            </button>
+                        <!-- Username -->
+                        <div class="readonly-field-group">
+                            <span class="readonly-label"><i class="bi bi-at"></i> Portal Username</span>
+                            <div class="readonly-value-box">
+                                <span><?= htmlspecialchars($username) ?></span>
+                                <i class="bi bi-lock-fill lock-icon"></i>
+                            </div>
                         </div>
-                    </form>
+
+                        <!-- Login Email -->
+                        <div class="readonly-field-group">
+                            <span class="readonly-label"><i class="bi bi-envelope"></i> Login Email Address</span>
+                            <div class="readonly-value-box">
+                                <span><?= htmlspecialchars($user_email) ?></span>
+                                <i class="bi bi-lock-fill lock-icon"></i>
+                            </div>
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="readonly-field-group">
+                            <span class="readonly-label"><i class="bi bi-telephone"></i> Business Telephone</span>
+                            <div class="readonly-value-box">
+                                <span><?= htmlspecialchars($biz_phone) ?></span>
+                                <i class="bi bi-lock-fill lock-icon"></i>
+                            </div>
+                        </div>
+
+                        <!-- Business Name -->
+                        <div class="readonly-field-group span-2">
+                            <span class="readonly-label"><i class="bi bi-building"></i> Registered Business / Entity Name</span>
+                            <div class="readonly-value-box">
+                                <span style="font-weight:700;"><?= htmlspecialchars($business_name) ?></span>
+                                <i class="bi bi-lock-fill lock-icon"></i>
+                            </div>
+                        </div>
+
+                        <!-- PhilGEPS Number -->
+                        <div class="readonly-field-group">
+                            <span class="readonly-label"><i class="bi bi-hash"></i> PhilGEPS Certificate #</span>
+                            <div class="readonly-value-box">
+                                <span style="font-family:'Space Grotesk',sans-serif; font-weight:700; color:#1f7a3d;"><?= htmlspecialchars($philgeps_number) ?></span>
+                                <i class="bi bi-lock-fill lock-icon"></i>
+                            </div>
+                        </div>
+
+                        <!-- TIN -->
+                        <div class="readonly-field-group">
+                            <span class="readonly-label"><i class="bi bi-receipt"></i> Tax ID (TIN)</span>
+                            <div class="readonly-value-box">
+                                <span style="font-family:'Space Grotesk',sans-serif;"><?= htmlspecialchars($tin_number) ?></span>
+                                <i class="bi bi-lock-fill lock-icon"></i>
+                            </div>
+                        </div>
+
+                        <!-- Business Type -->
+                        <div class="readonly-field-group">
+                            <span class="readonly-label"><i class="bi bi-briefcase"></i> Organization Type</span>
+                            <div class="readonly-value-box">
+                                <span><?= htmlspecialchars($business_type) ?></span>
+                                <i class="bi bi-lock-fill lock-icon"></i>
+                            </div>
+                        </div>
+
+                        <!-- Year Established -->
+                        <div class="readonly-field-group">
+                            <span class="readonly-label"><i class="bi bi-calendar-check"></i> Year Established</span>
+                            <div class="readonly-value-box">
+                                <span><?= htmlspecialchars($year_est) ?></span>
+                                <i class="bi bi-lock-fill lock-icon"></i>
+                            </div>
+                        </div>
+
+                        <!-- Address -->
+                        <div class="readonly-field-group span-2">
+                            <span class="readonly-label"><i class="bi bi-geo-alt"></i> Official Business Address</span>
+                            <div class="readonly-value-box">
+                                <span><?= htmlspecialchars($biz_address) ?></span>
+                                <i class="bi bi-lock-fill lock-icon"></i>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
             </div>
 

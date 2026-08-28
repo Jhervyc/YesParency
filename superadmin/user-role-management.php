@@ -87,20 +87,20 @@ $role_filter = isset($_GET['role']) && in_array($_GET['role'], ['all','user','ad
 
 if ($search !== '') {
     if ($role_filter !== 'all') {
-        $stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,status FROM users WHERE role != 'superadmin' AND role = ? AND (username LIKE ? OR email LIKE ? OR firstname LIKE ? OR lastname LIKE ?) ORDER BY role ASC, username ASC");
+        $stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,status,profile_picture_url FROM users WHERE role != 'superadmin' AND role = ? AND (username LIKE ? OR email LIKE ? OR firstname LIKE ? OR lastname LIKE ?) ORDER BY role ASC, username ASC");
         $like = '%'.$search.'%';
         $stmt->bind_param("sssss", $role_filter, $like, $like, $like, $like);
     } else {
-        $stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,status FROM users WHERE role != 'superadmin' AND (username LIKE ? OR email LIKE ? OR firstname LIKE ? OR lastname LIKE ?) ORDER BY role ASC, username ASC");
+        $stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,status,profile_picture_url FROM users WHERE role != 'superadmin' AND (username LIKE ? OR email LIKE ? OR firstname LIKE ? OR lastname LIKE ?) ORDER BY role ASC, username ASC");
         $like = '%'.$search.'%';
         $stmt->bind_param("ssss", $like, $like, $like, $like);
     }
 } else {
     if ($role_filter !== 'all') {
-        $stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,status FROM users WHERE role != 'superadmin' AND role = ? ORDER BY role ASC, username ASC");
+        $stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,status,profile_picture_url FROM users WHERE role != 'superadmin' AND role = ? ORDER BY role ASC, username ASC");
         $stmt->bind_param("s", $role_filter);
     } else {
-        $stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,status FROM users WHERE role != 'superadmin' ORDER BY role ASC, username ASC");
+        $stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,status,profile_picture_url FROM users WHERE role != 'superadmin' ORDER BY role ASC, username ASC");
     }
 }
 $stmt->execute();
@@ -231,16 +231,23 @@ $total_shown = $users->num_rows;
                 </div>
             <?php else: ?>
                 <?php while ($user = $users->fetch_assoc()):
-                    $isSelf    = $user['user_id'] === intval($_SESSION['user_id']);
-                    $initials  = strtoupper(substr($user['firstname'],0,1).substr($user['lastname'],0,1));
-                    $roleClass = $user['role'] === 'admin' ? 'ap2-badge-admin' : ($user['role'] === 'bidder' ? 'ap2-badge-bidder' : 'ap2-badge-user');
+                    $isSelf     = $user['user_id'] === intval($_SESSION['user_id']);
+                    $initials   = strtoupper(substr($user['firstname'],0,1).substr($user['lastname'],0,1));
+                    $roleClass  = $user['role'] === 'admin' ? 'ap2-badge-admin' : ($user['role'] === 'bidder' ? 'ap2-badge-bidder' : 'ap2-badge-user');
                     $safeFullName = htmlspecialchars(addslashes($user['firstname'].' '.$user['lastname']));
                     $safeUsername = htmlspecialchars(addslashes($user['username']));
+                    $userAvatarUrl = !empty($user['profile_picture_url']) ? '../' . ltrim($user['profile_picture_url'], '/') : '';
                 ?>
                 <div class="ap2-user-row">
 
                     <div class="ap2-who-cell">
-                        <div class="ap2-avatar ap2-avatar--<?= $user['role'] ?>"><?= htmlspecialchars($initials) ?></div>
+                        <div class="ap2-avatar ap2-avatar--<?= $user['role'] ?>" style="overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                            <?php if (!empty($userAvatarUrl)): ?>
+                                <img src="<?= htmlspecialchars($userAvatarUrl) ?>" alt="<?= htmlspecialchars($initials) ?>" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+                            <?php else: ?>
+                                <?= htmlspecialchars($initials) ?>
+                            <?php endif; ?>
+                        </div>
                         <div class="ap2-user-text">
                             <div class="ap2-user-name"><?= htmlspecialchars($user['firstname'].' '.$user['lastname']) ?></div>
                             <div class="ap2-user-sub">

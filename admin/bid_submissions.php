@@ -17,15 +17,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_verify_bid']))
     exit();
 }
 
-// Search
+// Search & Filter
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$filter = isset($_GET['filter']) && in_array($_GET['filter'], ['all', 'pending', 'has_bids']) 
+          ? $_GET['filter'] : 'all';
 
 // Live stat counts
-$stat_open   = $conn->query("SELECT COUNT(*) FROM procurements WHERE status = 'open'")->fetch_row()[0];
-$stat_bids   = $conn->query("SELECT COUNT(*) FROM bids b JOIN procurements p ON b.procurement_id = p.id WHERE p.status = 'open'")->fetch_row()[0];
-$stat_pend   = $conn->query("SELECT COUNT(*) FROM bids WHERE status = 'pending'")->fetch_row()[0];
+$stat_open   = (int)$conn->query("SELECT COUNT(*) FROM procurements WHERE status = 'open'")->fetch_row()[0];
+$stat_bids   = (int)$conn->query("SELECT COUNT(*) FROM bids b JOIN procurements p ON b.procurement_id = p.id WHERE p.status = 'open'")->fetch_row()[0];
+$stat_pend   = (int)$conn->query("SELECT COUNT(*) FROM bids b JOIN procurements p ON b.procurement_id = p.id WHERE p.status = 'open' AND b.status = 'pending'")->fetch_row()[0];
+$stat_proc_pending = (int)$conn->query("
+    SELECT COUNT(DISTINCT p.id) 
+    FROM procurements p 
+    JOIN bids b ON p.id = b.procurement_id 
+    WHERE p.status = 'open' AND b.status = 'pending'
+")->fetch_row()[0];
+$stat_proc_with_bids = (int)$conn->query("
+    SELECT COUNT(DISTINCT p.id) 
+    FROM procurements p 
+    JOIN bids b ON p.id = b.procurement_id 
+    WHERE p.status = 'open'
+")->fetch_row()[0];
 
-// Fetch procurements
+// Fetch procurements with optional filter
+$having_clause = "";
+if ($filter === 'pending') {
+    $having_clause = "HAVING pending_bids > 0";
+} elseif ($filter === 'has_bids') {
+    $having_clause = "HAVING total_bids > 0";
+}
+
 if ($search !== '') {
     $like = '%' . $search . '%';
     $ps = $conn->prepare("
@@ -35,7 +56,9 @@ if ($search !== '') {
         FROM procurements p
         LEFT JOIN bids b ON p.id = b.procurement_id
         WHERE p.status = 'open' AND (p.title LIKE ? OR p.philgeps_ref_no LIKE ?)
-        GROUP BY p.id ORDER BY p.id DESC
+        GROUP BY p.id
+        $having_clause
+        ORDER BY pending_bids DESC, p.id DESC
     ");
     $ps->bind_param("ss", $like, $like);
 } else {
@@ -46,7 +69,9 @@ if ($search !== '') {
         FROM procurements p
         LEFT JOIN bids b ON p.id = b.procurement_id
         WHERE p.status = 'open'
-        GROUP BY p.id ORDER BY p.id DESC
+        GROUP BY p.id
+        $having_clause
+        ORDER BY pending_bids DESC, p.id DESC
     ");
 }
 $ps->execute();
@@ -54,39 +79,6 @@ $proc_result = $ps->get_result();
 
 $procurements = [];
 while ($p_row = $proc_result->fetch_assoc()) {
-    $p_id = $p_row['procurement_id'];
-
-    $bs = $conn->prepare("
-        SELECT b.id AS bid_id, b.submission_date, b.status AS bid_status,
-               u.username AS bidder_name, u.email AS bidder_email, u.firstname, u.lastname
-        FROM bids b JOIN users u ON b.bidder_id = u.user_id
-        WHERE b.procurement_id = ? ORDER BY b.submission_date DESC
-    ");
-    $bs->bind_param("i", $p_id);
-    $bs->execute();
-    $bids_res = $bs->get_result();
-
-    $bids = [];
-    while ($b = $bids_res->fetch_assoc()) {
-        $bid_id = $b['bid_id'];
-
-        $ls = $conn->prepare("SELECT l.lot_number, l.lot_title FROM bid_lots bl JOIN lots l ON bl.lot_id = l.id WHERE bl.bid_id = ?");
-        $ls->bind_param("i", $bid_id);
-        $ls->execute();
-        $b['lots'] = $ls->get_result()->fetch_all(MYSQLI_ASSOC);
-        $ls->close();
-
-        $ds = $conn->prepare("SELECT document_name, file_path FROM bid_documents WHERE bid_id = ? AND document_type = 'other' LIMIT 1");
-        $ds->bind_param("i", $bid_id);
-        $ds->execute();
-        $b['receipt'] = $ds->get_result()->fetch_assoc();
-        $ds->close();
-
-        $bids[] = $b;
-    }
-    $bs->close();
-
-    $p_row['bids'] = $bids;
     $procurements[] = $p_row;
 }
 $ps->close();
@@ -119,7 +111,7 @@ $ps->close();
     <!-- ── Stat cards ── -->
     <div class="sad-section-label">Overview</div>
     <div class="ap2-stats" style="grid-template-columns:repeat(3,1fr); margin-bottom:20px;">
-        <div class="ap2-stat">
+        <a href="bid_submissions.php" class="ap2-stat" style="text-decoration:none; color:inherit; cursor:pointer;">
             <div class="ap2-ring" style="background:conic-gradient(#219653 0% 100%, #e7ece9 0%);">
                 <div class="ap2-ring-inner"><i class="bi bi-folder2-open" style="color:#219653;"></i></div>
             </div>
@@ -127,8 +119,8 @@ $ps->close();
                 <div class="ap2-stat-num"><?= $stat_open ?></div>
                 <div class="ap2-stat-lbl">Open Procurements</div>
             </div>
-        </div>
-        <div class="ap2-stat">
+        </a>
+        <a href="bid_submissions.php?filter=has_bids" class="ap2-stat" style="text-decoration:none; color:inherit; cursor:pointer;">
             <div class="ap2-ring" style="background:conic-gradient(#2F6FED 0% 100%, #e7ece9 0%);">
                 <div class="ap2-ring-inner"><i class="bi bi-inbox" style="color:#2F6FED;"></i></div>
             </div>
@@ -136,8 +128,8 @@ $ps->close();
                 <div class="ap2-stat-num"><?= $stat_bids ?></div>
                 <div class="ap2-stat-lbl">Total Bids Received</div>
             </div>
-        </div>
-        <div class="ap2-stat <?= $stat_pend > 0 ? 'bsv-stat-warn' : '' ?>">
+        </a>
+        <a href="bid_submissions.php?filter=pending" class="ap2-stat <?= $stat_pend > 0 ? 'bsv-stat-warn' : '' ?>" style="text-decoration:none; color:inherit; cursor:pointer;">
             <div class="ap2-ring" style="background:conic-gradient(<?= $stat_pend > 0 ? '#e67e22' : '#8B958E' ?> 0% <?= $stat_bids > 0 ? round($stat_pend/$stat_bids*100) : 0 ?>%, #e7ece9 0%);">
                 <div class="ap2-ring-inner"><i class="bi bi-hourglass-split" style="color:<?= $stat_pend > 0 ? '#e67e22' : '#8B958E' ?>;"></i></div>
             </div>
@@ -145,12 +137,12 @@ $ps->close();
                 <div class="ap2-stat-num" style="color:<?= $stat_pend > 0 ? '#e67e22' : 'inherit' ?>"><?= $stat_pend ?></div>
                 <div class="ap2-stat-lbl">Pending Review</div>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- ── List panel ── -->
     <div class="sp-panel sp-list-panel">
-        <!-- ── Search bar ── -->
+        <!-- ── Search & Filter Controls ── -->
         <form method="GET" action="" class="ap2-controls" style="margin-bottom:16px;">
             <div class="ap2-search-field">
                 <i class="bi bi-search"></i>
@@ -158,20 +150,44 @@ $ps->close();
                     placeholder="Search by procurement title or PhilGEPS ref..."
                     value="<?= htmlspecialchars($search) ?>">
             </div>
+
+            <div class="ap2-filters">
+                <button type="submit" name="filter" value="all"
+                        class="ap2-filter-btn <?= $filter === 'all' ? 'active' : '' ?>">
+                    All Open
+                </button>
+                <button type="submit" name="filter" value="pending"
+                        class="ap2-filter-btn <?= $filter === 'pending' ? 'active' : '' ?>">
+                    <i class="bi bi-hourglass-split"></i> Pending Bids
+                    <?php if ($stat_proc_pending > 0): ?>
+                        <span style="background:<?= $filter === 'pending' ? '#ffc107' : '#e67e22' ?>; color:<?= $filter === 'pending' ? '#06251b' : '#fff' ?>; font-size:10.5px; font-weight:800; padding:1px 6px; border-radius:10px; margin-left:4px;">
+                            <?= $stat_proc_pending ?>
+                        </span>
+                    <?php endif; ?>
+                </button>
+                <button type="submit" name="filter" value="has_bids"
+                        class="ap2-filter-btn <?= $filter === 'has_bids' ? 'active' : '' ?>">
+                    <i class="bi bi-inbox"></i> With Bids
+                </button>
+            </div>
+
             <button type="submit" class="ap2-go-btn">
                 <i class="bi bi-search"></i> Search
             </button>
-            <?php if ($search): ?>
-                <a href="bid_submissions.php" class="ap2-filter-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
-                    <i class="bi bi-x"></i> Clear
-                </a>
-            <?php endif; ?>
         </form>
 
         <?php if (empty($procurements)): ?>
             <div class="empty-state" style="padding:48px;">
                 <i class="bi bi-inbox"></i>
-                <p>No open procurements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</p>
+                <p>
+                    <?php if ($filter === 'pending'): ?>
+                        No procurements currently have pending bids to review<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.
+                    <?php elseif ($filter === 'has_bids'): ?>
+                        No procurements with submitted bids found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.
+                    <?php else: ?>
+                        No open procurements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.
+                    <?php endif; ?>
+                </p>
             </div>
 
         <?php else: ?>
@@ -224,6 +240,7 @@ $ps->close();
 
         <div class="sp-list-foot">
             <?= count($procurements) ?> open procurement<?= count($procurements) != 1 ? 's' : '' ?> shown
+            <?= $filter === 'pending' ? ' (filtered by pending bids)' : '' ?>
         </div>
 
     </div><!-- /.sp-panel.sp-list-panel -->

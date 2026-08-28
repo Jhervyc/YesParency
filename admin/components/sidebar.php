@@ -24,7 +24,7 @@ $admin_username          = htmlspecialchars($_SESSION['username'] ?? 'Admin');
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <a class="sidebar-brand" href="../index.php">
-        <img src="../images/procure.jpg" alt="YesParency">
+        <img src="../images/logo.png" alt="YesParency">
         <div class="sidebar-brand-text">
             <div class="name">YesParency</div>
             <div class="sub">Admin Panel</div>
@@ -63,9 +63,18 @@ $admin_username          = htmlspecialchars($_SESSION['username'] ?? 'Admin');
             <i class="bi bi-gear"></i><span>Settings</span>
         </a>
     </nav>
+<?php
+$admin_avatar = !empty($_SESSION['profile_picture_url']) ? '../' . ltrim($_SESSION['profile_picture_url'], '/') : '';
+?>
     <div class="sidebar-footer">
         <div class="sidebar-user">
-            <div class="user-avatar"><i class="bi bi-person"></i></div>
+            <div class="user-avatar" style="overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                <?php if (!empty($admin_avatar)): ?>
+                    <img src="<?= htmlspecialchars($admin_avatar) ?>" alt="<?= $admin_username ?>" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
+                <?php else: ?>
+                    <i class="bi bi-person"></i>
+                <?php endif; ?>
+            </div>
             <div class="user-info">
                 <div class="uname"><?= $admin_username ?></div>
                 <div class="urole">Administrator</div>

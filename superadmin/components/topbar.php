@@ -23,6 +23,8 @@ if (!isset($topbar_title) || empty($topbar_title)) {
     ];
     $topbar_title = $titles_map[$script_name] ?? 'YesParency';
 }
+
+$sa_tb_avatar = !empty($_SESSION['profile_picture_url']) ? '../' . ltrim($_SESSION['profile_picture_url'], '/') : '';
 ?>
 
 <!-- TOPBAR -->
@@ -34,7 +36,13 @@ if (!isset($topbar_title) || empty($topbar_title)) {
     <div class="topbar-right">
         <?php include(__DIR__ . "/notifications.php"); ?>
 
-        <div class="topbar-avatar"><i class="bi bi-person"></i></div>
+        <a href="settings.php?tab=profile" class="topbar-avatar" style="overflow:hidden; display:flex; align-items:center; justify-content:center; text-decoration:none;" title="Account Settings">
+            <?php if (!empty($sa_tb_avatar)): ?>
+                <img src="<?= htmlspecialchars($sa_tb_avatar) ?>" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
+            <?php else: ?>
+                <i class="bi bi-person"></i>
+            <?php endif; ?>
+        </a>
     </div>
 </div>
 
