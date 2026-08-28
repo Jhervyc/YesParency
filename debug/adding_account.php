@@ -20,24 +20,6 @@ $users = [
         "password"  => "admin123",
         "role"      => "admin",
         "status"    => "active"
-    ],
-    [
-        "firstname" => "Sample",
-        "lastname"  => "Bidder",
-        "email"     => "bidder@example.com",
-        "username"  => "bidder",
-        "password"  => "bidder123",
-        "role"      => "bidder",
-        "status"    => "active"
-    ],
-    [
-        "firstname" => "Regular",
-        "lastname"  => "User",
-        "email"     => "user@example.com",
-        "username"  => "user",
-        "password"  => "user123",
-        "role"      => "user",
-        "status"    => "active"
     ]
 ];
 

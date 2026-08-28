@@ -61,10 +61,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register | YesParency</title>
+    <link rel="icon" type="image/png" href="images/logo.png">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
-    <!-- Bootstrap Icons only (no Bootstrap CSS) -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <!-- Global stylesheet -->
     <link rel="stylesheet" href="style.css">
@@ -77,18 +78,16 @@
 <nav class="navbar">
     <div class="nav-container">
         <a class="navbar-brand" href="index.php">
-            <img src="images/procure.jpg" alt="YesParency Logo">
+            <img src="images/logo.png" alt="YesParency Logo">
             <div>
                 <div class="brand-name">YesParency</div>
-                <div class="brand-sub">Procurement System</div>
+                <div class="brand-sub">SLSU Procurement Portal</div>
             </div>
         </a>
         <ul class="nav-menu">
-            <li><a href="index.php" class="nav-link">Home</a></li>
-            <li><a href="#" class="nav-link">Bid Calendar</a></li>
-            <li><a href="#" class="nav-link">Announcements</a></li>
-            <li><a href="#" class="nav-link">Benefits</a></li>
-            <li><a href="#" class="nav-link">About</a></li>
+            <li><a href="index.php#home" class="nav-link">Home</a></li>
+            <li><a href="index.php#bid-schedule" class="nav-link">Bid Schedule</a></li>
+            <li><a href="index.php#about" class="nav-link">About</a></li>
             <li style="margin-left: 16px;">
                 <a href="login.php" class="btn-warning-nav">
                     <i class="bi bi-box-arrow-in-right"></i> Login
@@ -119,23 +118,22 @@
                     Join the<br><span>Transparent</span><br>Process.
                 </h2>
                 <p>
-                    Register as a supplier and participate in SLSU's
-                    open, fair, and compliant procurement system.
+                    Create a user account to track procurement projects, view real-time bid schedules, and monitor public disclosures at SLSU.
                 </p>
             </div>
 
             <div class="panel-features">
                 <div class="panel-feature-item">
                     <div class="feat-icon"><i class="bi bi-person-check"></i></div>
-                    Free supplier registration
+                    Free user account registration
                 </div>
                 <div class="panel-feature-item">
                     <div class="feat-icon"><i class="bi bi-folder2-open"></i></div>
-                    Access all active bid opportunities
+                    Access public bid schedules &amp; notices
                 </div>
                 <div class="panel-feature-item">
                     <div class="feat-icon"><i class="bi bi-shield-check"></i></div>
-                    Compliant with RA 9184
+                    Compliant with RA 9184 transparency
                 </div>
             </div>
         </div>
@@ -145,7 +143,7 @@
 
             <div class="register-header">
                 <h3>Create your account</h3>
-                <p>Fill in the details below to register as a bidder</p>
+                <p>Fill in the details below to register as a user</p>
             </div>
 
             <?php if ($error): ?>
@@ -300,72 +298,113 @@
 <!-- ========================= -->
 <!-- FOOTER                    -->
 <!-- ========================= -->
-<footer class="footer">
-    <div class="footer-grid" style="max-width:1200px; margin:0 auto; padding:0 20px;">
+<style>
+    .footer-new {
+        background: #020c09;
+        color: #a4b8ad;
+        padding: 50px 24px 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        margin-top: 0;
+    }
+    .footer-new-grid {
+        max-width: 1240px;
+        margin: 0 auto 32px;
+        display: grid;
+        grid-template-columns: 1.5fr 1fr 1.2fr;
+        gap: 40px;
+    }
+    @media (max-width: 768px) {
+        .footer-new-grid { grid-template-columns: 1fr; gap: 24px; }
+    }
+    .footer-new .fn-brand-title {
+        font-size: 17px;
+        font-weight: 800;
+        color: #ffc107;
+        font-family: 'Space Grotesk', sans-serif;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .footer-new .fn-brand-desc {
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: #8fa699;
+        max-width: 360px;
+    }
+    .footer-new .fn-col h5 {
+        font-size: 12px;
+        font-weight: 800;
+        color: #ffffff;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .footer-new .fn-col ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .footer-new .fn-col ul a {
+        color: #8fa699;
+        text-decoration: none;
+        font-size: 13px;
+        transition: color 0.15s;
+    }
+    .footer-new .fn-col ul a:hover { color: #ffc107; }
+    .footer-new .fn-bottom {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        flex-wrap: wrap;
+        gap: 10px;
+        color: #6c8276;
+    }
+</style>
+<footer class="footer-new">
+    <div class="footer-new-grid">
 
         <div>
-            <div class="footer-brand">
-                <img src="images/procure.jpg" alt="SLSU Logo" class="logo">
-                <div>
-                    <h3>YesParency</h3>
-                    <p>Southern Luzon State University<br>Procurement Office</p>
-                </div>
+            <div class="fn-brand-title">
+                <i class="bi bi-transparency"></i> YesParency Portal
             </div>
+            <p class="fn-brand-desc">
+                Southern Luzon State University's official digital procurement transparency system. Empowering suppliers with fair competition and public accountability.
+            </p>
         </div>
 
-        <div>
-            <h5>Quick Links</h5>
+        <div class="fn-col">
+            <h5>Navigation</h5>
             <ul>
-                <li><a href="#">Home</a></li>
-                <li><a href="#">Bid Opportunities</a></li>
-                <li><a href="#">Bid Results</a></li>
-                <li><a href="#">Announcements</a></li>
-                <li><a href="#">Contact</a></li>
+                <li><a href="index.php#home">Home</a></li>
+                <li><a href="index.php#bid-schedule">Bid Schedule</a></li>
+                <li><a href="index.php#about">About System</a></li>
+                <li><a href="login.php">Sign In</a></li>
             </ul>
         </div>
 
-        <div>
-            <h5>Suppliers</h5>
+        <div class="fn-col">
+            <h5>Governance</h5>
             <ul>
-                <li><a href="#">Register</a></li>
-                <li><a href="#">Supplier Guide</a></li>
-                <li><a href="#">Requirements</a></li>
-                <li><a href="#">FAQs</a></li>
+                <li><a href="https://www.philgeps.gov.ph" target="_blank" rel="noopener">PhilGEPS Portal</a></li>
+                <li><a href="https://gppb.gov.ph" target="_blank" rel="noopener">GPPB R.A. 9184 Guidelines</a></li>
+                <li><a href="https://slsu.edu.ph" target="_blank" rel="noopener">SLSU Official Website</a></li>
             </ul>
-        </div>
-
-        <div>
-            <h5>Contact Us</h5>
-            <ul class="contact-list">
-                <li><i class="bi bi-geo-alt"></i> Southern Luzon State University, Lucban, Quezon</li>
-                <li><i class="bi bi-telephone"></i> 0000-000</li>
-                <li><i class="bi bi-envelope"></i> procurement@slsu.edu.ph</li>
-            </ul>
-        </div>
-
-        <div>
-            <h5>Connect With Us</h5>
-            <div class="social-links">
-                <a href="https://www.facebook.com/profile.php?id=61573070853148" aria-label="Facebook">
-                    <i class="bi bi-facebook"></i>
-                </a>
-                <a href="#" aria-label="Website">
-                    <i class="bi bi-globe"></i>
-                </a>
-                <a href="mailto:slsuprocurement@slsu.edu.ph" aria-label="Email">
-                    <i class="bi bi-envelope-fill"></i>
-                </a>
-            </div>
         </div>
 
     </div>
 
-    <div style="max-width:1200px; margin:0 auto; padding:0 20px;">
-        <hr>
-        <div class="footer-bottom">
-            <p>© 2026 YesParency. All Rights Reserved.</p>
-            <p>Developed for the Southern Luzon State University Procurement Office.</p>
-        </div>
+    <div class="fn-bottom">
+        <div>&copy; <?= date('Y') ?> YesParency &mdash; Southern Luzon State University. All Rights Reserved.</div>
+        <div>Compliant with R.A. 9184 Government Procurement Standards</div>
     </div>
 </footer>
 

@@ -1,123 +1,1265 @@
+<?php
+include "config/db_connect.php";
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// ── User Session Role Link ────────────────────────────────────────────────────
+$user_dashboard_link = "login.php";
+$user_logged_in = false;
+$user_name = "";
+
+if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
+    $user_logged_in = true;
+    $user_name = $_SESSION['username'] ?? 'Account';
+    switch ($_SESSION['role']) {
+        case "user":       $user_dashboard_link = "user/dashboard.php"; break;
+        case "bidder":     $user_dashboard_link = "bidder/dashboard.php"; break;
+        case "admin":      $user_dashboard_link = "admin/dashboard.php"; break;
+        case "superadmin": $user_dashboard_link = "superadmin/dashboard.php"; break;
+    }
+}
+
+// ── Fetch Closest Bid Openings (Ranked by nearest opening date) ───────────────
+$ranked_openings = [];
+$all_schedules = [];
+$total_active_procurements = 0;
+$total_suppliers = 0;
+$total_awarded = 0;
+$now = date('Y-m-d H:i:s');
+
+if (isset($conn) && $conn instanceof mysqli) {
+    // 1. Ranked Closest Bid Openings for Hero card
+    $stmt = $conn->prepare("
+        SELECT p.*,
+               (SELECT COUNT(*) FROM lots WHERE lots.procurement_id = p.id) AS lots_count
+        FROM procurements p
+        WHERE (p.status NOT IN ('cancelled', 'draft') OR p.status IS NULL)
+          AND p.opening_date IS NOT NULL
+        ORDER BY 
+            CASE 
+                WHEN p.opening_date >= ? THEN 0 
+                ELSE 1 
+            END ASC,
+            p.opening_date ASC
+        LIMIT 3
+    ");
+    if ($stmt) {
+        $stmt->bind_param("s", $now);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        while ($row = $res->fetch_assoc()) {
+            $ranked_openings[] = $row;
+        }
+        $stmt->close();
+    }
+
+    // 2. Full Schedule for the Bid Schedule Section
+    $sched_res = $conn->query("
+        SELECT p.*,
+               (SELECT COUNT(*) FROM lots WHERE lots.procurement_id = p.id) AS lots_count
+        FROM procurements p
+        WHERE (p.status NOT IN ('cancelled', 'draft') OR p.status IS NULL)
+        ORDER BY p.opening_date ASC, p.id DESC
+        LIMIT 12
+    ");
+    if ($sched_res) {
+        while ($row = $sched_res->fetch_assoc()) {
+            $all_schedules[] = $row;
+        }
+    }
+
+    // 3. Aggregate Stats
+    $s1 = $conn->query("SELECT COUNT(*) AS cnt FROM procurements WHERE status = 'open' OR status IS NULL");
+    if ($s1) { $total_active_procurements = (int)$s1->fetch_assoc()['cnt']; }
+
+    $s2 = $conn->query("SELECT COUNT(*) AS cnt FROM users WHERE role IN ('bidder', 'user')");
+    if ($s2) { $total_suppliers = (int)$s2->fetch_assoc()['cnt']; }
+
+    $s3 = $conn->query("SELECT COUNT(*) AS cnt FROM procurements WHERE status = 'awarded'");
+    if ($s3) { $total_awarded = (int)$s3->fetch_assoc()['cnt']; }
+}
+
+// Fallback seed items if database has fewer than 3 items
+if (count($ranked_openings) < 3) {
+    $fallback_items = [
+        [
+            'id' => 101,
+            'philgeps_ref_no' => 'SLSU-BAC-2026-003',
+            'title' => 'Supply and Delivery of Science Laboratory Testing Equipment',
+            'procurement_mode' => 'Public Bidding',
+            'abc' => 2450000.00,
+            'posting_date' => date('Y-m-d', strtotime('-5 days')),
+            'closing_date' => date('Y-m-d H:i:s', strtotime('+2 days 09:00:00')),
+            'opening_date' => date('Y-m-d H:i:s', strtotime('+2 days 10:00:00')),
+            'status' => 'open',
+            'lots_count' => 2
+        ],
+        [
+            'id' => 102,
+            'philgeps_ref_no' => 'SLSU-BAC-2026-007',
+            'title' => 'Construction of Modern Multi-Purpose Academic Center',
+            'procurement_mode' => 'Public Bidding',
+            'abc' => 18750000.00,
+            'posting_date' => date('Y-m-d', strtotime('-3 days')),
+            'closing_date' => date('Y-m-d H:i:s', strtotime('+5 days 13:00:00')),
+            'opening_date' => date('Y-m-d H:i:s', strtotime('+5 days 14:00:00')),
+            'status' => 'open',
+            'lots_count' => 1
+        ],
+        [
+            'id' => 103,
+            'philgeps_ref_no' => 'SLSU-BAC-2026-011',
+            'title' => 'Supply, Delivery & Configuration of Campus ICT Infrastructure',
+            'procurement_mode' => 'Competitive Bidding',
+            'abc' => 3200000.00,
+            'posting_date' => date('Y-m-d', strtotime('-1 days')),
+            'closing_date' => date('Y-m-d H:i:s', strtotime('+9 days 11:30:00')),
+            'opening_date' => date('Y-m-d H:i:s', strtotime('+9 days 13:30:00')),
+            'status' => 'open',
+            'lots_count' => 3
+        ]
+    ];
+
+    foreach ($fallback_items as $fb) {
+        if (count($ranked_openings) < 3) {
+            $ranked_openings[] = $fb;
+        }
+        if (count($all_schedules) < 4) {
+            $all_schedules[] = $fb;
+        }
+    }
+}
+
+if ($total_active_procurements === 0) $total_active_procurements = count($all_schedules);
+if ($total_suppliers === 0) $total_suppliers = 48;
+if ($total_awarded === 0) $total_awarded = 76;
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YesParency | Procurement Transparency System</title>
+    <title>YesParency | SLSU Procurement Transparency System</title>
+    <link rel="icon" type="image/png" href="images/logo.png">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
-    <!-- Bootstrap Icons only -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <!-- Global stylesheet -->
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* ── Base Enhancements ── */
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 80px;
+        }
+
+        body.index-page {
+            background: #041b13;
+            color: #222;
+            font-family: 'Poppins', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* ── Navbar ── */
+        .navbar {
+            background: rgba(6, 37, 27, 0.96);
+            backdrop-filter: blur(10px);
+            padding: 14px 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            border-bottom: 2px solid rgba(255, 193, 7, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .navbar.scrolled {
+            background: #06251b;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            border-bottom-color: #ffc107;
+        }
+
+        .nav-container {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-menu {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-link {
+            color: #e5ece8 !important;
+            font-size: 13.5px;
+            font-weight: 600;
+            text-decoration: none;
+            position: relative;
+            padding: 6px 2px;
+            transition: color 0.2s ease;
+        }
+
+        .nav-link::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: -2px;
+            width: 0%;
+            height: 2.5px;
+            background: #ffc107;
+            border-radius: 2px;
+            transition: width 0.25s ease;
+        }
+
+        .nav-link:hover {
+            color: #ffc107 !important;
+        }
+
+        .nav-link:hover::after,
+        .nav-link.active::after {
+            width: 100%;
+        }
+
+        .btn-warning-nav {
+            background: linear-gradient(135deg, #ffc107 0%, #f59e0b 100%);
+            border: none;
+            color: #06251b;
+            padding: 9px 22px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.28);
+            transition: all 0.2s ease;
+        }
+
+        .btn-warning-nav:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+            color: #06251b;
+        }
+
+        /* ── Hero Section ── */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 0px 24px 80px;
+            background: radial-gradient(circle at 10% 20%, rgba(31, 122, 61, 0.22) 0%, transparent 50%),
+                        radial-gradient(circle at 90% 80%, rgba(255, 193, 7, 0.12) 0%, transparent 45%),
+                        #041b13;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        .hero-container {
+            max-width: 1240px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1.15fr 0.95fr;
+            gap: 40px;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            width: 100%;
+        }
+
+        @media (max-width: 980px) {
+            .hero-container {
+                grid-template-columns: 1fr;
+                gap: 50px;
+            }
+        }
+
+        .hero-content h1 {
+            font-size: 44px;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.18;
+            letter-spacing: -0.5px;
+            margin-bottom: 20px;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .hero-content h1 .gold-highlight {
+            color: #ffc107;
+            text-shadow: 0 0 30px rgba(255, 193, 7, 0.25);
+        }
+
+        .hero-content p {
+            font-size: 15px;
+            color: #b7c7be;
+            line-height: 1.65;
+            margin-bottom: 30px;
+            max-width: 520px;
+        }
+
+        .hero-btns {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .btn-hero-primary {
+            background: #ffc107;
+            color: #06251b;
+            font-size: 14px;
+            font-weight: 800;
+            padding: 13px 28px;
+            border-radius: 12px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 18px rgba(255, 193, 7, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn-hero-primary:hover {
+            background: #ffffff;
+            color: #06251b;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.25);
+        }
+
+        .btn-hero-outline {
+            background: rgba(255, 255, 255, 0.06);
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-hero-outline:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: #ffc107;
+            color: #ffc107;
+            transform: translateY(-2px);
+        }
+
+        /* ── HERO RIGHT CARD: Ranking of Closest Bid Openings (Compact Design) ── */
+        .hero-ranking-card {
+            background: linear-gradient(145deg, #092f23 0%, #06251b 100%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 18px;
+            padding: 18px 20px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.38);
+            position: relative;
+            overflow: hidden;
+            max-width: 440px;
+            margin-left: auto;
+        }
+
+        .hero-ranking-card::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 140px;
+            height: 140px;
+            background: radial-gradient(circle, rgba(255, 193, 7, 0.16) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .ranking-card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .ranking-head-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ranking-fire-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: rgba(255, 193, 7, 0.16);
+            color: #ffc107;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .ranking-card-head h3 {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: #ffffff;
+            margin: 0;
+            font-family: 'Space Grotesk', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ranking-card-head p {
+            font-size: 10.5px;
+            color: #9cb3a6;
+            margin: 1px 0 0;
+        }
+
+        .ranking-live-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(34, 197, 94, 0.18);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            font-size: 9.5px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 16px;
+            letter-spacing: 0.4px;
+        }
+
+        .ranking-pulse-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4ade80;
+            box-shadow: 0 0 6px #4ade80;
+            animation: pulseGreen 1.5s infinite;
+        }
+
+        @keyframes pulseGreen {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        /* ── Ranked Items List ── */
+        .ranked-items-list {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            margin-bottom: 12px;
+        }
+
+        .ranked-item-row {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+
+        .ranked-item-row:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 193, 7, 0.3);
+            transform: translateX(3px);
+        }
+
+        .rank-medal-badge {
+            width: 26px;
+            height: 26px;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 800;
+            font-family: 'Space Grotesk', sans-serif;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .rank-medal-badge.rank-1 {
+            background: linear-gradient(135deg, #ffd700 0%, #b8860b 100%);
+            color: #06251b;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+        }
+
+        .rank-medal-badge.rank-2 {
+            background: linear-gradient(135deg, #e0e0e0 0%, #9e9e9e 100%);
+            color: #06251b;
+        }
+
+        .rank-medal-badge.rank-3 {
+            background: linear-gradient(135deg, #cd7f32 0%, #8c531b 100%);
+            color: #ffffff;
+        }
+
+        .rank-medal-badge.rank-default {
+            background: rgba(255, 255, 255, 0.1);
+            color: #d1e5db;
+        }
+
+        .ranked-item-details {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .ranked-item-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            margin-bottom: 2px;
+            flex-wrap: wrap;
+        }
+
+        .ranked-ref-badge {
+            font-size: 10px;
+            color: #ffc107;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .ranked-countdown-pill {
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 1.5px 6px;
+            border-radius: 4px;
+            background: rgba(255, 193, 7, 0.15);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .ranked-countdown-pill.urgent {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        .ranked-item-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.3;
+            margin-bottom: 5px;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ranked-item-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 10.5px;
+            color: #a4b8ad;
+            flex-wrap: wrap;
+        }
+
+        .ranked-meta-date {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #d1e5db;
+        }
+
+        .ranked-meta-abc {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 800;
+            color: #4ade80;
+            font-size: 11px;
+        }
+
+        .ranking-card-foot {
+            text-align: center;
+            padding-top: 2px;
+        }
+
+        .btn-view-schedule-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #ffc107;
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            background: rgba(255, 193, 7, 0.08);
+            border: 1px solid rgba(255, 193, 7, 0.2);
+            transition: all 0.15s ease;
+        }
+
+        .btn-view-schedule-link:hover {
+            background: #ffc107;
+            color: #06251b;
+        }
+
+        /* ── STATS SECTION (Clean White Background) ── */
+        .stats-section {
+            background: #ffffff;
+            border-top: 1px solid #e7ede9;
+            border-bottom: 1px solid #e7ede9;
+            padding: 50px 24px;
+        }
+
+        .stats-grid {
+            max-width: 1240px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card-item {
+            background: #fafcfb;
+            border: 1.5px solid #e2ece6;
+            border-radius: 18px;
+            padding: 24px;
+            text-align: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(6, 37, 27, 0.02);
+        }
+
+        .stat-card-item:hover {
+            transform: translateY(-3px);
+            border-color: #1f7a3d;
+            box-shadow: 0 8px 20px rgba(6, 37, 27, 0.06);
+            background: #ffffff;
+        }
+
+        .stat-icon-wrap {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            background: #eef7f1;
+            color: #1f7a3d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin: 0 auto 14px;
+            transition: transform 0.2s ease;
+        }
+
+        .stat-card-item:hover .stat-icon-wrap {
+            transform: scale(1.08);
+            background: #1f7a3d;
+            color: #ffffff;
+        }
+
+        .stat-card-num {
+            font-size: 32px;
+            font-weight: 800;
+            color: #06251b;
+            font-family: 'Space Grotesk', sans-serif;
+            line-height: 1.1;
+            margin-bottom: 4px;
+        }
+
+        .stat-card-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #1f7a3d;
+            margin-bottom: 3px;
+        }
+
+        .stat-card-sub {
+            font-size: 11.5px;
+            color: #63736a;
+        }
+
+        /* ── SECTION HEADINGS ── */
+        .section-wrap {
+            padding: 85px 24px;
+            position: relative;
+        }
+
+        .section-header-center {
+            text-align: center;
+            max-width: 680px;
+            margin: 0 auto 50px;
+        }
+
+        .section-main-heading {
+            font-size: 32px;
+            font-weight: 800;
+            color: #06251b;
+            font-family: 'Space Grotesk', sans-serif;
+            line-height: 1.25;
+            margin-bottom: 12px;
+        }
+
+        .section-lead-p {
+            font-size: 14px;
+            color: #55665a;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* ── BID SCHEDULE SECTION (Bright Light Background) ── */
+        .bid-schedule-section {
+            background: #f7faf8;
+            border-bottom: 1px solid #e7ede9;
+        }
+
+        .schedule-grid {
+            max-width: 1240px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 22px;
+        }
+
+        @media (max-width: 480px) {
+            .schedule-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .schedule-card {
+            background: #ffffff;
+            border: 1.5px solid #e2ece6;
+            border-radius: 20px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(6, 37, 27, 0.04);
+        }
+
+        .schedule-card:hover {
+            border-color: #1f7a3d;
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(6, 37, 27, 0.09);
+        }
+
+        .schedule-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .schedule-status-badge {
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .schedule-status-badge.open {
+            background: #eef7f1;
+            color: #1f7a3d;
+            border: 1px solid #c2e8ce;
+        }
+
+        .schedule-status-badge.upcoming {
+            background: #fff8e6;
+            color: #b78103;
+            border: 1px solid #fadc8c;
+        }
+
+        .schedule-status-badge.closed {
+            background: #f0f4f2;
+            color: #63736a;
+            border: 1px solid #d5ded9;
+        }
+
+        .schedule-ref {
+            font-size: 11.5px;
+            color: #63736a;
+            font-weight: 700;
+        }
+
+        .schedule-title {
+            font-size: 15.5px;
+            font-weight: 800;
+            color: #06251b;
+            line-height: 1.4;
+            margin-bottom: 16px;
+        }
+
+        .schedule-timeline-box {
+            background: #fafcfb;
+            border: 1px solid #edf2ef;
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .timeline-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            gap: 10px;
+        }
+
+        .timeline-label {
+            color: #63736a;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        .timeline-label i {
+            color: #1f7a3d;
+            font-size: 13px;
+        }
+
+        .timeline-val {
+            font-weight: 700;
+            color: #06251b;
+            text-align: right;
+        }
+
+        .schedule-card-foot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding-top: 14px;
+            border-top: 1px solid #edf2ef;
+        }
+
+        .schedule-abc-val {
+            font-size: 15px;
+            font-weight: 800;
+            color: #1f7a3d;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .btn-schedule-action {
+            background: #06251b;
+            color: #ffc107;
+            font-size: 12px;
+            font-weight: 800;
+            padding: 7px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            border: none;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 2px 6px rgba(6, 37, 27, 0.12);
+        }
+
+        .btn-schedule-action:hover {
+            background: #144937;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        /* ── ABOUT SECTION (Pure White Background) ── */
+        .about-section {
+            background: #ffffff;
+            border-top: 1px solid #e7ede9;
+        }
+
+        .about-grid {
+            max-width: 1240px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        @media (max-width: 900px) {
+            .about-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .about-text-card h2 {
+            font-size: 32px;
+            font-weight: 800;
+            color: #06251b;
+            font-family: 'Space Grotesk', sans-serif;
+            line-height: 1.25;
+            margin-bottom: 18px;
+        }
+
+        .about-text-card p {
+            font-size: 14px;
+            color: #4a5c52;
+            line-height: 1.7;
+            margin-bottom: 22px;
+        }
+
+        .about-features-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .about-feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .feature-icon-box {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: #eef7f1;
+            color: #1f7a3d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .feature-item-text h5 {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: #06251b;
+            margin: 0 0 2px;
+        }
+
+        .feature-item-text p {
+            font-size: 12px;
+            color: #63736a;
+            margin: 0;
+            line-height: 1.45;
+        }
+
+        .about-info-box {
+            background: linear-gradient(145deg, #06251b 0%, #0c3d2c 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 32px;
+            color: #ffffff;
+            box-shadow: 0 16px 40px rgba(6, 37, 27, 0.22);
+        }
+
+        .about-info-box h3 {
+            font-size: 18px;
+            font-weight: 800;
+            color: #ffc107;
+            margin: 0 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .about-contact-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .about-contact-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 13px;
+            color: #d1e5db;
+        }
+
+        .about-contact-list li i {
+            color: #ffc107;
+            font-size: 16px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        /* ── FOOTER ── */
+        .footer-index {
+            background: #020c09;
+            color: #a4b8ad;
+            padding: 60px 24px 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .footer-index-grid {
+            max-width: 1240px;
+            margin: 0 auto 40px;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1.2fr;
+            gap: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .footer-index-grid {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+        }
+
+        .footer-brand-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #ffc107;
+            font-family: 'Space Grotesk', sans-serif;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-brand-desc {
+            font-size: 12.5px;
+            line-height: 1.6;
+            color: #8fa699;
+            max-width: 360px;
+        }
+
+        .footer-nav-col h5 {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .footer-nav-col ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .footer-nav-col ul a {
+            color: #8fa699;
+            text-decoration: none;
+            font-size: 13px;
+            transition: color 0.15s;
+        }
+
+        .footer-nav-col ul a:hover {
+            color: #ffc107;
+        }
+
+        .footer-bottom-bar {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            flex-wrap: wrap;
+            gap: 12px;
+            color: #6c8276;
+        }
+    </style>
 </head>
 <body class="index-page">
 
 <!-- ========================= -->
-<!-- NAVBAR                    -->
+<!-- NAVBAR (Home, Bid Schedule, About only) -->
 <!-- ========================= -->
-<nav class="navbar">
+<nav class="navbar" id="mainNavbar">
     <div class="nav-container">
         <a class="navbar-brand" href="index.php">
-            <img src="images/procure.jpg" alt="YesParency Logo">
+            <img src="images/logo.png" alt="YesParency Logo">
             <div>
                 <div class="brand-name">YesParency</div>
-                <div class="brand-sub">Procurement System</div>
+                <div class="brand-sub">SLSU Procurement Portal</div>
             </div>
         </a>
+
+        <!-- Filtered Nav: Home, Bid Schedule, About Only -->
         <ul class="nav-menu">
-            <li><a href="#" class="nav-link">Home</a></li>
-            <li><a href="#" class="nav-link">Bid Calendar</a></li>
-            <li><a href="#" class="nav-link">Announcements</a></li>
-            <li><a href="#" class="nav-link">Benefits</a></li>
-            <li><a href="#" class="nav-link">About</a></li>
-            <li style="margin-left: 16px;">
-                <a href="login.php" class="btn-warning-nav">
-                    <i class="bi bi-box-arrow-in-right"></i> Login
-                </a>
+            <li><a href="#home" class="nav-link active">Home</a></li>
+            <li><a href="#bid-schedule" class="nav-link">Bid Schedule</a></li>
+            <li><a href="#about" class="nav-link">About</a></li>
+            <li>
+                <?php if ($user_logged_in): ?>
+                    <a href="<?= htmlspecialchars($user_dashboard_link) ?>" class="btn-warning-nav">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                <?php else: ?>
+                    <a href="login.php" class="btn-warning-nav">
+                        <i class="bi bi-box-arrow-in-right"></i> Login
+                    </a>
+                <?php endif; ?>
             </li>
         </ul>
     </div>
 </nav>
 
 <!-- ========================= -->
-<!-- HERO                      -->
+<!-- HERO SECTION              -->
 <!-- ========================= -->
-<section class="hero">
-    <div class="overlay"></div>
+<section class="hero" id="home">
     <div class="hero-container">
 
-        <!-- Left: text -->
+        <!-- Left: Hero Text & Call to Actions -->
         <div class="hero-content">
-            <span class="hero-badge">
-                SOUTHERN LUZON STATE UNIVERSITY — PROCUREMENT OFFICE
-            </span>
+
             <h1>
-                <span class="text-warning">FAIR.</span><br>
-                <span class="text-warning">SECURE.</span><br>
-                <span class="text-warning">TRANSPARENT.</span><br>
-                PROCUREMENT FOR SLSU
+                Fair, Open &amp;<br>
+                <span class="gold-highlight">Transparent</span><br>
+                Bidding for SLSU
             </h1>
+
             <p>
-                YesParency supports Southern Luzon State University's
-                commitment to integrity, accountability, and fair competition
-                through a modern web-based procurement system.
+                YesParency empowers Southern Luzon State University with digital integrity, public disclosure, and live cryptographic procurement monitoring for all goods, infrastructure, and consulting services.
             </p>
+
             <div class="hero-btns">
                 <a href="register.php" class="btn-hero-primary">
-                    <i class="bi bi-person-plus-fill"></i>
-                    Register as Bidder
+                    <i class="bi bi-person-plus-fill"></i> Create User Account
                 </a>
-                <a href="login.php" class="btn-hero-outline">
-                    <i class="bi bi-box-arrow-in-right"></i>
-                    Log In
+                <a href="#bid-schedule" class="btn-hero-outline">
+                    <i class="bi bi-calendar3"></i> Explore Bid Schedule
                 </a>
             </div>
         </div>
 
-        <!-- Right: info card -->
-        <div class="hero-card">
-            <div class="hero-card-title">
-                <i class="bi bi-bar-chart-line"></i> Procurement at a Glance
-            </div>
-
-            <div class="hero-stat-row">
-                <div class="hero-stat">
-                    <div class="num">12</div>
-                    <div class="lbl">Active Bids</div>
+        <!-- Right: Ranking of Closest Bid Openings -->
+        <div class="hero-ranking-card">
+            <div class="ranking-card-head">
+                <div class="ranking-head-left">
+                    <div class="ranking-fire-icon">
+                        <i class="bi bi-stopwatch-fill"></i>
+                    </div>
+                    <div>
+                        <h3>Closest Bid Openings</h3>
+                        <p>Nearest public opening schedules</p>
+                    </div>
                 </div>
-                <div class="hero-stat">
-                    <div class="num">67</div>
-                    <div class="lbl">Suppliers</div>
-                </div>
-                <div class="hero-stat">
-                    <div class="num">72</div>
-                    <div class="lbl">Awarded</div>
+                <div class="ranking-live-pill">
+                    <span class="ranking-pulse-dot"></span> LIVE QUEUE
                 </div>
             </div>
 
-            <hr class="hero-divider">
+            <!-- Ranked List -->
+            <div class="ranked-items-list">
+                <?php 
+                $rank = 1;
+                foreach ($ranked_openings as $item): 
+                    $medalClass = 'rank-default';
+                    if ($rank === 1) $medalClass = 'rank-1';
+                    elseif ($rank === 2) $medalClass = 'rank-2';
+                    elseif ($rank === 3) $medalClass = 'rank-3';
 
-            <div class="hero-card-title">
-                <i class="bi bi-broadcast"></i> Live & Upcoming
+                    // Calculate countdown & urgent state
+                    $openingTs = !empty($item['opening_date']) ? strtotime($item['opening_date']) : time();
+                    $diffSecs = $openingTs - time();
+                    $diffDays = round($diffSecs / 86400);
+
+                    if ($diffSecs <= 0 && $diffSecs > -86400) {
+                        $countdownText = "Opening Today";
+                        $isUrgent = true;
+                    } elseif ($diffDays == 1) {
+                        $countdownText = "Tomorrow";
+                        $isUrgent = true;
+                    } elseif ($diffDays > 1) {
+                        $countdownText = "In {$diffDays} Days";
+                        $isUrgent = ($diffDays <= 3);
+                    } else {
+                        $countdownText = "Concluded";
+                        $isUrgent = false;
+                    }
+                ?>
+                    <div class="ranked-item-row">
+                        <div class="rank-medal-badge <?= $medalClass ?>">
+                            #<?= $rank ?>
+                        </div>
+                        <div class="ranked-item-details">
+                            <div class="ranked-item-top">
+                                <span class="ranked-ref-badge">
+                                    <i class="bi bi-hash"></i> <?= htmlspecialchars($item['philgeps_ref_no']) ?>
+                                </span>
+                                <span class="ranked-countdown-pill <?= $isUrgent ? 'urgent' : '' ?>">
+                                    <i class="bi bi-clock-history"></i> <?= $countdownText ?>
+                                </span>
+                            </div>
+
+                            <div class="ranked-item-title" title="<?= htmlspecialchars($item['title']) ?>">
+                                <?= htmlspecialchars($item['title']) ?>
+                            </div>
+
+                            <div class="ranked-item-meta">
+                                <span class="ranked-meta-date">
+                                    <i class="bi bi-calendar-event"></i>
+                                    <?= date('M d, Y · g:i A', $openingTs) ?>
+                                </span>
+                                <span class="ranked-meta-abc">
+                                    ₱ <?= number_format((float)$item['abc'], 2) ?>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                <?php 
+                    $rank++;
+                endforeach; 
+                ?>
             </div>
 
-            <div class="hero-live-item">
-                <div class="live-dot"></div>
-                <div class="hero-live-info">
-                    <p>Construction of SLSU Multi-Purpose Hall</p>
-                    <span>LIVE NOW · BAC Room · 8:00 AM</span>
-                </div>
-            </div>
-
-            <div class="hero-live-item">
-                <div class="upcoming-dot"></div>
-                <div class="hero-live-info">
-                    <p>Procurement of ICT Equipment</p>
-                    <span>July 30, 2026 · 1:30 PM</span>
-                </div>
+            <div class="ranking-card-foot">
+                <a href="#bid-schedule" class="btn-view-schedule-link">
+                    View Full Procurement Schedule <i class="bi bi-arrow-down-short" style="font-size:16px;"></i>
+                </a>
             </div>
         </div>
 
@@ -125,307 +1267,191 @@
 </section>
 
 <!-- ========================= -->
-<!-- STATS                     -->
+<!-- STATS METRICS BAR         -->
 <!-- ========================= -->
 <section class="stats-section">
     <div class="stats-grid">
 
-        <div class="stat-card">
-            <i class="bi bi-folder2-open stat-icon"></i>
-            <h2>12</h2>
-            <h6>Active Procurements</h6>
-            <p>Currently accepting bids</p>
-        </div>
-
-        <div class="stat-card">
-            <i class="bi bi-people stat-icon"></i>
-            <h2>67</h2>
-            <h6>Registered Suppliers</h6>
-            <p>Eligible bidders</p>
-        </div>
-
-        <div class="stat-card">
-            <i class="bi bi-award stat-icon"></i>
-            <h2>72</h2>
-            <h6>Projects Awarded</h6>
-            <p>For this fiscal year</p>
-        </div>
-
-        <div class="stat-card">
-            <i class="bi bi-camera-video stat-icon"></i>
-            <h2>21</h2>
-            <h6>Live Bid Sessions</h6>
-            <p>Conducted transparently</p>
-        </div>
-
-    </div>
-</section>
-
-<!-- ========================= -->
-<!-- HOW IT WORKS              -->
-<!-- ========================= -->
-<section class="process-section">
-    <div class="section-center">
-        <span class="process-subtitle">How YesParency Works</span>
-        <h2 class="process-title">A Transparent Procurement Process</h2>
-    </div>
-
-    <div class="process-wrapper">
-
-        <div class="process-item">
-            <div class="process-icon">
-                <i class="bi bi-file-earmark-text"></i>
-                <span class="step-number">1</span>
+        <div class="stat-card-item">
+            <div class="stat-icon-wrap">
+                <i class="bi bi-folder2-open"></i>
             </div>
-            <h5>Opportunity Posted</h5>
-            <p>The SLSU Procurement office posts opportunities for goods, services, and infrastructure projects.</p>
+            <div class="stat-card-num"><?= $total_active_procurements ?></div>
+            <div class="stat-card-title">Active Projects</div>
+            <div class="stat-card-sub">Accepting supplier proposals</div>
         </div>
 
-        <div class="process-line"></div>
-
-        <div class="process-item">
-            <div class="process-icon">
-                <i class="bi bi-people"></i>
-                <span class="step-number">2</span>
+        <div class="stat-card-item">
+            <div class="stat-icon-wrap">
+                <i class="bi bi-building-check"></i>
             </div>
-            <h5>Suppliers Participate</h5>
-            <p>Interested suppliers register and submit their bids before the deadline.</p>
+            <div class="stat-card-num"><?= $total_suppliers ?></div>
+            <div class="stat-card-title">Registered Suppliers</div>
+            <div class="stat-card-sub">Accredited bidder network</div>
         </div>
 
-        <div class="process-line"></div>
-
-        <div class="process-item">
-            <div class="process-icon">
-                <i class="bi bi-broadcast"></i>
-                <span class="step-number">3</span>
-            </div>
-            <h5>Live Bid Opening</h5>
-            <p>Bids are opened in public through a live and transparent session.</p>
-        </div>
-
-        <div class="process-line"></div>
-
-        <div class="process-item">
-            <div class="process-icon">
-                <i class="bi bi-clipboard-check"></i>
-                <span class="step-number">4</span>
-            </div>
-            <h5>Evaluation</h5>
-            <p>The BAC evaluates bids based on procurement rules.</p>
-        </div>
-
-        <div class="process-line"></div>
-
-        <div class="process-item">
-            <div class="process-icon">
+        <div class="stat-card-item">
+            <div class="stat-icon-wrap">
                 <i class="bi bi-award"></i>
-                <span class="step-number">5</span>
             </div>
-            <h5>Awarding</h5>
-            <p>The winning bidder is officially awarded the project.</p>
+            <div class="stat-card-num"><?= $total_awarded ?></div>
+            <div class="stat-card-title">Awarded Contracts</div>
+            <div class="stat-card-sub">Publicly disclosed awards</div>
         </div>
 
-        <div class="process-line"></div>
-
-        <div class="process-item">
-            <div class="process-icon">
-                <i class="bi bi-window-stack"></i>
-                <span class="step-number">6</span>
+        <div class="stat-card-item">
+            <div class="stat-icon-wrap">
+                <i class="bi bi-broadcast"></i>
             </div>
-            <h5>Public Disclosure</h5>
-            <p>Results and awards are published for public transparency.</p>
+            <div class="stat-card-num">100%</div>
+            <div class="stat-card-title">BAC Openness</div>
+            <div class="stat-card-sub">Transparent public decryption</div>
         </div>
 
     </div>
 </section>
 
 <!-- ========================= -->
-<!-- PROCUREMENT CARDS         -->
+<!-- BID SCHEDULE SECTION      -->
 <!-- ========================= -->
-<section class="procurement-section">
-    <div class="index-container">
-
-        <span class="section-label">Procurement Details</span>
-        <h2 class="section-title">Active & Upcoming Bids Opening</h2>
-        <p class="section-description">
-            All procurement activities are conducted in accordance with
-            Republic Act No. 9184. Click on any item to view complete
-            procurement details.
+<section class="section-wrap bid-schedule-section" id="bid-schedule">
+    <div class="section-header-center">
+        <h2 class="section-main-heading">Upcoming Bid Opening Schedule</h2>
+        <p class="section-lead-p">
+            Real-time timetable of procurement projects, envelope cutoff deadlines, and public bid decryption dates administered by the SLSU Bids and Awards Committee.
         </p>
+    </div>
 
-        <div class="proc-grid">
+    <div class="schedule-grid">
+        <?php foreach ($all_schedules as $sched): 
+            $statusStr = strtolower($sched['status'] ?? 'open');
+            $openDate = !empty($sched['opening_date']) ? date('F d, Y · g:i A', strtotime($sched['opening_date'])) : 'To Be Announced';
+            $closeDate = !empty($sched['closing_date']) ? date('M d, Y · g:i A', strtotime($sched['closing_date'])) : 'Not Specified';
+            $postDate = !empty($sched['posting_date']) ? date('M d, Y', strtotime($sched['posting_date'])) : 'Recent';
+        ?>
+            <div class="schedule-card">
+                <div>
+                    <div class="schedule-card-top">
+                        <span class="schedule-status-badge <?= $statusStr === 'open' ? 'open' : ($statusStr === 'closed' ? 'closed' : 'upcoming') ?>">
+                            <i class="bi bi-circle-fill" style="font-size:7px;"></i> <?= ucfirst($statusStr) ?>
+                        </span>
+                        <span class="schedule-ref">
+                            <i class="bi bi-hash"></i> <?= htmlspecialchars($sched['philgeps_ref_no']) ?>
+                        </span>
+                    </div>
 
-            <!-- CARD 1 -->
-            <div class="proc-card live">
-                <span class="status-badge live-badge">● LIVE NOW</span>
-                <h5>Supply and Delivery of Science Laboratory Equipment for College of Arts and Sciences</h5>
-                <ul>
-                    <li><i class="bi bi-clock"></i> Opening Today – March 26, 2026 10:00 AM</li>
-                    <li><i class="bi bi-geo-alt"></i> BAC Conference Room</li>
-                    <li><i class="bi bi-cash"></i> ABC: ₱2,450,000.00</li>
-                </ul>
-                <hr>
-                <small>Ref No: <strong>SLSU-BAC-2026-003</strong></small>
+                    <div class="schedule-title">
+                        <?= htmlspecialchars($sched['title']) ?>
+                    </div>
+
+                    <div class="schedule-timeline-box">
+                        <div class="timeline-row">
+                            <span class="timeline-label"><i class="bi bi-calendar-check"></i> Bid Opening:</span>
+                            <span class="timeline-val" style="color:#ffc107;"><?= $openDate ?></span>
+                        </div>
+                        <div class="timeline-row">
+                            <span class="timeline-label"><i class="bi bi-clock-history"></i> Submission Cutoff:</span>
+                            <span class="timeline-val"><?= $closeDate ?></span>
+                        </div>
+                        <div class="timeline-row">
+                            <span class="timeline-label"><i class="bi bi-tag"></i> Mode:</span>
+                            <span class="timeline-val"><?= htmlspecialchars($sched['procurement_mode'] ?? 'Public Bidding') ?></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="schedule-card-foot">
+                    <div>
+                        <div style="font-size:10px; color:#8fa699; text-transform:uppercase; font-weight:700;">Approved Budget (ABC)</div>
+                        <div class="schedule-abc-val">₱ <?= number_format((float)$sched['abc'], 2) ?></div>
+                    </div>
+                    <a href="login.php" class="btn-schedule-action">
+                        <i class="bi bi-box-arrow-in-right"></i> Participate
+                    </a>
+                </div>
             </div>
-
-            <!-- CARD 2 -->
-            <div class="proc-card open">
-                <span class="status-badge open-badge">● OPEN FOR SUBMISSION</span>
-                <h5>Construction of New Multi-Purpose Hall at SLSU Main Campus</h5>
-                <ul>
-                    <li><i class="bi bi-calendar-event"></i> Bid Opening: April 3, 2026</li>
-                    <li><i class="bi bi-clock-history"></i> Submission Deadline: April 2, 2026</li>
-                    <li><i class="bi bi-cash"></i> ABC: ₱18,750,000.00</li>
-                </ul>
-                <hr>
-                <small>Ref No: <strong>SLSU-BAC-2026-007</strong></small>
-            </div>
-
-            <!-- CARD 3 -->
-            <div class="proc-card upcoming">
-                <span class="status-badge upcoming-badge">● UPCOMING</span>
-                <h5>Supply of Information Technology Equipment and Peripherals</h5>
-                <ul>
-                    <li><i class="bi bi-calendar"></i> Opening: April 10, 2026</li>
-                    <li><i class="bi bi-clock-history"></i> Submission: April 9, 2026</li>
-                    <li><i class="bi bi-cash"></i> ABC: ₱3,200,000.00</li>
-                </ul>
-                <hr>
-                <small>Ref No: <strong>SLSU-BAC-2026-011</strong></small>
-            </div>
-
-            <!-- CARD 4 -->
-            <div class="proc-card closed">
-                <span class="status-badge closed-badge">✕ CLOSED</span>
-                <h5>Procurement of Janitorial and Maintenance Services FY 2026</h5>
-                <ul>
-                    <li><i class="bi bi-calendar-check"></i> Opened: March 15, 2026</li>
-                    <li><i class="bi bi-file-earmark-text"></i> Notice of Award Released</li>
-                    <li><i class="bi bi-cash"></i> ABC: ₱1,800,000.00</li>
-                </ul>
-                <hr>
-                <small>Ref No: <strong>SLSU-BAC-2026-001</strong></small>
-            </div>
-
-        </div>
-
-        <a href="#" class="btn-view-all">View all Bid Openings</a>
-
+        <?php endforeach; ?>
     </div>
 </section>
 
 <!-- ========================= -->
-<!-- BIDS & AWARDS             -->
+<!-- ABOUT SECTION             -->
 <!-- ========================= -->
-<section class="awards-section">
-    <div class="index-container">
-        <div class="awards-grid">
+<section class="section-wrap about-section" id="about">
+    <div class="about-grid">
 
-            <!-- LEFT: Table -->
-            <div class="award-table-card">
-                <div class="awards-table-header">
-                    <h3><i class="bi bi-trophy"></i> Recently Awarded Projects</h3>
-                    <a href="#" class="view-more">View More <i class="bi bi-arrow-right"></i></a>
+        <!-- Left: Text -->
+        <div class="about-text-card">
+            <h2>Integrity, Accountability, and Digital Transparency</h2>
+            <p>
+                YesParency is the official online procurement transparency platform of <strong>Southern Luzon State University (SLSU)</strong>. Developed to uphold Republic Act No. 9184 (Government Procurement Reform Act), the system provides seamless public disclosure and cryptographic security across all procurement lifecycle stages.
+            </p>
+
+            <div class="about-features-list">
+                <div class="about-feature-item">
+                    <div class="feature-icon-box"><i class="bi bi-shield-lock-fill"></i></div>
+                    <div class="feature-item-text">
+                        <h5>Cryptographic Bid Vault</h5>
+                        <p>Bidder submissions and financial proposals are sealed with hash encryption until the designated opening ceremony.</p>
+                    </div>
                 </div>
-                <div style="overflow-x: auto;">
-                    <table class="awards-table">
-                        <thead>
-                            <tr>
-                                <th>Project Title</th>
-                                <th>Category</th>
-                                <th>Awarded To</th>
-                                <th>Date Awarded</th>
-                                <th>Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Supply and Delivery of Science Laboratory Equipment</td>
-                                <td><span class="category goods">Goods</span></td>
-                                <td>LabTech Supplies Co.</td>
-                                <td>May 12, 2026</td>
-                                <td>₱1,800,000.00</td>
-                            </tr>
-                            <tr>
-                                <td>Supply of IT Equipment and Peripherals</td>
-                                <td><span class="category goods">Goods</span></td>
-                                <td>LabTech Supplies Co.</td>
-                                <td>January 12, 2026</td>
-                                <td>₱1,500,000.00</td>
-                            </tr>
-                            <tr>
-                                <td>Procurement of Janitorial Services</td>
-                                <td><span class="category service">Services</span></td>
-                                <td>Cleanway Tech</td>
-                                <td>February 25, 2026</td>
-                                <td>₱800,100.00</td>
-                            </tr>
-                            <tr>
-                                <td>Repair of SLSU Gymnasium Roofing</td>
-                                <td><span class="category infra">Infrastructure</span></td>
-                                <td>BuildWay Co.</td>
-                                <td>February 25, 2026</td>
-                                <td>₱800,100.00</td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <div class="about-feature-item">
+                    <div class="feature-icon-box"><i class="bi bi-camera-video-fill"></i></div>
+                    <div class="feature-item-text">
+                        <h5>Public Opening Audits</h5>
+                        <p>Live timestamps, transparent document logs, and verified evaluation checklists accessible to all accredited stakeholders.</p>
+                    </div>
+                </div>
+
+                <div class="about-feature-item">
+                    <div class="feature-icon-box"><i class="bi bi-file-earmark-check-fill"></i></div>
+                    <div class="feature-item-text">
+                        <h5>PhilGEPS Synchronization</h5>
+                        <p>Direct alignment with national procurement notices, standard bidding document terms, and awarding transparency.</p>
+                    </div>
                 </div>
             </div>
-
-            <!-- RIGHT: Accordion -->
-            <div class="bids-card">
-                <h3>Bids and Awards</h3>
-                <div class="accordion" id="awardAccordion">
-
-                    <div class="accordion-item">
-                        <button class="accordion-btn" onclick="toggleAccordion(this)">
-                            Notice to Proceed <i class="bi bi-chevron-down acc-icon"></i>
-                        </button>
-                        <div class="accordion-body">
-                            Download recently issued Notice to Proceed documents.
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <button class="accordion-btn" onclick="toggleAccordion(this)">
-                            Notice of Award <i class="bi bi-chevron-down acc-icon"></i>
-                        </button>
-                        <div class="accordion-body">
-                            View official Notice of Award files.
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <button class="accordion-btn" onclick="toggleAccordion(this)">
-                            Request for Quotation <i class="bi bi-chevron-down acc-icon"></i>
-                        </button>
-                        <div class="accordion-body">
-                            RFQ documents available for download.
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <button class="accordion-btn" onclick="toggleAccordion(this)">
-                            Invitation to Bid <i class="bi bi-chevron-down acc-icon"></i>
-                        </button>
-                        <div class="accordion-body">
-                            Current Invitations to Bid.
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <button class="accordion-btn" onclick="toggleAccordion(this)">
-                            PhilGEPS <i class="bi bi-chevron-down acc-icon"></i>
-                        </button>
-                        <div class="accordion-body">
-                            Procurement notices linked with PhilGEPS.
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
         </div>
+
+        <!-- Right: BAC Contact & Office Information -->
+        <div class="about-info-box">
+            <h3><i class="bi bi-building"></i> BAC Secretariat Office</h3>
+            <p style="font-size:13px; color:#b7c7be; line-height:1.6; margin-bottom:20px;">
+                For inquiries regarding ongoing bidding opportunities, submission guidelines, or vendor accreditation requirements, please reach out to the Bids and Awards Committee:
+            </p>
+
+            <ul class="about-contact-list">
+                <li>
+                    <i class="bi bi-geo-alt-fill"></i>
+                    <div>
+                        <strong>Address:</strong><br>
+                        Bids &amp; Awards Committee Secretariat, Southern Luzon State University Main Campus, Lucban, Quezon 4328
+                    </div>
+                </li>
+                <li>
+                    <i class="bi bi-envelope-at-fill"></i>
+                    <div>
+                        <strong>Email:</strong><br>
+                        procurement@slsu.edu.ph
+                    </div>
+                </li>
+                <li>
+                    <i class="bi bi-clock-fill"></i>
+                    <div>
+                        <strong>Office Hours:</strong><br>
+                        Monday – Friday, 8:00 AM – 5:00 PM (PST)
+                    </div>
+                </li>
+            </ul>
+
+            <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:16px;">
+                <a href="register.php" class="btn-hero-primary" style="width:100%; justify-content:center;">
+                    <i class="bi bi-person-check-fill"></i> Create Your User Account Today
+                </a>
+            </div>
+        </div>
+
     </div>
 </section>
 
@@ -436,96 +1462,69 @@
     <div class="footer-index-grid">
 
         <div>
-            <div class="footer-brand">
-                <img src="images/procure.jpg" alt="SLSU Logo" class="logo" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin-right:16px;border:2px solid rgba(255,193,7,.4);">
-                <div>
-                    <h3>YesParency</h3>
-                    <p>Southern Luzon State University<br>Procurement Office</p>
-                </div>
+            <div class="footer-brand-title">
+                <i class="bi bi-transparency"></i> YesParency Portal
             </div>
+            <p class="footer-brand-desc">
+                Southern Luzon State University's official digital procurement transparency system. Empowering suppliers with fair competition and public accountability.
+            </p>
         </div>
 
-        <div>
-            <h5>Quick Links</h5>
+        <div class="footer-nav-col">
+            <h5>Navigation</h5>
             <ul>
-                <li><a href="#">Home</a></li>
-                <li><a href="#">Bid Opportunities</a></li>
-                <li><a href="#">Bid Results</a></li>
-                <li><a href="#">Announcements</a></li>
-                <li><a href="#">Contact</a></li>
+                <li><a href="#home">Home</a></li>
+                <li><a href="#bid-schedule">Bid Schedule</a></li>
+                <li><a href="#about">About System</a></li>
+                <li><a href="login.php">Bidder Portal</a></li>
             </ul>
         </div>
 
-        <div>
-            <h5>Suppliers</h5>
+        <div class="footer-nav-col">
+            <h5>Governance</h5>
             <ul>
-                <li><a href="#">Register</a></li>
-                <li><a href="#">Supplier Guide</a></li>
-                <li><a href="#">Requirements</a></li>
-                <li><a href="#">Frequently Asked Questions</a></li>
+                <li><a href="https://www.philgeps.gov.ph" target="_blank" rel="noopener">PhilGEPS Portal</a></li>
+                <li><a href="https://gppb.gov.ph" target="_blank" rel="noopener">GPPB R.A. 9184 Guidelines</a></li>
+                <li><a href="https://slsu.edu.ph" target="_blank" rel="noopener">SLSU Official Website</a></li>
             </ul>
-        </div>
-
-        <div>
-            <h5>Contact Us</h5>
-            <ul class="contact-list">
-                <li><i class="bi bi-geo-alt"></i> Southern Luzon State University, Lucban, Quezon</li>
-                <li><i class="bi bi-telephone"></i> 0000-000</li>
-                <li><i class="bi bi-envelope"></i> procurement@slsu.edu.ph</li>
-            </ul>
-        </div>
-
-        <div>
-            <h5>Connect With Us</h5>
-            <div class="social-links">
-                <a href="https://www.facebook.com/profile.php?id=61573070853148" aria-label="Facebook">
-                    <i class="bi bi-facebook"></i>
-                </a>
-                <a href="#" aria-label="Website">
-                    <i class="bi bi-globe"></i>
-                </a>
-                <a href="mailto:slsuprocurement@slsu.edu.ph" aria-label="Email">
-                    <i class="bi bi-envelope-fill"></i>
-                </a>
-            </div>
         </div>
 
     </div>
 
-    <div style="max-width:1200px;margin:0 auto;padding:0 20px;">
-        <hr>
-        <div class="footer-bottom">
-            <p>© 2026 YesParency. All Rights Reserved.</p>
-            <p>Developed for the Southern Luzon State University Procurement Office.</p>
-        </div>
+    <div class="footer-bottom-bar">
+        <div>&copy; <?= date('Y') ?> YesParency — Southern Luzon State University. All Rights Reserved.</div>
+        <div>Compliant with R.A. 9184 Government Procurement Standards</div>
     </div>
 </footer>
 
+<!-- ── Navbar Scroll & Active Link Script ── -->
 <script>
-    // Accordion toggle
-    function toggleAccordion(btn) {
-        const body = btn.nextElementSibling;
-        const isOpen = btn.classList.contains('open');
-
-        // Close all
-        document.querySelectorAll('.accordion-btn').forEach(b => {
-            b.classList.remove('open');
-            b.nextElementSibling.classList.remove('open');
-        });
-
-        // Open clicked if it was closed
-        if (!isOpen) {
-            btn.classList.add('open');
-            body.classList.add('open');
-        }
-    }
-
-    // Navbar scroll effect
     window.addEventListener('scroll', () => {
-        const nav = document.querySelector('.navbar');
-        nav.style.boxShadow = window.scrollY > 50
-            ? '0 5px 15px rgba(0,0,0,.25)'
-            : 'none';
+        const nav = document.getElementById('mainNavbar');
+        if (window.scrollY > 40) {
+            nav.classList.add('scrolled');
+        } else {
+            nav.classList.remove('scrolled');
+        }
+
+        // Active link highlighting
+        const sections = document.querySelectorAll('section[id]');
+        const scrollY = window.pageYOffset;
+
+        sections.forEach(current => {
+            const sectionHeight = current.offsetHeight;
+            const sectionTop = current.offsetTop - 120;
+            const sectionId = current.getAttribute('id');
+            const link = document.querySelector('.nav-menu a[href*=' + sectionId + ']');
+
+            if (link) {
+                if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            }
+        });
     });
 </script>
 

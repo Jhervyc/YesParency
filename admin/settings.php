@@ -233,7 +233,8 @@ $initials = strtoupper(substr($firstname ?: 'A', 0, 1) . substr($lastname ?: 'D'
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Settings | YesParency Admin Panel</title>
+    <title>Account Settings | YesParency</title>
+    <link rel="icon" type="image/png" href="images/logo.png">
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
