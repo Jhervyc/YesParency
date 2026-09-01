@@ -1,5 +1,6 @@
 <?php 
     include("utils/protect-page.php");
+    include("utils/protect-secretariat.php");
 
     $errors = [];
 

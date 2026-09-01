@@ -9,14 +9,30 @@ $current_script = basename($_SERVER['PHP_SELF'] ?? '');
 $active = $active_nav ?? $current_script;
 
 // Active state detection
-$is_procurement_active   = in_array($active, ['procurement.php', 'create_procurement.php', 'manage_lots.php', 'review_procurement.php', 'procurement-view.php', 'procurement']);
+$is_procurement_active   = in_array($active, ['procurement.php', 'create_procurement.php', 'manage_lots.php', 'review_procurement.php', 'procurement-view.php', 'procurement', 'procurement-twd-bac.php']);
 $is_bids_active          = in_array($active, ['bid_submissions.php', 'bid-submission-view.php', 'bid_submissions']);
-$is_dashboard_active     = ($active === 'dashboard.php' || $active === 'dashboard');
+$is_dashboard_active     = in_array($active, ['dashboard.php', 'dashboard', 'dashboard-twd-bac.php']);
 $is_accounts_active      = in_array($active, ['account-management.php', 'account-management']);
 $is_announcements_active = in_array($active, ['announcements.php', 'announcements']);
 $is_settings_active      = in_array($active, ['settings.php', 'settings']);
 $is_audit_active         = in_array($active, ['audit_trail.php', 'audit_trail']);
 $admin_username          = htmlspecialchars($_SESSION['username'] ?? 'Admin');
+
+// Fetch admin role (BAC, TWG, SECRETARIAT) — cached in session after first load
+if (!isset($_SESSION['admin_type']) && isset($conn) && isset($_SESSION['user_id'])) {
+    $role_stmt = $conn->prepare("SELECT admin_type FROM admin_roles WHERE user_id = ?");
+    if ($role_stmt) {
+        $role_stmt->bind_param("i", $_SESSION['user_id']);
+        $role_stmt->execute();
+        $role_row = $role_stmt->get_result()->fetch_assoc();
+        $_SESSION['admin_type'] = $role_row['admin_type'] ?? 'SECRETARIAT';
+        $role_stmt->close();
+    }
+}
+$admin_type = $_SESSION['admin_type'] ?? 'SECRETARIAT';
+
+// BAC and TWG only see: Dashboard, Bid Opening, Audit Trail, Settings
+$is_restricted = in_array($admin_type, ['BAC', 'TWG']);
 ?>
 
 <div class="dash-overlay" id="dashOverlay" onclick="closeSidebar()"></div>
@@ -32,13 +48,21 @@ $admin_username          = htmlspecialchars($_SESSION['username'] ?? 'Admin');
     </a>
     <nav class="sidebar-nav">
         <div class="nav-section-label">Overview</div>
-        <a href="dashboard.php" class="nav-item <?= $is_dashboard_active ? 'active' : '' ?>">
+        <a href="<?= $is_restricted ? 'dashboard-twd-bac.php' : 'dashboard.php' ?>" class="nav-item <?= $is_dashboard_active ? 'active' : '' ?>">
             <i class="bi bi-speedometer2"></i><span>Dashboard</span>
         </a>
         <a href="bid_submissions.php" class="nav-item <?= ($active === 'bid_opening') ? 'active' : '' ?>">
             <i class="bi bi-broadcast"></i><span>Bid Opening</span>
         </a>
 
+        <?php if ($is_restricted): ?>
+        <div class="nav-section-label">Procurement</div>
+        <a href="procurement-twd-bac.php" class="nav-item <?= $is_procurement_active ? 'active' : '' ?>">
+            <i class="bi bi-folder2-open"></i><span>Procurements</span>
+        </a>
+        <?php endif; ?>
+
+        <?php if (!$is_restricted): ?>
         <div class="nav-section-label">Procurement</div>
         <a href="procurement.php" class="nav-item <?= $is_procurement_active ? 'active' : '' ?>">
             <i class="bi bi-folder2-open"></i><span>Procurements</span>
@@ -54,6 +78,14 @@ $admin_username          = htmlspecialchars($_SESSION['username'] ?? 'Admin');
         <a href="announcements.php" class="nav-item <?= $is_announcements_active ? 'active' : '' ?>">
             <i class="bi bi-megaphone"></i><span>Announcements</span>
         </a>
+        <?php endif; ?>
+
+        <?php if ($is_restricted): ?>
+        <div class="nav-section-label">Records</div>
+        <a href="notification.php" class="nav-item <?= in_array($active, ['notification.php', 'notification']) ? 'active' : '' ?>">
+            <i class="bi bi-bell"></i><span>Notifications</span>
+        </a>
+        <?php endif; ?>
         <a href="audit_trail.php" class="nav-item <?= $is_audit_active ? 'active' : '' ?>">
             <i class="bi bi-journal-text"></i><span>Audit Trail</span>
         </a>
@@ -77,7 +109,7 @@ $admin_avatar = !empty($_SESSION['profile_picture_url']) ? '../' . ltrim($_SESSI
             </div>
             <div class="user-info">
                 <div class="uname"><?= $admin_username ?></div>
-                <div class="urole">Administrator</div>
+                <div class="urole"><?= htmlspecialchars($admin_type) ?></div>
             </div>
         </div>
         <a href="../logout.php" class="btn-logout">

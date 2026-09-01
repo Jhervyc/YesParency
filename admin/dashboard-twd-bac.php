@@ -1,6 +1,5 @@
 <?php
 include("utils/protect-page.php");
-include("utils/protect-secretariat.php");
 
 $admin_id = intval($_SESSION['user_id'] ?? 0);
 
@@ -25,16 +24,6 @@ $draft_procs   = (int)($conn->query("SELECT COUNT(*) FROM procurements WHERE sta
 $closed_procs  = (int)($conn->query("SELECT COUNT(*) FROM procurements WHERE status = 'closed'")->fetch_row()[0] ?? 0);
 $awarded_procs = (int)($conn->query("SELECT COUNT(*) FROM procurements WHERE status = 'awarded'")->fetch_row()[0] ?? 0);
 
-// ── Bid stats ───────────────────────────────────────────────────────────────
-$total_bids     = (int)($conn->query("SELECT COUNT(*) FROM bids")->fetch_row()[0] ?? 0);
-$pending_bids   = (int)($conn->query("SELECT COUNT(*) FROM bids WHERE status = 'pending'")->fetch_row()[0] ?? 0);
-$submitted_bids = (int)($conn->query("SELECT COUNT(*) FROM bids WHERE status = 'submitted'")->fetch_row()[0] ?? 0);
-$rejected_bids  = (int)($conn->query("SELECT COUNT(*) FROM bids WHERE status = 'rejected'")->fetch_row()[0] ?? 0);
-
-// ── Application stats ───────────────────────────────────────────────────────
-$total_apps   = (int)($conn->query("SELECT COUNT(*) FROM bidder_profiles")->fetch_row()[0] ?? 0);
-$pending_apps = (int)($conn->query("SELECT COUNT(*) FROM bidder_profiles WHERE application_status = 'pending'")->fetch_row()[0] ?? 0);
-
 // ── Calendar: procurements with opening/closing dates ───────────────────────
 $cal_result = $conn->query("
     SELECT id, title, philgeps_ref_no, abc, opening_date, closing_date, status
@@ -55,29 +44,6 @@ $notifs_dash_result = $conn->query("
     LEFT JOIN users u ON sn.created_by = u.user_id
     ORDER BY sn.created_at DESC
     LIMIT 3
-");
-
-// ── Pending bids overview (latest 4) ───────────────────────────────────────
-$pending_bids_result = $conn->query("
-    SELECT b.id AS bid_id, b.submission_date,
-           u.firstname, u.lastname, u.email, u.username,
-           p.title AS proc_title, p.id AS proc_id, p.philgeps_ref_no
-    FROM bids b
-    JOIN users u  ON b.bidder_id    = u.user_id
-    JOIN procurements p ON b.procurement_id = p.id
-    WHERE b.status = 'pending'
-    ORDER BY b.submission_date DESC
-    LIMIT 4
-");
-
-// ── Pending applications (latest 4) ────────────────────────────────────────
-$pending_result = $conn->query("
-    SELECT u.firstname, u.lastname, bp.business_name, bp.created_at
-    FROM bidder_profiles bp
-    JOIN users u ON bp.user_id = u.user_id
-    WHERE bp.application_status = 'pending'
-    ORDER BY bp.created_at DESC
-    LIMIT 4
 ");
 
 function timeAgo($datetime) {
@@ -853,10 +819,8 @@ include("components/topbar.php");
         <!-- ════════════════════════════════════════════════════════
              LEFT COLUMN (60%)
              1. Greetings Card
-             2. Stats for Procurement (Reduced Height)
-             3. Stats for Bids (Reduced Height)
-             4. Pending Applications & Pending Bids Side by Side
-             5. Notifications
+             2. Procurement Overview
+             3. Notifications
              ════════════════════════════════════════════════════════ -->
         <div class="dash-col-60">
 
@@ -865,21 +829,15 @@ include("components/topbar.php");
                 <div class="greeting-header">
                     <div class="greeting-title">Welcome back, <?= htmlspecialchars($admin_name) ?> </div>
                     <span class="greeting-badge">
-                        <i class="bi bi-shield-check"></i> BAC ADMINISTRATOR
+                        <i class="bi bi-shield-check"></i> <?= htmlspecialchars($_SESSION['admin_type'] ?? 'ADMIN') ?>
                     </span>
                 </div>
                 <div class="greeting-sub">
-                    Municipal Bids &amp; Awards Committee Portal — Monitor active procurements, verify bidder submissions, and manage announcements in real-time.
+                    Municipal Bids &amp; Awards Committee Portal — Monitor active procurements and stay updated with announcements in real-time.
                 </div>
                 <div class="greeting-pills">
                     <div class="greeting-pill">
                         <i class="bi bi-folder2-open"></i> <strong><?= $open_procs ?></strong> Open Opportunities
-                    </div>
-                    <div class="greeting-pill">
-                        <i class="bi bi-hourglass-split"></i> <strong><?= $pending_bids ?></strong> Pending Bids
-                    </div>
-                    <div class="greeting-pill">
-                        <i class="bi bi-person-check"></i> <strong><?= $pending_apps ?></strong> Pending Registrations
                     </div>
                     <div class="greeting-pill">
                         <i class="bi bi-calendar3"></i> <?= date('F j, Y') ?>
@@ -893,7 +851,7 @@ include("components/topbar.php");
                     <div class="compact-stat-title">
                         <i class="bi bi-pie-chart-fill" style="color:#1f7a3d;"></i> Procurement Overview
                     </div>
-                    <a href="procurement.php" class="compact-stat-link">Manage Procurements <i class="bi bi-arrow-right"></i></a>
+                    <a href="bid_submissions.php" class="compact-stat-link">View Bid Opening <i class="bi bi-arrow-right"></i></a>
                 </div>
                 <div class="compact-stat-body">
                     <div class="compact-donut-wrap" style="background:conic-gradient(#1f7a3d 0% <?= pct($open_procs, max($total_procs,1)) ?>%, #c23b3b 0% <?= pct($open_procs+$closed_procs, max($total_procs,1)) ?>%, #f0b92e 0% 100%);">
@@ -923,126 +881,13 @@ include("components/topbar.php");
                 </div>
             </div>
 
-            <!-- 3. Bid Statistics (Reduced Height) -->
-            <div class="compact-stat-card">
-                <div class="compact-stat-top">
-                    <div class="compact-stat-title">
-                        <i class="bi bi-inbox-fill" style="color:#2F6FED;"></i> Bid Submissions Overview
-                    </div>
-                    <a href="bid_submissions.php" class="compact-stat-link">View All Bids <i class="bi bi-arrow-right"></i></a>
-                </div>
-                <div class="compact-stat-body">
-                    <div class="compact-donut-wrap" style="background:conic-gradient(#2F6FED 0% <?= pct($submitted_bids, max($total_bids,1)) ?>%, #e67e22 0% <?= pct($submitted_bids+$pending_bids, max($total_bids,1)) ?>%, #c23b3b 0% 100%);">
-                        <div class="compact-donut-inner">
-                            <span class="compact-donut-num"><?= $total_bids ?></span>
-                            <span style="font-size:8px; color:#88968d; font-weight:700;">BIDS</span>
-                        </div>
-                    </div>
-                    <div class="compact-stat-metrics">
-                        <div class="compact-metric-item">
-                            <div class="compact-metric-num" style="color:#e67e22;"><?= $pending_bids ?></div>
-                            <div class="compact-metric-lbl">Pending Review</div>
-                        </div>
-                        <div class="compact-metric-item">
-                            <div class="compact-metric-num" style="color:#2F6FED;"><?= $submitted_bids ?></div>
-                            <div class="compact-metric-lbl">Submitted</div>
-                        </div>
-                        <div class="compact-metric-item">
-                            <div class="compact-metric-num" style="color:#1f7a3d;"><?= max(0, $total_bids - $pending_bids - $submitted_bids - $rejected_bids) ?></div>
-                            <div class="compact-metric-lbl">Opened</div>
-                        </div>
-                        <div class="compact-metric-item">
-                            <div class="compact-metric-num" style="color:#c23b3b;"><?= $rejected_bids ?></div>
-                            <div class="compact-metric-lbl">Rejected</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. Side-by-Side: Pending Applications & Pending Bids -->
-            <div class="dash-side-by-side">
-
-                <!-- Left: Pending Applications -->
-                <div class="sub-card">
-                    <div class="sub-card-head">
-                        <div class="sub-card-title">
-                            <i class="bi bi-person-check" style="color:#f9a825;"></i> Pending Applications
-                        </div>
-                        <a href="account-management.php" class="sub-card-link">Review <i class="bi bi-arrow-right"></i></a>
-                    </div>
-                    <div class="sub-card-list">
-                        <?php if ($pending_result->num_rows === 0): ?>
-                            <div style="padding:28px 16px; text-align:center; color:#88968d; font-size:11.5px;">
-                                <i class="bi bi-check-circle" style="font-size:22px; color:#c7d2cb; display:block; margin-bottom:4px;"></i>
-                                No pending bidder registrations.
-                            </div>
-                        <?php else: while ($pa = $pending_result->fetch_assoc()):
-                            $initials = strtoupper(substr($pa['firstname'],0,1).substr($pa['lastname'],0,1));
-                        ?>
-                            <div class="sub-item-row">
-                                <div class="sub-item-main">
-                                    <div class="sub-item-title"><?= htmlspecialchars($pa['firstname'].' '.$pa['lastname']) ?></div>
-                                    <div class="sub-item-meta">
-                                        <span><?= htmlspecialchars($pa['business_name'] ?? 'No business name') ?></span>
-                                        <span>·</span>
-                                        <span><?= date('M j', strtotime($pa['created_at'])) ?></span>
-                                    </div>
-                                </div>
-                                <div class="sub-item-action">
-                                    <a href="account-management.php" class="proc-action-btn review" style="background:#E7EEFE; color:#2F6FED; font-size:11px; padding:4px 10px; border-radius:7px; font-weight:700; text-decoration:none;">
-                                        <i class="bi bi-eye"></i> View
-                                    </a>
-                                </div>
-                            </div>
-                        <?php endwhile; endif; ?>
-                    </div>
-                </div>
-
-                <!-- Right: Pending Bids -->
-                <div class="sub-card">
-                    <div class="sub-card-head">
-                        <div class="sub-card-title">
-                            <i class="bi bi-hourglass-split" style="color:#e67e22;"></i> Pending Bids
-                        </div>
-                        <a href="bid_submissions.php" class="sub-card-link">View all <i class="bi bi-arrow-right"></i></a>
-                    </div>
-                    <div class="sub-card-list">
-                        <?php if ($pending_bids_result->num_rows === 0): ?>
-                            <div style="padding:28px 16px; text-align:center; color:#88968d; font-size:11.5px;">
-                                <i class="bi bi-inbox" style="font-size:22px; color:#c7d2cb; display:block; margin-bottom:4px;"></i>
-                                No pending bids to verify.
-                            </div>
-                        <?php else: while ($pb = $pending_bids_result->fetch_assoc()): ?>
-                            <div class="sub-item-row">
-                                <div class="sub-item-main">
-                                    <div class="sub-item-title" title="<?= htmlspecialchars($pb['proc_title']) ?>">
-                                        <?= htmlspecialchars($pb['proc_title']) ?>
-                                    </div>
-                                    <div class="sub-item-meta">
-                                        <span>By: <?= htmlspecialchars($pb['firstname'].' '.$pb['lastname']) ?></span>
-                                        <span>·</span>
-                                        <span><?= date('M j', strtotime($pb['submission_date'])) ?></span>
-                                    </div>
-                                </div>
-                                <div class="sub-item-action">
-                                    <a href="bid_submissions.php" class="proc-action-btn review" style="background:#E7EEFE; color:#2F6FED; font-size:11px; padding:4px 10px; border-radius:7px; font-weight:700; text-decoration:none;">
-                                        <i class="bi bi-eye"></i> View
-                                    </a>
-                                </div>
-                            </div>
-                        <?php endwhile; endif; ?>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- 5. System Announcements & Notices -->
+            <!-- 4. Notifications -->
             <div class="sub-card">
                 <div class="sub-card-head">
                     <div class="sub-card-title">
-                        <i class="bi bi-megaphone" style="color:#e67e22;"></i> System Announcements &amp; Broadcasts
+                        <i class="bi bi-bell" style="color:#e67e22;"></i> Notifications
                     </div>
-                    <a href="announcements.php" class="sub-card-link">Manage Broadcasts <i class="bi bi-arrow-right"></i></a>
+                    <a href="notification.php" class="sub-card-link">View All <i class="bi bi-arrow-right"></i></a>
                 </div>
                 <div>
                     <?php if (!$notifs_dash_result || $notifs_dash_result->num_rows === 0): ?>
@@ -1083,7 +928,7 @@ include("components/topbar.php");
                                         </span>
                                         <span>By: <?= htmlspecialchars(trim(($nt['firstname'] ?? '') . ' ' . ($nt['lastname'] ?? '')) ?: 'Admin') ?></span>
                                     </div>
-                                    <a href="announcements.php" class="proc-action-btn review" style="background:#E7EEFE; color:#2F6FED; font-size:11px; padding:4px 10px; border-radius:7px; font-weight:700; text-decoration:none;">
+                                    <a href="notification.php" class="proc-action-btn review" style="background:#E7EEFE; color:#2F6FED; font-size:11px; padding:4px 10px; border-radius:7px; font-weight:700; text-decoration:none;">
                                         <i class="bi bi-eye"></i> View
                                     </a>
                                 </div>
@@ -1146,7 +991,7 @@ include("components/topbar.php");
                         <i class="bi bi-calendar3" style="color:#1f7a3d;"></i>
                         <span>Schedule of Activities</span>
                     </div>
-                    <a href="procurement.php" class="side-panel-link">View all <i class="bi bi-arrow-right"></i></a>
+                    <a href="bid_submissions.php" class="side-panel-link">View all <i class="bi bi-arrow-right"></i></a>
                 </div>
 
                 <div class="mini-cal-container">
@@ -1185,25 +1030,21 @@ include("components/topbar.php");
          ════════════════════════════════════════════════════════════ -->
     <div class="sad-section-label">Quick Actions</div>
     <div class="sad-actions">
-        <a href="procurement.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#e8f5e9; color:#43a047;"><i class="bi bi-folder2-open"></i></div>
-            <span>Procurements</span>
-        </a>
-        <a href="account-management.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#e3f2fd; color:#1565c0;"><i class="bi bi-people"></i></div>
-            <span>Accounts</span>
-        </a>
         <a href="bid_submissions.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#fff8e1; color:#f9a825;"><i class="bi bi-inbox"></i></div>
-            <span>Bid Submissions</span>
+            <div class="sad-action-icon" style="background:#e8f5e9; color:#43a047;"><i class="bi bi-broadcast"></i></div>
+            <span>Bid Opening</span>
+        </a>
+        <a href="notification.php" class="sad-action-card">
+            <div class="sad-action-icon" style="background:#fff8e1; color:#f9a825;"><i class="bi bi-bell"></i></div>
+            <span>Notifications</span>
         </a>
         <a href="audit_trail.php" class="sad-action-card">
             <div class="sad-action-icon" style="background:#f3e5f5; color:#7b1fa2;"><i class="bi bi-journal-text"></i></div>
             <span>Audit Trail</span>
         </a>
-        <a href="announcements.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#e0f2f1; color:#00796b;"><i class="bi bi-megaphone"></i></div>
-            <span>Announcements</span>
+        <a href="settings.php" class="sad-action-card">
+            <div class="sad-action-icon" style="background:#e0f2f1; color:#00796b;"><i class="bi bi-gear"></i></div>
+            <span>Settings</span>
         </a>
         <a href="../logout.php" class="sad-action-card">
             <div class="sad-action-icon" style="background:#fce4ec; color:#c62828;"><i class="bi bi-box-arrow-left"></i></div>

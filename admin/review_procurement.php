@@ -1,5 +1,6 @@
 <?php
 include("utils/protect-page.php");
+include("utils/protect-secretariat.php");
 
 $procurement_id = isset($_GET['id']) ? intval($_GET['id']) : (isset($_GET['procurement_id']) ? intval($_GET['procurement_id']) : 0);
 
@@ -1450,11 +1451,14 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
                 <!-- Upload New Files -->
                 <div>
                     <label style="font-size:12px; font-weight:700; color:#06251b; display:block; margin-bottom:6px;">Upload Additional Documents</label>
-                    <label style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px; border:2px dashed #cfdbd4; border-radius:12px; background:#fafcfb; cursor:pointer; transition:all .2s;" onmouseover="this.style.borderColor='#1f7a3d'" onmouseout="this.style.borderColor='#cfdbd4'">
+                    <!-- Hidden accumulator — this is what actually gets submitted -->
+                    <input type="file" id="newDocsReal" name="new_documents[]" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" style="display:none;">
+                    <!-- Visible trigger -->
+                    <label for="newDocsPicker" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px; border:2px dashed #cfdbd4; border-radius:12px; background:#fafcfb; cursor:pointer; transition:all .2s;" onmouseover="this.style.borderColor='#1f7a3d'" onmouseout="this.style.borderColor='#cfdbd4'">
                         <i class="bi bi-cloud-arrow-up" style="font-size:24px; color:#1f7a3d;"></i>
                         <span style="font-size:12.5px; font-weight:600; color:#06251b;">Click to browse files (PDF, DOCX, XLSX, PNG, JPG)</span>
-                        <span style="font-size:11px; color:#88968d;">Multiple files supported</span>
-                        <input type="file" name="new_documents[]" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" style="display:none;" onchange="previewNewFiles(this)">
+                        <span style="font-size:11px; color:#88968d;">Multiple files — pick as many times as needed</span>
+                        <input type="file" id="newDocsPicker" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" style="display:none;" onchange="stackNewDocs(this)">
                     </label>
                     <div id="newFilePreview" style="margin-top:8px; display:flex; flex-direction:column; gap:5px;"></div>
                 </div>
@@ -1556,20 +1560,59 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
         document.getElementById('deleteDocForm').submit();
     }
 
-    // File Preview for new attachments
-    function previewNewFiles(input) {
+    // File stacking for new attachments
+    function stackNewDocs(picker) {
+        const real = document.getElementById('newDocsReal');
+        const dt   = new DataTransfer();
+
+        // Keep existing accumulated files
+        Array.from(real.files).forEach(f => dt.items.add(f));
+
+        // Add new picks, skip exact name duplicates
+        const existing = new Set(Array.from(real.files).map(f => f.name));
+        Array.from(picker.files).forEach(f => {
+            if (!existing.has(f.name)) dt.items.add(f);
+        });
+
+        real.files   = dt.files;
+        picker.value = '';
+        renderNewDocs();
+    }
+
+    function renderNewDocs() {
+        const real    = document.getElementById('newDocsReal');
         const preview = document.getElementById('newFilePreview');
         preview.innerHTML = '';
-        if (input.files) {
-            Array.from(input.files).forEach(f => {
-                const row = document.createElement('div');
-                row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;background:#eef7f1;border-radius:6px;font-size:11.5px;color:#06251b;';
-                row.innerHTML = '<i class="bi bi-file-earmark-check-fill" style="color:#1f7a3d;"></i> '
-                              + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">' + f.name + '</span>'
-                              + '<span style="color:#6c776e;font-size:10.5px;">' + (f.size > 1048576 ? (f.size/1048576).toFixed(1) + ' MB' : (f.size/1024).toFixed(0) + ' KB') + '</span>';
-                preview.appendChild(row);
-            });
-        }
+
+        Array.from(real.files).forEach((f, idx) => {
+            const size = f.size > 1048576
+                ? (f.size / 1048576).toFixed(1) + ' MB'
+                : (f.size / 1024).toFixed(0) + ' KB';
+
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 10px;background:#eef7f1;border:1px solid #d4ece0;border-radius:8px;font-size:11.5px;color:#06251b;';
+            row.innerHTML = `
+                <i class="bi bi-file-earmark-check-fill" style="color:#1f7a3d;flex-shrink:0;"></i>
+                <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;" title="${escHtml(f.name)}">${escHtml(f.name)}</span>
+                <span style="color:#6c776e;font-size:10.5px;flex-shrink:0;">${size}</span>
+                <button type="button" onclick="removeNewDoc(${idx})" style="background:none;border:none;color:#c23b3b;cursor:pointer;padding:2px 4px;font-size:15px;display:flex;align-items:center;flex-shrink:0;" title="Remove">
+                    <i class="bi bi-x-circle-fill"></i>
+                </button>
+            `;
+            preview.appendChild(row);
+        });
+    }
+
+    function removeNewDoc(idx) {
+        const real = document.getElementById('newDocsReal');
+        const dt   = new DataTransfer();
+        Array.from(real.files).forEach((f, i) => { if (i !== idx) dt.items.add(f); });
+        real.files = dt.files;
+        renderNewDocs();
+    }
+
+    function escHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
     // Copy Reference Number

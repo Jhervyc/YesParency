@@ -1463,6 +1463,7 @@ include("components/topbar.php");
         <div class="vp-left-col">
             
             <form method="POST" action="" enctype="multipart/form-data" id="bidProposalForm" onsubmit="return validateBeforeSubmit(event)">
+                <input type="hidden" name="submit_bid" value="1">
 
                 <!-- ─────────────────────────────────────────── -->
                 <!-- STEP 1: Select Bidding Lots                 -->

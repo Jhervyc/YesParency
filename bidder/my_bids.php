@@ -820,7 +820,7 @@ include("components/topbar.php");
                 <p style="font-size:14px; font-weight:700; color:#06251b; margin-bottom:4px;">No Bid Proposals Submitted Yet</p>
                 <p style="font-size:12px; color:#6c776e; margin-bottom:16px;">You haven't participated in any procurement opportunities yet.</p>
                 <a href="procurement.php" class="vp-back-link" style="text-decoration:none;">
-                    <i class="bi bi-folder2-open"></i> Browse Open Opportunities
+                    Browse Open Opportunities
                 </a>
             </div>
 

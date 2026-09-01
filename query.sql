@@ -224,3 +224,15 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     INDEX idx_module_record (module, record_id),
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =================== Admin Roles Table =======================
+CREATE TABLE admin_roles (
+    role_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE, -- Ensures 1-to-1 or 1-to-0 assignment per admin
+    admin_type ENUM('BAC', 'TWG', 'SECRETARIAT') NOT NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id) 
+        REFERENCES users(user_id) 
+        ON DELETE CASCADE
+);

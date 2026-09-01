@@ -3,7 +3,10 @@ include("utils/protect-page.php");
 
 // Handle promote to admin
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['promote_user'])) {
-    $target_id = intval($_POST['user_id']);
+    $target_id  = intval($_POST['user_id']);
+    $admin_type = isset($_POST['admin_type']) && in_array($_POST['admin_type'], ['BAC', 'TWG', 'SECRETARIAT'])
+                  ? $_POST['admin_type'] : 'SECRETARIAT';
+
     if ($target_id === intval($_SESSION['user_id'])) {
         $_SESSION['alert_msg']  = "You cannot change your own role.";
         $_SESSION['alert_type'] = "error";
@@ -11,7 +14,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['promote_user'])) {
         $stmt = $conn->prepare("UPDATE users SET role = 'admin' WHERE user_id = ? AND role != 'superadmin'");
         $stmt->bind_param("i", $target_id);
         if ($stmt->execute() && $stmt->affected_rows > 0) {
-            $_SESSION['alert_msg']  = "User successfully promoted to Administrator.";
+            // Upsert admin_type into admin_roles
+            $role_stmt = $conn->prepare("INSERT INTO admin_roles (user_id, admin_type) VALUES (?, ?) ON DUPLICATE KEY UPDATE admin_type = VALUES(admin_type)");
+            $role_stmt->bind_param("is", $target_id, $admin_type);
+            $role_stmt->execute();
+            $role_stmt->close();
+            $_SESSION['alert_msg']  = "User promoted to Administrator ({$admin_type}).";
             $_SESSION['alert_type'] = "success";
         } else {
             $_SESSION['alert_msg']  = "Could not promote user. They may already be an admin or superadmin.";
@@ -319,6 +327,17 @@ $total_shown = $users->num_rows;
             <h3 id="modalTitle">Confirm Action</h3>
             <p id="modalDesc">Are you sure?</p>
             <div class="urm-modal-user-pill" id="modalUserPill"></div>
+            <!-- Admin role selector (shown only for promote) -->
+            <div id="adminRoleField" style="display:none; margin-top:14px; text-align:left;">
+                <label style="font-size:12px; font-weight:700; color:#55665a; display:block; margin-bottom:6px;">
+                    <i class="bi bi-shield-check" style="color:#43a047;"></i> Assign Admin Role
+                </label>
+                <select id="adminTypeSelect" style="width:100%; padding:9px 12px; border:1px solid #d0d9d3; border-radius:10px; font-size:13px; font-weight:600; color:#06251b; background:#f7faf8; cursor:pointer;">
+                    <option value="SECRETARIAT">Secretariat — Full Access</option>
+                    <option value="BAC">BAC — Limited Access</option>
+                    <option value="TWG">TWG — Limited Access</option>
+                </select>
+            </div>
         </div>
 
         <!-- Actions -->
@@ -337,6 +356,7 @@ $total_shown = $users->num_rows;
 <form id="actionForm" method="POST" action="" style="display:none;">
     <input type="hidden" id="actionUserId" name="user_id">
     <input type="hidden" id="actionType"   name="" value="1">
+    <input type="hidden" id="actionAdminType" name="admin_type" value="SECRETARIAT">
     <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
     <input type="hidden" name="role"   value="<?= htmlspecialchars($role_filter) ?>">
 </form>
@@ -366,14 +386,16 @@ $total_shown = $users->num_rows;
     };
 
     function openConfirm(action, userId, fullName, username) {
-        const modal     = document.getElementById('confirmModal');
-        const iconWrap  = document.getElementById('modalIcon');
-        const iconEl    = document.getElementById('modalIconInner');
-        const title     = document.getElementById('modalTitle');
-        const desc      = document.getElementById('modalDesc');
-        const pill      = document.getElementById('modalUserPill');
-        const btn       = document.getElementById('modalConfirmBtn');
-        const typeInput = document.getElementById('actionType');
+        const modal         = document.getElementById('confirmModal');
+        const iconWrap      = document.getElementById('modalIcon');
+        const iconEl        = document.getElementById('modalIconInner');
+        const title         = document.getElementById('modalTitle');
+        const desc          = document.getElementById('modalDesc');
+        const pill          = document.getElementById('modalUserPill');
+        const btn           = document.getElementById('modalConfirmBtn');
+        const typeInput     = document.getElementById('actionType');
+        const roleField     = document.getElementById('adminRoleField');
+        const adminTypeSel  = document.getElementById('adminTypeSelect');
 
         const cfg = {
             promote: {
@@ -381,7 +403,7 @@ $total_shown = $users->num_rows;
                 color:   '#43a047',
                 bg:      '#e8f5e9',
                 title:   'Promote to Administrator',
-                desc:    'This user will gain full admin access to the system.',
+                desc:    'Select a role and confirm. The user will gain admin access based on the assigned role.',
                 btnTx:   'Yes, Promote',
                 name:    'promote_user',
             },
@@ -420,6 +442,15 @@ $total_shown = $users->num_rows;
         typeInput.name  = c.name;
         typeInput.value = '1';
 
+        // Show role selector only for promote
+        if (action === 'promote') {
+            roleField.style.display = 'block';
+            adminTypeSel.value = 'SECRETARIAT';
+            document.getElementById('actionAdminType').value = 'SECRETARIAT';
+        } else {
+            roleField.style.display = 'none';
+        }
+
         modal.classList.add('open');
     }
 
@@ -428,6 +459,12 @@ $total_shown = $users->num_rows;
     }
 
     document.getElementById('modalConfirmBtn').addEventListener('click', () => {
+        // Sync role selector to hidden input before submitting
+        const adminTypeSel = document.getElementById('adminTypeSelect');
+        const adminTypeInput = document.getElementById('actionAdminType');
+        if (document.getElementById('adminRoleField').style.display !== 'none') {
+            adminTypeInput.value = adminTypeSel.value;
+        }
         document.getElementById('actionForm').submit();
     });
 

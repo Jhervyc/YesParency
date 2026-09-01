@@ -1,5 +1,6 @@
 <?php
 include("utils/protect-page.php");
+include("utils/protect-secretariat.php");
 
 // ── Handle demote bidder back to user ─────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['demote_bidder'])) {

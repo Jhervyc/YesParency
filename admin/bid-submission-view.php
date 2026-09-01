@@ -1,5 +1,6 @@
 <?php
 include("utils/protect-page.php");
+include("utils/protect-secretariat.php");
 
 $procurement_id = isset($_GET['id']) ? intval($_GET['id']) : (isset($_GET['procurement_id']) ? intval($_GET['procurement_id']) : 0);
 if ($procurement_id === 0) {

@@ -1,5 +1,6 @@
 <?php
 include("utils/protect-page.php");
+include("utils/protect-secretariat.php");
 
 // Handle Verify / Reject
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_verify_bid'])) {

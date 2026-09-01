@@ -62,9 +62,17 @@ if (isset($conn) && isset($_SESSION['user_id'])) {
         </div>
 
         <div class="notif-footer">
-            <a href="announcements.php" class="notif-create-action-btn" style="text-decoration:none;">
-                <i class="bi bi-megaphone-fill"></i> Broadcast New Announcement
-            </a>
+            <?php
+            $sidebar_admin_type = $_SESSION['admin_type'] ?? 'SECRETARIAT';
+            if (in_array($sidebar_admin_type, ['BAC', 'TWG'])): ?>
+                <a href="notification.php" class="notif-create-action-btn" style="text-decoration:none; justify-content:center;">
+                    <i class="bi bi-eye"></i> View More
+                </a>
+            <?php else: ?>
+                <a href="announcements.php" class="notif-create-action-btn" style="text-decoration:none;">
+                    <i class="bi bi-megaphone-fill"></i> Broadcast New Announcement
+                </a>
+            <?php endif; ?>
         </div>
     </div>
 </div>

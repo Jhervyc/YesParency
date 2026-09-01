@@ -1,6 +1,7 @@
 <?php
 
 include("utils/protect-page.php");
+include("utils/protect-secretariat.php");
 
 if(!isset($_GET['id'])){
     die("Invalid Request");
