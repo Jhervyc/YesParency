@@ -236,3 +236,90 @@ CREATE TABLE admin_roles (
         REFERENCES users(user_id) 
         ON DELETE CASCADE
 );
+
+-- =================== Bid Openning Session Table =======================
+
+CREATE TABLE IF NOT EXISTS bid_opening_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    procurement_id INT NOT NULL,
+
+    -- Live stream information
+    stream_path VARCHAR(255) NOT NULL DEFAULT 'live',
+
+    title VARCHAR(255) NULL,
+
+    -- Session / livestream status
+    status ENUM(
+        'scheduled',
+        'eligibility',
+        'financial',
+        'awarding',
+        'ended'
+    ) NOT NULL DEFAULT 'scheduled',
+
+    started_at DATETIME NULL,
+    ended_at DATETIME NULL,
+
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (procurement_id)
+        REFERENCES procurements(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (created_by)
+        REFERENCES users(user_id)
+        ON DELETE SET NULL,
+
+    INDEX idx_procurement (procurement_id),
+    INDEX idx_status (status)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =================== Bid Session Invited Table =======================
+
+CREATE TABLE bid_session_invited (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    bid_session_id INT NOT NULL,
+    user_id INT NOT NULL,
+    invited_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (bid_session_id)
+        REFERENCES bid_opening_sessions(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (user_id)
+        REFERENCES users(user_id)
+        ON DELETE CASCADE,
+
+    UNIQUE KEY unique_session_user (bid_session_id, user_id)
+);
+
+-- =================== Live Comments Table =======================
+CREATE TABLE IF NOT EXISTS live_comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    bid_session_id INT NOT NULL,
+    user_id INT NOT NULL,
+
+    comment TEXT NOT NULL,
+
+    status ENUM('visible', 'hidden')
+        NOT NULL DEFAULT 'visible',
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (bid_session_id)
+        REFERENCES bid_opening_sessions(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (user_id)
+        REFERENCES users(user_id)
+        ON DELETE CASCADE,
+
+    INDEX idx_session_status (bid_session_id, status),
+    INDEX idx_created (created_at)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
