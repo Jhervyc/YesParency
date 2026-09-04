@@ -402,11 +402,11 @@ $sessions = $list->get_result();
                             <?php endif; ?>
                         <?php elseif ($is_live_status): ?>
                             <?php if ($can_manage): ?>
-                            <a href="bid_opening_conduct.php?session=<?= $row['session_id'] ?>" class="proc-action-btn btn-open">
+                            <a href="bid_session.php?session=<?= $row['session_id'] ?>" class="proc-action-btn btn-open">
                                 <i class="bi bi-broadcast"></i> Manage
                             </a>
                             <?php else: ?>
-                            <a href="bid_opening_conduct.php?session=<?= $row['session_id'] ?>" class="proc-action-btn btn-view">
+                            <a href="bid_session.php?session=<?= $row['session_id'] ?>" class="proc-action-btn btn-view">
                                 <i class="bi bi-box-arrow-in-right"></i> Join
                             </a>
                             <?php endif; ?>

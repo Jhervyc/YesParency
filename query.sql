@@ -74,14 +74,28 @@ CREATE TABLE lots (
     id INT AUTO_INCREMENT PRIMARY KEY,
     procurement_id INT NOT NULL,
     lot_number INT NOT NULL,
-    lot_title VARCHAR(255),
+    lot_title VARCHAR(255) NOT NULL,
     description TEXT,
     abc DECIMAL(15,2),
 
+    status ENUM(
+        'pending',
+        'awarded',
+        'failed'
+    ) NOT NULL DEFAULT 'pending',
+
     FOREIGN KEY (procurement_id)
-    REFERENCES procurements(id)
-    ON DELETE CASCADE
+        REFERENCES procurements(id)
+        ON DELETE CASCADE
 );
+
+-- ALTER TABLE lots
+-- ADD COLUMN status ENUM(
+--     'pending',
+--     'awarded',
+--     'failed'
+-- ) NOT NULL DEFAULT 'pending'
+-- AFTER abc;
 
 -- =================== Procurement_Documents table =======================
 
@@ -114,10 +128,54 @@ CREATE TABLE bid_lots (
     bid_id INT NOT NULL,
     lot_id INT NOT NULL,
 
-    FOREIGN KEY (bid_id) REFERENCES bids(id) ON DELETE CASCADE,
-    FOREIGN KEY (lot_id) REFERENCES lots(id) ON DELETE CASCADE
+    eligibility_status ENUM(
+        'opened',
+        'pending',
+        'eligible',
+        'disqualified'
+    ) NOT NULL DEFAULT 'pending',
+
+    financial_status ENUM(
+        'opened',
+        'pending',
+        'qualified',
+        'non_compliant'
+    ) NOT NULL DEFAULT 'pending',
+
+    FOREIGN KEY (bid_id)
+        REFERENCES bids(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (lot_id)
+        REFERENCES lots(id)
+        ON DELETE CASCADE,
+
+    UNIQUE KEY unique_bid_lot (bid_id, lot_id),
+
+    INDEX idx_lot (lot_id),
+    INDEX idx_eligibility (eligibility_status),
+    INDEX idx_financial (financial_status)
 );
 
+-- ALTER TABLE bid_lots
+-- DROP COLUMN status;
+
+-- ALTER TABLE bid_lots
+-- ADD COLUMN eligibility_status ENUM(
+--     'opened',
+--     'pending',
+--     'eligible',
+--     'disqualified'
+-- ) NOT NULL DEFAULT 'pending'
+-- AFTER lot_id,
+
+-- ADD COLUMN financial_status ENUM(
+--     'opened',
+--     'pending',
+--     'qualified',
+--     'non_compliant'
+-- ) NOT NULL DEFAULT 'pending'
+-- AFTER eligibility_status;
 
 -- =================== Bids_Documents table =======================
 CREATE TABLE bid_documents (
@@ -132,19 +190,28 @@ CREATE TABLE bid_documents (
 );
 
 -- =================== Awards table =======================
-CREATE TABLE awards (
+CREATE TABLE IF NOT EXISTS awards (
     id INT AUTO_INCREMENT PRIMARY KEY,
+
     lot_id INT NOT NULL,
-    bidder_id INT NOT NULL,
-    awarded_amount DECIMAL(15,2),
-    award_date DATE,
+    bid_lot_id INT NOT NULL,
+
+    awarded_amount DECIMAL(15,2) NOT NULL,
+    award_date DATE NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (lot_id)
-    REFERENCES lots(id),
+        REFERENCES lots(id)
+        ON DELETE CASCADE,
 
-    FOREIGN KEY (bidder_id)
-    REFERENCES users(id)
-);
+    FOREIGN KEY (bid_lot_id)
+        REFERENCES bid_lots(id)
+        ON DELETE CASCADE,
+
+    UNIQUE KEY unique_lot_award (lot_id)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =================== System table =======================
 CREATE TABLE IF NOT EXISTS system_settings (
@@ -238,20 +305,21 @@ CREATE TABLE admin_roles (
 );
 
 -- =================== Bid Openning Session Table =======================
-
 CREATE TABLE IF NOT EXISTS bid_opening_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-
     procurement_id INT NOT NULL,
 
     -- Live stream information
     stream_path VARCHAR(255) NOT NULL DEFAULT 'live',
-
     title VARCHAR(255) NULL,
+
+    -- Current lot being processed
+    current_lot_id INT NULL,
 
     -- Session / livestream status
     status ENUM(
         'scheduled',
+        'started',
         'eligibility',
         'financial',
         'awarding',
@@ -260,7 +328,6 @@ CREATE TABLE IF NOT EXISTS bid_opening_sessions (
 
     started_at DATETIME NULL,
     ended_at DATETIME NULL,
-
     created_by INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -268,15 +335,42 @@ CREATE TABLE IF NOT EXISTS bid_opening_sessions (
         REFERENCES procurements(id)
         ON DELETE CASCADE,
 
+    FOREIGN KEY (current_lot_id)
+        REFERENCES lots(id)
+        ON DELETE SET NULL,
+
     FOREIGN KEY (created_by)
         REFERENCES users(user_id)
         ON DELETE SET NULL,
 
     INDEX idx_procurement (procurement_id),
+    INDEX idx_current_lot (current_lot_id),
     INDEX idx_status (status)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ALTER TABLE bid_opening_sessions 
+-- MODIFY COLUMN status ENUM(
+--     'scheduled',
+--     'started',
+--     'eligibility',
+--     'financial',
+--     'awarding',
+--     'ended'
+-- ) NOT NULL DEFAULT 'scheduled';
+
+-- ALTER TABLE bid_opening_sessions
+-- ADD COLUMN current_lot_id INT NULL
+-- AFTER title;
+
+-- ALTER TABLE bid_opening_sessions
+-- ADD CONSTRAINT fk_session_current_lot
+-- FOREIGN KEY (current_lot_id)
+-- REFERENCES lots(id)
+-- ON DELETE SET NULL;
+
+-- ALTER TABLE bid_opening_sessions
+-- ADD INDEX idx_current_lot (current_lot_id);
 
 -- =================== Bid Session Invited Table =======================
 
@@ -321,5 +415,40 @@ CREATE TABLE IF NOT EXISTS live_comments (
 
     INDEX idx_session_status (bid_session_id, status),
     INDEX idx_created (created_at)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =================== bid lot signature table =======================
+
+CREATE TABLE bid_lot_signatures (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    bid_lot_id INT NOT NULL,
+    user_id INT NOT NULL,
+
+    opening_type ENUM(
+        'eligibility',
+        'financial'
+    ) NOT NULL,
+
+    signed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (bid_lot_id)
+        REFERENCES bid_lots(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (user_id)
+        REFERENCES users(user_id)
+        ON DELETE CASCADE,
+
+    UNIQUE KEY unique_bid_lot_user_type (
+        bid_lot_id,
+        user_id,
+        opening_type
+    ),
+
+    INDEX idx_bid_lot (bid_lot_id),
+    INDEX idx_user (user_id)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

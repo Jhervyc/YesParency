@@ -15,13 +15,13 @@ $admin_type = $_SESSION['admin_type'] ?? 'SECRETARIAT';
 $user_role  = $_SESSION['role'] ?? 'admin';
 $can_manage = ($user_role === 'superadmin' || $admin_type === 'SECRETARIAT');
 
-// ── Open Now — transition scheduled session to eligibility (go live) ───────
+// ── Open Now — transition scheduled session to started ────────────────────
 if ($can_manage && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['open_now'])) {
     $session_id = (int)($_POST['session_id'] ?? 0);
     if ($session_id > 0) {
         $upd = $conn->prepare("
             UPDATE bid_opening_sessions
-            SET status = 'eligibility', started_at = NOW()
+            SET status = 'started', started_at = NOW()
             WHERE id = ? AND status = 'scheduled'
         ");
         $upd->bind_param("i", $session_id);
@@ -51,7 +51,7 @@ $ls_res = $conn->query("
            p.id AS proc_id, p.title AS proc_title, p.philgeps_ref_no
     FROM bid_opening_sessions bos
     JOIN procurements p ON bos.procurement_id = p.id
-    WHERE bos.status IN ('eligibility','financial','awarding')
+    WHERE bos.status IN ('started','eligibility','financial','awarding')
     ORDER BY bos.started_at DESC
     LIMIT 1
 ");
@@ -531,11 +531,11 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
             </div>
             <div class="bo-live-actions">
                 <?php if ($can_manage): ?>
-                <a href="bid_opening_conduct.php?session=<?= $live_session['session_id'] ?>" class="bo-btn-primary">
+                <a href="bid_session.php?session=<?= $live_session['session_id'] ?>" class="bo-btn-primary">
                     <i class="bi bi-envelope-open-fill"></i> Manage Session
                 </a>
                 <?php else: ?>
-                <a href="bid_opening_conduct.php?session=<?= $live_session['session_id'] ?>" class="bo-btn-primary">
+                <a href="bid_session.php?session=<?= $live_session['session_id'] ?>" class="bo-btn-primary">
                     <i class="bi bi-box-arrow-in-right"></i> Join
                 </a>
                 <?php endif; ?>
@@ -760,7 +760,7 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
         </div>
         <div class="urm-modal-text">
             <h3>Start Bid Opening Session</h3>
-            <p>This will transition the session to <strong>Eligibility Phase</strong> and go live immediately.</p>
+            <p>This will open the session. You can then begin the <strong>Eligibility</strong> or <strong>Financial</strong> phase from inside the session.</p>
             <div class="urm-modal-user-pill" id="openNowPill"></div>
             <div style="margin-top:10px; display:inline-flex; align-items:center; gap:6px; background:#f0f4f2; border-radius:8px; padding:5px 12px; font-size:11.5px; font-weight:700; color:#55665a;">
                 <i class="bi bi-broadcast" style="color:#1f7a3d;"></i>
