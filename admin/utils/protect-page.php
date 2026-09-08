@@ -1,5 +1,6 @@
 <?php
     include ("../config/db_connect.php");
+    require_once (__DIR__ . "/audit_helper.php");
 
     session_start();
 

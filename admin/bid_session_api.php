@@ -15,6 +15,7 @@
 
 require_once __DIR__ . '/../config/db_connect.php';
 require_once __DIR__ . '/../utils/crypto.php';
+require_once __DIR__ . '/../config/pusher.php';
 session_start();
 
 header('Content-Type: application/json');
@@ -139,7 +140,7 @@ if ($action === 'progress') {
     $session_id = (int)($_GET['session_id'] ?? 0);
     if ($session_id <= 0) { echo json_encode(['status' => 'unknown']); exit(); }
 
-    $stmt = $conn->prepare("SELECT id, procurement_id, status, current_lot_id, started_at, ended_at FROM bid_opening_sessions WHERE id = ?");
+    $stmt = $conn->prepare("SELECT id, procurement_id, status, signing_status, current_lot_id, started_at, ended_at FROM bid_opening_sessions WHERE id = ?");
     $stmt->bind_param("i", $session_id);
     $stmt->execute();
     $sess_row = $stmt->get_result()->fetch_assoc();
@@ -187,6 +188,7 @@ if ($action === 'progress') {
     echo json_encode([
         'status'         => $raw_status,
         'current_stage'  => $current_stage,
+        'signing_status' => $sess_row['signing_status'] ?? 'not_started',
         'current_lot_id' => (int)($sess_row['current_lot_id'] ?? 0),
         'started_at'     => $sess_row['started_at'],
         'ended_at'       => $sess_row['ended_at'],
@@ -325,9 +327,32 @@ if ($action === 'set_eligible') {
     $eligible   = (int)($_POST['eligible']   ?? 0); // 1 = eligible/comply, 0 = disqualified/non_compliant
     $phase      = $_POST['phase']            ?? 'eligibility';
     $session_id = (int)($_POST['session_id'] ?? 0);
+    $bid_lot_id = (int)($_POST['bid_lot_id'] ?? 0);
 
     if ($bid_id <= 0 || $lot_id <= 0) {
         echo json_encode(['success' => false, 'message' => 'Invalid parameters.']); exit();
+    }
+
+    // ── Server-side pending-item guard (Eligible / Comply only — not Disqualify) ──
+    // Prevents bypassing the JS disabled button via a crafted request.
+    if ($eligible && $bid_lot_id > 0) {
+        $pending_chk = $conn->prepare("
+            SELECT COUNT(*) AS cnt
+            FROM bid_checklist
+            WHERE bid_lot_id = ?
+              AND result = 'pending'
+        ");
+        $pending_chk->bind_param("i", $bid_lot_id);
+        $pending_chk->execute();
+        $pending_cnt = (int)$pending_chk->get_result()->fetch_assoc()['cnt'];
+        $pending_chk->close();
+
+        if ($pending_cnt > 0) {
+            echo json_encode([
+                'success' => false,
+                'message' => "Cannot mark bidder as Eligible. All checklist items must be completed first ({$pending_cnt} still pending).",
+            ]); exit();
+        }
     }
 
     if ($phase === 'financial') {
@@ -352,6 +377,21 @@ if ($action === 'set_eligible') {
         }
     }
 
+    // Reset signing_status so the next bidder requires a fresh signing cycle
+    if ($session_id > 0) {
+        $srst = $conn->prepare("UPDATE bid_opening_sessions SET signing_status = 'not_started' WHERE id = ?");
+        $srst->bind_param("i", $session_id);
+        $srst->execute();
+        $srst->close();
+    }
+
+    pusher_trigger($session_id, 'eligibility_updated', [
+        'bid_id'  => $bid_id,
+        'lot_id'  => $lot_id,
+        'phase'   => $phase,
+        'eligible'=> $eligible,
+    ]);
+
     echo json_encode(['success' => true]); exit();
 }
 
@@ -369,11 +409,15 @@ if ($action === 'start_phase') {
         $upd = $conn->prepare("UPDATE bid_opening_sessions SET status = 'ended', ended_at = NOW() WHERE id = ?");
         $upd->bind_param("i", $session_id);
     } else {
-        $upd = $conn->prepare("UPDATE bid_opening_sessions SET status = ? WHERE id = ?");
+        // Reset signing_status to 'not_started' whenever the phase advances —
+        // each new phase/lot requires a fresh signing cycle
+        $upd = $conn->prepare("UPDATE bid_opening_sessions SET status = ?, signing_status = 'not_started' WHERE id = ?");
         $upd->bind_param("si", $phase, $session_id);
     }
     $upd->execute();
     $upd->close();
+
+    pusher_trigger($session_id, 'phase_changed', ['phase' => $phase]);
 
     echo json_encode(['success' => true, 'new_status' => $phase]); exit();
 }
@@ -405,6 +449,8 @@ if ($action === 'start_session') {
     $affected = $upd->affected_rows;
     $upd->close();
 
+    pusher_trigger($session_id, 'session_started', []);
+
     echo json_encode(['success' => true, 'new_status' => 'started']); exit();
 }
 
@@ -415,15 +461,17 @@ if ($action === 'set_current_lot') {
 
     if ($session_id > 0) {
         if ($lot_id > 0) {
-            $upd = $conn->prepare("UPDATE bid_opening_sessions SET current_lot_id = ? WHERE id = ?");
+            // Reset signing_status when advancing to a new lot — fresh cycle required
+            $upd = $conn->prepare("UPDATE bid_opening_sessions SET current_lot_id = ?, signing_status = 'not_started' WHERE id = ?");
             $upd->bind_param("ii", $lot_id, $session_id);
         } else {
-            $upd = $conn->prepare("UPDATE bid_opening_sessions SET current_lot_id = NULL WHERE id = ?");
+            $upd = $conn->prepare("UPDATE bid_opening_sessions SET current_lot_id = NULL, signing_status = 'not_started' WHERE id = ?");
             $upd->bind_param("i", $session_id);
         }
         $upd->execute();
         $upd->close();
     }
+    pusher_trigger($session_id, 'lot_changed', ['lot_id' => $lot_id]);
     echo json_encode(['success' => true]); exit();
 }
 
@@ -477,6 +525,8 @@ if ($action === 'fail_lot') {
     $del->execute();
     $del->close();
 
+    pusher_trigger($session_id, 'lot_failed', ['lot_id' => $lot_id]);
+
     echo json_encode(['success' => true, 'lot_id' => $lot_id]); exit();
 }
 
@@ -524,6 +574,11 @@ if ($action === 'award_lot') {
     $lupd->bind_param("i", $lot_id);
     $lupd->execute();
     $lupd->close();
+
+    pusher_trigger($session_id, 'lot_awarded', [
+        'lot_id'     => $lot_id,
+        'bid_lot_id' => $bid_lot_id,
+    ]);
 
     echo json_encode(['success' => true, 'message' => 'Award recorded successfully.']); exit();
 }
@@ -586,7 +641,484 @@ if ($action === 'end_session') {
         $pupd->close();
     }
 
+    pusher_trigger($session_id, 'session_ended', []);
+
     echo json_encode(['success' => true, 'new_status' => 'ended']); exit();
+}
+
+// ── Signal open (Secretariat signals that a bid_lot is ready to be opened) ─
+// This does NOT decrypt — it just sets the "open now" flag so BAC can sign.
+// Stored in bid_lot_signatures with user_id = secretariat and a special role marker.
+// We reuse the same table but mark it so quorum logic skips it.
+// ── Signal open (Secretariat starts the signing process) ──────────────────
+// Sets bid_opening_sessions.signing_status = 'signing' so BAC knows to sign.
+// Does NOT touch bid_lots or bid_lot_signatures.
+if ($action === 'signal_open') {
+    $session_id   = (int)($_POST['session_id']   ?? 0);
+
+    if ($session_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid parameters.']); exit();
+    }
+
+    // Verify caller is SECRETARIAT or superadmin
+    $role_chk = $conn->prepare("SELECT admin_type FROM admin_roles WHERE user_id = ?");
+    $role_chk->bind_param("i", $user_id);
+    $role_chk->execute();
+    $role_row = $role_chk->get_result()->fetch_assoc();
+    $role_chk->close();
+    $caller_type = $role_row['admin_type'] ?? '';
+    if ($_SESSION['role'] !== 'superadmin' && $caller_type !== 'SECRETARIAT') {
+        echo json_encode(['success' => false, 'message' => 'Only Secretariat can start the signing.']); exit();
+    }
+
+    $upd = $conn->prepare("UPDATE bid_opening_sessions SET signing_status = 'signing' WHERE id = ?");
+    $upd->bind_param("i", $session_id);
+    $upd->execute();
+    $upd->close();
+
+    pusher_trigger($session_id, 'signing_started', []);
+
+    echo json_encode(['success' => true]); exit();
+}
+
+// ── Sign lot (BAC member enters password and signs to contribute to quorum) ──
+if ($action === 'sign_lot') {
+    $bid_lot_id  = (int)($_POST['bid_lot_id']  ?? 0);
+    $opening_type = $_POST['opening_type']      ?? 'eligibility';
+    $password    = $_POST['password']            ?? '';
+    $session_id  = (int)($_POST['session_id']  ?? 0);
+
+    if ($bid_lot_id <= 0 || !in_array($opening_type, ['eligibility','financial']) || empty($password)) {
+        echo json_encode(['success' => false, 'message' => 'Invalid parameters.']); exit();
+    }
+
+    // 1. Verify caller is BAC
+    $role_chk = $conn->prepare("SELECT admin_type FROM admin_roles WHERE user_id = ?");
+    $role_chk->bind_param("i", $user_id);
+    $role_chk->execute();
+    $role_row = $role_chk->get_result()->fetch_assoc();
+    $role_chk->close();
+    if (($role_row['admin_type'] ?? '') !== 'BAC') {
+        echo json_encode(['success' => false, 'message' => 'Only BAC members can sign.']); exit();
+    }
+
+    // 2. Verify caller is invited to this session
+    $inv_chk = $conn->prepare("SELECT 1 FROM bid_session_invited WHERE bid_session_id = ? AND user_id = ? LIMIT 1");
+    $inv_chk->bind_param("ii", $session_id, $user_id);
+    $inv_chk->execute();
+    $is_invited = (bool)$inv_chk->get_result()->fetch_row();
+    $inv_chk->close();
+    if (!$is_invited) {
+        echo json_encode(['success' => false, 'message' => 'You are not invited to this session.']); exit();
+    }
+
+    // 3. Verify password
+    $pw_stmt = $conn->prepare("SELECT password FROM users WHERE user_id = ?");
+    $pw_stmt->bind_param("i", $user_id);
+    $pw_stmt->execute();
+    $pw_row = $pw_stmt->get_result()->fetch_assoc();
+    $pw_stmt->close();
+    if (!$pw_row || !password_verify($password, $pw_row['password'])) {
+        echo json_encode(['success' => false, 'message' => 'Incorrect password.']); exit();
+    }
+
+    // 4. Insert signature (ignore duplicate — user already signed)
+    $ins = $conn->prepare("
+        INSERT IGNORE INTO bid_lot_signatures (bid_lot_id, user_id, opening_type)
+        VALUES (?, ?, ?)
+    ");
+    $ins->bind_param("iis", $bid_lot_id, $user_id, $opening_type);
+    $ins->execute();
+    $ins->close();
+
+    // 5. Check quorum — count BAC members invited to this session
+    $bac_count_stmt = $conn->prepare("
+        SELECT COUNT(*) FROM bid_session_invited bsi
+        JOIN admin_roles ar ON ar.user_id = bsi.user_id
+        WHERE bsi.bid_session_id = ? AND ar.admin_type = 'BAC'
+    ");
+    $bac_count_stmt->bind_param("i", $session_id);
+    $bac_count_stmt->execute();
+    $bac_total = (int)$bac_count_stmt->get_result()->fetch_row()[0];
+    $bac_count_stmt->close();
+
+    // Count signatures for this bid_lot + opening_type (only from invited BAC members)
+    $sig_count_stmt = $conn->prepare("
+        SELECT COUNT(*) FROM bid_lot_signatures bls
+        JOIN bid_session_invited bsi ON bsi.user_id = bls.user_id AND bsi.bid_session_id = ?
+        JOIN admin_roles ar ON ar.user_id = bls.user_id AND ar.admin_type = 'BAC'
+        WHERE bls.bid_lot_id = ? AND bls.opening_type = ?
+    ");
+    $sig_count_stmt->bind_param("iis", $session_id, $bid_lot_id, $opening_type);
+    $sig_count_stmt->execute();
+    $sig_count = (int)$sig_count_stmt->get_result()->fetch_row()[0];
+    $sig_count_stmt->close();
+
+    // Majority = more than half (ceiling of bac_total / 2)
+    $required  = ($bac_total > 0) ? (int)ceil($bac_total / 2) : 1;
+    $quorum_reached = ($sig_count >= $required);
+
+    // Fetch signers list for display
+    $signers_stmt = $conn->prepare("
+        SELECT u.firstname, u.lastname, bls.signed_at
+        FROM bid_lot_signatures bls
+        JOIN users u ON u.user_id = bls.user_id
+        JOIN bid_session_invited bsi ON bsi.user_id = bls.user_id AND bsi.bid_session_id = ?
+        JOIN admin_roles ar ON ar.user_id = bls.user_id AND ar.admin_type = 'BAC'
+        WHERE bls.bid_lot_id = ? AND bls.opening_type = ?
+        ORDER BY bls.signed_at ASC
+    ");
+    $signers_stmt->bind_param("iis", $session_id, $bid_lot_id, $opening_type);
+    $signers_stmt->execute();
+    $signers = $signers_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $signers_stmt->close();
+
+    // Read current signing_status
+    $ss_stmt = $conn->prepare("SELECT signing_status FROM bid_opening_sessions WHERE id = ?");
+    $ss_stmt->bind_param("i", $session_id);
+    $ss_stmt->execute();
+    $ss_row = $ss_stmt->get_result()->fetch_assoc();
+    $ss_stmt->close();
+
+    pusher_trigger($session_id, 'bac_signed', [
+        'bid_lot_id'     => $bid_lot_id,
+        'opening_type'   => $opening_type,
+        'sig_count'      => $sig_count,
+        'required'       => $required,
+        'quorum_reached' => $quorum_reached,
+        'signing_status' => $ss_row['signing_status'] ?? 'signing',
+    ]);
+
+    echo json_encode([
+        'success'        => true,
+        'sig_count'      => $sig_count,
+        'bac_total'      => $bac_total,
+        'required'       => $required,
+        'quorum_reached' => $quorum_reached,
+        'signing_status' => $ss_row['signing_status'] ?? 'signing',
+        'signers'        => $signers,
+    ]); exit();
+}
+
+// ── Check quorum status for a bid_lot ─────────────────────────────────────
+if ($action === 'check_quorum') {
+    $bid_lot_id   = (int)($_GET['bid_lot_id']   ?? 0);
+    $opening_type = $_GET['opening_type']         ?? 'eligibility';
+    $session_id   = (int)($_GET['session_id']   ?? 0);
+
+    if ($bid_lot_id <= 0 || $session_id <= 0) {
+        echo json_encode(['quorum_reached' => false, 'sig_count' => 0, 'required' => 1, 'bac_total' => 0]); exit();
+    }
+
+    // Total invited BAC members
+    $bac_count_stmt = $conn->prepare("
+        SELECT COUNT(*) FROM bid_session_invited bsi
+        JOIN admin_roles ar ON ar.user_id = bsi.user_id
+        WHERE bsi.bid_session_id = ? AND ar.admin_type = 'BAC'
+    ");
+    $bac_count_stmt->bind_param("i", $session_id);
+    $bac_count_stmt->execute();
+    $bac_total = (int)$bac_count_stmt->get_result()->fetch_row()[0];
+    $bac_count_stmt->close();
+
+    // Signatures from invited BAC members only
+    $sig_count_stmt = $conn->prepare("
+        SELECT COUNT(*) FROM bid_lot_signatures bls
+        JOIN bid_session_invited bsi ON bsi.user_id = bls.user_id AND bsi.bid_session_id = ?
+        JOIN admin_roles ar ON ar.user_id = bls.user_id AND ar.admin_type = 'BAC'
+        WHERE bls.bid_lot_id = ? AND bls.opening_type = ?
+    ");
+    $sig_count_stmt->bind_param("iis", $session_id, $bid_lot_id, $opening_type);
+    $sig_count_stmt->execute();
+    $sig_count = (int)$sig_count_stmt->get_result()->fetch_row()[0];
+    $sig_count_stmt->close();
+
+    // Who has already signed (to show in UI)
+    $signers_stmt = $conn->prepare("
+        SELECT u.user_id, u.firstname, u.lastname, u.profile_picture_url AS avatar,
+               bls.signed_at
+        FROM bid_lot_signatures bls
+        JOIN users u ON u.user_id = bls.user_id
+        JOIN bid_session_invited bsi ON bsi.user_id = bls.user_id AND bsi.bid_session_id = ?
+        JOIN admin_roles ar ON ar.user_id = bls.user_id AND ar.admin_type = 'BAC'
+        WHERE bls.bid_lot_id = ? AND bls.opening_type = ?
+        ORDER BY bls.signed_at ASC
+    ");
+    $signers_stmt->bind_param("iis", $session_id, $bid_lot_id, $opening_type);
+    $signers_stmt->execute();
+    $signers = $signers_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $signers_stmt->close();
+
+    // Has the current user already signed?
+    $already_signed = !empty(array_filter($signers, fn($s) => (int)$s['user_id'] === $user_id));
+
+    // Read signing_status directly from bid_opening_sessions
+    $ss_stmt = $conn->prepare("SELECT signing_status FROM bid_opening_sessions WHERE id = ?");
+    $ss_stmt->bind_param("i", $session_id);
+    $ss_stmt->execute();
+    $ss_row = $ss_stmt->get_result()->fetch_assoc();
+    $ss_stmt->close();
+    $signing_status = $ss_row['signing_status'] ?? 'not_started';
+
+    $required = ($bac_total > 0) ? (int)ceil($bac_total / 2) : 1;
+
+    echo json_encode([
+        'quorum_reached'   => ($sig_count >= $required),
+        'sig_count'        => $sig_count,
+        'bac_total'        => $bac_total,
+        'required'         => $required,
+        'already_signed'   => $already_signed,
+        'signing_status'   => $signing_status,
+        'signers'          => $signers,
+    ]); exit();
+}
+
+// ── Open Files (Secretariat opens after quorum reached — decrypts + marks opened) ──
+if ($action === 'open_files') {
+    $bid_id      = (int)($_POST['bid_id']      ?? 0);
+    $lot_id      = (int)($_POST['lot_id']      ?? 0);
+    $bid_lot_id  = (int)($_POST['bid_lot_id']  ?? 0);
+    $opening_type = $_POST['opening_type']      ?? 'eligibility';
+    $session_id  = (int)($_POST['session_id']  ?? 0);
+
+    if ($bid_id <= 0 || $lot_id <= 0 || $bid_lot_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid parameters.']); exit();
+    }
+
+    // Verify caller is SECRETARIAT or superadmin
+    $role_chk = $conn->prepare("SELECT admin_type FROM admin_roles WHERE user_id = ?");
+    $role_chk->bind_param("i", $user_id);
+    $role_chk->execute();
+    $role_row = $role_chk->get_result()->fetch_assoc();
+    $role_chk->close();
+    $caller_type = $role_row['admin_type'] ?? '';
+    if ($_SESSION['role'] !== 'superadmin' && $caller_type !== 'SECRETARIAT') {
+        echo json_encode(['success' => false, 'message' => 'Only Secretariat can open files.']); exit();
+    }
+
+    // Verify quorum is actually reached before allowing open
+    $bac_count_stmt = $conn->prepare("
+        SELECT COUNT(*) FROM bid_session_invited bsi
+        JOIN admin_roles ar ON ar.user_id = bsi.user_id
+        WHERE bsi.bid_session_id = ? AND ar.admin_type = 'BAC'
+    ");
+    $bac_count_stmt->bind_param("i", $session_id);
+    $bac_count_stmt->execute();
+    $bac_total = (int)$bac_count_stmt->get_result()->fetch_row()[0];
+    $bac_count_stmt->close();
+
+    $sig_count_stmt = $conn->prepare("
+        SELECT COUNT(*) FROM bid_lot_signatures bls
+        JOIN bid_session_invited bsi ON bsi.user_id = bls.user_id AND bsi.bid_session_id = ?
+        JOIN admin_roles ar ON ar.user_id = bls.user_id AND ar.admin_type = 'BAC'
+        WHERE bls.bid_lot_id = ? AND bls.opening_type = ?
+    ");
+    $sig_count_stmt->bind_param("iis", $session_id, $bid_lot_id, $opening_type);
+    $sig_count_stmt->execute();
+    $sig_count = (int)$sig_count_stmt->get_result()->fetch_row()[0];
+    $sig_count_stmt->close();
+
+    $required = ($bac_total > 0) ? (int)ceil($bac_total / 2) : 1;
+    if ($sig_count < $required) {
+        echo json_encode(['success' => false, 'message' => "Quorum not yet reached ({$sig_count}/{$required})."]); exit();
+    }
+
+    // Update bid_lots status to 'opened'
+    if ($opening_type === 'financial') {
+        $upd = $conn->prepare("UPDATE bid_lots SET financial_status = 'opened' WHERE bid_id = ? AND lot_id = ? AND financial_status = 'pending'");
+    } else {
+        $upd = $conn->prepare("UPDATE bid_lots SET eligibility_status = 'opened' WHERE bid_id = ? AND lot_id = ? AND eligibility_status = 'pending'");
+    }
+    $upd->bind_param("ii", $bid_id, $lot_id);
+    $upd->execute();
+    $upd->close();
+
+    // Mark signing as done on the session
+    $supd = $conn->prepare("UPDATE bid_opening_sessions SET signing_status = 'done' WHERE id = ?");
+    $supd->bind_param("i", $session_id);
+    $supd->execute();
+    $supd->close();
+
+    pusher_trigger($session_id, 'files_opened', [
+        'bid_id'       => $bid_id,
+        'lot_id'       => $lot_id,
+        'bid_lot_id'   => $bid_lot_id,
+        'opening_type' => $opening_type,
+    ]);
+
+    echo json_encode(['success' => true]); exit();
+}
+
+// ── Get / init checklist for a bid_lot ────────────────────────────────────
+if ($action === 'get_checklist') {
+    $bid_lot_id       = (int)($_GET['bid_lot_id']       ?? 0);
+    $checklist_type   = $_GET['checklist_type']           ?? '';
+    $procurement_type = $_GET['procurement_type']         ?? '';
+    $session_id       = (int)($_GET['session_id']       ?? 0);
+
+    $valid_checklist   = ['eligibility', 'financial'];
+    $valid_procurement = ['goods_services', 'infrastructure'];
+
+    if ($bid_lot_id <= 0
+        || !in_array($checklist_type, $valid_checklist)
+        || !in_array($procurement_type, $valid_procurement)
+        || $session_id <= 0
+    ) {
+        echo json_encode(['success' => false, 'message' => 'Invalid parameters.']); exit();
+    }
+
+    // Verify bid_lot belongs to this session's procurement
+    $chk = $conn->prepare("
+        SELECT bl.id, bl.eligibility_status, bl.lot_id
+        FROM bid_lots bl
+        JOIN lots l ON l.id = bl.lot_id
+        JOIN bid_opening_sessions bos ON bos.procurement_id = l.procurement_id
+        WHERE bl.id = ? AND bos.id = ?
+        LIMIT 1
+    ");
+    $chk->bind_param("ii", $bid_lot_id, $session_id);
+    $chk->execute();
+    $bl_row = $chk->get_result()->fetch_assoc();
+    $chk->close();
+
+    if (!$bl_row) {
+        echo json_encode(['success' => false, 'message' => 'Bid lot not found in this session.']); exit();
+    }
+
+    // Financial checklist: disqualified bidders cannot access it
+    if ($checklist_type === 'financial' && $bl_row['eligibility_status'] === 'disqualified') {
+        echo json_encode(['success' => false, 'message' => 'Disqualified bidders cannot access the financial checklist.']); exit();
+    }
+
+    // Load active templates for this procurement_type + checklist_type
+    $tpl = $conn->prepare("
+        SELECT id, item_name, description, is_required, display_order
+        FROM checklist_templates
+        WHERE procurement_type = ?
+          AND checklist_type   = ?
+          AND is_active = 1
+        ORDER BY display_order ASC
+    ");
+    $tpl->bind_param("ss", $procurement_type, $checklist_type);
+    $tpl->execute();
+    $templates = $tpl->get_result()->fetch_all(MYSQLI_ASSOC);
+    $tpl->close();
+
+    if (empty($templates)) {
+        echo json_encode(['success' => true, 'items' => [], 'procurement_type' => $procurement_type, 'checklist_type' => $checklist_type]); exit();
+    }
+
+    // Init missing bid_checklist rows — INSERT IGNORE preserves existing records and their snapshots
+    $ins = $conn->prepare("
+        INSERT IGNORE INTO bid_checklist (bid_lot_id, template_item_id, item_name)
+        VALUES (?, ?, ?)
+    ");
+    foreach ($templates as $t) {
+        $ins->bind_param("iis", $bid_lot_id, $t['id'], $t['item_name']);
+        $ins->execute();
+    }
+    $ins->close();
+
+    // Build a lookup for template metadata
+    $tpl_map = array_column($templates, null, 'id');
+    $tpl_ids = implode(',', array_column($templates, 'id'));
+
+    // Load saved checklist rows ordered by template display_order
+    $rows = $conn->prepare("
+        SELECT bc.id, bc.template_item_id, bc.item_name, bc.result, bc.remarks,
+               bc.checked_at,
+               u.firstname, u.lastname
+        FROM bid_checklist bc
+        LEFT JOIN users u ON u.user_id = bc.checked_by
+        WHERE bc.bid_lot_id = ?
+          AND bc.template_item_id IN (
+              SELECT id FROM checklist_templates
+              WHERE procurement_type = ? AND checklist_type = ? AND is_active = 1
+          )
+        ORDER BY (
+            SELECT display_order FROM checklist_templates WHERE id = bc.template_item_id
+        ) ASC
+    ");
+    $rows->bind_param("iss", $bid_lot_id, $procurement_type, $checklist_type);
+    $rows->execute();
+    $items = $rows->get_result()->fetch_all(MYSQLI_ASSOC);
+    $rows->close();
+
+    // Merge template metadata into each saved row
+    foreach ($items as &$item) {
+        $tpl_entry = $tpl_map[$item['template_item_id']] ?? [];
+        $item['is_required']  = (bool)($tpl_entry['is_required']  ?? true);
+        $item['description']  = $tpl_entry['description'] ?? '';
+    }
+    unset($item);
+
+    echo json_encode([
+        'success'          => true,
+        'items'            => $items,
+        'procurement_type' => $procurement_type,
+        'checklist_type'   => $checklist_type,
+    ]); exit();
+}
+
+// ── Save a single checklist item ───────────────────────────────────────────
+if ($action === 'save_checklist_item') {
+    $checklist_id = (int)($_POST['checklist_id'] ?? 0);
+    $result       = $_POST['result']              ?? '';
+    $remarks      = trim($_POST['remarks']        ?? '');
+    $session_id   = (int)($_POST['session_id']   ?? 0);
+
+    $allowed_results = ['pending', 'present', 'missing', 'not_applicable'];
+    if ($checklist_id <= 0 || !in_array($result, $allowed_results) || $session_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid parameters.']); exit();
+    }
+
+    // Verify the checklist row belongs to this session's procurement and get context
+    $chk = $conn->prepare("
+        SELECT bc.id, bc.bid_lot_id,
+               bl.eligibility_status,
+               ct.checklist_type
+        FROM bid_checklist bc
+        JOIN bid_lots bl    ON bl.id = bc.bid_lot_id
+        JOIN checklist_templates ct ON ct.id = bc.template_item_id
+        JOIN lots l         ON l.id = bl.lot_id
+        JOIN bid_opening_sessions bos ON bos.procurement_id = l.procurement_id
+        WHERE bc.id = ? AND bos.id = ?
+        LIMIT 1
+    ");
+    $chk->bind_param("ii", $checklist_id, $session_id);
+    $chk->execute();
+    $row = $chk->get_result()->fetch_assoc();
+    $chk->close();
+
+    if (!$row) {
+        echo json_encode(['success' => false, 'message' => 'Checklist item not found in this session.']); exit();
+    }
+
+    // Financial checklist: disqualified bidders cannot be evaluated
+    if ($row['checklist_type'] === 'financial' && $row['eligibility_status'] === 'disqualified') {
+        echo json_encode(['success' => false, 'message' => 'Cannot evaluate financial checklist for a disqualified bidder.']); exit();
+    }
+
+    // Use server-side user_id — never trust JS
+    $checked_at = ($result !== 'pending') ? date('Y-m-d H:i:s') : null;
+    $checked_by = ($result !== 'pending') ? $user_id : null;
+
+    $upd = $conn->prepare("
+        UPDATE bid_checklist
+        SET result = ?, remarks = ?, checked_by = ?, checked_at = ?
+        WHERE id = ?
+    ");
+    $upd->bind_param("ssisi", $result, $remarks, $checked_by, $checked_at, $checklist_id);
+    $upd->execute();
+    $upd->close();
+
+    pusher_trigger($session_id, 'checklist_updated', [
+        'checklist_id' => $checklist_id,
+        'bid_lot_id'   => (int)$row['bid_lot_id'],
+        'result'       => $result,
+    ]);
+
+    echo json_encode(['success' => true]); exit();
 }
 
 http_response_code(400);

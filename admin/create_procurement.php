@@ -120,6 +120,7 @@
                         VALUES (?, ?, ?)
                     ");
 
+                    $uploaded_doc_names = [];
                     foreach ($_FILES['documents']['name'] as $index => $original_name) {
                         $tmp_name = $_FILES['documents']['tmp_name'][$index];
                         $file_error = $_FILES['documents']['error'][$index];
@@ -133,11 +134,34 @@
                             if (move_uploaded_file($tmp_name, $target_path)) {
                                 $doc_stmt->bind_param("iss", $procurement_id, $original_name, $target_path);
                                 $doc_stmt->execute();
+                                $uploaded_doc_names[] = $original_name;
                             }
                         }
                     }
                     $doc_stmt->close();
+                } else {
+                    $uploaded_doc_names = [];
                 }
+
+                // Audit log creation
+                audit_log(
+                    $conn,
+                    'PROCUREMENT_CREATED',
+                    'procurements',
+                    $procurement_id,
+                    "Created procurement project: {$title}",
+                    null,
+                    [
+                        'title' => $title,
+                        'philgeps_ref_no' => $ref_no,
+                        'abc' => $abc,
+                        'procurement_mode' => $mode,
+                        'posting_date' => $posting_date,
+                        'closing_date' => $closing_date,
+                        'opening_date' => $opening_date,
+                        'uploaded_documents' => $uploaded_doc_names
+                    ]
+                );
 
                 $_SESSION['alert_success'] = "Procurement project drafted successfully! You can now configure the lots and items.";
                 header("Location: manage_lots.php?id=" . $procurement_id);

@@ -21,6 +21,13 @@ $offset   = ($page - 1) * $per_page;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_procurement'])) {
     $procurement_id = isset($_POST['procurement_id']) ? intval($_POST['procurement_id']) : 0;
     if ($procurement_id > 0) {
+        // Fetch snapshot before deletion
+        $snap = $conn->prepare("SELECT title, philgeps_ref_no, status, abc, procurement_mode FROM procurements WHERE id = ?");
+        $snap->bind_param("i", $procurement_id);
+        $snap->execute();
+        $old_data = $snap->get_result()->fetch_assoc();
+        $snap->close();
+
         $doc_stmt = mysqli_prepare($conn, "SELECT file_path FROM procurement_documents WHERE procurement_id = ?");
         mysqli_stmt_bind_param($doc_stmt, "i", $procurement_id);
         mysqli_stmt_execute($doc_stmt);
@@ -29,11 +36,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_procurement'])
             if (!empty($row['file_path']) && file_exists($row['file_path'])) unlink($row['file_path']);
         }
         mysqli_stmt_close($doc_stmt);
+
         $del_stmt = mysqli_prepare($conn, "DELETE FROM procurements WHERE id = ?");
         mysqli_stmt_bind_param($del_stmt, "i", $procurement_id);
-        mysqli_stmt_execute($del_stmt);
+        if (mysqli_stmt_execute($del_stmt)) {
+            $p_title = $old_data['title'] ?? "#$procurement_id";
+            audit_log(
+                $conn,
+                'PROCUREMENT_DELETED',
+                'procurements',
+                $procurement_id,
+                "Deleted procurement project: {$p_title}",
+                $old_data,
+                null
+            );
+            $_SESSION['alert_success'] = "Procurement deleted successfully.";
+        } else {
+            $_SESSION['alert_error'] = "Failed to delete procurement.";
+        }
         mysqli_stmt_close($del_stmt);
-        $_SESSION['alert_success'] = "Procurement deleted successfully.";
     }
     header("Location: procurement.php?status=" . urlencode($status_filter) . ($search ? '&search=' . urlencode($search) : ''));
     exit();

@@ -19,9 +19,11 @@ if ($session_id === 0) { header("Location: bid_opening.php"); exit(); }
 $ss = $conn->prepare("
     SELECT bos.id AS session_id, bos.status AS session_status,
            bos.stream_path, bos.title AS session_title, bos.started_at, bos.ended_at,
-           bos.current_lot_id,
+           bos.current_lot_id, bos.signing_status,
            p.id AS proc_id, p.title AS proc_title, p.philgeps_ref_no,
-           p.abc, p.procurement_mode, p.opening_date, p.closing_date
+           p.abc, p.procurement_mode,
+           COALESCE(p.procurement_type, 'goods_services') AS procurement_type,
+           p.opening_date, p.closing_date
     FROM bid_opening_sessions bos
     JOIN procurements p ON bos.procurement_id = p.id
     WHERE bos.id = ? LIMIT 1
@@ -53,6 +55,7 @@ if ($user_role !== 'superadmin' && $admin_type !== 'SECRETARIAT') {
 
 $proc_id        = (int)$session['proc_id'];
 $st             = $session['session_status'];
+$signing_st     = $session['signing_status'] ?? 'not_started';
 $current_lot_id = (int)($session['current_lot_id'] ?? 0);
 
 $lots_stmt = $conn->prepare("
@@ -143,6 +146,8 @@ $inv_res->close();
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <link rel="stylesheet" href="../style.css">
 <link rel="stylesheet" href="../dashboard.css">
+<!-- Pusher JS SDK -->
+<script src="https://js.pusher.com/8.4/pusher.min.js"></script>
 <style>
 .bs-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
 @media(min-width:1100px){.bs-layout{grid-template-columns:minmax(0,1fr) 310px}}
@@ -226,6 +231,12 @@ $inv_res->close();
 .btn-open-files{display:inline-flex;align-items:center;gap:6px;background:#06251b;color:#ffc107;font-size:12px;font-weight:700;padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:'Poppins',sans-serif;transition:all .15s}
 .btn-open-files:hover:not(:disabled){background:#0c3d2c}
 .btn-open-files:disabled{opacity:.4;cursor:not-allowed}
+.btn-signal-open{display:inline-flex;align-items:center;gap:6px;background:#1f7a3d;color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:'Poppins',sans-serif;transition:all .15s}
+.btn-signal-open:hover:not(:disabled){background:#166534}
+.btn-signal-open:disabled{opacity:.5;cursor:not-allowed}
+.btn-sign{display:inline-flex;align-items:center;gap:6px;background:#1d4ed8;color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:'Poppins',sans-serif;transition:all .15s}
+.btn-sign:hover:not(:disabled){background:#1e40af}
+.btn-sign:disabled{opacity:.5;cursor:not-allowed}
 .btn-checklist{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:7px 16px;border-radius:9px;border:none;cursor:not-allowed;font-family:'Poppins',sans-serif;background:#f0f4f2;color:#88968d;transition:all .15s}
 .btn-checklist.ready{background:#e4f5ea;color:#1f7a3d;cursor:pointer}
 .btn-checklist.ready:hover{background:#1f7a3d;color:#fff}
@@ -308,6 +319,34 @@ $inv_res->close();
 .skel{background:linear-gradient(90deg,#f0f4f2 25%,#e4eae6 50%,#f0f4f2 75%);background-size:200% 100%;animation:sk 1.4s infinite;border-radius:6px}
 @keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* CHECKLIST */
+.cl-list{display:flex;flex-direction:column;gap:0;margin-top:12px}
+.cl-item{border-bottom:1px solid #f0f4f2;padding:10px 8px;border-radius:8px;margin-bottom:2px;transition:background .18s ease}
+.cl-item:last-child{border-bottom:none;margin-bottom:0}
+/* Row background states — subtle, result-driven */
+.cl-item.cl-row-pending       {background:#ffffff}
+.cl-item.cl-row-present       {background:#f0fdf4}
+.cl-item.cl-row-missing       {background:#fef2f2}
+.cl-item.cl-row-not_applicable{background:#f9fafb}
+/* Pending hint bar */
+.cl-pending-hint{display:flex;align-items:center;gap:7px;margin-top:10px;padding:9px 12px;background:#fff8e7;border:1px solid #fde68a;border-radius:9px;font-size:11.5px;font-weight:600;color:#92400e}
+.cl-pending-hint i{color:#d97706;font-size:13px;flex-shrink:0}
+.cl-item-name{font-size:12.5px;font-weight:700;color:#06251b;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.cl-required{font-size:9.5px;font-weight:700;color:#dc2626;background:#fee2e2;padding:1px 5px;border-radius:8px}
+.cl-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cl-select{font-size:11.5px;font-weight:600;padding:4px 8px;border:1.5px solid #e0e8e4;border-radius:7px;background:#fff;color:#06251b;cursor:pointer;outline:none;font-family:'Poppins',sans-serif}
+.cl-select:focus{border-color:#1f7a3d}
+.cl-select.present{border-color:#16a34a;background:#f0fdf4;color:#15803d}
+.cl-select.missing{border-color:#dc2626;background:#fef2f2;color:#dc2626}
+.cl-select.not_applicable{border-color:#9ca3af;background:#f9fafb;color:#6b7280}
+.cl-remarks{flex:1;min-width:120px;font-size:11.5px;padding:4px 8px;border:1.5px solid #e0e8e4;border-radius:7px;outline:none;font-family:'Poppins',sans-serif;color:#06251b;resize:none}
+.cl-remarks:focus{border-color:#1f7a3d}
+.cl-save-btn{font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;border:none;background:#06251b;color:#ffc107;cursor:pointer;font-family:'Poppins',sans-serif;white-space:nowrap;transition:all .15s}
+.cl-save-btn:hover{background:#0c3d2c}
+.cl-save-btn:disabled{opacity:.5;cursor:not-allowed}
+.cl-checked-by{font-size:10px;color:#88968d;margin-top:3px}
+.bsm.bsm-wide{max-width:600px}
 
 /* MODALS */
 .bsm-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1050;display:none;align-items:center;justify-content:center;padding:16px}
@@ -780,7 +819,79 @@ $inv_res->close();
     </div>
 </div>
 
-<!-- ══ PASSWORD MODAL ══ -->
+<!-- ══ SIGN TO DECRYPT MODAL (BAC members) ══ -->
+<div class="bsm-bg" id="signModal" onclick="if(event.target===this)closeSignModal()">
+    <div class="bsm">
+        <div class="bsm-head">
+            <h4><i class="bi bi-pen-fill" style="color:#ffc107"></i> Sign to Open Bid Documents</h4>
+            <button class="bsm-x" onclick="closeSignModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="bsm-body">
+            <p style="font-size:13px;color:#06251b;font-weight:700;margin:0 0 4px">Bidder: <span id="signBidderName"></span></p>
+            <p style="font-size:12px;color:#88968d;margin:0 0 14px">Your signature contributes to the quorum needed to decrypt this bid. Enter your password to sign.</p>
+            <div id="signQuorumStatus" style="margin-bottom:12px"></div>
+            <input type="password" id="signPwInput" class="bsm-input" placeholder="Enter your password…"
+                   onkeydown="if(event.key==='Enter')doSign()">
+            <div class="bsm-err" id="signErr"></div>
+        </div>
+        <div class="bsm-foot">
+            <button class="btn-cancel" onclick="closeSignModal()">Cancel</button>
+            <button class="btn-confirm" id="signConfirmBtn" onclick="doSign()">
+                <i class="bi bi-pen-fill"></i> Sign &amp; Submit
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ START OPENING CONFIRMATION MODAL (Secretariat) ══ -->
+<div class="bsm-bg" id="startOpeningModal" onclick="if(event.target===this)closeStartOpeningModal()">
+    <div class="bsm">
+        <div class="bsm-head">
+            <h4><i class="bi bi-broadcast" style="color:#ffc107"></i> Start Bid Opening</h4>
+            <button class="bsm-x" onclick="closeStartOpeningModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="bsm-body">
+            <p style="font-size:13.5px;color:#06251b;font-weight:700;margin:0 0 8px">Start opening for <span id="startOpeningBidderName"></span>?</p>
+            <p style="font-size:12.5px;color:#55665a;margin:0 0 12px">This will signal BAC members that they can now sign to unlock the bid documents. The files will not be decrypted until the required number of BAC members have signed.</p>
+            <div style="background:#fef8e7;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#92400e;">
+                <i class="bi bi-info-circle-fill" style="color:#d97706;flex-shrink:0"></i>
+                BAC signatures are required to decrypt the documents. This action is recorded.
+            </div>
+        </div>
+        <div class="bsm-foot">
+            <button class="btn-cancel" onclick="closeStartOpeningModal()">Cancel</button>
+            <button class="btn-confirm" style="background:#1f7a3d;color:#fff" id="startOpeningConfirmBtn" onclick="doSignalOpen()">
+                <i class="bi bi-broadcast"></i> Yes, Start Opening
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ OPEN NOW CONFIRMATION MODAL (Secretariat — after quorum) ══ -->
+<div class="bsm-bg" id="openNowModal" onclick="if(event.target===this)closeOpenNowModal()">
+    <div class="bsm">
+        <div class="bsm-head">
+            <h4><i class="bi bi-unlock-fill" style="color:#ffc107"></i> Open Bid Documents</h4>
+            <button class="bsm-x" onclick="closeOpenNowModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="bsm-body">
+            <p style="font-size:13.5px;color:#06251b;font-weight:700;margin:0 0 8px">Quorum has been reached.</p>
+            <p style="font-size:12.5px;color:#55665a;margin:0 0 12px">All required BAC members have signed. You can now officially open and decrypt the bid documents. This action will be permanently recorded.</p>
+            <div style="background:#e4f5ea;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#166534;">
+                <i class="bi bi-shield-check" style="color:#1f7a3d;flex-shrink:0"></i>
+                Documents will be decrypted and made available for review.
+            </div>
+        </div>
+        <div class="bsm-foot">
+            <button class="btn-cancel" onclick="closeOpenNowModal()">Cancel</button>
+            <button class="btn-confirm" style="background:#1f7a3d;color:#fff" id="openNowConfirmBtn" onclick="doOpenFiles()">
+                <i class="bi bi-unlock-fill"></i> Yes, Open Files
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ PASSWORD MODAL (Secretariat / legacy decrypt) ══ -->
 <div class="bsm-bg" id="pwModal" onclick="if(event.target===this)closePw()">
     <div class="bsm">
         <div class="bsm-head">
@@ -804,19 +915,25 @@ $inv_res->close();
 
 <!-- ══ ELIGIBILITY / FINANCIAL CHECKLIST MODAL ══ -->
 <div class="bsm-bg" id="eligModal" onclick="if(event.target===this)closeElig()">
-    <div class="bsm">
+    <div class="bsm bsm-wide">
         <div class="bsm-head">
             <h4 id="eligModalTitle"><i class="bi bi-clipboard-check" style="color:#ffc107"></i> Document Checklist</h4>
             <button class="bsm-x" onclick="closeElig()"><i class="bi bi-x-lg"></i></button>
         </div>
-        <div class="bsm-body">
-            <p style="font-size:12.5px;color:#55665a;margin:0 0 4px">Business: <strong id="eligName" style="color:#06251b"></strong></p>
-            <p style="font-size:12px;color:#88968d;margin:0" id="eligModalSub">Mark evaluation after reviewing all submitted documents.</p>
+        <div class="bsm-body" style="max-height:70vh;overflow-y:auto">
+            <p style="font-size:12.5px;color:#55665a;margin:0 0 2px">Business: <strong id="eligName" style="color:#06251b"></strong></p>
+            <p style="font-size:12px;color:#88968d;margin:0 0 4px" id="eligModalSub">Mark compliance for each document below.</p>
+            <div id="eligChecklistArea">
+                <div style="padding:16px 0;display:flex;gap:8px">
+                    <div class="skel" style="height:36px;flex:1;border-radius:8px"></div>
+                    <div class="skel" style="height:36px;flex:1;border-radius:8px"></div>
+                </div>
+            </div>
         </div>
-        <div class="bsm-foot" style="gap:10px">
+        <div class="bsm-foot" style="gap:10px;border-top:1px solid #f0f4f2;flex-wrap:wrap">
             <?php if ($can_manage): ?>
-            <button class="btn-ineligible" onclick="submitElig(0)"><i class="bi bi-x-circle-fill"></i> Disqualify</button>
-            <button class="btn-eligible"   onclick="submitElig(1)"><i class="bi bi-check-circle-fill"></i> Comply / Eligible</button>
+            <button class="btn-ineligible" id="btn-disqualify" onclick="submitElig(0)"><i class="bi bi-x-circle-fill"></i> Disqualify</button>
+            <button class="btn-eligible"   id="btn-comply"     onclick="submitElig(1)"><i class="bi bi-check-circle-fill"></i> Comply / Eligible</button>
             <?php else: ?>
             <button class="btn-cancel" onclick="closeElig()">Close</button>
             <?php endif; ?>
@@ -903,12 +1020,16 @@ $inv_res->close();
 </div>
 
 <script>
-const SESSION_ID = <?= (int)$session_id ?>;
+const SESSION_ID     = <?= (int)$session_id ?>;
 const PROC_ID        = <?= (int)$proc_id ?>;
 const CAN_MANAGE     = <?= $can_manage ? 'true' : 'false' ?>;
+const PROC_TYPE      = '<?= htmlspecialchars($session['procurement_type'] ?? 'goods_services') ?>';
+const IS_BAC         = <?= ($admin_type === 'BAC') ? 'true' : 'false' ?>;
+const ADMIN_TYPE     = '<?= htmlspecialchars($admin_type) ?>';
 const LOTS           = <?= json_encode(array_values($lots)) ?>;
 const CURRENT_LOT_ID = <?= $current_lot_id ?>;
-let   SESSION_STATUS = '<?= $st ?>';
+let   SESSION_STATUS  = '<?= $st ?>';
+let   SIGNING_STATUS  = '<?= $signing_st ?>';
 
 // ── State Management ──────────────────────────────────────────────────────
 const STATE = {
@@ -922,7 +1043,7 @@ const openedDocs = {}; // docId -> { data_url, mime, file_name }
 
 // Pending modal context
 let pw_stage, pw_lotId, pw_bidderId, pw_bidId, pw_files;
-let el_bidId, el_bidderName, el_lotId, el_bidderId, el_phase;
+let el_bidId, el_bidderName, el_lotId, el_bidderId, el_phase, el_bidLotId;
 let _awardTarget = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -946,6 +1067,7 @@ function refreshSessionProgressFromDB(){
     .then(data=>{
         if(!data || !data.status) return;
         SESSION_STATUS = data.status;
+        SIGNING_STATUS = data.signing_status || 'not_started';
         const curLotId = parseInt(data.current_lot_id || 0);
         const lots = data.lots || [];
 
@@ -1276,7 +1398,8 @@ function setLotStage(stage){
     // Persist the stage change to bid_opening_sessions.status so it survives page refresh
     post({ action:'start_phase', session_id:SESSION_ID, phase:stage })
     .then(()=>{
-        SESSION_STATUS        = stage;   // keep in-memory status in sync
+        SESSION_STATUS        = stage;
+        SIGNING_STATUS        = 'not_started';  // reset signing for new phase
         lotState.stage        = stage;
         updateStageUI(stage);
         fetchAndRenderBidders(lot.id, stage);
@@ -1444,6 +1567,9 @@ function renderLotBidderArea(lotId, stage, bidders){
 }
 
 function selectBidderTab(lotId, stage, bidder, actBar, fileArea){
+    // Track active bid_lot_id so the poll tick can reference the selected bidder
+    if(typeof _poll !== 'undefined') _poll._activeBidLotId = bidder.bid_lot_id || 0;
+
     // Highlight tab
     document.querySelectorAll('.bidder-tab').forEach(t=>t.classList.remove('active'));
     const t = document.getElementById(`btab-${lotId}-${stage}-${bidder.bidder_id}`);
@@ -1455,74 +1581,156 @@ function selectBidderTab(lotId, stage, bidder, actBar, fileArea){
 
     actBar.innerHTML = `
         <div class="action-bar-name"><i class="bi bi-building"></i>${esc(bName)}</div>
-        <div class="action-bar-btns">
-            <button class="btn-open-files" id="btn-open-files-${bidder.bidder_id}" disabled
-                onclick="openFiles('${stage}', ${lotId}, ${bidder.bidder_id}, ${bidder.bid_id})">
-                <i class="bi bi-folder2-open"></i> Open Files
-            </button>
-            ${CAN_MANAGE ? `
-            <button class="btn-checklist" id="btn-chk-${bidder.bidder_id}"
-                onclick="openEligModal(${bidder.bid_id}, '${esc(bName).replace(/'/g,"\\'")}', '${stage}', ${lotId}, ${bidder.bidder_id})">
-                <i class="bi bi-clipboard-check"></i> Checklist
-            </button>` : (() => {
-                const st = stage === 'eligibility' ? bidder.eligibility_status : bidder.financial_status;
-                if(st === 'pending' || st === 'opened')
-                    return `<span style="font-size:11px;font-weight:700;color:#f59e0b;background:#fef3c7;border:1px solid #fde68a;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-hourglass-split"></i> Waiting for evaluation…</span>`;
-                if(st === 'eligible' || st === 'qualified')
-                    return `<span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-check-circle-fill"></i> ${st === 'eligible' ? 'Eligible' : 'Qualified'}</span>`;
-                if(st === 'disqualified' || st === 'non_compliant')
-                    return `<span style="font-size:11px;font-weight:700;color:#dc2626;background:#fee2e2;border:1px solid #fecaca;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-x-circle-fill"></i> ${st === 'disqualified' ? 'Disqualified' : 'Non-Compliant'}</span>`;
-                return '';
-            })()}
+        <div class="action-bar-btns" id="actbtns-${bidder.bidder_id}">
         </div>
     `;
 
-    get({ action:'files', bidder_id:bidder.bidder_id, lot_id:lotId, phase:stage, session_id:SESSION_ID })
-    .then(d=>{
-        const files = d.files || [];
+    // Load files + quorum state together, then render the correct action buttons
+    Promise.all([
+        get({ action:'files',        bidder_id:bidder.bidder_id, lot_id:lotId, phase:stage, session_id:SESSION_ID }),
+        get({ action:'check_quorum', bid_lot_id:bidder.bid_lot_id, opening_type:stage, session_id:SESSION_ID })
+    ]).then(([fd, qd]) => {
+        const files   = fd.files || [];
+        const quorum  = qd;
+
         if(!files.length){
             fileArea.innerHTML = `<div class="p-empty"><i class="bi bi-file-earmark-x"></i>No ${stage} documents uploaded.</div>`;
+            _renderActionButtons(bidder, stage, lotId, files, quorum);
             return;
         }
-        const openBtn = document.getElementById(`btn-open-files-${bidder.bidder_id}`);
 
-        // If files were already opened (DB says so), auto-decrypt immediately
-        if(bidder.files_opened){
-            if(openBtn){
-                openBtn.disabled = true;
-                openBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Decrypting…';
-            }
+        // Decrypt only when BOTH conditions are true:
+        // 1. signing_status = 'done' (secretariat clicked Open Now after quorum)
+        // 2. bidder.files_opened = true for THIS phase (phase-specific DB status)
+        // This prevents financial files from auto-decrypting just because eligibility was opened.
+        const signingDone = (quorum.signing_status === 'done') && bidder.files_opened;
+        if(signingDone){
             (async ()=>{
                 for(const f of files){
-                    if(openedDocs[f.id]) continue; // already in memory
+                    if(openedDocs[f.id]) continue;
                     const res = await post({ action:'decrypt_file', doc_id:f.id, session_id:SESSION_ID });
                     if(res.success) openedDocs[f.id] = { data_url:res.data_url, mime:res.mime, file_name:res.file_name };
                 }
-                if(openBtn){
-                    openBtn.disabled = true;
-                    openBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Opened';
-                    openBtn.style.background = '#e4f5ea';
-                    openBtn.style.color = '#1f7a3d';
-                }
-                renderFiles(fileArea, files);
-                // Re-activate view buttons
-                files.forEach(f=>{
-                    const b = document.getElementById('vbtn-'+f.id);
-                    if(b){ b.classList.add('active'); b.title='View document'; }
-                });
-                // Enable checklist if not yet evaluated
+                renderFiles(fileArea, files, quorum);
                 const chkBtn = document.getElementById(`btn-chk-${bidder.bidder_id}`);
                 if(chkBtn) chkBtn.classList.add('ready');
             })();
         } else {
-            if(openBtn) openBtn.disabled = false;
-            renderFiles(fileArea, files);
+            renderFiles(fileArea, files, quorum);
         }
+
+        _renderActionButtons(bidder, stage, lotId, files, quorum);
     });
 }
 
-function renderFiles(area, files){
+// ── Render action buttons based on role + quorum state ────────────────────
+function _renderActionButtons(bidder, stage, lotId, files, quorum){
+    const btns = document.getElementById(`actbtns-${bidder.bidder_id}`);
+    if(!btns) return;
+
+    const bName     = bidder.business_name || (bidder.firstname+' '+bidder.lastname);
+    const isOpened  = bidder.files_opened;
+    const signaled  = (quorum.signing_status === 'signing' || quorum.signing_status === 'done');
+    const qReached  = quorum.quorum_reached;
+    const sigDone   = (quorum.signing_status === 'done');
+
+    if(CAN_MANAGE){
+        // ── SECRETARIAT flow ──
+        if(isOpened || sigDone){
+            // Files already officially opened
+            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#1f7a3d;background:#e4f5ea;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-check-circle-fill"></i> Files Opened</span>`;
+        } else if(qReached && signaled){
+            // Quorum reached — secretariat can now officially open
+            btns.innerHTML = `<button class="btn-signal-open" id="btn-open-now-${bidder.bidder_id}"
+                onclick="openOpenNowModal('${stage}', ${lotId}, ${bidder.bidder_id}, ${bidder.bid_id}, ${bidder.bid_lot_id})">
+                <i class="bi bi-unlock-fill"></i> Open Now
+            </button>`;
+        } else if(signaled){
+            // Secretariat already signaled — waiting for BAC to sign
+            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-hourglass-split"></i> Waiting for BAC (${quorum.sig_count}/${quorum.required})</span>`;
+        } else {
+            // Not yet started — show Start Opening button
+            btns.innerHTML = `<button class="btn-signal-open" id="btn-start-opening-${bidder.bidder_id}"
+                onclick="openStartOpeningModal('${stage}', ${lotId}, ${bidder.bidder_id}, ${bidder.bid_id}, ${bidder.bid_lot_id}, '${esc(bName).replace(/'/g,"\\'")}')">
+                <i class="bi bi-broadcast"></i> Start Opening
+            </button>`;
+        }
+
+        // Checklist always visible for secretariat (enabled only after files opened)
+        btns.innerHTML += `<button class="btn-checklist${isOpened?' ready':''}" id="btn-chk-${bidder.bidder_id}"
+            onclick="openEligModal(${bidder.bid_id}, '${esc(bName).replace(/'/g,"\\'")}', '${stage}', ${lotId}, ${bidder.bidder_id}, ${bidder.bid_lot_id})">
+            <i class="bi bi-clipboard-check"></i> Checklist
+        </button>`;
+
+    } else if(IS_BAC){
+        // ── BAC flow ──
+        if(isOpened){
+            // Files opened — show evaluation status
+        } else if(qReached){
+            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-shield-check"></i> Quorum Reached — Secretariat opening files</span>`;
+        } else if(signaled){
+            // Secretariat signaled — BAC can sign
+            if(quorum.already_signed){
+                btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-check2-circle"></i> Signed — ${quorum.sig_count}/${quorum.required} reached</span>`;
+            } else {
+                btns.innerHTML = `<button class="btn-sign" id="btn-sign-${bidder.bidder_id}"
+                    onclick="openSignModal('${stage}', ${lotId}, ${bidder.bidder_id}, ${bidder.bid_id}, ${bidder.bid_lot_id}, '${esc(bName).replace(/'/g,"\\'")}')">
+                    <i class="bi bi-pen-fill"></i> Sign to Open
+                </button>`;
+            }
+        } else {
+            // Secretariat hasn't started yet
+            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#f59e0b;background:#fef3c7;border:1px solid #fde68a;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-hourglass-split"></i> Waiting for Secretariat…</span>`;
+        }
+
+        // Evaluation status pill
+        const st = stage === 'eligibility' ? bidder.eligibility_status : bidder.financial_status;
+        if(st === 'eligible' || st === 'qualified')
+            btns.innerHTML += ` <span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-check-circle-fill"></i> ${st === 'eligible' ? 'Eligible' : 'Qualified'}</span>`;
+        else if(st === 'disqualified' || st === 'non_compliant')
+            btns.innerHTML += ` <span style="font-size:11px;font-weight:700;color:#dc2626;background:#fee2e2;border:1px solid #fecaca;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-x-circle-fill"></i> ${st === 'disqualified' ? 'Disqualified' : 'Non-Compliant'}</span>`;
+
+    } else {
+        // ── TWG / observer — status only ──
+        const st = stage === 'eligibility' ? bidder.eligibility_status : bidder.financial_status;
+        if(st === 'eligible' || st === 'qualified')
+            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-check-circle-fill"></i> ${st === 'eligible' ? 'Eligible' : 'Qualified'}</span>`;
+        else if(st === 'disqualified' || st === 'non_compliant')
+            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#dc2626;background:#fee2e2;border:1px solid #fecaca;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-x-circle-fill"></i> ${st === 'disqualified' ? 'Disqualified' : 'Non-Compliant'}</span>`;
+        else
+            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#f59e0b;background:#fef3c7;border:1px solid #fde68a;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-hourglass-split"></i> Waiting for evaluation…</span>`;
+    }
+}
+
+function renderFiles(area, files, quorum){
     area.innerHTML = '';
+
+    // Quorum status bar
+    if(quorum){
+        const bar = mkEl('div','');
+        if(quorum.signing_status === 'done'){
+            bar.style.cssText = 'margin:8px 12px 0;padding:8px 12px;background:#e4f5ea;border:1px solid #bbf7d0;border-radius:10px;font-size:11.5px;font-weight:700;color:#166534;display:flex;align-items:center;gap:7px';
+            bar.innerHTML = `<i class="bi bi-unlock-fill" style="font-size:14px"></i> Files officially opened — decryption complete`;
+        } else if(quorum.quorum_reached){
+            bar.style.cssText = 'margin:8px 12px 0;padding:8px 12px;background:#dbeafe;border:1px solid #bfdbfe;border-radius:10px;font-size:11.5px;font-weight:700;color:#1e40af;display:flex;align-items:center;gap:7px';
+            bar.innerHTML = `<i class="bi bi-shield-check" style="font-size:14px"></i> Quorum reached (${quorum.sig_count}/${quorum.required} signatures) — waiting for Secretariat to open`;
+        } else {
+            const pct = quorum.bac_total > 0 ? Math.round((quorum.sig_count / quorum.required) * 100) : 0;
+            bar.style.cssText = 'margin:8px 12px 0;padding:8px 12px;background:#fef3c7;border:1px solid #fde68a;border-radius:10px;font-size:11.5px;font-weight:700;color:#92400e;';
+            bar.innerHTML = `
+                <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">
+                    <i class="bi bi-hourglass-split" style="font-size:13px"></i>
+                    Awaiting signatures — ${quorum.sig_count} of ${quorum.required} required (${quorum.bac_total} BAC invited)
+                </div>
+                <div style="background:#fde68a;border-radius:4px;height:6px;overflow:hidden">
+                    <div style="background:#f59e0b;height:100%;width:${Math.min(pct,100)}%;transition:width .3s"></div>
+                </div>
+                ${quorum.signers && quorum.signers.length ? `<div style="margin-top:6px;font-size:10.5px;color:#b45309">Signed: ${quorum.signers.map(s=>`${s.firstname} ${s.lastname}`).join(', ')}</div>` : ''}
+            `;
+        }
+        area.appendChild(bar);
+    }
+
     files.forEach(f=>{
         const opened = !!openedDocs[f.id];
         const ext = (f.display_name||'').split('.').pop().toLowerCase();
@@ -1536,7 +1744,7 @@ function renderFiles(area, files){
                 <div class="f-meta">${esc(f.uploaded_at)}</div>
             </div>
             <button class="btn-view${opened?' active':''}" id="vbtn-${f.id}"
-                onclick="viewDoc(${f.id})" title="${opened?'View document':'Open files first'}">
+                onclick="viewDoc(${f.id})" title="${opened?'View document':'Quorum not reached yet'}">
                 <i class="bi bi-eye"></i> View
             </button>
         `;
@@ -1544,36 +1752,190 @@ function renderFiles(area, files){
     });
 }
 
-// ── Open Files — password prompt, then decrypt ────────────────────────────
-function openFiles(stage, lotId, bidderId, bidId){
-    const openBtn = document.getElementById(`btn-open-files-${bidderId}`);
-    if(openBtn){ openBtn.disabled = true; openBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Loading…'; }
+// ── Secretariat: signal opening of a bid ─────────────────────────────────
+// ── Secretariat: Start Opening modal ─────────────────────────────────────
+let _startOpeningCtx = null;
+function openStartOpeningModal(stage, lotId, bidderId, bidId, bidLotId, bName){
+    _startOpeningCtx = { stage, lotId, bidderId, bidId, bidLotId };
+    document.getElementById('startOpeningBidderName').textContent = bName;
+    document.getElementById('startOpeningConfirmBtn').disabled = false;
+    document.getElementById('startOpeningConfirmBtn').innerHTML = '<i class="bi bi-broadcast"></i> Yes, Start Opening';
+    document.getElementById('startOpeningModal').classList.add('open');
+}
+function closeStartOpeningModal(){
+    document.getElementById('startOpeningModal').classList.remove('open');
+    _startOpeningCtx = null;
+    _catchUpAfterModal();
+}
+function doSignalOpen(){
+    if(!_startOpeningCtx) return;
+    const { stage, lotId, bidderId, bidId, bidLotId } = _startOpeningCtx;
+    const btn = document.getElementById('startOpeningConfirmBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Starting…';
 
-    // Fetch file list first, store context, then show password modal
-    get({ action:'files', bidder_id:bidderId, lot_id:lotId, phase:stage, session_id:SESSION_ID })
-    .then(d=>{
-        const files = d.files || [];
-        if(!files.length){
-            if(openBtn){ openBtn.disabled = false; openBtn.innerHTML = '<i class="bi bi-folder2-open"></i> Open Files'; }
+    post({ action:'signal_open', session_id:SESSION_ID })
+    .then(d => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-broadcast"></i> Yes, Start Opening';
+        if(!d.success){ alert(d.message||'Failed.'); return; }
+        SIGNING_STATUS = 'signing';
+        closeStartOpeningModal();
+        const startBtn = document.getElementById(`btn-start-opening-${bidderId}`);
+        if(startBtn) startBtn.outerHTML = `<span style="font-size:11px;font-weight:700;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-hourglass-split"></i> Waiting for BAC…</span>`;
+    })
+    .catch(()=>{ btn.disabled=false; btn.innerHTML='<i class="bi bi-broadcast"></i> Yes, Start Opening'; });
+}
+
+// ── Secretariat: Open Now confirmation modal ──────────────────────────────
+let _openNowCtx = null;
+function openOpenNowModal(stage, lotId, bidderId, bidId, bidLotId){
+    _openNowCtx = { stage, lotId, bidderId, bidId, bidLotId };
+    document.getElementById('openNowConfirmBtn').disabled = false;
+    document.getElementById('openNowConfirmBtn').innerHTML = '<i class="bi bi-unlock-fill"></i> Yes, Open Files';
+    document.getElementById('openNowModal').classList.add('open');
+}
+function closeOpenNowModal(){
+    document.getElementById('openNowModal').classList.remove('open');
+    _openNowCtx = null;
+    _catchUpAfterModal();
+}
+
+// ── Secretariat: Open Files after quorum ─────────────────────────────────
+function doOpenFiles(){
+    if(!_openNowCtx) return;
+    const { stage, lotId, bidderId, bidId, bidLotId } = _openNowCtx;
+    const btn = document.getElementById('openNowConfirmBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Opening…';
+
+    post({ action:'open_files', bid_id:bidId, lot_id:lotId, bid_lot_id:bidLotId, opening_type:stage, session_id:SESSION_ID })
+    .then(async d => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-unlock-fill"></i> Yes, Open Files';
+        if(!d.success){ alert(d.message||'Failed.'); return; }
+
+        SIGNING_STATUS = 'done';
+        closeOpenNowModal();
+
+        // Decrypt and render files
+        const area = document.getElementById('lot-bidder-area');
+        const fileArea = area ? area.querySelector('.files-pane') : null;
+        if(fileArea){
+            const fd = await get({ action:'files', bidder_id:bidderId, lot_id:lotId, phase:stage, session_id:SESSION_ID });
+            const files = fd.files || [];
+            for(const f of files){
+                const res = await post({ action:'decrypt_file', doc_id:f.id, session_id:SESSION_ID });
+                if(res.success) openedDocs[f.id] = { data_url:res.data_url, mime:res.mime, file_name:res.file_name };
+            }
+            renderFiles(fileArea, files, { quorum_reached:true, sig_count:1, required:1, signing_status:'done' });
+        }
+
+        // Replace only the "Open Now" button — leave checklist intact
+        const openNowBtn = document.getElementById(`btn-open-now-${bidderId}`);
+        if(openNowBtn) openNowBtn.outerHTML = `<span style="font-size:11px;font-weight:700;color:#1f7a3d;background:#e4f5ea;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-check-circle-fill"></i> Files Opened</span>`;
+        const chkBtn = document.getElementById(`btn-chk-${bidderId}`);
+        if(chkBtn) chkBtn.classList.add('ready');
+    })
+    .catch(()=>{ btn.disabled=false; btn.innerHTML='<i class="bi bi-unlock-fill"></i> Yes, Open Files'; });
+}
+
+// ── BAC: sign modal ───────────────────────────────────────────────────────
+let _signCtx = null;
+function openSignModal(stage, lotId, bidderId, bidId, bidLotId, bName){
+    _signCtx = { stage, lotId, bidderId, bidId, bidLotId };
+    document.getElementById('signBidderName').textContent = bName;
+    document.getElementById('signPwInput').value = '';
+    document.getElementById('signErr').style.display = 'none';
+
+    // Load current quorum state
+    get({ action:'check_quorum', bid_lot_id:bidLotId, opening_type:stage, session_id:SESSION_ID })
+    .then(q => { _renderSignQuorumStatus(q); });
+
+    document.getElementById('signModal').classList.add('open');
+    setTimeout(()=>document.getElementById('signPwInput').focus(), 100);
+}
+function closeSignModal(){
+    document.getElementById('signModal').classList.remove('open');
+    _signCtx = null;
+    _catchUpAfterModal();
+}
+
+function _renderSignQuorumStatus(q){
+    const el = document.getElementById('signQuorumStatus');
+    if(!el) return;
+    const pct = q.bac_total > 0 ? Math.round((q.sig_count / q.required) * 100) : 0;
+    el.innerHTML = `
+        <div style="background:#f0f4f2;border-radius:10px;padding:10px 12px;font-size:12px;color:#55665a">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <span style="font-weight:700">Signatures</span>
+                <span style="font-weight:800;color:#06251b">${q.sig_count} / ${q.required} needed</span>
+            </div>
+            <div style="background:#d1d5db;border-radius:4px;height:6px;overflow:hidden">
+                <div style="background:#1d4ed8;height:100%;width:${Math.min(pct,100)}%;transition:width .3s"></div>
+            </div>
+            ${q.signers && q.signers.length ? `<div style="margin-top:6px;color:#6b7280;font-size:10.5px">Signed: ${q.signers.map(s=>`${s.firstname} ${s.lastname}`).join(', ')}</div>` : ''}
+        </div>
+    `;
+}
+
+function doSign(){
+    if(!_signCtx) return;
+    const pw  = document.getElementById('signPwInput').value.trim();
+    const err = document.getElementById('signErr');
+    const btn = document.getElementById('signConfirmBtn');
+    if(!pw){ err.textContent = 'Password is required.'; err.style.display = 'block'; return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Signing…';
+    err.style.display = 'none';
+
+    post({
+        action:       'sign_lot',
+        bid_lot_id:   _signCtx.bidLotId,
+        opening_type: _signCtx.stage,
+        password:     pw,
+        session_id:   SESSION_ID
+    }).then(d => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-pen-fill"></i> Sign &amp; Submit';
+
+        if(!d.success){
+            err.textContent = d.message || 'Failed.';
+            err.style.display = 'block';
             return;
         }
-        // Store context for doPwConfirm
-        pw_stage    = stage;
-        pw_lotId    = lotId;
-        pw_bidderId = bidderId;
-        pw_bidId    = bidId;
-        pw_files    = files;
 
-        if(openBtn){ openBtn.disabled = false; openBtn.innerHTML = '<i class="bi bi-folder2-open"></i> Open Files'; }
-        document.getElementById('pwInput').value = '';
-        document.getElementById('pwErr').style.display = 'none';
-        document.getElementById('pwModal').classList.add('open');
-        setTimeout(()=>document.getElementById('pwInput').focus(), 100);
+        // Update quorum display in modal
+        _renderSignQuorumStatus(d);
+
+        if(d.quorum_reached){
+            closeSignModal();
+            // Quorum reached — BAC's job is done. Update button to inform BAC.
+            // Secretariat will see "Open Now" on their next render.
+            const btns = document.getElementById(`actbtns-${_signCtx.bidderId}`);
+            if(btns){
+                const signBtn = document.getElementById(`btn-sign-${_signCtx.bidderId}`);
+                if(signBtn) signBtn.outerHTML = `<span style="font-size:11px;font-weight:700;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-shield-check"></i> Quorum Reached — waiting for Secretariat to open</span>`;
+            }
+        } else {
+            // Update button to "Signed" state
+            const btns = document.getElementById(`actbtns-${_signCtx.bidderId}`);
+            if(btns){
+                const signBtn = document.getElementById(`btn-sign-${_signCtx.bidderId}`);
+                if(signBtn) signBtn.outerHTML = `<span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-check2-circle"></i> Signed (${d.sig_count}/${d.required})</span>`;
+            }
+            closeSignModal();
+        }
     }).catch(()=>{
-        if(openBtn){ openBtn.disabled = false; openBtn.innerHTML = '<i class="bi bi-folder2-open"></i> Open Files'; }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-pen-fill"></i> Sign &amp; Submit';
+        err.textContent = 'Network error. Please try again.';
+        err.style.display = 'block';
     });
 }
 
+// ── Legacy decrypt (kept for secretariat direct decrypt if needed) ─────────
 function closePw(){ document.getElementById('pwModal').classList.remove('open'); }
 
 function doPwConfirm(){
@@ -1598,10 +1960,8 @@ function doPwConfirm(){
             }
             openedDocs[f.id] = { data_url:res.data_url, mime:res.mime, file_name:res.file_name };
         }
-
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-unlock-fill"></i> Open Files';
-
         if(ok){
             closePw();
             _markFilesOpened(pw_bidderId, pw_bidId, pw_lotId, pw_stage, pw_files);
@@ -1611,20 +1971,12 @@ function doPwConfirm(){
 
 // Mark files as opened in UI and DB
 function _markFilesOpened(bidderId, bidId, lotId, stage, files){
-    const openBtn = document.getElementById(`btn-open-files-${bidderId}`);
-    if(openBtn){
-        openBtn.disabled = true;
-        openBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Opened';
-        openBtn.style.background = '#e4f5ea';
-        openBtn.style.color = '#1f7a3d';
-    }
     files.forEach(f=>{
         const b = document.getElementById('vbtn-'+f.id);
         if(b){ b.classList.add('active'); b.title = 'View document'; }
     });
     const chkBtn = document.getElementById(`btn-chk-${bidderId}`);
     if(chkBtn) chkBtn.classList.add('ready');
-    post({ action:'set_lot_opened', bid_id:bidId, lot_id:lotId, phase:stage, session_id:SESSION_ID });
 }
 
 function viewDoc(docId){
@@ -1670,7 +2022,7 @@ function closeFv(){
 }
 
 // ── Checklist Modal ───────────────────────────────────────────────────────
-function openEligModal(bidId, name, stage, lotId, bidderId){
+function openEligModal(bidId, name, stage, lotId, bidderId, bidLotId){
     const ck = document.getElementById(`btn-chk-${bidderId}`);
     if(ck && !ck.classList.contains('ready')) return;
 
@@ -1679,19 +2031,193 @@ function openEligModal(bidId, name, stage, lotId, bidderId){
     el_phase      = stage;
     el_lotId      = lotId;
     el_bidderId   = bidderId;
+    el_bidLotId   = bidLotId;
 
     document.getElementById('eligName').textContent = name;
-    document.getElementById('eligModalTitle').innerHTML = `<i class="bi bi-clipboard-check" style="color:#ffc107"></i> ${stage==='eligibility'?'Eligibility & Technical':'Financial'} Evaluation`;
-    document.getElementById('eligModalSub').textContent = `Mark compliance for ${name}.`;
+    document.getElementById('eligModalTitle').innerHTML =
+        `<i class="bi bi-clipboard-check" style="color:#ffc107"></i> ${stage==='eligibility'?'Eligibility & Technical':'Financial'} Checklist`;
+    document.getElementById('eligModalSub').textContent = `Review all documents for ${name}.`;
+
+    // Load checklist from DB
+    const area = document.getElementById('eligChecklistArea');
+    area.innerHTML = '<div style="padding:12px 0;display:flex;flex-direction:column;gap:8px"><div class="skel" style="height:36px;border-radius:8px"></div><div class="skel" style="height:36px;border-radius:8px"></div><div class="skel" style="height:36px;border-radius:8px"></div></div>';
+
+    get({ action:'get_checklist', bid_lot_id:bidLotId, checklist_type:stage, procurement_type:PROC_TYPE, session_id:SESSION_ID })
+    .then(d => {
+        if(!d.success){ area.innerHTML = `<div class="p-empty"><i class="bi bi-exclamation-circle"></i>${d.message||'Failed to load checklist.'}</div>`; return; }
+        _renderChecklist(area, d.items, stage);
+    })
+    .catch(()=>{ area.innerHTML = '<div class="p-empty"><i class="bi bi-exclamation-circle"></i>Network error.</div>'; });
+
     document.getElementById('eligModal').classList.add('open');
 }
-function closeElig(){ document.getElementById('eligModal').classList.remove('open'); }
+function closeElig(){ document.getElementById('eligModal').classList.remove('open'); _catchUpAfterModal(); }
+
+function _renderChecklist(area, items, stage){
+    if(!items || !items.length){
+        area.innerHTML = `<div style="padding:16px 0;text-align:center;color:#88968d;font-size:12.5px"><i class="bi bi-inbox"></i> No checklist items configured for the ${stage} phase.</div>`;
+        _refreshEligibleBtn();
+        return;
+    }
+
+    const resultLabels = { pending:'Pending', present:'Present', missing:'Missing', not_applicable:'N/A' };
+
+    let html = '<div class="cl-list">';
+    items.forEach(item => {
+        const checkedBy = item.checked_by_name || (item.firstname ? `${item.firstname} ${item.lastname}` : '');
+        const checkedAt = item.checked_at ? `· ${item.checked_at.substring(0,16).replace('T',' ')}` : '';
+        const byLine    = (item.result !== 'pending' && checkedBy)
+            ? `<div class="cl-checked-by"><i class="bi bi-person-check"></i> ${esc(checkedBy)} ${esc(checkedAt)}</div>`
+            : '';
+
+        html += `
+        <div class="cl-item cl-row-${item.result}" id="cl-item-${item.id}">
+            <div class="cl-item-name">
+                ${esc(item.item_name)}
+                ${item.is_required ? '<span class="cl-required">Required</span>' : ''}
+            </div>
+            ${item.description ? `<div style="font-size:11px;color:#88968d;margin-bottom:5px">${esc(item.description)}</div>` : ''}
+            <div class="cl-controls">
+                <select class="cl-select ${item.result}" id="cl-result-${item.id}"
+                    onchange="_onResultChange(this, ${item.id})">
+                    <option value="pending"        ${item.result==='pending'        ?'selected':''}>Pending</option>
+                    <option value="present"        ${item.result==='present'        ?'selected':''}>Present</option>
+                    <option value="missing"        ${item.result==='missing'        ?'selected':''}>Missing</option>
+                    <option value="not_applicable" ${item.result==='not_applicable' ?'selected':''}>N/A</option>
+                </select>
+                <textarea class="cl-remarks" id="cl-remarks-${item.id}" rows="1"
+                    placeholder="Remarks (optional)">${esc(item.remarks||'')}</textarea>
+                <button class="cl-save-btn" id="cl-save-${item.id}"
+                    onclick="_saveChecklistItem(${item.id})">
+                    <i class="bi bi-floppy-fill"></i> Save
+                </button>
+            </div>
+            ${byLine}
+        </div>`;
+    });
+    html += '</div>';
+    area.innerHTML = html;
+
+    _refreshEligibleBtn();
+}
+
+// ── Checklist helper: update row background and select colour when result changes ──
+function _onResultChange(selectEl, checklistId){
+    // Update the select's own colour class (existing behaviour)
+    selectEl.className = 'cl-select ' + selectEl.value;
+
+    // Update the parent row background
+    const row = document.getElementById(`cl-item-${checklistId}`);
+    if(row){
+        row.classList.remove('cl-row-pending','cl-row-present','cl-row-missing','cl-row-not_applicable');
+        row.classList.add('cl-row-' + selectEl.value);
+    }
+
+    // Refresh the Eligible button and hint message
+    _refreshEligibleBtn();
+}
+
+// ── Refresh the Comply/Eligible button disabled state and show/hide hint ──
+function _refreshEligibleBtn(){
+    const complyBtn = document.getElementById('btn-comply');
+    if(!complyBtn) return;   // non-manage view — nothing to do
+
+    // Count selects that are still on "pending"
+    const area = document.getElementById('eligChecklistArea');
+    if(!area){ complyBtn.disabled = false; return; }
+
+    const pendingSelects = area.querySelectorAll('.cl-select');
+    let pendingCount = 0;
+    pendingSelects.forEach(s => { if(s.value === 'pending') pendingCount++; });
+
+    const hasPending = pendingCount > 0;
+
+    // Disable / enable the Eligible button
+    complyBtn.disabled = hasPending;
+    complyBtn.style.opacity   = hasPending ? '0.45' : '';
+    complyBtn.style.cursor    = hasPending ? 'not-allowed' : '';
+    complyBtn.title            = hasPending
+        ? `Complete all checklist items before marking the bidder as Eligible. (${pendingCount} pending)`
+        : '';
+
+    // Show or remove the pending-hint bar that lives just below the checklist area
+    const foot = document.querySelector('#eligModal .bsm-foot');
+    if(!foot) return;
+
+    let hint = document.getElementById('elig-pending-hint');
+    if(hasPending){
+        if(!hint){
+            hint = document.createElement('div');
+            hint.id        = 'elig-pending-hint';
+            hint.className = 'cl-pending-hint';
+            // Insert as the very first child of the footer so it spans full width above the buttons
+            foot.insertBefore(hint, foot.firstChild);
+        }
+        hint.innerHTML = `<i class="bi bi-hourglass-split"></i> Complete all checklist items before marking the bidder as Eligible. <strong>(${pendingCount} pending)</strong>`;
+    } else {
+        if(hint) hint.remove();
+    }
+}
+
+function _saveChecklistItem(checklistId){
+    const resultEl  = document.getElementById(`cl-result-${checklistId}`);
+    const remarksEl = document.getElementById(`cl-remarks-${checklistId}`);
+    const saveBtn   = document.getElementById(`cl-save-${checklistId}`);
+    if(!resultEl || !saveBtn) return;
+
+    const origHtml = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+
+    post({
+        action:       'save_checklist_item',
+        checklist_id: checklistId,
+        result:       resultEl.value,
+        remarks:      remarksEl ? remarksEl.value : '',
+        session_id:   SESSION_ID
+    }).then(d => {
+        saveBtn.disabled = false;
+        if(!d.success){
+            saveBtn.innerHTML = '<i class="bi bi-x-circle-fill"></i>';
+            setTimeout(()=>{ saveBtn.innerHTML = origHtml; }, 1500);
+        } else {
+            saveBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Saved';
+            saveBtn.style.background = '#1f7a3d';
+            setTimeout(()=>{ saveBtn.innerHTML = origHtml; saveBtn.style.background = ''; }, 1800);
+            // Re-sync row background from the saved value (already matches what the user selected,
+            // but calling _refreshEligibleBtn keeps the hint/button in sync after every save)
+            _refreshEligibleBtn();
+        }
+    }).catch(()=>{
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = origHtml;
+    });
+}
 
 function submitElig(eligible){
+    // ── Pending-item guard — only blocks Comply/Eligible, not Disqualify ──
+    if(eligible){
+        const area = document.getElementById('eligChecklistArea');
+        if(area){
+            const selects = area.querySelectorAll('.cl-select');
+            let pendingCount = 0;
+            selects.forEach(s => { if(s.value === 'pending') pendingCount++; });
+            if(pendingCount > 0){
+                // Button is visually disabled but guard here too in case of
+                // a focus-Enter or other indirect trigger
+                _refreshEligibleBtn(); // re-sync UI
+                return;
+            }
+        }
+    }
+
     closeElig();
-    post({ action:'set_eligible', bid_id:el_bidId, lot_id:el_lotId, eligible, phase:el_phase, session_id:SESSION_ID })
+    post({ action:'set_eligible', bid_id:el_bidId, lot_id:el_lotId, bid_lot_id:el_bidLotId, eligible, phase:el_phase, session_id:SESSION_ID })
     .then(d=>{
         if(!d.success){ alert(d.message); return; }
+
+        // Reset signing state — next bidder needs a fresh signing cycle
+        SIGNING_STATUS = 'not_started';
 
         const lotState = STATE.lots[el_lotId];
         if(lotState){
@@ -1773,7 +2299,7 @@ function openDoneLotModal(){
         openCannotProceedModal('Error', ['Failed to verify lot status. Please try again.']);
     });
 }
-function closeDoneLotModal(){ document.getElementById('doneLotModal').classList.remove('open'); }
+function closeDoneLotModal(){ document.getElementById('doneLotModal').classList.remove('open'); _catchUpAfterModal(); }
 
 function confirmDoneLot(){
     closeDoneLotModal();
@@ -1802,6 +2328,7 @@ function confirmDoneLot(){
         STATE.activeLotIdx = nextIdx;
         // Reset status to 'started' so the eligibility gate shows for the new lot
         SESSION_STATUS = 'started';
+        SIGNING_STATUS = 'not_started';
         post({ action:'set_current_lot', session_id:SESSION_ID, lot_id:LOTS[nextIdx].id })
         .then(()=> post({ action:'start_phase', session_id:SESSION_ID, phase:'started' }))
         .then(()=>{ refreshSessionProgressFromDB(); });
@@ -1954,6 +2481,7 @@ function openAwardModal(lotId, bidLotId, bidderName, lotNumber, amount){
 function closeAwardModal(){
     document.getElementById('awardModal').classList.remove('open');
     _awardTarget = null;
+    _catchUpAfterModal();
 }
 
 // ── Fail Lot Modal ────────────────────────────────────────────────────────
@@ -1966,6 +2494,7 @@ function openFailLotModal(lotId, lotNumber){
 function closeFailLotModal(){
     document.getElementById('failLotModal').classList.remove('open');
     _failTarget = null;
+    _catchUpAfterModal();
 }
 function doFailLot(){
     if(!_failTarget) return;
@@ -2031,7 +2560,7 @@ function openEndSessionModal(){
     })
     .catch(()=>{ openCannotProceedModal('Error', ['Failed to verify award status. Please try again.']); });
 }
-function closeEndSessionModal(){ document.getElementById('endSessionModal').classList.remove('open'); }
+function closeEndSessionModal(){ document.getElementById('endSessionModal').classList.remove('open'); _catchUpAfterModal(); }
 
 function doEndSession(){
     const btn = document.getElementById('endSessionConfirmBtn');
@@ -2048,6 +2577,7 @@ function doEndSession(){
         if(!d.success){ alert(d.message||'Failed to end session.'); return; }
         closeEndSessionModal();
         SESSION_STATUS = 'ended';
+        stopPolling(); // session concluded — no more polling needed
         // Unlock conclusion tab, lock awarding tab, navigate to conclusion
         const cTab = document.getElementById('mtab-conclusion');
         if(cTab) cTab.classList.remove('locked');
@@ -2192,9 +2722,370 @@ function loadConclusion(){
     });
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// REALTIME SYNC — Pusher WebSocket + 30-second fallback heartbeat
+//
+// All state-changing API actions fire a Pusher event on channel
+// 'session-{SESSION_ID}'. The JS client receives the event instantly and
+// calls the appropriate silent-refresh helper, so every connected role
+// (Secretariat, BAC, TWG) sees changes without polling on every tick.
+//
+// The 30-second heartbeat is a safety net for rare missed events
+// (reconnects, browser tab wakes from sleep, etc.). It does nothing if
+// everything is already up to date (fingerprint unchanged).
+//
+// Polling is completely removed. The only interval is the heartbeat.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Shared state (used by both Pusher handlers and heartbeat) ─────────────
+
+const _rt = {
+    pusher:            null,   // Pusher instance
+    channel:           null,   // subscribed channel
+    heartbeatTimer:    null,   // setInterval handle for the fallback
+    lastProgressHash:  '',     // fingerprint of the last progress response
+    lastBiddersHash:   '',     // fingerprint of the last bidders response
+    lastAwardsHash:    '',     // fingerprint of the last awards response
+    lastSigningStatus: '',     // last known signing_status (quorum bar trigger)
+    _activeBidLotId:   0,      // bid_lot_id of the currently selected bidder
+};
+
+// Keep the legacy _poll alias so _silentRefresh* helpers still work
+// (they reference _poll._activeBidLotId and _poll.last*Hash)
+const _poll = _rt;
+
+// ── Fingerprinting helpers ────────────────────────────────────────────────
+
+function _hashProgress(data){
+    const lots = (data.lots || []).map(l =>
+        l.id + ':' + (+!!l.is_done) + ':' + l.pending_elig + ':' + l.pending_fin + ':' + l.is_awarded
+    ).join('|');
+    return (data.status||'') + '|' + (data.signing_status||'') + '|' + (data.current_lot_id||0) + '|' + lots;
+}
+
+function _hashBidders(bidders){
+    return (bidders || []).map(b =>
+        b.bidder_id + ':' + b.eligibility_status + ':' + b.financial_status + ':' + (+!!b.files_opened)
+    ).join('|');
+}
+
+function _hashAwards(awards, failedLots){
+    const a = (awards || []).map(a => a.lot_id + ':' + a.bid_lot_id + ':' + a.awarded_amount).join('|');
+    const f = (failedLots || []).map(f => f.lot_id).join('|');
+    return a + '~' + f;
+}
+
+// ── Modal guard ───────────────────────────────────────────────────────────
+
+function _anyModalOpen(){
+    return document.querySelectorAll('.bsm-bg.open').length > 0;
+}
+
+// ── Silent refresh helpers ────────────────────────────────────────────────
+
+function _silentRefreshBidders(lotId, stage){
+    if(!lotId || !stage) return;
+    get({ action:'bidders', lot_id:lotId, phase:stage, session_id:SESSION_ID })
+    .then(bd => {
+        const bidders = bd.bidders || [];
+        const newHash = _hashBidders(bidders);
+        if(newHash === _rt.lastBiddersHash) return;
+        _rt.lastBiddersHash = newHash;
+        if(!STATE.lots[lotId])
+            STATE.lots[lotId] = { stage, bidders:{}, done:{ eligibility:[], financial:[] } };
+        STATE.lots[lotId].bidders[stage] = bidders;
+        const activeLot = LOTS[STATE.activeLotIdx];
+        if(!activeLot || activeLot.id !== lotId) return;
+        renderLotBidderArea(lotId, stage, bidders);
+    })
+    .catch(function(){});
+}
+
+function _silentRefreshAwarding(){
+    get({ action:'get_awards', proc_id:PROC_ID, session_id:SESSION_ID })
+    .then(aData => {
+        const awards     = aData.awards      || [];
+        const failedLots = aData.failed_lots || [];
+        const newHash    = _hashAwards(awards, failedLots);
+        if(newHash === _rt.lastAwardsHash) return;
+        _rt.lastAwardsHash = newHash;
+        if(STATE.currentTab !== 'awarding') return;
+        loadAwarding();
+    })
+    .catch(function(){});
+}
+
+function _silentRefreshQuorum(lotId, stage){
+    if(!lotId || !stage || !_rt._activeBidLotId) return;
+    const stageBidders = (STATE.lots[lotId] && STATE.lots[lotId].bidders[stage]) || [];
+    const activeBidder = stageBidders.find(b => b.bid_lot_id === _rt._activeBidLotId);
+    if(!activeBidder) return;
+    const activeLot = LOTS[STATE.activeLotIdx];
+    if(!activeLot || activeLot.id !== lotId) return;
+    Promise.all([
+        get({ action:'check_quorum', bid_lot_id:_rt._activeBidLotId, opening_type:stage, session_id:SESSION_ID }),
+        get({ action:'files', bidder_id:activeBidder.bidder_id, lot_id:lotId, phase:stage, session_id:SESSION_ID })
+    ]).then(([qd, fd]) => {
+        const btns = document.getElementById('actbtns-' + activeBidder.bidder_id);
+        if(!btns) return;
+        _renderActionButtons(activeBidder, stage, lotId, fd.files || [], qd);
+        const fileArea = document.querySelector('#lot-bidder-area .files-pane');
+        if(fileArea && (fd.files || []).length > 0) renderFiles(fileArea, fd.files, qd);
+    }).catch(function(){});
+}
+
+// ── Core progress sync (shared by Pusher events and heartbeat) ────────────
+
+function _handleProgressUpdate(data){
+    if(!data || !data.status) return;
+
+    // Session ended
+    if(data.status === 'ended' && SESSION_STATUS !== 'ended'){
+        SESSION_STATUS = 'ended';
+        stopRealtimeSync();
+        refreshSessionProgressFromDB();
+        return;
+    }
+
+    const newProgressHash = _hashProgress(data);
+    const signingChanged  = data.signing_status !== _rt.lastSigningStatus;
+
+    if(newProgressHash !== _rt.lastProgressHash){
+        _rt.lastProgressHash  = newProgressHash;
+        _rt.lastSigningStatus = data.signing_status || 'not_started';
+
+        const prevStatus = SESSION_STATUS;
+        SESSION_STATUS   = data.status;
+        SIGNING_STATUS   = data.signing_status || 'not_started';
+
+        refreshSessionProgressFromDB();
+
+        const activeLot   = LOTS[STATE.activeLotIdx];
+        const activeLotId = activeLot ? activeLot.id : 0;
+
+        if(prevStatus !== data.status &&
+           activeLotId > 0 &&
+           (data.status === 'eligibility' || data.status === 'financial')){
+            fetchAndRenderBiddersByDB(activeLotId);
+            return;
+        }
+        if(prevStatus !== 'awarding' && data.status === 'awarding' && STATE.currentTab === 'awarding'){
+            loadAwarding();
+            return;
+        }
+    } else {
+        _rt.lastSigningStatus = data.signing_status || 'not_started';
+    }
+
+    const activeLot   = LOTS[STATE.activeLotIdx];
+    const activeLotId = activeLot ? activeLot.id : 0;
+    const stage       = (SESSION_STATUS === 'financial') ? 'financial' : 'eligibility';
+    const onLotTab    = typeof STATE.currentTab === 'number';
+    const onAwarding  = STATE.currentTab === 'awarding';
+
+    if(onLotTab && activeLotId > 0 &&
+       (SESSION_STATUS === 'eligibility' || SESSION_STATUS === 'financial' || SESSION_STATUS === 'started')){
+        _silentRefreshBidders(activeLotId, stage);
+        if(signingChanged) _silentRefreshQuorum(activeLotId, stage);
+    }
+
+    if(onAwarding &&
+       (SESSION_STATUS === 'awarding' || SESSION_STATUS === 'eligibility' || SESSION_STATUS === 'financial')){
+        _silentRefreshAwarding();
+    }
+}
+
+// ── Pusher event handlers ─────────────────────────────────────────────────
+//
+// Each handler responds to the specific Pusher event immediately rather than
+// waiting for the next heartbeat tick. For events that affect the full
+// session-level state (phase changes, session end), we fetch `progress` to
+// get the authoritative server state. For targeted events (signing, checklist)
+// we refresh only the affected component.
+
+function _onPusherEvent(event, data){
+    // Signing events are allowed through even when a modal is open —
+    // they only update state behind the modal (quorum bars, action buttons).
+    const signingEvent = (event === 'bac_signed' || event === 'signing_started' || event === 'files_opened');
+
+    if(!signingEvent && _anyModalOpen()) return; // never disrupt an in-progress user action
+
+    const activeLot   = LOTS[STATE.activeLotIdx];
+    const activeLotId = activeLot ? activeLot.id : 0;
+    const stage       = (SESSION_STATUS === 'financial') ? 'financial' : 'eligibility';
+
+    switch(event){
+
+        // ── Session lifecycle ─────────────────────────────────────────────
+        case 'session_started':
+        case 'phase_changed':
+        case 'lot_changed':
+        case 'session_ended':
+            // Fetch authoritative progress and let _handleProgressUpdate drive all UI
+            get({ action:'progress', session_id:SESSION_ID })
+            .then(_handleProgressUpdate)
+            .catch(function(){});
+            break;
+
+        // ── Signing flow ──────────────────────────────────────────────────
+        case 'signing_started':
+            // Secretariat hit "Start Opening" — everyone needs to see fresh button state.
+            // Reset hash to force re-render, then let renderLotBidderArea + selectBidderTab
+            // fetch fresh quorum internally (avoids race with _silentRefreshQuorum).
+            if(activeLotId > 0 && typeof STATE.currentTab === 'number'){
+                _rt.lastBiddersHash = '';
+                _silentRefreshBidders(activeLotId, stage);
+            }
+            break;
+
+        case 'bac_signed':
+            // A BAC member signed — force a full bidder area re-render for everyone
+            // (Secretariat sees "Open Now", BAC sees updated quorum count/pill).
+            if(activeLotId > 0 && typeof STATE.currentTab === 'number'){
+                _rt.lastSigningStatus = data.signing_status || 'signing';
+                SIGNING_STATUS = data.signing_status || 'signing';
+
+                // Seed _activeBidLotId from payload if not set yet
+                if(!_rt._activeBidLotId && data.bid_lot_id){
+                    _rt._activeBidLotId = data.bid_lot_id;
+                }
+
+                if(data.quorum_reached){
+                    // Quorum reached — Secretariat must see "Open Now" immediately.
+                    // Use fetchAndRenderBiddersByDB (full reload) to guarantee the
+                    // action buttons repaint with the fresh quorum state from DB.
+                    // Reset hash first so the next _silentRefreshBidders doesn't skip.
+                    _rt.lastBiddersHash = '';
+                    fetchAndRenderBiddersByDB(activeLotId);
+                } else {
+                    // Not yet quorum — silent re-render is enough (quorum bar count update)
+                    _rt.lastBiddersHash = '';
+                    _silentRefreshBidders(activeLotId, stage);
+                }
+            }
+            break;
+
+        case 'files_opened':
+            // Secretariat clicked "Open Now" — everyone sees files unlocked.
+            if(activeLotId > 0 && typeof STATE.currentTab === 'number'){
+                SIGNING_STATUS = 'done';
+                _rt.lastBiddersHash = '';
+                _silentRefreshBidders(activeLotId, stage);
+            }
+            break;
+
+        // ── Eligibility / financial result ────────────────────────────────
+        case 'eligibility_updated':
+            if(activeLotId > 0 && typeof STATE.currentTab === 'number'){
+                _silentRefreshBidders(activeLotId, stage);
+            }
+            // Also update progress fingerprint to keep tab badges fresh
+            get({ action:'progress', session_id:SESSION_ID })
+            .then(_handleProgressUpdate)
+            .catch(function(){});
+            break;
+
+        // ── Checklist ─────────────────────────────────────────────────────
+        case 'checklist_updated':
+            // Only relevant if the checklist modal is open for this bid_lot —
+            // but since the modal guard blocks Pusher while it's open, this
+            // will fire after it closes, which is fine. The next modal open
+            // will re-fetch from DB anyway.
+            break;
+
+        // ── Awarding ──────────────────────────────────────────────────────
+        case 'lot_awarded':
+        case 'lot_failed':
+            if(STATE.currentTab === 'awarding') _silentRefreshAwarding();
+            // Also refresh lot tab badges
+            get({ action:'progress', session_id:SESSION_ID })
+            .then(_handleProgressUpdate)
+            .catch(function(){});
+            break;
+    }
+}
+
+// ── 30-second heartbeat fallback ──────────────────────────────────────────
+// Catches any events missed during reconnects or browser sleep.
+
+function _heartbeatTick(){
+    if(_anyModalOpen()) return;
+    get({ action:'progress', session_id:SESSION_ID })
+    .then(_handleProgressUpdate)
+    .catch(function(){});
+}
+
+// ── Catch up after a modal closes ────────────────────────────────────────
+// Any Pusher events that fired while the modal was open were dropped by the
+// modal guard. Call this in every close function to immediately re-sync
+// progress + the active bidder area instead of waiting for the 30s heartbeat.
+
+function _catchUpAfterModal(){
+    const activeLot   = LOTS[STATE.activeLotIdx];
+    const activeLotId = activeLot ? activeLot.id : 0;
+    const stage       = (SESSION_STATUS === 'financial') ? 'financial' : 'eligibility';
+    const onLotTab    = typeof STATE.currentTab === 'number';
+
+    // Always re-sync session-level state (hero pill, tab badges, sidebar)
+    get({ action:'progress', session_id:SESSION_ID })
+    .then(_handleProgressUpdate)
+    .catch(function(){});
+
+    // Re-sync the active lot's bidder area
+    if(onLotTab && activeLotId > 0){
+        _rt.lastBiddersHash = ''; // force re-render even if data unchanged
+        _silentRefreshBidders(activeLotId, stage);
+    }
+}
+
+// ── Start / stop ──────────────────────────────────────────────────────────
+
+function startRealtimeSync(){
+    // ── Pusher WebSocket ──────────────────────────────────────────────────
+    _rt.pusher = new Pusher('<?= htmlspecialchars($_ENV['PUSHER_APP_KEY'] ?? '') ?>', {
+        cluster: '<?= htmlspecialchars($_ENV['PUSHER_APP_CLUSTER'] ?? 'ap3') ?>',
+        forceTLS: true,
+    });
+
+    _rt.channel = _rt.pusher.subscribe('session-' + SESSION_ID);
+
+    const events = [
+        'session_started', 'phase_changed', 'lot_changed', 'session_ended',
+        'signing_started', 'bac_signed', 'files_opened',
+        'eligibility_updated', 'checklist_updated',
+        'lot_awarded', 'lot_failed',
+    ];
+
+    events.forEach(function(ev){
+        _rt.channel.bind(ev, function(data){ _onPusherEvent(ev, data || {}); });
+    });
+
+    // Log connection state changes (useful for debugging)
+    _rt.pusher.connection.bind('state_change', function(states){
+        console.log('[Pusher] ' + states.previous + ' → ' + states.current);
+    });
+
+    // ── 30-second heartbeat fallback ──────────────────────────────────────
+    _rt.heartbeatTimer = setInterval(_heartbeatTick, 30000);
+}
+
+function stopRealtimeSync(){
+    if(_rt.heartbeatTimer){ clearInterval(_rt.heartbeatTimer); _rt.heartbeatTimer = null; }
+    if(_rt.channel)  { _rt.pusher.unsubscribe('session-' + SESSION_ID); _rt.channel = null; }
+    if(_rt.pusher)   { _rt.pusher.disconnect(); _rt.pusher = null; }
+}
+
+// Legacy aliases so any existing call to startPolling/stopPolling still works
+function startPolling(){ startRealtimeSync(); }
+function stopPolling() { stopRealtimeSync();  }
+
 // ── Initialization ────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', ()=>{
     refreshSessionProgressFromDB();
+    // Start Pusher WebSocket + 30s heartbeat fallback
+    if(SESSION_STATUS !== 'ended'){
+        startRealtimeSync();
+    }
     if(SESSION_STATUS === 'ended'){
         // Unlock all lot tabs as done, unlock awarding + conclusion, go straight to conclusion
         LOTS.forEach((_, i)=>{

@@ -48,7 +48,7 @@ $doc_stmt->close();
 // 4. Handle Document Delete
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_doc'])) {
     $doc_id = intval($_POST['doc_id']);
-    $d = $conn->prepare("SELECT file_path FROM procurement_documents WHERE id = ? AND procurement_id = ?");
+    $d = $conn->prepare("SELECT file_path, document_name FROM procurement_documents WHERE id = ? AND procurement_id = ?");
     $d->bind_param("ii", $doc_id, $procurement_id);
     $d->execute();
     $doc_row = $d->get_result()->fetch_assoc();
@@ -60,9 +60,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_doc'])) {
         }
         $del = $conn->prepare("DELETE FROM procurement_documents WHERE id = ?");
         $del->bind_param("i", $doc_id);
-        $del->execute();
+        if ($del->execute()) {
+            $doc_name = $doc_row['document_name'] ?? "#$doc_id";
+            audit_log(
+                $conn,
+                'PROCUREMENT_DOCUMENT_DELETED',
+                'procurements',
+                $procurement_id,
+                "Deleted procurement document: {$doc_name}",
+                ['document_id' => $doc_id, 'document_name' => $doc_name],
+                null
+            );
+            $_SESSION['alert_success'] = "Document removed successfully.";
+        } else {
+            $_SESSION['alert_error'] = "Failed to remove document record.";
+        }
         $del->close();
-        $_SESSION['alert_success'] = "Document removed successfully.";
     } else {
         $_SESSION['alert_error'] = "Document not found.";
     }
@@ -96,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_procurement'])) 
     );
 
     if ($upd->execute()) {
+        $uploaded_new_docs = [];
         // Handle new file uploads
         if (!empty($_FILES['new_documents']['name'][0])) {
             $upload_dir = "../uploads/procurements/";
@@ -110,10 +124,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_procurement'])) 
                 if (move_uploaded_file($tmp, $target)) {
                     $ins->bind_param("iss", $procurement_id, $orig, $target);
                     $ins->execute();
+                    $uploaded_new_docs[] = $orig;
                 }
             }
             $ins->close();
         }
+
+        // Audit log procurement update
+        audit_log(
+            $conn,
+            'PROCUREMENT_UPDATED',
+            'procurements',
+            $procurement_id,
+            "Updated procurement project: {$title}",
+            [
+                'title' => $procurement['title'],
+                'philgeps_ref_no' => $procurement['philgeps_ref_no'],
+                'procurement_mode' => $procurement['procurement_mode'],
+                'description' => $procurement['description'],
+                'abc' => (float)$procurement['abc'],
+                'posting_date' => $procurement['posting_date'],
+                'closing_date' => $procurement['closing_date'],
+                'opening_date' => $procurement['opening_date']
+            ],
+            [
+                'title' => $title,
+                'philgeps_ref_no' => $philgeps,
+                'procurement_mode' => $mode,
+                'description' => $description,
+                'abc' => $abc,
+                'posting_date' => $posting_date,
+                'closing_date' => $closing_date,
+                'opening_date' => $opening_date,
+                'new_documents' => $uploaded_new_docs
+            ]
+        );
+
         $_SESSION['alert_success'] = "Procurement updated successfully.";
     } else {
         $_SESSION['alert_error'] = "Failed to update procurement.";
@@ -136,6 +182,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_publish'])) {
 
     if ($pub_stmt->execute()) {
         $pub_stmt->close();
+
+        // Audit log procurement publish
+        audit_log(
+            $conn,
+            'PROCUREMENT_STATUS_CHANGED',
+            'procurements',
+            $procurement_id,
+            "Published procurement project: {$procurement['title']} (draft -> open)",
+            ['status' => $procurement['status'] ?? 'draft'],
+            ['status' => 'open']
+        );
+
         $_SESSION['alert_success'] = "Procurement has been successfully published and is now open for bidding!";
         header("Location: procurement.php");
         exit();

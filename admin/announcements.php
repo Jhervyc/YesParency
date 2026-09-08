@@ -36,11 +36,30 @@ $current_role    = $_SESSION['role'] ?? 'superadmin';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_announcement'])) {
     $del_id = (int)($_POST['announcement_id'] ?? 0);
     if ($del_id > 0) {
+        $snap = $conn->prepare("SELECT title, message, target_type, target_role, target_user_id FROM system_notifications WHERE notification_id = ?");
+        $snap->bind_param("i", $del_id);
+        $snap->execute();
+        $old_anno = $snap->get_result()->fetch_assoc();
+        $snap->close();
+
         $del_stmt = $conn->prepare("DELETE FROM system_notifications WHERE notification_id = ?");
         $del_stmt->bind_param("i", $del_id);
-        $del_stmt->execute();
+        if ($del_stmt->execute()) {
+            $atitle = $old_anno['title'] ?? "#$del_id";
+            audit_log(
+                $conn,
+                'ANNOUNCEMENT_DELETED',
+                'announcements',
+                $del_id,
+                "Deleted system announcement: {$atitle}",
+                $old_anno,
+                null
+            );
+            $_SESSION['alert_success'] = "Announcement deleted successfully.";
+        } else {
+            $_SESSION['alert_error'] = "Failed to delete announcement.";
+        }
         $del_stmt->close();
-        $_SESSION['alert_success'] = "Announcement deleted successfully.";
     }
     header("Location: announcements.php");
     exit();
@@ -65,6 +84,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_announcement']
         ");
         $stmt->bind_param("ssssii", $title, $message, $target_type, $target_role, $target_user, $current_user_id);
         if ($stmt->execute()) {
+            $new_anno_id = $conn->insert_id;
+            audit_log(
+                $conn,
+                'ANNOUNCEMENT_CREATED',
+                'announcements',
+                $new_anno_id,
+                "Published system announcement: {$title}",
+                null,
+                [
+                    'title' => $title,
+                    'message' => $message,
+                    'target_type' => $target_type,
+                    'target_role' => $target_role,
+                    'target_user_id' => $target_user
+                ]
+            );
+
             $_SESSION['alert_success'] = "Announcement published successfully.";
         } else {
             $_SESSION['alert_error'] = "Failed to publish announcement: " . $conn->error;

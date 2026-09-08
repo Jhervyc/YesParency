@@ -17,9 +17,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_verify_bid']))
     $bid_id     = intval($_POST['bid_id']);
     $new_status = $_POST['status_action'] === 'approve' ? 'submitted' : 'rejected';
 
+    $snap = $conn->prepare("SELECT b.status, b.procurement_id, b.bidder_id, p.title AS proc_title, u.username, bp.business_name FROM bids b JOIN procurements p ON b.procurement_id = p.id JOIN users u ON b.bidder_id = u.user_id LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id WHERE b.id = ?");
+    $snap->bind_param("i", $bid_id);
+    $snap->execute();
+    $old_bid = $snap->get_result()->fetch_assoc();
+    $snap->close();
+
     $u = $conn->prepare("UPDATE bids SET status = ? WHERE id = ?");
     $u->bind_param("si", $new_status, $bid_id);
     if ($u->execute()) {
+        $bidder_name = $old_bid['business_name'] ?? ($old_bid['username'] ?? "Bidder #{$old_bid['bidder_id']}");
+        $verb = $new_status === 'submitted' ? 'Approved & verified' : 'Rejected';
+        audit_log(
+            $conn,
+            'BID_STATUS_CHANGED',
+            'bids',
+            $bid_id,
+            "{$verb} bid #{$bid_id} by {$bidder_name} for procurement #{$procurement_id} ({$old_bid['status']} -> {$new_status})",
+            [
+                'status' => $old_bid['status'] ?? 'pending',
+                'procurement_id' => $procurement_id,
+                'bidder_id' => (int)($old_bid['bidder_id'] ?? 0)
+            ],
+            [
+                'status' => $new_status,
+                'procurement_id' => $procurement_id,
+                'bidder_id' => (int)($old_bid['bidder_id'] ?? 0)
+            ]
+        );
         $_SESSION['alert_success'] = "Bid " . ($new_status === 'submitted' ? 'approved and verified' : 'marked as rejected') . " successfully.";
     } else {
         $_SESSION['alert_error'] = "Failed to update bid status.";

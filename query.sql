@@ -56,18 +56,47 @@ ADD application_status ENUM(
 -- =================== Procurement table =======================
 CREATE TABLE procurements (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    philgeps_ref_no VARCHAR(50) NOT NULL,
+
+    philgeps_ref_no VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
-    description TEXT,
+    description TEXT NULL,
+
     abc DECIMAL(15,2) NOT NULL,
-    procurement_mode VARCHAR(100),
-    posting_date DATE,
-    closing_date DATETIME,
-    opening_date DATETIME,
-    status ENUM('draft','open','closed','awarded','cancelled') DEFAULT 'draft',
-    created_by INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+
+    procurement_mode VARCHAR(100) NOT NULL,
+
+    procurement_type ENUM(
+        'goods_services',
+        'infrastructure'
+    ) NOT NULL DEFAULT 'goods_services',
+
+    posting_date DATETIME NULL,
+    closing_date DATETIME NULL,
+    opening_date DATETIME NULL,
+
+    status ENUM(
+        'draft',
+        'open',
+        'closed',
+        'awarded',
+        'cancelled'
+    ) NOT NULL DEFAULT 'draft',
+
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (created_by)
+        REFERENCES users(user_id)
+        ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ALTER TABLE procurements
+-- ADD COLUMN procurement_type ENUM(
+--     'goods_services',
+--     'infrastructure'
+-- ) NOT NULL DEFAULT 'goods_services'
+-- AFTER procurement_mode;
 
 -- =================== lots table =======================
 CREATE TABLE lots (
@@ -307,16 +336,14 @@ CREATE TABLE admin_roles (
 -- =================== Bid Openning Session Table =======================
 CREATE TABLE IF NOT EXISTS bid_opening_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
+
     procurement_id INT NOT NULL,
 
-    -- Live stream information
     stream_path VARCHAR(255) NOT NULL DEFAULT 'live',
     title VARCHAR(255) NULL,
 
-    -- Current lot being processed
     current_lot_id INT NULL,
 
-    -- Session / livestream status
     status ENUM(
         'scheduled',
         'started',
@@ -326,8 +353,15 @@ CREATE TABLE IF NOT EXISTS bid_opening_sessions (
         'ended'
     ) NOT NULL DEFAULT 'scheduled',
 
+    signing_status ENUM(
+        'not_started',
+        'signing',
+        'done'
+    ) NOT NULL DEFAULT 'not_started',
+
     started_at DATETIME NULL,
     ended_at DATETIME NULL,
+
     created_by INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -344,8 +378,8 @@ CREATE TABLE IF NOT EXISTS bid_opening_sessions (
         ON DELETE SET NULL,
 
     INDEX idx_procurement (procurement_id),
-    INDEX idx_current_lot (current_lot_id),
-    INDEX idx_status (status)
+    INDEX idx_status (status),
+    INDEX idx_current_lot (current_lot_id)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -371,6 +405,14 @@ CREATE TABLE IF NOT EXISTS bid_opening_sessions (
 
 -- ALTER TABLE bid_opening_sessions
 -- ADD INDEX idx_current_lot (current_lot_id);
+
+-- ALTER TABLE bid_opening_sessions
+-- ADD COLUMN signing_status ENUM(
+--     'not_started',
+--     'signing',
+--     'done'
+-- ) NOT NULL DEFAULT 'not_started'
+-- AFTER status;
 
 -- =================== Bid Session Invited Table =======================
 
@@ -450,5 +492,80 @@ CREATE TABLE bid_lot_signatures (
 
     INDEX idx_bid_lot (bid_lot_id),
     INDEX idx_user (user_id)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =================== checklist_templates =======================
+CREATE TABLE checklist_templates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    procurement_type ENUM(
+        'goods_services',
+        'infrastructure'
+    ) NOT NULL,
+
+    checklist_type ENUM(
+        'eligibility',
+        'financial'
+    ) NOT NULL,
+
+    item_name VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+
+    is_required BOOLEAN NOT NULL DEFAULT TRUE,
+    display_order INT NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_type_order (
+        procurement_type,
+        checklist_type,
+        display_order
+    )
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =================== checklist_templates =======================
+CREATE TABLE bid_checklist (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    bid_lot_id INT NOT NULL,
+    template_item_id INT NOT NULL,
+
+    item_name VARCHAR(255) NOT NULL,
+
+    result ENUM(
+        'pending',
+        'present',
+        'missing',
+        'not_applicable'
+    ) NOT NULL DEFAULT 'pending',
+
+    remarks TEXT NULL,
+
+    checked_by INT NULL,
+    checked_at DATETIME NULL,
+
+    FOREIGN KEY (bid_lot_id)
+        REFERENCES bid_lots(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (template_item_id)
+        REFERENCES checklist_templates(id)
+        ON DELETE RESTRICT,
+
+    FOREIGN KEY (checked_by)
+        REFERENCES users(user_id)
+        ON DELETE SET NULL,
+
+    UNIQUE KEY unique_bid_lot_item (
+        bid_lot_id,
+        template_item_id
+    ),
+
+    INDEX idx_bid_lot (bid_lot_id)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

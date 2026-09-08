@@ -56,6 +56,22 @@
                 ");
                 $stmt->bind_param("iissd", $procurement_id, $lot_number, $title, $description, $abc);
                 if ($stmt->execute()) {
+                    $new_lot_id = $conn->insert_id;
+                    audit_log(
+                        $conn,
+                        'LOT_CREATED',
+                        'lots',
+                        $new_lot_id,
+                        "Added Lot #{$lot_number}: {$title} to procurement #{$procurement_id}",
+                        null,
+                        [
+                            'procurement_id' => $procurement_id,
+                            'lot_number' => $lot_number,
+                            'lot_title' => $title,
+                            'description' => $description,
+                            'abc' => $abc
+                        ]
+                    );
                     $_SESSION['alert_success'] = "Lot #{$lot_number} ({$title}) was added successfully.";
                 } else {
                     $_SESSION['alert_error'] = "Failed to add lot. Please try again.";
@@ -95,6 +111,14 @@
                 $_SESSION['alert_error'] = "Lot Number #{$lot_number} is already assigned to another lot!";
             } else {
                 $check_stmt->close();
+
+                // Snapshot before update
+                $snap = $conn->prepare("SELECT lot_number, lot_title, description, abc, status FROM lots WHERE id = ?");
+                $snap->bind_param("i", $lot_id);
+                $snap->execute();
+                $old_lot = $snap->get_result()->fetch_assoc();
+                $snap->close();
+
                 $stmt = $conn->prepare("
                     UPDATE lots 
                     SET lot_number = ?, lot_title = ?, description = ?, abc = ? 
@@ -102,6 +126,25 @@
                 ");
                 $stmt->bind_param("issdii", $lot_number, $title, $description, $abc, $lot_id, $procurement_id);
                 if ($stmt->execute()) {
+                    audit_log(
+                        $conn,
+                        'LOT_UPDATED',
+                        'lots',
+                        $lot_id,
+                        "Updated Lot #{$lot_number}: {$title}",
+                        [
+                            'lot_number' => (int)($old_lot['lot_number'] ?? 0),
+                            'lot_title' => $old_lot['lot_title'] ?? '',
+                            'description' => $old_lot['description'] ?? '',
+                            'abc' => (float)($old_lot['abc'] ?? 0)
+                        ],
+                        [
+                            'lot_number' => $lot_number,
+                            'lot_title' => $title,
+                            'description' => $description,
+                            'abc' => $abc
+                        ]
+                    );
                     $_SESSION['alert_success'] = "Lot #{$lot_number} details have been updated.";
                 } else {
                     $_SESSION['alert_error'] = "Failed to update lot details.";
@@ -121,9 +164,27 @@
         $lot_id = intval($_POST['lot_id'] ?? 0);
 
         if ($lot_id > 0) {
+            // Snapshot before deletion
+            $snap = $conn->prepare("SELECT lot_number, lot_title, description, abc, status FROM lots WHERE id = ?");
+            $snap->bind_param("i", $lot_id);
+            $snap->execute();
+            $old_lot = $snap->get_result()->fetch_assoc();
+            $snap->close();
+
             $stmt = $conn->prepare("DELETE FROM lots WHERE id = ? AND procurement_id = ?");
             $stmt->bind_param("ii", $lot_id, $procurement_id);
             if ($stmt->execute()) {
+                $ltitle = $old_lot['lot_title'] ?? "#$lot_id";
+                $lnum = $old_lot['lot_number'] ?? '';
+                audit_log(
+                    $conn,
+                    'LOT_DELETED',
+                    'lots',
+                    $lot_id,
+                    "Deleted Lot #{$lnum} ({$ltitle}) from procurement #{$procurement_id}",
+                    $old_lot,
+                    null
+                );
                 $_SESSION['alert_success'] = "Lot was removed successfully.";
             } else {
                 $_SESSION['alert_error'] = "Failed to delete lot.";

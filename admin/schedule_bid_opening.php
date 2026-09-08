@@ -137,6 +137,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['schedule_session'])) 
                 $ins_inv->close();
             }
 
+            // Audit session creation
+            audit_log(
+                $conn,
+                'BID_SESSION_CREATED',
+                'bid_opening',
+                $session_id,
+                "Scheduled bid opening session for procurement #{$procurement_id}: {$event_title}",
+                null,
+                [
+                    'procurement_id' => $procurement_id,
+                    'stream_path' => $stream_path,
+                    'title' => $event_title,
+                    'status' => 'scheduled'
+                ]
+            );
+
+            // Audit procurement status change (open -> closed)
+            audit_log(
+                $conn,
+                'PROCUREMENT_STATUS_CHANGED',
+                'procurements',
+                $procurement_id,
+                "Procurement #{$procurement_id} closed for bid opening session #{$session_id}",
+                ['status' => 'open'],
+                ['status' => 'closed']
+            );
+
+            // Audit invited members
+            if (!empty($invited_ids)) {
+                $invited_clean = array_values(array_filter(array_map('intval', $invited_ids)));
+                audit_log(
+                    $conn,
+                    'SESSION_MEMBER_INVITED',
+                    'bid_opening',
+                    $session_id,
+                    "Invited " . count($invited_clean) . " BAC/TWG member(s) to session #{$session_id}",
+                    null,
+                    ['invited_user_ids' => $invited_clean]
+                );
+            }
+
             $conn->commit();
             $_SESSION['alert_success'] = "Bid opening session scheduled successfully.";
             header("Location: bid_opening.php");

@@ -19,13 +19,30 @@ $can_manage = ($user_role === 'superadmin' || $admin_type === 'SECRETARIAT');
 if ($can_manage && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['open_now'])) {
     $session_id = (int)($_POST['session_id'] ?? 0);
     if ($session_id > 0) {
+        $snap = $conn->prepare("SELECT bos.status, bos.procurement_id, p.title AS proc_title FROM bid_opening_sessions bos JOIN procurements p ON bos.procurement_id = p.id WHERE bos.id = ?");
+        $snap->bind_param("i", $session_id);
+        $snap->execute();
+        $old_ses = $snap->get_result()->fetch_assoc();
+        $snap->close();
+
         $upd = $conn->prepare("
             UPDATE bid_opening_sessions
             SET status = 'started', started_at = NOW()
             WHERE id = ? AND status = 'scheduled'
         ");
         $upd->bind_param("i", $session_id);
-        $upd->execute();
+        if ($upd->execute() && $upd->affected_rows > 0) {
+            $ptitle = $old_ses['proc_title'] ?? "procurement #{$old_ses['procurement_id']}";
+            audit_log(
+                $conn,
+                'BID_SESSION_STARTED',
+                'bid_opening',
+                $session_id,
+                "Started bid opening session #{$session_id} for {$ptitle}",
+                ['status' => 'scheduled'],
+                ['status' => 'started', 'started_at' => date('Y-m-d H:i:s')]
+            );
+        }
         $upd->close();
     }
     // PRG — prevent resubmit on refresh

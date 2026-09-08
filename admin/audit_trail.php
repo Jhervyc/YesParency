@@ -13,7 +13,7 @@ $per_page      = 20;
 $offset        = ($page - 1) * $per_page;
 
 $valid_actions = ['CREATE', 'UPDATE', 'DELETE'];
-$valid_modules = ['procurements', 'bids', 'lots', 'users', 'announcements', 'settings'];
+$valid_modules = ['procurements', 'bids', 'lots', 'users', 'announcements', 'settings', 'bid_opening'];
 
 if ($action_filter !== 'all' && !in_array($action_filter, $valid_actions)) $action_filter = 'all';
 if ($module_filter !== 'all' && !in_array($module_filter, $valid_modules)) $module_filter = 'all';
@@ -22,13 +22,13 @@ if ($module_filter !== 'all' && !in_array($module_filter, $valid_modules)) $modu
 $stat_total_res = $conn->query("SELECT COUNT(*) FROM audit_logs al WHERE $mod_condition");
 $stat_total     = intval($stat_total_res ? $stat_total_res->fetch_row()[0] : 0);
 
-$stat_create_res = $conn->query("SELECT COUNT(*) FROM audit_logs al WHERE al.action IN ('CREATE', 'INSERT')");
+$stat_create_res = $conn->query("SELECT COUNT(*) FROM audit_logs al WHERE (al.action IN ('CREATE', 'INSERT') OR al.action LIKE '%_CREATED' OR al.action LIKE '%SUBMITTED' OR al.action LIKE '%INVITED' OR al.action LIKE '%RECORDED') AND $mod_condition");
 $stat_create     = intval($stat_create_res ? $stat_create_res->fetch_row()[0] : 0);
 
-$stat_update_res = $conn->query("SELECT COUNT(*) FROM audit_logs al WHERE al.action IN ('UPDATE', 'PUBLISH', 'APPROVE', 'REJECT', 'TOGGLE_MAINTENANCE')");
+$stat_update_res = $conn->query("SELECT COUNT(*) FROM audit_logs al WHERE (al.action IN ('UPDATE', 'PUBLISH', 'APPROVE', 'REJECT', 'TOGGLE_MAINTENANCE') OR al.action LIKE '%_UPDATED' OR al.action LIKE '%_CHANGED' OR al.action LIKE '%_APPROVED' OR al.action LIKE '%_REJECTED' OR al.action LIKE '%_STARTED' OR al.action LIKE '%_ACTIVATED' OR al.action LIKE '%_DEACTIVATED' OR al.action LIKE '%_REORDERED') AND $mod_condition");
 $stat_update     = intval($stat_update_res ? $stat_update_res->fetch_row()[0] : 0);
 
-$stat_delete_res = $conn->query("SELECT COUNT(*) FROM audit_logs al WHERE al.action = 'DELETE'");
+$stat_delete_res = $conn->query("SELECT COUNT(*) FROM audit_logs al WHERE (al.action = 'DELETE' OR al.action LIKE '%_DELETED' OR al.action LIKE '%_CANCELLED' OR al.action LIKE '%_REMOVED') AND $mod_condition");
 $stat_delete     = intval($stat_delete_res ? $stat_delete_res->fetch_row()[0] : 0);
 
 // ── Query Construction ────────────────────────────────────────────────────────
@@ -38,11 +38,11 @@ $types       = '';
 
 if ($action_filter !== 'all') {
     if ($action_filter === 'CREATE') {
-        $where_parts[] = "al.action IN ('CREATE', 'INSERT')";
+        $where_parts[] = "(al.action IN ('CREATE', 'INSERT') OR al.action LIKE '%_CREATED' OR al.action LIKE '%SUBMITTED' OR al.action LIKE '%INVITED' OR al.action LIKE '%RECORDED')";
     } elseif ($action_filter === 'UPDATE') {
-        $where_parts[] = "al.action IN ('UPDATE', 'PUBLISH', 'APPROVE', 'REJECT', 'TOGGLE_MAINTENANCE')";
+        $where_parts[] = "(al.action IN ('UPDATE', 'PUBLISH', 'APPROVE', 'REJECT', 'TOGGLE_MAINTENANCE') OR al.action LIKE '%_UPDATED' OR al.action LIKE '%_CHANGED' OR al.action LIKE '%_APPROVED' OR al.action LIKE '%_REJECTED' OR al.action LIKE '%_STARTED' OR al.action LIKE '%_ACTIVATED' OR al.action LIKE '%_DEACTIVATED' OR al.action LIKE '%_REORDERED')";
     } elseif ($action_filter === 'DELETE') {
-        $where_parts[] = "al.action = 'DELETE'";
+        $where_parts[] = "(al.action = 'DELETE' OR al.action LIKE '%_DELETED' OR al.action LIKE '%_CANCELLED' OR al.action LIKE '%_REMOVED')";
     }
 }
 
@@ -276,6 +276,7 @@ $logs_data = [];
                     <option value="users" <?= $module_filter === 'users' ? 'selected' : '' ?>>Users</option>
                     <option value="announcements" <?= $module_filter === 'announcements' ? 'selected' : '' ?>>Announcements</option>
                     <option value="settings" <?= $module_filter === 'settings' ? 'selected' : '' ?>>Settings</option>
+                    <option value="bid_opening" <?= $module_filter === 'bid_opening' ? 'selected' : '' ?>>Bid Opening</option>
                 </select>
             </div>
 
@@ -304,21 +305,25 @@ $logs_data = [];
             $iconFg   = '#06251b';
             $icon     = 'bi-database';
 
-            if (in_array($act, ['CREATE', 'INSERT'])) {
+            $is_create = in_array($act, ['CREATE', 'INSERT']) || str_ends_with($act, '_CREATED') || str_ends_with($act, 'SUBMITTED') || str_ends_with($act, 'INVITED') || str_ends_with($act, 'RECORDED');
+            $is_update = in_array($act, ['UPDATE', 'PUBLISH', 'APPROVE', 'REJECT', 'TOGGLE_MAINTENANCE']) || str_ends_with($act, '_UPDATED') || str_ends_with($act, '_CHANGED') || str_ends_with($act, '_APPROVED') || str_ends_with($act, '_REJECTED') || str_ends_with($act, '_STARTED') || str_ends_with($act, '_ACTIVATED') || str_ends_with($act, '_DEACTIVATED') || str_ends_with($act, '_REORDERED');
+            $is_delete = $act === 'DELETE' || str_ends_with($act, '_DELETED') || str_ends_with($act, '_CANCELLED') || str_ends_with($act, '_REMOVED');
+
+            if ($is_create) {
                 $barColor = '#219653';
                 $pillBg   = '#D9F2DF';
                 $pillFg   = '#1f7a3d';
                 $iconBg   = '#E4F5EA';
                 $iconFg   = '#219653';
                 $icon     = 'bi-plus-circle';
-            } elseif (in_array($act, ['UPDATE', 'PUBLISH', 'APPROVE', 'REJECT', 'TOGGLE_MAINTENANCE'])) {
+            } elseif ($is_update) {
                 $barColor = '#2F6FED';
                 $pillBg   = '#E7EEFE';
                 $pillFg   = '#2F6FED';
                 $iconBg   = '#E7EEFE';
                 $iconFg   = '#2F6FED';
                 $icon     = 'bi-pencil-square';
-            } elseif ($act === 'DELETE') {
+            } elseif ($is_delete) {
                 $barColor = '#c23b3b';
                 $pillBg   = '#FBE1E1';
                 $pillFg   = '#c23b3b';
@@ -467,11 +472,15 @@ $logs_data = [];
 
         const act = (log.action || '').toUpperCase();
         let pillBg = '#EEF0ED', pillFg = '#8B958E';
-        if (['CREATE', 'INSERT'].includes(act)) {
+        const isCreate = ['CREATE', 'INSERT'].includes(act) || act.endsWith('_CREATED') || act.endsWith('SUBMITTED') || act.endsWith('INVITED') || act.endsWith('RECORDED');
+        const isUpdate = ['UPDATE', 'PUBLISH', 'APPROVE', 'REJECT', 'TOGGLE_MAINTENANCE'].includes(act) || act.endsWith('_UPDATED') || act.endsWith('_CHANGED') || act.endsWith('_APPROVED') || act.endsWith('_REJECTED') || act.endsWith('_STARTED') || act.endsWith('_ACTIVATED') || act.endsWith('_DEACTIVATED') || act.endsWith('_REORDERED');
+        const isDelete = act === 'DELETE' || act.endsWith('_DELETED') || act.endsWith('_CANCELLED') || act.endsWith('_REMOVED');
+
+        if (isCreate) {
             pillBg = '#D9F2DF'; pillFg = '#1f7a3d';
-        } else if (['UPDATE', 'PUBLISH', 'APPROVE', 'REJECT', 'TOGGLE_MAINTENANCE'].includes(act)) {
+        } else if (isUpdate) {
             pillBg = '#E7EEFE'; pillFg = '#2F6FED';
-        } else if (act === 'DELETE') {
+        } else if (isDelete) {
             pillBg = '#FBE1E1'; pillFg = '#c23b3b';
         }
 

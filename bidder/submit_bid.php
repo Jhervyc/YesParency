@@ -1363,6 +1363,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_bid'])) {
             margin-bottom: 6px;
             font-size: 12px;
         }
+
+        /* Visually hidden file inputs — accessible to browser file APIs, not display:none */
+        .visually-hidden-input {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="dash-body">
@@ -1463,8 +1473,6 @@ include("components/topbar.php");
         <div class="vp-left-col">
             
             <form method="POST" action="" enctype="multipart/form-data" id="bidProposalForm" onsubmit="return validateBeforeSubmit(event)">
-                <input type="hidden" name="submit_bid" value="1">
-
                 <!-- ─────────────────────────────────────────── -->
                 <!-- STEP 1: Select Bidding Lots                 -->
                 <!-- ─────────────────────────────────────────── -->
@@ -1546,12 +1554,10 @@ include("components/topbar.php");
                     </div>
 
                     <div class="step-card-body">
-                        <!-- Hidden real input submitted to backend -->
-                        <input type="file" name="bid_receipt" id="bid_receipt" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" required>
-                        <!-- Trigger input -->
-                        <input type="file" id="receipt_pick" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="handleReceiptSelected(this)">
+                        <!-- Single input: submitted directly, no hidden-input copy needed -->
+                        <input type="file" name="bid_receipt" id="bid_receipt" accept=".pdf,.jpg,.jpeg,.png" class="visually-hidden-input" onchange="handleReceiptSelected(this)">
 
-                        <div class="receipt-dropzone" id="receiptDropzone" onclick="document.getElementById('receipt_pick').click()">
+                        <div class="receipt-dropzone" id="receiptDropzone" onclick="document.getElementById('bid_receipt').click()">
                             <div class="receipt-icon-wrap">
                                 <i class="bi bi-receipt"></i>
                             </div>
@@ -1617,24 +1623,17 @@ include("components/topbar.php");
                                                 </div>
                                             </div>
 
-                                            <!-- Hidden Real Input -->
+                                            <!-- Single input: submitted directly with proper name -->
                                             <input type="file"
                                                    name="eligibility_docs[<?= $lot['id'] ?>][]"
                                                    id="elig_<?= $lot['id'] ?>"
                                                    accept=".pdf,.doc,.docx,.zip"
                                                    multiple
-                                                   style="display:none;">
-
-                                            <!-- Picker Trigger -->
-                                            <input type="file"
-                                                   id="elig_pick_<?= $lot['id'] ?>"
-                                                   accept=".pdf,.doc,.docx,.zip"
-                                                   multiple
-                                                   style="display:none;"
+                                                   class="visually-hidden-input"
                                                    onchange="stackFiles(this, 'elig_<?= $lot['id'] ?>', 'fn-elig-<?= $lot['id'] ?>', <?= $lot['id'] ?>)">
 
                                             <div class="envelope-upload-box-bottom">
-                                                <div class="envelope-upload-trigger" onclick="document.getElementById('elig_pick_<?= $lot['id'] ?>').click()">
+                                                <div class="envelope-upload-trigger" onclick="document.getElementById('elig_<?= $lot['id'] ?>').click()">
                                                     <div class="trigger-left">
                                                         <i class="bi bi-plus-circle-fill" style="color:#1f7a3d;"></i> Add Document(s)
                                                     </div>
@@ -1656,24 +1655,17 @@ include("components/topbar.php");
                                                 </div>
                                             </div>
 
-                                            <!-- Hidden Real Input -->
+                                            <!-- Single input: submitted directly with proper name -->
                                             <input type="file"
                                                    name="financial_docs[<?= $lot['id'] ?>][]"
                                                    id="fin_<?= $lot['id'] ?>"
                                                    accept=".pdf,.doc,.docx,.zip"
                                                    multiple
-                                                   style="display:none;">
-
-                                            <!-- Picker Trigger -->
-                                            <input type="file"
-                                                   id="fin_pick_<?= $lot['id'] ?>"
-                                                   accept=".pdf,.doc,.docx,.zip"
-                                                   multiple
-                                                   style="display:none;"
+                                                   class="visually-hidden-input"
                                                    onchange="stackFiles(this, 'fin_<?= $lot['id'] ?>', 'fn-fin-<?= $lot['id'] ?>', <?= $lot['id'] ?>)">
 
                                             <div class="envelope-upload-box-bottom">
-                                                <div class="envelope-upload-trigger" onclick="document.getElementById('fin_pick_<?= $lot['id'] ?>').click()">
+                                                <div class="envelope-upload-trigger" onclick="document.getElementById('fin_<?= $lot['id'] ?>').click()">
                                                     <div class="trigger-left">
                                                         <i class="bi bi-plus-circle-fill" style="color:#c98800;"></i> Add Document(s)
                                                     </div>
@@ -1726,6 +1718,7 @@ include("components/topbar.php");
                                 <i class="bi bi-x-circle"></i> Cancel
                             </a>
                         </div>
+
                     </div>
                 </div>
 
@@ -1794,8 +1787,8 @@ include("components/topbar.php");
 </main>
 
 <!-- Notification Toast for Copy / Feedback -->
-<div class="toast-alert success" id="toastAlert" style="display:none; position:fixed; bottom:24px; right:24px; z-index:9999; background:#06251b; color:#ffc107; padding:12px 20px; border-radius:12px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,0.2);">
-    <i class="bi bi-check-circle-fill"></i> <span id="toastMessage">Reference number copied!</span>
+<div id="toastAlert" style="display:none; position:fixed; bottom:24px; right:24px; z-index:9999; padding:12px 20px; border-radius:12px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,0.2); align-items:center; gap:10px; font-size:13px; max-width:360px;">
+    <i id="toastIcon" class="bi bi-check-circle-fill"></i> <span id="toastMessage"></span>
 </div>
 
 <script>
@@ -1807,15 +1800,28 @@ include("components/topbar.php");
         });
     }
 
-    function showToast(msg) {
+    function showToast(msg, type = 'success') {
         const toast = document.getElementById('toastAlert');
         const text  = document.getElementById('toastMessage');
+        const icon  = document.getElementById('toastIcon');
         if (!toast) return;
+
+        if (type === 'error') {
+            toast.style.background = '#7f1d1d';
+            toast.style.color      = '#fecaca';
+            icon.className         = 'bi bi-exclamation-triangle-fill';
+        } else {
+            toast.style.background = '#06251b';
+            toast.style.color      = '#ffc107';
+            icon.className         = 'bi bi-check-circle-fill';
+        }
+
         text.textContent = msg;
         toast.style.display = 'flex';
-        setTimeout(() => {
+        clearTimeout(toast._hideTimer);
+        toast._hideTimer = setTimeout(() => {
             toast.style.display = 'none';
-        }, 3000);
+        }, 4000);
     }
 
     // ── Lot Card Click & Toggle ───────────────────────────────────────────────────
@@ -1859,6 +1865,7 @@ include("components/topbar.php");
 
     function clearLotFiles(lotId) {
         ['elig_' + lotId, 'fin_' + lotId].forEach(id => {
+            fileStacks[id] = [];
             const inp = document.getElementById(id);
             if (inp) inp.files = new DataTransfer().files;
             const list = document.getElementById('fn-' + id.replace('_', '-'));
@@ -1868,16 +1875,18 @@ include("components/topbar.php");
     }
 
     // ── Receipt Handling ──────────────────────────────────────────────────────────
-    function handleReceiptSelected(picker) {
-        const real = document.getElementById('bid_receipt');
-        const dt   = new DataTransfer();
+    const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB per file
 
+    function handleReceiptSelected(picker) {
         if (picker.files && picker.files[0]) {
-            dt.items.add(picker.files[0]);
-            real.files = dt.files;
-            picker.value = '';
-            renderReceiptStack();
+            const file = picker.files[0];
+            if (file.size > MAX_FILE_BYTES) {
+                showToast(`"${file.name}" is too large (${(file.size/1024/1024).toFixed(1)} MB). Max allowed is 10 MB.`, 'error');
+                picker.value = '';
+                return;
+            }
         }
+        renderReceiptStack();
         updateSummaryMetrics();
     }
 
@@ -1919,23 +1928,34 @@ include("components/topbar.php");
     }
 
     // ── Multi-File Stacking per Lot ──────────────────────────────────────────────
-    function stackFiles(picker, realInputId, listId, lotId) {
-        const realInput = document.getElementById(realInputId);
-        const dt        = new DataTransfer();
+    // fileStacks holds accumulated File objects per real input id
+    const fileStacks = {};
 
-        // Keep existing files
-        Array.from(realInput.files).forEach(f => dt.items.add(f));
+    function stackFiles(input, realInputId, listId, lotId) {
+        if (!fileStacks[realInputId]) fileStacks[realInputId] = [];
 
-        // Add newly picked files (skip exact duplicates by name)
-        const existingNames = new Set(Array.from(realInput.files).map(f => f.name));
-        Array.from(picker.files).forEach(f => {
-            if (!existingNames.has(f.name)) {
-                dt.items.add(f);
+        const existingNames = new Set(fileStacks[realInputId].map(f => f.name));
+        const oversized = [];
+
+        Array.from(input.files).forEach(f => {
+            if (f.size > MAX_FILE_BYTES) {
+                oversized.push(f.name);
+            } else if (!existingNames.has(f.name)) {
+                fileStacks[realInputId].push(f);
+                existingNames.add(f.name);
             }
         });
 
-        realInput.files = dt.files;
-        picker.value = '';
+        if (oversized.length > 0) {
+            oversized.forEach(name => {
+                showToast(`"${name}" exceeds the 10 MB limit and was not added.`, 'error');
+            });
+        }
+
+        // Sync stack back into the input so it submits with the form
+        const dt = new DataTransfer();
+        fileStacks[realInputId].forEach(f => dt.items.add(f));
+        input.files = dt.files;
 
         renderFileStack(realInputId, listId, lotId);
         updateLotStatusPill(lotId);
@@ -1943,17 +1963,18 @@ include("components/topbar.php");
     }
 
     function renderFileStack(realInputId, listId, lotId) {
-        const realInput = document.getElementById(realInputId);
-        const el        = document.getElementById(listId);
+        const el    = document.getElementById(listId);
+        const input = document.getElementById(realInputId);
         if (!el) return;
 
-        if (!realInput.files || realInput.files.length === 0) {
+        const files = fileStacks[realInputId] || [];
+        if (files.length === 0) {
             el.innerHTML = '';
             return;
         }
 
         let html = '';
-        Array.from(realInput.files).forEach((file, idx) => {
+        files.forEach((file, idx) => {
             html += `
                 <div class="file-stack-item">
                     <div class="file-stack-item-left">
@@ -1971,25 +1992,26 @@ include("components/topbar.php");
     }
 
     function removeStackedFile(realInputId, indexToRemove, listId, lotId) {
-        const realInput = document.getElementById(realInputId);
-        const dt        = new DataTransfer();
-        Array.from(realInput.files).forEach((f, i) => {
-            if (i !== indexToRemove) dt.items.add(f);
-        });
-        realInput.files = dt.files;
+        if (fileStacks[realInputId]) {
+            fileStacks[realInputId].splice(indexToRemove, 1);
+        }
+        // Sync back to input
+        const input = document.getElementById(realInputId);
+        if (input) {
+            const dt = new DataTransfer();
+            (fileStacks[realInputId] || []).forEach(f => dt.items.add(f));
+            input.files = dt.files;
+        }
         renderFileStack(realInputId, listId, lotId);
         updateLotStatusPill(lotId);
         updateSummaryMetrics();
     }
 
     function updateLotStatusPill(lotId) {
-        const elig = document.getElementById('elig_' + lotId);
-        const fin  = document.getElementById('fin_' + lotId);
+        const hasElig = (fileStacks['elig_' + lotId] || []).length > 0;
+        const hasFin  = (fileStacks['fin_' + lotId]  || []).length > 0;
         const pill = document.getElementById('lot-pill-' + lotId);
         if (!pill) return;
-
-        const hasElig = elig && elig.files && elig.files.length > 0;
-        const hasFin  = fin && fin.files && fin.files.length > 0;
 
         if (hasElig && hasFin) {
             pill.className = 'envelope-status-pill complete';
@@ -2039,9 +2061,7 @@ include("components/topbar.php");
         if (hasLots) {
             checkedLots.forEach(chk => {
                 const id = chk.getAttribute('data-lot-id');
-                const e = document.getElementById('elig_' + id);
-                const f = document.getElementById('fin_' + id);
-                if (!e || !e.files || e.files.length === 0 || !f || !f.files || f.files.length === 0) {
+                if (!(fileStacks['elig_' + id] || []).length || !(fileStacks['fin_' + id] || []).length) {
                     allDocsComplete = false;
                 }
             });
@@ -2102,16 +2122,14 @@ include("components/topbar.php");
         for (let chk of checkedLots) {
             const lotId  = chk.getAttribute('data-lot-id');
             const lotNum = chk.getAttribute('data-lot-num');
-            const elig   = document.getElementById('elig_' + lotId);
-            const fin    = document.getElementById('fin_' + lotId);
 
-            if (!elig || !elig.files || elig.files.length === 0) {
+            if (!(fileStacks['elig_' + lotId] || []).length) {
                 alert(`Please upload the Eligibility & Technical documents for Lot #${lotNum}.`);
                 document.getElementById('step3Card').scrollIntoView({ behavior: 'smooth' });
                 return;
             }
 
-            if (!fin || !fin.files || fin.files.length === 0) {
+            if (!(fileStacks['fin_' + lotId] || []).length) {
                 alert(`Please upload the Financial Proposal Form for Lot #${lotNum}.`);
                 document.getElementById('step3Card').scrollIntoView({ behavior: 'smooth' });
                 return;
@@ -2175,7 +2193,17 @@ include("components/topbar.php");
                 Cancel
             </button>
             <button type="button" class="urm-btn-confirm" style="background:#1f7a3d;"
-                    onclick="this.disabled=true; this.innerHTML='<i class=\'bi bi-hourglass-split\'></i> Submitting...'; document.getElementById('bidProposalForm').submit();">
+                    onclick="
+                        this.disabled=true;
+                        this.innerHTML='<i class=\'bi bi-hourglass-split\'></i> Submitting...';
+                        var form = document.getElementById('bidProposalForm');
+                        var flag = document.createElement('input');
+                        flag.type  = 'hidden';
+                        flag.name  = 'submit_bid';
+                        flag.value = '1';
+                        form.appendChild(flag);
+                        if (form.requestSubmit) { form.requestSubmit(); } else { form.submit(); }
+                    ">
                 <i class="bi bi-send-check-fill"></i> Yes, Submit
             </button>
         </div>

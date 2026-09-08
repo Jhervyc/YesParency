@@ -7,6 +7,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['demote_bidder'])) {
     $target_id = intval($_POST['user_id']);
     $conn->begin_transaction();
     try {
+        // Snapshot before change
+        $u_snap = $conn->prepare("SELECT u.username, u.role, u.status, bp.business_name, bp.application_status FROM users u LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id WHERE u.user_id = ?");
+        $u_snap->bind_param("i", $target_id);
+        $u_snap->execute();
+        $old_data = $u_snap->get_result()->fetch_assoc();
+        $u_snap->close();
+
         $s1 = $conn->prepare("UPDATE users SET role = 'user' WHERE user_id = ? AND role = 'bidder'");
         $s1->bind_param("i", $target_id);
         $s1->execute();
@@ -16,6 +23,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['demote_bidder'])) {
         $s2->bind_param("i", $target_id);
         $s2->execute();
         $s2->close();
+
+        $uname = $old_data['username'] ?? "User #$target_id";
+        audit_log(
+            $conn,
+            'USER_ROLE_CHANGED',
+            'users',
+            $target_id,
+            "Demoted bidder @{$uname} back to regular user",
+            ['role' => $old_data['role'] ?? 'bidder', 'application_status' => $old_data['application_status'] ?? 'approved'],
+            ['role' => 'user', 'application_status' => 'rejected']
+        );
 
         $conn->commit();
         $_SESSION['alert_success'] = "Bidder has been demoted back to user.";
