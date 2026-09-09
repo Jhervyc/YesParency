@@ -475,6 +475,10 @@ if ($action === 'start_phase') {
             "Bid opening session #{$session_id} ended via start_phase",
             ['status' => $prev_phase], ['status' => 'ended', 'session_id' => $session_id]
         );
+
+        // Notify invited committee members & participants that session has concluded & report is available
+        require_once __DIR__ . '/../utils/mailer.php';
+        notify_bid_session_concluded($conn, $session_id);
     } else {
         audit_log($conn, 'BID_SESSION_STAGE_CHANGED', 'bid_opening', $session_id,
             "Session #{$session_id} stage changed to '{$phase}'",
@@ -674,6 +678,10 @@ if ($action === 'award_lot') {
         'bid_lot_id' => $bid_lot_id,
     ]);
 
+    // Send Notice of Award strictly to the winning bidder
+    require_once __DIR__ . '/../utils/mailer.php';
+    notify_lot_awarded($conn, $lot_id, $bid_lot_id, $awarded_amount);
+
     echo json_encode(['success' => true, 'message' => 'Award recorded successfully.']); exit();
 }
 
@@ -746,6 +754,10 @@ if ($action === 'end_session') {
     }
 
     pusher_trigger($session_id, 'session_ended', []);
+
+    // Notify invited committee members & participants that session has concluded & report is available
+    require_once __DIR__ . '/../utils/mailer.php';
+    notify_bid_session_concluded($conn, $session_id);
 
     echo json_encode(['success' => true, 'new_status' => 'ended']); exit();
 }

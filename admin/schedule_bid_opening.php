@@ -179,6 +179,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['schedule_session'])) 
             }
 
             $conn->commit();
+
+            // Notify invited committee members & participants (bid_session_invited only)
+            require_once __DIR__ . '/../utils/mailer.php';
+            notify_bid_session_scheduled($conn, $session_id);
+
             $_SESSION['alert_success'] = "Bid opening session scheduled successfully.";
             header("Location: bid_opening.php");
             exit();

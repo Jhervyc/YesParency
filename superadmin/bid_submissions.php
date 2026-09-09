@@ -9,6 +9,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_verify_bid']))
     $u->bind_param("si", $new_status, $bid_id);
     if ($u->execute()) {
         $_SESSION['alert_success'] = "Bid " . strtoupper($new_status) . " successfully.";
+
+        // Queue & send email notification to the specific bidder
+        require_once __DIR__ . '/../utils/mailer.php';
+        if ($new_status === 'submitted') {
+            notify_bid_verified($conn, $bid_id);
+        } else {
+            notify_bid_rejected($conn, $bid_id);
+        }
     } else {
         $_SESSION['alert_error'] = "Failed to update bid status.";
     }

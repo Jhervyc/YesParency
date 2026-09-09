@@ -35,6 +35,10 @@ try{
 
     $conn->commit();
 
+    // Queue & send approval notification to the approved bidder only
+    require_once __DIR__ . '/../utils/mailer.php';
+    notify_bidder_approved($conn, $userId);
+
     header("Location: account-management.php");
     exit();
 

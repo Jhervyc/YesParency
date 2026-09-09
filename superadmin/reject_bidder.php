@@ -35,6 +35,10 @@ try{
 
     $conn->commit();
 
+    // Queue & send rejection notification to the specific bidder only
+    require_once __DIR__ . '/../utils/mailer.php';
+    notify_bidder_rejected($conn, $userId);
+
     header("Location: account.php");
     exit();
 

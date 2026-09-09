@@ -569,3 +569,37 @@ CREATE TABLE bid_checklist (
     INDEX idx_bid_lot (bid_lot_id)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =================== email_queue =======================
+CREATE TABLE email_queue (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    recipient_email VARCHAR(255) NOT NULL,
+    recipient_name VARCHAR(255) NULL,
+
+    subject VARCHAR(255) NOT NULL,
+
+    template VARCHAR(100) NOT NULL,
+    payload JSON NULL,
+
+    status ENUM(
+        'pending',
+        'processing',
+        'sent',
+        'failed'
+    ) NOT NULL DEFAULT 'pending',
+
+    attempts INT NOT NULL DEFAULT 0,
+
+    scheduled_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sent_at DATETIME NULL,
+
+    last_error TEXT NULL,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_status_scheduled (status, scheduled_at),
+    INDEX idx_recipient (recipient_email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
