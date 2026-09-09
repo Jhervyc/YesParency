@@ -1,6 +1,57 @@
 <?php
 include("utils/protect-page.php");
 
+// Handle create admin account
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_admin'])) {
+    $firstname  = trim($_POST['firstname']  ?? '');
+    $lastname   = trim($_POST['lastname']   ?? '');
+    $username   = trim($_POST['username']   ?? '');
+    $email      = trim($_POST['email']      ?? '');
+    $password   = $_POST['password']        ?? '';
+    $admin_type = in_array($_POST['admin_type'] ?? '', ['BAC','TWG','SECRETARIAT'])
+                  ? $_POST['admin_type'] : 'SECRETARIAT';
+
+    if (!$firstname || !$lastname || !$username || !$email || !$password) {
+        $_SESSION['alert_msg']  = "All fields are required.";
+        $_SESSION['alert_type'] = "error";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $_SESSION['alert_msg']  = "Invalid email address.";
+        $_SESSION['alert_type'] = "error";
+    } elseif (strlen($password) < 8) {
+        $_SESSION['alert_msg']  = "Password must be at least 8 characters.";
+        $_SESSION['alert_type'] = "error";
+    } else {
+        // Check username/email uniqueness
+        $chk = $conn->prepare("SELECT user_id FROM users WHERE username = ? OR email = ?");
+        $chk->bind_param("ss", $username, $email);
+        $chk->execute();
+        if ($chk->get_result()->num_rows > 0) {
+            $_SESSION['alert_msg']  = "Username or email already exists.";
+            $_SESSION['alert_type'] = "error";
+        } else {
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+            $ins  = $conn->prepare("INSERT INTO users (firstname, lastname, username, email, password, role, status) VALUES (?, ?, ?, ?, ?, 'admin', 'active')");
+            $ins->bind_param("sssss", $firstname, $lastname, $username, $email, $hash);
+            if ($ins->execute()) {
+                $new_id = $ins->insert_id;
+                $ins->close();
+                $role_stmt = $conn->prepare("INSERT INTO admin_roles (user_id, admin_type) VALUES (?, ?) ON DUPLICATE KEY UPDATE admin_type = VALUES(admin_type)");
+                $role_stmt->bind_param("is", $new_id, $admin_type);
+                $role_stmt->execute();
+                $role_stmt->close();
+                $_SESSION['alert_msg']  = "Admin account created for {$firstname} {$lastname} ({$admin_type}).";
+                $_SESSION['alert_type'] = "success";
+            } else {
+                $_SESSION['alert_msg']  = "Failed to create account: " . $conn->error;
+                $_SESSION['alert_type'] = "error";
+            }
+        }
+        $chk->close();
+    }
+    header("Location: user-role-management.php");
+    exit();
+}
+
 // Handle promote to admin
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['promote_user'])) {
     $target_id  = intval($_POST['user_id']);
@@ -92,28 +143,37 @@ $total_normal  = $conn->query("SELECT COUNT(*) FROM users WHERE role = 'user'")-
 // Search + filter
 $search      = isset($_GET['search']) ? trim($_GET['search']) : '';
 $role_filter = isset($_GET['role']) && in_array($_GET['role'], ['all','user','admin','bidder']) ? $_GET['role'] : 'all';
+$page        = max(1, (int)($_GET['page'] ?? 1));
+$per_page    = 15;
+$offset      = ($page - 1) * $per_page;
 
+// Build WHERE
+$where  = ["role != 'superadmin'"];
+$params = []; $types = '';
+if ($role_filter !== 'all') { $where[] = "role = ?"; $params[] = $role_filter; $types .= 's'; }
 if ($search !== '') {
-    if ($role_filter !== 'all') {
-        $stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,status,profile_picture_url FROM users WHERE role != 'superadmin' AND role = ? AND (username LIKE ? OR email LIKE ? OR firstname LIKE ? OR lastname LIKE ?) ORDER BY role ASC, username ASC");
-        $like = '%'.$search.'%';
-        $stmt->bind_param("sssss", $role_filter, $like, $like, $like, $like);
-    } else {
-        $stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,status,profile_picture_url FROM users WHERE role != 'superadmin' AND (username LIKE ? OR email LIKE ? OR firstname LIKE ? OR lastname LIKE ?) ORDER BY role ASC, username ASC");
-        $like = '%'.$search.'%';
-        $stmt->bind_param("ssss", $like, $like, $like, $like);
-    }
-} else {
-    if ($role_filter !== 'all') {
-        $stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,status,profile_picture_url FROM users WHERE role != 'superadmin' AND role = ? ORDER BY role ASC, username ASC");
-        $stmt->bind_param("s", $role_filter);
-    } else {
-        $stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,status,profile_picture_url FROM users WHERE role != 'superadmin' ORDER BY role ASC, username ASC");
-    }
+    $like = '%'.$search.'%';
+    $where[] = "(username LIKE ? OR email LIKE ? OR firstname LIKE ? OR lastname LIKE ?)";
+    $params[] = $like; $params[] = $like; $params[] = $like; $params[] = $like;
+    $types .= 'ssss';
 }
+$wsql = 'WHERE '.implode(' AND ', $where);
+
+// Count
+$cnt = $conn->prepare("SELECT COUNT(*) FROM users $wsql");
+if ($params) $cnt->bind_param($types, ...$params);
+$cnt->execute();
+$total_shown = (int)$cnt->get_result()->fetch_row()[0];
+$cnt->close();
+$total_pages = max(1, ceil($total_shown / $per_page));
+
+// Rows
+$lp = array_merge($params, [$per_page, $offset]);
+$lt = $types . 'ii';
+$stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,status,profile_picture_url FROM users $wsql ORDER BY role ASC, username ASC LIMIT ? OFFSET ?");
+$stmt->bind_param($lt, ...$lp);
 $stmt->execute();
 $users = $stmt->get_result();
-$total_shown = $users->num_rows;
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -196,6 +256,11 @@ $total_shown = $users->num_rows;
         </div>
 
         <!-- Directory card -->
+        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+            <button type="button" class="ap2-go-btn" onclick="openCreateAdminModal()" style="gap:7px;">
+                <i class="bi bi-person-plus-fill"></i> Create Admin Account
+            </button>
+        </div>
         <div class="ap2-card">
 
             <div class="ap2-card-head">
@@ -263,10 +328,10 @@ $total_shown = $users->num_rows;
                                 @<?= htmlspecialchars($user['username']) ?> &nbsp;·&nbsp; <?= htmlspecialchars($user['email']) ?>
                             </div>
                         </div>
-                        <span class="ap2-badge <?= $roleClass ?>"><?= strtoupper($user['role']) ?></span>
                     </div>
 
                     <div class="ap2-action-cell">
+                        <span class="ap2-badge <?= $roleClass ?>"><?= strtoupper($user['role']) ?></span>
                     <?php if ($isSelf): ?>
                         <span class="ap2-self-label">You</span>
                     <?php else: ?>
@@ -295,15 +360,129 @@ $total_shown = $users->num_rows;
                 <?php endwhile; ?>
             <?php endif; ?>
 
-            <div class="ap2-card-foot">
-                Showing <?= $total_shown ?> result<?= $total_shown !== 1 ? 's' : '' ?>
-                <?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>
+            <div class="ap2-card-foot" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                <div>
+                    Showing <strong><?= min($total_shown, $offset+1) ?></strong>–<strong><?= min($total_shown, $offset+$per_page) ?></strong>
+                    of <strong><?= number_format($total_shown) ?></strong> result<?= $total_shown !== 1 ? 's' : '' ?>
+                    <?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>
+                </div>
+                <?php if ($total_pages > 1):
+                    $qs = array_filter(['search'=>$search, 'role'=>$role_filter!=='all'?$role_filter:null]);
+                    $qstr = $qs ? '&'.http_build_query($qs) : '';
+                ?>
+                <div class="pagination">
+                    <a href="?page=<?= max(1,$page-1) ?><?= $qstr ?>" class="page-link <?= $page<=1?'disabled':'' ?>"><i class="bi bi-chevron-left"></i></a>
+                    <?php for ($p=max(1,$page-2); $p<=min($total_pages,$page+2); $p++): ?>
+                    <a href="?page=<?= $p ?><?= $qstr ?>" class="page-link <?= $p===$page?'active':'' ?>"><?= $p ?></a>
+                    <?php endfor; ?>
+                    <a href="?page=<?= min($total_pages,$page+1) ?><?= $qstr ?>" class="page-link <?= $page>=$total_pages?'disabled':'' ?>"><i class="bi bi-chevron-right"></i></a>
+                </div>
+                <?php endif; ?>
             </div>
 
         </div><!-- /.ap2-card -->
 
     </div>
 </main>
+
+<!-- ========================= -->
+<!-- CREATE ADMIN MODAL        -->
+<!-- ========================= -->
+<div id="createAdminModal" class="modal-backdrop">
+    <div class="urm-modal" style="max-width:520px;">
+        <button class="urm-modal-close" onclick="closeCreateAdminModal()" aria-label="Close">
+            <i class="bi bi-x-lg"></i>
+        </button>
+
+        <div class="urm-modal-icon-wrap" style="justify-content:flex-start; padding-bottom:4px;">
+            <div class="urm-modal-icon" style="background:#e8f5e9; color:#1f7a3d;">
+                <i class="bi bi-person-plus-fill"></i>
+            </div>
+        </div>
+
+        <div class="urm-modal-text" style="text-align:left;">
+            <h3>Create Admin Account</h3>
+            <p>Fill in the details below to create a new administrator account.</p>
+        </div>
+
+        <form method="POST" action="user-role-management.php" id="createAdminForm" style="padding:0 4px;">
+            <input type="hidden" name="create_admin" value="1">
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                <div>
+                    <label style="font-size:11.5px; font-weight:700; color:#55665a; display:block; margin-bottom:5px;">First Name <span style="color:#dc2626;">*</span></label>
+                    <div style="position:relative;">
+                        <i class="bi bi-person" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#88968d; font-size:13px; pointer-events:none;"></i>
+                        <input type="text" name="firstname" required placeholder="Juan"
+                            style="width:100%; padding:9px 12px 9px 32px; border:1.5px solid #d4e0d8; border-radius:9px; font-size:12.5px; font-family:'Poppins',sans-serif; color:#1a1a1a; outline:none; box-sizing:border-box; transition:border-color .15s;"
+                            onfocus="this.style.borderColor='#1f7a3d'" onblur="this.style.borderColor='#d4e0d8'">
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size:11.5px; font-weight:700; color:#55665a; display:block; margin-bottom:5px;">Last Name <span style="color:#dc2626;">*</span></label>
+                    <div style="position:relative;">
+                        <i class="bi bi-person" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#88968d; font-size:13px; pointer-events:none;"></i>
+                        <input type="text" name="lastname" required placeholder="dela Cruz"
+                            style="width:100%; padding:9px 12px 9px 32px; border:1.5px solid #d4e0d8; border-radius:9px; font-size:12.5px; font-family:'Poppins',sans-serif; color:#1a1a1a; outline:none; box-sizing:border-box; transition:border-color .15s;"
+                            onfocus="this.style.borderColor='#1f7a3d'" onblur="this.style.borderColor='#d4e0d8'">
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom:12px;">
+                <label style="font-size:11.5px; font-weight:700; color:#55665a; display:block; margin-bottom:5px;">Username <span style="color:#dc2626;">*</span></label>
+                <div style="position:relative;">
+                    <i class="bi bi-at" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#88968d; font-size:13px; pointer-events:none;"></i>
+                    <input type="text" name="username" required placeholder="juandelacruz"
+                        style="width:100%; padding:9px 12px 9px 32px; border:1.5px solid #d4e0d8; border-radius:9px; font-size:12.5px; font-family:'Poppins',sans-serif; color:#1a1a1a; outline:none; box-sizing:border-box; transition:border-color .15s;"
+                        onfocus="this.style.borderColor='#1f7a3d'" onblur="this.style.borderColor='#d4e0d8'">
+                </div>
+            </div>
+
+            <div style="margin-bottom:12px;">
+                <label style="font-size:11.5px; font-weight:700; color:#55665a; display:block; margin-bottom:5px;">Email Address <span style="color:#dc2626;">*</span></label>
+                <div style="position:relative;">
+                    <i class="bi bi-envelope" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#88968d; font-size:13px; pointer-events:none;"></i>
+                    <input type="email" name="email" required placeholder="juan@slsu.edu.ph"
+                        style="width:100%; padding:9px 12px 9px 32px; border:1.5px solid #d4e0d8; border-radius:9px; font-size:12.5px; font-family:'Poppins',sans-serif; color:#1a1a1a; outline:none; box-sizing:border-box; transition:border-color .15s;"
+                        onfocus="this.style.borderColor='#1f7a3d'" onblur="this.style.borderColor='#d4e0d8'">
+                </div>
+            </div>
+
+            <div style="margin-bottom:12px;">
+                <label style="font-size:11.5px; font-weight:700; color:#55665a; display:block; margin-bottom:5px;">Password <span style="color:#dc2626;">*</span></label>
+                <div style="position:relative;">
+                    <i class="bi bi-lock" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#88968d; font-size:13px; pointer-events:none;"></i>
+                    <input type="password" name="password" id="createAdminPw" required placeholder="Min. 8 characters"
+                        style="width:100%; padding:9px 36px 9px 32px; border:1.5px solid #d4e0d8; border-radius:9px; font-size:12.5px; font-family:'Poppins',sans-serif; color:#1a1a1a; outline:none; box-sizing:border-box; transition:border-color .15s;"
+                        onfocus="this.style.borderColor='#1f7a3d'" onblur="this.style.borderColor='#d4e0d8'">
+                    <button type="button" onclick="toggleCreatePw()" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#88968d; cursor:pointer; font-size:14px; padding:2px; display:flex; align-items:center;">
+                        <i class="bi bi-eye" id="createAdminPwIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <label style="font-size:11.5px; font-weight:700; color:#55665a; display:block; margin-bottom:5px;">
+                    <i class="bi bi-shield-check" style="color:#43a047;"></i> Admin Role <span style="color:#dc2626;">*</span>
+                </label>
+                <select name="admin_type"
+                    style="width:100%; padding:9px 12px; border:1.5px solid #d4e0d8; border-radius:9px; font-size:12.5px; font-family:'Poppins',sans-serif; color:#06251b; background:#f7faf8; cursor:pointer; outline:none; box-sizing:border-box;">
+                    <option value="SECRETARIAT">Secretariat — Full Access</option>
+                    <option value="BAC">BAC — Limited Access</option>
+                    <option value="TWG">TWG — Limited Access</option>
+                </select>
+            </div>
+
+            <div class="urm-modal-actions" style="padding:0; border:none;">
+                <button type="button" onclick="closeCreateAdminModal()" class="urm-btn-cancel">Cancel</button>
+                <button type="submit" class="urm-btn-confirm" style="background:#1f7a3d;">
+                    <i class="bi bi-person-plus-fill"></i> Create Account
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- ========================= -->
 <!-- CONFIRMATION MODAL        -->
@@ -384,6 +563,26 @@ $total_shown = $users->num_rows;
         demote:  '#e67e22',
         delete:  '#e53935',
     };
+
+    function openCreateAdminModal() {
+        document.getElementById('createAdminModal').classList.add('open');
+        document.getElementById('createAdminForm').reset();
+    }
+
+    function closeCreateAdminModal() {
+        document.getElementById('createAdminModal').classList.remove('open');
+    }
+
+    function toggleCreatePw() {
+        const inp  = document.getElementById('createAdminPw');
+        const icon = document.getElementById('createAdminPwIcon');
+        inp.type   = inp.type === 'password' ? 'text' : 'password';
+        icon.className = inp.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+    }
+
+    document.getElementById('createAdminModal').addEventListener('click', function(e) {
+        if (e.target === this) closeCreateAdminModal();
+    });
 
     function openConfirm(action, userId, fullName, username) {
         const modal         = document.getElementById('confirmModal');

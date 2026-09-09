@@ -55,6 +55,9 @@ $stat_rejected = $conn->query("SELECT COUNT(*) FROM bidder_profiles WHERE applic
 $search        = isset($_GET['search']) ? trim($_GET['search']) : '';
 $status_filter = isset($_GET['status']) && in_array($_GET['status'], ['all','pending','approved','rejected'])
                  ? $_GET['status'] : 'all';
+$page          = max(1, (int)($_GET['page'] ?? 1));
+$per_page      = 15;
+$offset        = ($page - 1) * $per_page;
 
 // ── Build query ───────────────────────────────────────────────────────────────
 $where   = ["(u.role = 'bidder' OR (u.role = 'user' AND u.status = 'pending'))"];
@@ -74,20 +77,31 @@ if ($search !== '') {
     $types   .= 'ssss';
 }
 
-$sql = "
+$wsql = "WHERE " . implode(' AND ', $where);
+
+// Count
+$cnt = $conn->prepare("SELECT COUNT(*) FROM users u LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id $wsql");
+if ($types) $cnt->bind_param($types, ...$params);
+$cnt->execute();
+$total_shown = (int)$cnt->get_result()->fetch_row()[0];
+$cnt->close();
+$total_pages = max(1, ceil($total_shown / $per_page));
+
+// Rows
+$lp = array_merge($params, [$per_page, $offset]);
+$lt = $types . 'ii';
+$stmt = $conn->prepare("
     SELECT u.user_id, u.firstname, u.lastname, u.username, u.email, u.role, u.status, u.profile_picture_url,
            bp.business_name, bp.application_status
     FROM users u
     LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id
-    WHERE " . implode(' AND ', $where) . "
+    $wsql
     ORDER BY bp.application_status ASC, u.firstname ASC
-";
-
-$stmt = $conn->prepare($sql);
-if ($types) $stmt->bind_param($types, ...$params);
+    LIMIT ? OFFSET ?
+");
+$stmt->bind_param($lt, ...$lp);
 $stmt->execute();
 $result = $stmt->get_result();
-$total_shown = $result->num_rows;
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -157,7 +171,12 @@ $total_shown = $result->num_rows;
     </div>
 
     <!-- ── Bidder list panel ── -->
-    <div class="sp-panel sp-list-panel">
+    <div class="ap2-card">
+
+        <div class="ap2-card-head">
+            <h3>Bidder Directory</h3>
+        </div>
+
         <!-- ── Search + filter ── -->
         <form method="GET" action="" class="ap2-controls" style="margin-bottom:16px;">
             <div class="ap2-search-field">
@@ -179,96 +198,108 @@ $total_shown = $result->num_rows;
             </button>
         </form>
 
+        <!-- Column header -->
+        <div class="ap2-table-head">
+            <span>Bidder</span>
+            <span>Actions</span>
+        </div>
+
         <?php if ($total_shown === 0): ?>
             <div class="empty-state" style="padding:48px;">
                 <i class="bi bi-people"></i>
                 <p>No bidders found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</p>
             </div>
         <?php else: ?>
+            <?php while ($row = $result->fetch_assoc()):
+                $appSt    = $row['application_status'] ?? null;
+                $isPending = $appSt === 'pending';
+                $pillClass = match($appSt) {
+                    'approved' => 'ap2-badge-bidder',
+                    'pending'  => 'ap2-badge-user',
+                    'rejected' => 'ap2-badge-admin',
+                    default    => 'ap2-badge-user',
+                };
+                $badgeStyle = match($appSt) {
+                    'approved' => 'background:#D9F2DF; color:#1f7a3d;',
+                    'pending'  => 'background:#FDF0CF; color:#97710a;',
+                    'rejected' => 'background:#FBE1E1; color:#c23b3b;',
+                    default    => 'background:#EEF0ED; color:#8B958E;',
+                };
+                $businessName = $row['business_name'] ?? 'No business profile';
+                $initials     = strtoupper(substr($row['firstname'],0,1).substr($row['lastname'],0,1));
+                $avatarUrl    = !empty($row['profile_picture_url']) ? '../'.ltrim($row['profile_picture_url'],'/') : '';
+                $safeFullName = htmlspecialchars(addslashes($row['firstname'].' '.$row['lastname']));
+                $safeUsername = htmlspecialchars(addslashes($row['username']));
+            ?>
+            <div class="ap2-user-row <?= $isPending ? 'bsv-row-pending' : '' ?>">
 
-        <div class="proc-table-list">
-        <?php while ($row = $result->fetch_assoc()):
-            $appSt     = $row['application_status'] ?? null;
-            $isPending = $appSt === 'pending';
-
-            // Left bar color
-            $barColor  = '#8B958E';
-            if ($appSt === 'approved') $barColor = '#219653';
-            if ($appSt === 'pending')  $barColor = '#e67e22';
-            if ($appSt === 'rejected') $barColor = '#c23b3b';
-
-            // Status pill
-            $pillBg = '#EEF0ED'; $pillFg = '#8B958E';
-            if ($appSt === 'approved') { $pillBg = '#D9F2DF'; $pillFg = '#1f7a3d'; }
-            if ($appSt === 'pending')  { $pillBg = '#FDF0CF'; $pillFg = '#97710a'; }
-            if ($appSt === 'rejected') { $pillBg = '#FBE1E1'; $pillFg = '#c23b3b'; }
-
-            $businessName = $row['business_name'] ?? 'No business profile';
-            $initials     = strtoupper(substr($row['firstname'],0,1).substr($row['lastname'],0,1));
-            $avatarUrl    = !empty($row['profile_picture_url']) ? '../' . ltrim($row['profile_picture_url'], '/') : '';
-        ?>
-            <div class="proc-row <?= $isPending ? 'bsv-row-pending' : '' ?>">
-                <div class="proc-row-status-bar" style="background:<?= $barColor ?>"></div>
-
-                <div class="proc-row-body">
-                    <div class="proc-row-main" style="display:flex; align-items:center; gap:14px;">
-                        <!-- Avatar -->
-                        <div class="ap2-avatar ap2-avatar--<?= $row['role'] ?>"
-                             style="width:40px;height:40px;font-size:13px;border-radius:11px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-                            <?php if (!empty($avatarUrl)): ?>
-                                <img src="<?= htmlspecialchars($avatarUrl) ?>" alt="<?= htmlspecialchars($initials) ?>" style="width:100%;height:100%;object-fit:cover;border-radius:11px;">
-                            <?php else: ?>
-                                <?= htmlspecialchars($initials) ?>
-                            <?php endif; ?>
-                        </div>
-                        <div style="min-width:0;">
-                            <div class="proc-row-title">
-                                <?= htmlspecialchars($row['firstname'].' '.$row['lastname']) ?>
-                            </div>
-                            <div class="proc-row-meta">
-                                <span><i class="bi bi-at"></i><?= htmlspecialchars($row['username']) ?></span>
-                                <span><i class="bi bi-building"></i><?= htmlspecialchars($businessName) ?></span>
-                                <span><i class="bi bi-envelope"></i><?= htmlspecialchars($row['email']) ?></span>
-                            </div>
-                        </div>
+                <div class="ap2-who-cell">
+                    <div class="ap2-avatar ap2-avatar--<?= $row['role'] ?>"
+                         style="overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                        <?php if (!empty($avatarUrl)): ?>
+                            <img src="<?= htmlspecialchars($avatarUrl) ?>" alt="<?= htmlspecialchars($initials) ?>" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">
+                        <?php else: ?>
+                            <?= htmlspecialchars($initials) ?>
+                        <?php endif; ?>
                     </div>
-
-                    <div class="proc-row-actions">
-                        <?php if ($isPending): ?>
-                            <span class="bsv-pending-badge">
-                                <i class="bi bi-hourglass-split"></i> Pending
-                            </span>
-                        <?php endif; ?>
-                        <span class="sp-status-pill" style="background:<?= $pillBg ?>; color:<?= $pillFg ?>">
-                            <?= strtoupper($appSt ?? $row['status']) ?>
-                        </span>
-                        <?php if ($appSt === 'approved'): ?>
-                            <?php
-                                $safeFullName = htmlspecialchars(addslashes($row['firstname'].' '.$row['lastname']));
-                                $safeUsername = htmlspecialchars(addslashes($row['username']));
-                            ?>
-                            <button type="button" class="ap2-action-btn ap2-demote"
-                                    onclick="openDemoteConfirm(<?= $row['user_id'] ?>, '<?= $safeFullName ?>', '<?= $safeUsername ?>')">
-                                <i class="bi bi-person-down"></i> Demote
-                            </button>
-                        <?php endif; ?>
-                        <button class="proc-action-btn review" onclick="loadBidder(<?= $row['user_id'] ?>)">
-                            <i class="bi bi-eye"></i> View
-                        </button>
+                    <div class="ap2-user-text">
+                        <div class="ap2-user-name"><?= htmlspecialchars($row['firstname'].' '.$row['lastname']) ?></div>
+                        <div class="ap2-user-sub">
+                            @<?= htmlspecialchars($row['username']) ?>
+                            &nbsp;·&nbsp;
+                            <i class="bi bi-building" style="font-size:10px;"></i> <?= htmlspecialchars($businessName) ?>
+                            &nbsp;·&nbsp;
+                            <?= htmlspecialchars($row['email']) ?>
+                        </div>
                     </div>
                 </div>
-            </div>
-        <?php endwhile; ?>
-        </div>
 
+                <div class="ap2-action-cell">
+                    <span class="ap2-badge" style="<?= $badgeStyle ?>">
+                        <?= strtoupper($appSt ?? 'UNKNOWN') ?>
+                    </span>
+                    <?php if ($isPending): ?>
+                        <span class="ap2-self-label" style="background:#FDF0CF; color:#97710a;">
+                            <i class="bi bi-hourglass-split"></i> Pending
+                        </span>
+                    <?php endif; ?>
+                    <?php if ($appSt === 'approved'): ?>
+                        <button type="button" class="ap2-action-btn ap2-demote"
+                                onclick="openDemoteConfirm(<?= $row['user_id'] ?>, '<?= $safeFullName ?>', '<?= $safeUsername ?>')">
+                            <i class="bi bi-person-down"></i> Demote
+                        </button>
+                    <?php endif; ?>
+                    <button type="button" class="ap2-action-btn ap2-promote"
+                            onclick="loadBidder(<?= $row['user_id'] ?>)">
+                        <i class="bi bi-eye"></i> View
+                    </button>
+                </div>
+
+            </div>
+            <?php endwhile; ?>
         <?php endif; ?>
 
-        <div class="sp-list-foot">
-            Showing <?= $total_shown ?> bidder<?= $total_shown != 1 ? 's' : '' ?>
-            <?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>
+        <div class="ap2-card-foot" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+            <div>
+                Showing <strong><?= min($total_shown, $offset+1) ?></strong>–<strong><?= min($total_shown, $offset+$per_page) ?></strong>
+                of <strong><?= number_format($total_shown) ?></strong> bidder<?= $total_shown != 1 ? 's' : '' ?>
+                <?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>
+            </div>
+            <?php if ($total_pages > 1):
+                $qs = array_filter(['search'=>$search, 'status'=>$status_filter!=='all'?$status_filter:null]);
+                $qstr = $qs ? '&'.http_build_query($qs) : '';
+            ?>
+            <div class="pagination">
+                <a href="?page=<?= max(1,$page-1) ?><?= $qstr ?>" class="page-link <?= $page<=1?'disabled':'' ?>"><i class="bi bi-chevron-left"></i></a>
+                <?php for ($p=max(1,$page-2); $p<=min($total_pages,$page+2); $p++): ?>
+                <a href="?page=<?= $p ?><?= $qstr ?>" class="page-link <?= $p===$page?'active':'' ?>"><?= $p ?></a>
+                <?php endfor; ?>
+                <a href="?page=<?= min($total_pages,$page+1) ?><?= $qstr ?>" class="page-link <?= $page>=$total_pages?'disabled':'' ?>"><i class="bi bi-chevron-right"></i></a>
+            </div>
+            <?php endif; ?>
         </div>
 
-    </div><!-- /.sp-panel.sp-list-panel -->
+    </div><!-- /.ap2-card -->
 
 </div>
 </main>

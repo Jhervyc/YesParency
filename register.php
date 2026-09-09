@@ -62,388 +62,224 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register | YesParency</title>
     <link rel="icon" type="image/png" href="images/logo.png">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <!-- Global stylesheet -->
     <link rel="stylesheet" href="style.css">
+<?php require_once __DIR__ . '/includes/navbar.php'; render_public_navbar_css(); ?>
+<style>
+* { box-sizing: border-box; }
+body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
+
+.auth-page {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 100px 16px 60px;
+}
+
+.auth-card {
+    background: #fff; border: 1px solid #e2ece6;
+    border-radius: 20px; padding: 40px 36px;
+    width: 100%; max-width: 560px;
+    box-shadow: 0 4px 32px rgba(6,37,27,.08);
+}
+
+.auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+.auth-logo img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+.auth-logo-name { font-size: 16px; font-weight: 800; color: #06251b; font-family: 'Space Grotesk', sans-serif; }
+.auth-logo-sub  { font-size: 11px; color: #88968d; }
+
+.auth-card h3 { font-size: 22px; font-weight: 800; color: #06251b; margin: 0 0 4px; font-family: 'Space Grotesk', sans-serif; }
+.auth-card > p { font-size: 13px; color: #63736a; margin: 0 0 24px; }
+
+.alert-error {
+    background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;
+    border-radius: 10px; padding: 10px 14px; font-size: 12.5px; font-weight: 600;
+    margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+}
+.alert-success {
+    background: #eaf7ee; color: #1f7a3d; border: 1px solid #c9e8d3;
+    border-radius: 10px; padding: 10px 14px; font-size: 12.5px; font-weight: 600;
+    margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+}
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 12px; font-weight: 700; color: #06251b; margin-bottom: 6px; }
+.input-wrapper { position: relative; display: flex; align-items: center; }
+.input-icon-left { position: absolute; left: 13px; color: #88968d; font-size: 14px; pointer-events: none; }
+.input-wrapper input {
+    width: 100%; padding: 10px 42px 10px 38px;
+    border: 1.5px solid #d4e0d8; border-radius: 10px;
+    font-size: 13px; font-family: 'Poppins', sans-serif;
+    color: #1a1a1a; outline: none; background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+}
+.input-wrapper input:focus { border-color: #1f7a3d; box-shadow: 0 0 0 3px rgba(31,122,61,.1); }
+.toggle-password {
+    position: absolute; right: 12px; background: none; border: none;
+    color: #88968d; cursor: pointer; font-size: 14px; padding: 4px;
+    display: flex; align-items: center;
+}
+.toggle-password:hover { color: #06251b; }
+
+.strength-bar { display: flex; gap: 4px; margin-top: 6px; }
+.strength-bar span { flex: 1; height: 3px; border-radius: 4px; background: #e2ece6; transition: background .2s; }
+.strength-bar span.weak   { background: #ef4444; }
+.strength-bar span.fair   { background: #f97316; }
+.strength-bar span.good   { background: #eab308; }
+.strength-bar span.strong { background: #22c55e; }
+.strength-label { font-size: 11px; font-weight: 700; color: #63736a; margin-top: 3px; }
+
+.btn-register {
+    width: 100%; background: #06251b; color: #ffc107; border: none;
+    padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 800;
+    font-family: 'Poppins', sans-serif; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all .2s; margin-top: 6px;
+}
+.btn-register:hover { background: #144937; color: #fff; transform: translateY(-1px); }
+
+.login-footer { text-align: center; margin-top: 20px; font-size: 13px; color: #63736a; }
+.login-footer a { color: #1f7a3d; font-weight: 700; text-decoration: none; }
+.login-footer a:hover { text-decoration: underline; }
+
+@media (max-width: 480px) { .auth-card { padding: 28px 20px; } }
+</style>
 </head>
 <body>
 
-<!-- ========================= -->
-<!-- NAVBAR                    -->
-<!-- ========================= -->
-<nav class="navbar">
-    <div class="nav-container">
-        <a class="navbar-brand" href="index.php">
-            <img src="images/logo.png" alt="YesParency Logo">
+<?php require_once __DIR__ . '/includes/navbar.php'; render_public_navbar('register'); ?>
+
+<div class="auth-page">
+    <div class="auth-card">
+
+        <div class="auth-logo">
+            <img src="images/logo.png" alt="YesParency">
             <div>
-                <div class="brand-name">YesParency</div>
-                <div class="brand-sub">SLSU Procurement Portal</div>
-            </div>
-        </a>
-        <ul class="nav-menu">
-            <li><a href="index.php#home" class="nav-link">Home</a></li>
-            <li><a href="index.php#bid-schedule" class="nav-link">Bid Schedule</a></li>
-            <li><a href="index.php#about" class="nav-link">About</a></li>
-            <li style="margin-left: 16px;">
-                <a href="login.php" class="btn-warning-nav">
-                    <i class="bi bi-box-arrow-in-right"></i> Login
-                </a>
-            </li>
-        </ul>
-    </div>
-</nav>
-
-<!-- ========================= -->
-<!-- REGISTER SECTION          -->
-<!-- ========================= -->
-<section class="register-section">
-    <div class="register-wrapper">
-
-        <!-- LEFT BRANDING PANEL -->
-        <div class="register-panel-left">
-            <div class="panel-logo">
-                <img src="images/procure.jpg" alt="Logo">
-                <div class="panel-logo-text">
-                    <div class="name">YesParency</div>
-                    <div class="sub">Southern Luzon State University</div>
-                </div>
-            </div>
-
-            <div class="panel-tagline">
-                <h2>
-                    Join the<br><span>Transparent</span><br>Process.
-                </h2>
-                <p>
-                    Create a user account to track procurement projects, view real-time bid schedules, and monitor public disclosures at SLSU.
-                </p>
-            </div>
-
-            <div class="panel-features">
-                <div class="panel-feature-item">
-                    <div class="feat-icon"><i class="bi bi-person-check"></i></div>
-                    Free user account registration
-                </div>
-                <div class="panel-feature-item">
-                    <div class="feat-icon"><i class="bi bi-folder2-open"></i></div>
-                    Access public bid schedules &amp; notices
-                </div>
-                <div class="panel-feature-item">
-                    <div class="feat-icon"><i class="bi bi-shield-check"></i></div>
-                    Compliant with RA 9184 transparency
-                </div>
+                <div class="auth-logo-name">YesParency</div>
+                <div class="auth-logo-sub">SLSU Procurement Portal</div>
             </div>
         </div>
 
-        <!-- RIGHT FORM PANEL -->
-        <div class="register-panel-right">
+        <h3>Create your account</h3>
+        <p>Fill in the details below to register as a user</p>
 
-            <div class="register-header">
-                <h3>Create your account</h3>
-                <p>Fill in the details below to register as a user</p>
+        <?php if ($error): ?>
+            <div class="alert-error"><i class="bi bi-exclamation-circle-fill"></i> <?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+        <?php if ($success): ?>
+            <div class="alert-success"><i class="bi bi-check-circle-fill"></i> <?= htmlspecialchars($success) ?></div>
+        <?php endif; ?>
+
+        <form action="<?= htmlspecialchars($_SERVER["PHP_SELF"]) ?>" method="POST">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="firstname">First Name</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-person input-icon-left"></i>
+                        <input type="text" id="firstname" name="firstname" placeholder="Juan"
+                               value="<?= isset($_POST['firstname']) ? htmlspecialchars($_POST['firstname']) : '' ?>"
+                               required autocomplete="given-name">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="lastname">Last Name</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-person input-icon-left"></i>
+                        <input type="text" id="lastname" name="lastname" placeholder="dela Cruz"
+                               value="<?= isset($_POST['lastname']) ? htmlspecialchars($_POST['lastname']) : '' ?>"
+                               required autocomplete="family-name">
+                    </div>
+                </div>
             </div>
 
-            <?php if ($error): ?>
-                <div class="alert-error">
-                    <i class="bi bi-exclamation-circle-fill"></i>
-                    <?= htmlspecialchars($error) ?>
-                </div>
-            <?php endif; ?>
-
-            <?php if ($success): ?>
-                <div class="alert-success">
-                    <i class="bi bi-check-circle-fill"></i>
-                    <?= htmlspecialchars($success) ?>
-                </div>
-            <?php endif; ?>
-
-            <form action="<?= htmlspecialchars($_SERVER["PHP_SELF"]) ?>" method="POST">
-
-                <!-- Row 1: Name -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="firstname">First Name</label>
-                        <div class="input-wrapper">
-                            <i class="bi bi-person input-icon-left"></i>
-                            <input
-                                type="text"
-                                id="firstname"
-                                name="firstname"
-                                placeholder="Juan"
-                                value="<?= isset($_POST['firstname']) ? htmlspecialchars($_POST['firstname']) : '' ?>"
-                                required
-                                autocomplete="given-name"
-                            >
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="lastname">Last Name</label>
-                        <div class="input-wrapper">
-                            <i class="bi bi-person input-icon-left"></i>
-                            <input
-                                type="text"
-                                id="lastname"
-                                name="lastname"
-                                placeholder="dela Cruz"
-                                value="<?= isset($_POST['lastname']) ? htmlspecialchars($_POST['lastname']) : '' ?>"
-                                required
-                                autocomplete="family-name"
-                            >
-                        </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-envelope input-icon-left"></i>
+                        <input type="email" id="email" name="email" placeholder="juan@email.com"
+                               value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>"
+                               required autocomplete="email">
                     </div>
                 </div>
-
-                <!-- Row 2: Email + Username -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <div class="input-wrapper">
-                            <i class="bi bi-envelope input-icon-left"></i>
-                            <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                placeholder="juan@email.com"
-                                value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>"
-                                required
-                                autocomplete="email"
-                            >
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="username">Username</label>
-                        <div class="input-wrapper">
-                            <i class="bi bi-at input-icon-left"></i>
-                            <input
-                                type="text"
-                                id="username"
-                                name="username"
-                                placeholder="juandelacruz"
-                                value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>"
-                                required
-                                autocomplete="username"
-                            >
-                        </div>
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-at input-icon-left"></i>
+                        <input type="text" id="username" name="username" placeholder="juandelacruz"
+                               value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>"
+                               required autocomplete="username">
                     </div>
                 </div>
-
-                <!-- Row 3: Passwords -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <div class="input-wrapper">
-                            <i class="bi bi-lock input-icon-left"></i>
-                            <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                placeholder="Create a password"
-                                required
-                                autocomplete="new-password"
-                                oninput="checkStrength(this.value)"
-                            >
-                            <button type="button" class="toggle-password" onclick="togglePass('password','icon-pw')" aria-label="Toggle password">
-                                <i class="bi bi-eye" id="icon-pw"></i>
-                            </button>
-                        </div>
-                        <div class="strength-bar">
-                            <span id="s1"></span>
-                            <span id="s2"></span>
-                            <span id="s3"></span>
-                            <span id="s4"></span>
-                        </div>
-                        <div class="strength-label" id="strength-label"></div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="confirm_password">Confirm Password</label>
-                        <div class="input-wrapper">
-                            <i class="bi bi-lock-fill input-icon-left"></i>
-                            <input
-                                type="password"
-                                id="confirm_password"
-                                name="confirm_password"
-                                placeholder="Repeat your password"
-                                required
-                                autocomplete="new-password"
-                            >
-                            <button type="button" class="toggle-password" onclick="togglePass('confirm_password','icon-cpw')" aria-label="Toggle password">
-                                <i class="bi bi-eye" id="icon-cpw"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-register">
-                    <i class="bi bi-person-plus-fill"></i>
-                    Create Account
-                </button>
-
-            </form>
-
-            <div class="login-footer">
-                Already have an account?
-                <a href="login.php">Sign in here</a>
             </div>
 
-        </div>
-    </div>
-</section>
-
-<!-- ========================= -->
-<!-- FOOTER                    -->
-<!-- ========================= -->
-<style>
-    .footer-new {
-        background: #020c09;
-        color: #a4b8ad;
-        padding: 50px 24px 24px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-        margin-top: 0;
-    }
-    .footer-new-grid {
-        max-width: 1240px;
-        margin: 0 auto 32px;
-        display: grid;
-        grid-template-columns: 1.5fr 1fr 1.2fr;
-        gap: 40px;
-    }
-    @media (max-width: 768px) {
-        .footer-new-grid { grid-template-columns: 1fr; gap: 24px; }
-    }
-    .footer-new .fn-brand-title {
-        font-size: 17px;
-        font-weight: 800;
-        color: #ffc107;
-        font-family: 'Space Grotesk', sans-serif;
-        margin-bottom: 6px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .footer-new .fn-brand-desc {
-        font-size: 12.5px;
-        line-height: 1.6;
-        color: #8fa699;
-        max-width: 360px;
-    }
-    .footer-new .fn-col h5 {
-        font-size: 12px;
-        font-weight: 800;
-        color: #ffffff;
-        margin-bottom: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .footer-new .fn-col ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    .footer-new .fn-col ul a {
-        color: #8fa699;
-        text-decoration: none;
-        font-size: 13px;
-        transition: color 0.15s;
-    }
-    .footer-new .fn-col ul a:hover { color: #ffc107; }
-    .footer-new .fn-bottom {
-        max-width: 1240px;
-        margin: 0 auto;
-        padding-top: 20px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 12px;
-        flex-wrap: wrap;
-        gap: 10px;
-        color: #6c8276;
-    }
-</style>
-<footer class="footer-new">
-    <div class="footer-new-grid">
-
-        <div>
-            <div class="fn-brand-title">
-                <i class="bi bi-transparency"></i> YesParency Portal
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-lock input-icon-left"></i>
+                        <input type="password" id="password" name="password" placeholder="Create a password"
+                               required autocomplete="new-password" oninput="checkStrength(this.value)">
+                        <button type="button" class="toggle-password" onclick="togglePass('password','icon-pw')">
+                            <i class="bi bi-eye" id="icon-pw"></i>
+                        </button>
+                    </div>
+                    <div class="strength-bar"><span id="s1"></span><span id="s2"></span><span id="s3"></span><span id="s4"></span></div>
+                    <div class="strength-label" id="strength-label"></div>
+                </div>
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-lock-fill input-icon-left"></i>
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Repeat your password"
+                               required autocomplete="new-password">
+                        <button type="button" class="toggle-password" onclick="togglePass('confirm_password','icon-cpw')">
+                            <i class="bi bi-eye" id="icon-cpw"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <p class="fn-brand-desc">
-                Southern Luzon State University's official digital procurement transparency system. Empowering suppliers with fair competition and public accountability.
-            </p>
-        </div>
 
-        <div class="fn-col">
-            <h5>Navigation</h5>
-            <ul>
-                <li><a href="index.php#home">Home</a></li>
-                <li><a href="index.php#bid-schedule">Bid Schedule</a></li>
-                <li><a href="index.php#about">About System</a></li>
-                <li><a href="login.php">Sign In</a></li>
-            </ul>
-        </div>
+            <button type="submit" class="btn-register">
+                <i class="bi bi-person-plus-fill"></i> Create Account
+            </button>
 
-        <div class="fn-col">
-            <h5>Governance</h5>
-            <ul>
-                <li><a href="https://www.philgeps.gov.ph" target="_blank" rel="noopener">PhilGEPS Portal</a></li>
-                <li><a href="https://gppb.gov.ph" target="_blank" rel="noopener">GPPB R.A. 9184 Guidelines</a></li>
-                <li><a href="https://slsu.edu.ph" target="_blank" rel="noopener">SLSU Official Website</a></li>
-            </ul>
+        </form>
+
+        <div class="login-footer">
+            Already have an account? <a href="login.php">Sign in here</a>
         </div>
 
     </div>
-
-    <div class="fn-bottom">
-        <div>&copy; <?= date('Y') ?> YesParency &mdash; Southern Luzon State University. All Rights Reserved.</div>
-        <div>Compliant with R.A. 9184 Government Procurement Standards</div>
-    </div>
-</footer>
+</div>
 
 <script>
-    // Toggle password visibility
-    function togglePass(inputId, iconId) {
-        const input = document.getElementById(inputId);
-        const icon  = document.getElementById(iconId);
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.className = 'bi bi-eye-slash';
-        } else {
-            input.type = 'password';
-            icon.className = 'bi bi-eye';
-        }
-    }
-
-    // Password strength indicator
-    function checkStrength(val) {
-        const bars   = [document.getElementById('s1'), document.getElementById('s2'),
-                        document.getElementById('s3'), document.getElementById('s4')];
-        const label  = document.getElementById('strength-label');
-        const levels = ['weak', 'fair', 'good', 'strong'];
-        const texts  = ['Weak', 'Fair', 'Good', 'Strong'];
-
-        let score = 0;
-        if (val.length >= 8)              score++;
-        if (/[A-Z]/.test(val))            score++;
-        if (/[0-9]/.test(val))            score++;
-        if (/[^A-Za-z0-9]/.test(val))     score++;
-
-        bars.forEach((b, i) => {
-            b.className = '';
-            if (i < score) b.classList.add(levels[score - 1]);
-        });
-
-        label.textContent = val.length ? texts[score - 1] || '' : '';
-    }
+function togglePass(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon  = document.getElementById(iconId);
+    input.type  = input.type === 'password' ? 'text' : 'password';
+    icon.className = input.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+}
+function checkStrength(val) {
+    const bars  = ['s1','s2','s3','s4'].map(id => document.getElementById(id));
+    const label = document.getElementById('strength-label');
+    const levels = ['weak','fair','good','strong'];
+    const texts  = ['Weak','Fair','Good','Strong'];
+    let score = 0;
+    if (val.length >= 8)          score++;
+    if (/[A-Z]/.test(val))        score++;
+    if (/[0-9]/.test(val))        score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+    bars.forEach((b, i) => { b.className = i < score ? levels[score - 1] : ''; });
+    label.textContent = val.length ? (texts[score - 1] || '') : '';
+}
 </script>
-
 </body>
 </html>
+

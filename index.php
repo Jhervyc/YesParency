@@ -26,15 +26,31 @@ $all_schedules = [];
 $total_active_procurements = 0;
 $total_suppliers = 0;
 $total_awarded = 0;
+$live_session_hero = null;
 $now = date('Y-m-d H:i:s');
 
 if (isset($conn) && $conn instanceof mysqli) {
-    // 1. Ranked Closest Bid Openings for Hero card
+    // 0. Live session for hero
+    $ls = $conn->query("
+        SELECT bos.id AS session_id, bos.status AS session_status,
+               bos.stream_path, bos.started_at,
+               p.id AS proc_id, p.title AS proc_title, p.philgeps_ref_no, p.abc,
+               p.procurement_mode,
+               (SELECT COUNT(*) FROM lots WHERE lots.procurement_id = p.id) AS lots_count,
+               (SELECT COUNT(*) FROM bids b WHERE b.procurement_id = p.id) AS bid_count
+        FROM bid_opening_sessions bos
+        JOIN procurements p ON bos.procurement_id = p.id
+        WHERE bos.status IN ('started','eligibility','financial','awarding')
+        ORDER BY bos.started_at DESC
+        LIMIT 1
+    ");
+    if ($ls) $live_session_hero = $ls->fetch_assoc();
+    // 1. Ranked Closest Bid Openings for Hero card (open only)
     $stmt = $conn->prepare("
         SELECT p.*,
                (SELECT COUNT(*) FROM lots WHERE lots.procurement_id = p.id) AS lots_count
         FROM procurements p
-        WHERE (p.status NOT IN ('cancelled', 'draft') OR p.status IS NULL)
+        WHERE p.status = 'open'
           AND p.opening_date IS NOT NULL
         ORDER BY 
             CASE 
@@ -169,18 +185,13 @@ if ($total_awarded === 0) $total_awarded = 76;
 
         /* ── Navbar ── */
         .navbar {
-            background: rgba(6, 37, 27, 0.96);
+            background: rgba(6,37,27,.97);
             backdrop-filter: blur(10px);
-            padding: 14px 0;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            z-index: 1000;
-            border-bottom: 2px solid rgba(255, 193, 7, 0.4);
-            transition: all 0.3s ease;
+            padding: 13px 0;
+            position: fixed; top: 0; left: 0;
+            width: 100%; z-index: 1000;
+            border-bottom: 2px solid rgba(255,193,7,.4);
         }
-
         .navbar.scrolled {
             background: #06251b;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -188,7 +199,7 @@ if ($total_awarded === 0) $total_awarded = 76;
         }
 
         .nav-container {
-            max-width: 1240px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 0 24px;
             display: flex;
@@ -284,10 +295,10 @@ if ($total_awarded === 0) $total_awarded = 76;
         }
 
         .hero-container {
-            max-width: 1240px;
+            max-width: 1200px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 1.15fr 0.95fr;
+            grid-template-columns: 0.85fr 1.15fr;
             gap: 40px;
             align-items: center;
             position: relative;
@@ -298,7 +309,7 @@ if ($total_awarded === 0) $total_awarded = 76;
         @media (max-width: 980px) {
             .hero-container {
                 grid-template-columns: 1fr;
-                gap: 50px;
+                gap: 40px;
             }
         }
 
@@ -646,7 +657,7 @@ if ($total_awarded === 0) $total_awarded = 76;
         }
 
         .stats-grid {
-            max-width: 1240px;
+            max-width: 1200px;
             margin: 0 auto;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -746,7 +757,7 @@ if ($total_awarded === 0) $total_awarded = 76;
         }
 
         .schedule-grid {
-            max-width: 1240px;
+            max-width: 1200px;
             margin: 0 auto;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
@@ -912,7 +923,7 @@ if ($total_awarded === 0) $total_awarded = 76;
         }
 
         .about-grid {
-            max-width: 1240px;
+            max-width: 1200px;
             margin: 0 auto;
             display: grid;
             grid-template-columns: 1.1fr 0.9fr;
@@ -1035,7 +1046,7 @@ if ($total_awarded === 0) $total_awarded = 76;
         }
 
         .footer-index-grid {
-            max-width: 1240px;
+            max-width: 1200px;
             margin: 0 auto 40px;
             display: grid;
             grid-template-columns: 1.5fr 1fr 1.2fr;
@@ -1097,7 +1108,7 @@ if ($total_awarded === 0) $total_awarded = 76;
         }
 
         .footer-bottom-bar {
-            max-width: 1240px;
+            max-width: 1200px;
             margin: 0 auto;
             padding-top: 24px;
             border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -1109,42 +1120,119 @@ if ($total_awarded === 0) $total_awarded = 76;
             gap: 12px;
             color: #6c8276;
         }
+
+        /* ════════════════════════════════
+           MOBILE-FIRST RESPONSIVE
+           ════════════════════════════════ */
+
+        /* Hamburger (hidden on desktop) */
+        .nav-hamburger {
+            display: none;
+            background: none; border: none; color: #e5ece8;
+            font-size: 22px; cursor: pointer; padding: 4px;
+        }
+
+        @media (max-width: 768px) {
+
+            /* Navbar */
+            .nav-menu {
+                display: none;
+                position: fixed; top: 62px; left: 0; right: 0;
+                background: #06251b;
+                flex-direction: column;
+                gap: 0;
+                padding: 10px 0 16px;
+                border-bottom: 2px solid rgba(255,193,7,.4);
+                z-index: 999;
+            }
+            .nav-menu.open { display: flex; }
+            .nav-menu li { width: 100%; }
+            .nav-menu .nav-link {
+                display: block; padding: 12px 24px;
+                font-size: 14px; border-bottom: 1px solid rgba(255,255,255,.05);
+            }
+            .nav-menu li:last-child { padding: 12px 24px 0; }
+            .nav-menu .btn-warning-nav { width: calc(100% - 0px); justify-content: center; }
+            .nav-hamburger { display: block; }
+
+            /* Hero */
+            .hero {
+                min-height: auto;
+                padding: 100px 16px 60px;
+            }
+            .hero-container {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+            .hero-content h1 { font-size: 30px; }
+            .hero-content p  { font-size: 14px; }
+            .hero-btns { flex-direction: column; gap: 10px; }
+            .btn-hero-primary, .btn-hero-outline {
+                width: 100%; justify-content: center; font-size: 13px; padding: 12px 20px;
+            }
+            .hero-ranking-card {
+                max-width: 100%; margin-left: 0;
+            }
+
+            /* Stats */
+            .stats-section { padding: 36px 16px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .stat-card-item { padding: 18px 14px; }
+            .stat-card-num  { font-size: 26px; }
+
+            /* Sections */
+            .section-wrap { padding: 52px 16px; }
+            .section-main-heading { font-size: 24px; }
+            .section-header-center { margin-bottom: 32px; }
+
+            /* Schedule cards */
+            .schedule-grid { grid-template-columns: 1fr; gap: 14px; }
+            .schedule-title { font-size: 14px; }
+
+            /* About */
+            .about-grid { grid-template-columns: 1fr; gap: 28px; }
+            .about-text-card h2 { font-size: 24px; }
+            .about-info-box { padding: 22px 18px; }
+
+            /* Footer */
+            .footer-index { padding: 40px 16px 24px; }
+            .footer-index-grid { grid-template-columns: 1fr; gap: 24px; }
+            .footer-bottom-bar { flex-direction: column; text-align: center; gap: 6px; }
+        }
+
+        @media (max-width: 480px) {
+            .hero-content h1 { font-size: 26px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .stat-card-num { font-size: 22px; }
+            .section-main-heading { font-size: 21px; }
+        }
     </style>
 </head>
 <body class="index-page">
 
 <!-- ========================= -->
-<!-- NAVBAR (Home, Bid Schedule, About only) -->
+<!-- NAVBAR                    -->
 <!-- ========================= -->
-<nav class="navbar" id="mainNavbar">
-    <div class="nav-container">
-        <a class="navbar-brand" href="index.php">
-            <img src="images/logo.png" alt="YesParency Logo">
-            <div>
-                <div class="brand-name">YesParency</div>
-                <div class="brand-sub">SLSU Procurement Portal</div>
-            </div>
-        </a>
+<?php require_once __DIR__ . '/includes/navbar.php'; render_public_navbar('home', $user_logged_in, $user_dashboard_link); ?>
 
-        <!-- Filtered Nav: Home, Bid Schedule, About Only -->
-        <ul class="nav-menu">
-            <li><a href="#home" class="nav-link active">Home</a></li>
-            <li><a href="#bid-schedule" class="nav-link">Bid Schedule</a></li>
-            <li><a href="#about" class="nav-link">About</a></li>
-            <li>
-                <?php if ($user_logged_in): ?>
-                    <a href="<?= htmlspecialchars($user_dashboard_link) ?>" class="btn-warning-nav">
-                        <i class="bi bi-speedometer2"></i> Dashboard
-                    </a>
-                <?php else: ?>
-                    <a href="login.php" class="btn-warning-nav">
-                        <i class="bi bi-box-arrow-in-right"></i> Login
-                    </a>
-                <?php endif; ?>
-            </li>
-        </ul>
-    </div>
-</nav>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inject hamburger into navbar
+    const navMenu = document.querySelector('.nav-menu');
+    const navContainer = document.querySelector('.nav-container');
+    const btn = document.createElement('button');
+    btn.className = 'nav-hamburger';
+    btn.innerHTML = '<i class="bi bi-list"></i>';
+    btn.setAttribute('aria-label', 'Toggle menu');
+    navContainer.appendChild(btn);
+    btn.addEventListener('click', function() {
+        navMenu.classList.toggle('open');
+        btn.innerHTML = navMenu.classList.contains('open')
+            ? '<i class="bi bi-x-lg"></i>'
+            : '<i class="bi bi-list"></i>';
+    });
+});
+</script>
 
 <!-- ========================= -->
 <!-- HERO SECTION              -->
@@ -1169,13 +1257,100 @@ if ($total_awarded === 0) $total_awarded = 76;
                 <a href="register.php" class="btn-hero-primary">
                     <i class="bi bi-person-plus-fill"></i> Create User Account
                 </a>
-                <a href="#bid-schedule" class="btn-hero-outline">
-                    <i class="bi bi-calendar3"></i> Explore Bid Schedule
+                <a href="bid_schedule.php" class="btn-hero-outline">
+                    <i class="bi bi-calendar3"></i> View Procurement
                 </a>
             </div>
         </div>
 
-        <!-- Right: Ranking of Closest Bid Openings -->
+        <!-- Right: Live Session OR Closest Bid Openings -->
+        <?php if ($live_session_hero): 
+            $phase_labels = ['started'=>'Opening Started','eligibility'=>'Eligibility Phase','financial'=>'Financial Phase','awarding'=>'Awarding Phase'];
+            $phase = $phase_labels[$live_session_hero['session_status']] ?? ucfirst($live_session_hero['session_status']);
+            $phase_steps = ['started'=>0,'eligibility'=>1,'financial'=>2,'awarding'=>3];
+            $cur_step = $phase_steps[$live_session_hero['session_status']] ?? 0;
+        ?>
+        <div class="hero-ranking-card" style="background:#0a1f16; border:1px solid #1f4a30; padding:28px;">
+            <!-- Live header -->
+            <div class="ranking-card-head" style="border-bottom:1px solid #1f4a30; padding-bottom:16px; margin-bottom:20px;">
+                <div class="ranking-head-left">
+                    <div class="ranking-fire-icon" style="background:#dc2626; color:#fff; width:38px; height:38px; border-radius:10px; font-size:18px;">
+                        <i class="bi bi-broadcast-pin"></i>
+                    </div>
+                    <div>
+                        <h3 style="color:#fff; font-size:16px;">Current Live Session</h3>
+                        <p style="font-size:12px; color:#9cb3a6;">Bid opening in progress</p>
+                    </div>
+                </div>
+                <div style="display:inline-flex; align-items:center; gap:6px; background:#14532d; color:#4ade80; border:1px solid #166534; font-size:11px; font-weight:800; padding:5px 12px; border-radius:20px; letter-spacing:.4px;">
+                    <span class="ranking-pulse-dot"></span> Live
+                </div>
+            </div>
+
+            <!-- Ref + Title -->
+            <div style="margin-bottom:20px;">
+                <div style="font-size:12px; font-weight:700; color:#ffc107; letter-spacing:.3px; margin-bottom:8px;">
+                    <i class="bi bi-hash"></i> <?= htmlspecialchars($live_session_hero['philgeps_ref_no'] ?: 'SLSU-BAC') ?>
+                </div>
+                <div style="font-size:18px; font-weight:800; color:#fff; line-height:1.35; margin-bottom:8px;">
+                    <?= htmlspecialchars($live_session_hero['proc_title']) ?>
+                </div>
+                <div style="font-size:12px; color:#9cb3a6;">
+                    <?= htmlspecialchars($live_session_hero['procurement_mode'] ?: 'Public Bidding') ?>
+                    &nbsp;·&nbsp; ABC: <span style="color:#4ade80; font-weight:700;">₱<?= number_format((float)$live_session_hero['abc'], 2) ?></span>
+                </div>
+            </div>
+
+            <!-- Phase stepper -->
+            <div style="display:flex; align-items:center; gap:0; margin-bottom:22px; font-size:12px; font-weight:700;">
+                <?php
+                $steps = ['Eligibility','Financial','Awarding'];
+                foreach ($steps as $i => $s):
+                    $done    = $cur_step > $i + 1;
+                    $current = $cur_step == $i + 1;
+                ?>
+                <div style="display:flex; align-items:center; gap:0; flex:1;">
+                    <div style="
+                        display:flex; align-items:center; justify-content:center;
+                        width:30px; height:30px; border-radius:50%; flex-shrink:0;
+                        background:<?= $done ? '#1f7a3d' : ($current ? '#ffc107' : '#1a3428') ?>;
+                        color:<?= $done ? '#fff' : ($current ? '#06251b' : '#4a6a55') ?>;
+                        font-size:11px; font-weight:800; font-family:'Space Grotesk',sans-serif;
+                        border:2px solid <?= $done ? '#1f7a3d' : ($current ? '#ffc107' : '#2a5040') ?>;">
+                        <?= $done ? '<i class="bi bi-check2"></i>' : ($i + 1) ?>
+                    </div>
+                    <span style="margin-left:6px; color:<?= $current ? '#ffc107' : ($done ? '#9cb3a6' : '#4a6a55') ?>;">
+                        <?= $s ?>
+                    </span>
+                    <?php if ($i < count($steps) - 1): ?>
+                    <div style="flex:1; height:2px; margin:0 10px; background:<?= $done ? '#1f7a3d' : '#1a3428' ?>;"></div>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Stats row -->
+            <div style="display:flex; align-items:center; gap:20px; margin-bottom:22px; font-size:12.5px; color:#9cb3a6; font-weight:600; flex-wrap:wrap; background:#071510; border-radius:12px; padding:14px 18px;">
+                <span><i class="bi bi-people" style="color:#4ade80;"></i> <strong style="color:#fff;"><?= (int)$live_session_hero['bid_count'] ?></strong> bids submitted</span>
+                <span style="opacity:.3;">·</span>
+                <span><i class="bi bi-boxes" style="color:#ffc107;"></i> <strong style="color:#fff;"><?= (int)$live_session_hero['lots_count'] ?></strong> lot<?= $live_session_hero['lots_count'] != 1 ? 's' : '' ?></span>
+                <span style="opacity:.3;">·</span>
+                <span><i class="bi bi-clock" style="color:#9cb3a6;"></i> <?= $live_session_hero['started_at'] ? date('g:i A', strtotime($live_session_hero['started_at'])) : 'Just started' ?></span>
+            </div>
+
+            <!-- Join button -->
+            <a href="live.php" style="
+                display:flex; align-items:center; justify-content:center; gap:9px;
+                background:#ffc107; color:#06251b;
+                font-size:14px; font-weight:800; padding:15px 20px; border-radius:12px;
+                text-decoration:none; transition:all .2s ease; font-family:'Poppins',sans-serif;
+                box-shadow:0 4px 18px rgba(255,193,7,.25);">
+                Join Live Session &nbsp;<i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+
+        <?php else: ?>
+        <!-- No live session — show closest bid openings -->
         <div class="hero-ranking-card">
             <div class="ranking-card-head">
                 <div class="ranking-head-left">
@@ -1192,7 +1367,6 @@ if ($total_awarded === 0) $total_awarded = 76;
                 </div>
             </div>
 
-            <!-- Ranked List -->
             <div class="ranked-items-list">
                 <?php 
                 $rank = 1;
@@ -1202,66 +1376,45 @@ if ($total_awarded === 0) $total_awarded = 76;
                     elseif ($rank === 2) $medalClass = 'rank-2';
                     elseif ($rank === 3) $medalClass = 'rank-3';
 
-                    // Calculate countdown & urgent state
                     $openingTs = !empty($item['opening_date']) ? strtotime($item['opening_date']) : time();
-                    $diffSecs = $openingTs - time();
-                    $diffDays = round($diffSecs / 86400);
+                    $diffSecs  = $openingTs - time();
+                    $diffDays  = round($diffSecs / 86400);
 
-                    if ($diffSecs <= 0 && $diffSecs > -86400) {
-                        $countdownText = "Opening Today";
-                        $isUrgent = true;
-                    } elseif ($diffDays == 1) {
-                        $countdownText = "Tomorrow";
-                        $isUrgent = true;
-                    } elseif ($diffDays > 1) {
-                        $countdownText = "In {$diffDays} Days";
-                        $isUrgent = ($diffDays <= 3);
-                    } else {
-                        $countdownText = "Concluded";
-                        $isUrgent = false;
-                    }
+                    if ($diffSecs <= 0 && $diffSecs > -86400)     { $countdownText = "Opening Today"; $isUrgent = true; }
+                    elseif ($diffDays == 1)                        { $countdownText = "Tomorrow";      $isUrgent = true; }
+                    elseif ($diffDays > 1)                         { $countdownText = "In {$diffDays} Days"; $isUrgent = ($diffDays <= 3); }
+                    else                                           { $countdownText = "Concluded";     $isUrgent = false; }
                 ?>
                     <div class="ranked-item-row">
-                        <div class="rank-medal-badge <?= $medalClass ?>">
-                            #<?= $rank ?>
-                        </div>
+                        <div class="rank-medal-badge <?= $medalClass ?>">#<?= $rank ?></div>
                         <div class="ranked-item-details">
                             <div class="ranked-item-top">
-                                <span class="ranked-ref-badge">
-                                    <i class="bi bi-hash"></i> <?= htmlspecialchars($item['philgeps_ref_no']) ?>
-                                </span>
+                                <span class="ranked-ref-badge"><i class="bi bi-hash"></i> <?= htmlspecialchars($item['philgeps_ref_no']) ?></span>
                                 <span class="ranked-countdown-pill <?= $isUrgent ? 'urgent' : '' ?>">
                                     <i class="bi bi-clock-history"></i> <?= $countdownText ?>
                                 </span>
                             </div>
-
                             <div class="ranked-item-title" title="<?= htmlspecialchars($item['title']) ?>">
                                 <?= htmlspecialchars($item['title']) ?>
                             </div>
-
                             <div class="ranked-item-meta">
                                 <span class="ranked-meta-date">
-                                    <i class="bi bi-calendar-event"></i>
-                                    <?= date('M d, Y · g:i A', $openingTs) ?>
+                                    <i class="bi bi-calendar-event"></i> <?= date('M d, Y · g:i A', $openingTs) ?>
                                 </span>
-                                <span class="ranked-meta-abc">
-                                    ₱ <?= number_format((float)$item['abc'], 2) ?>
-                                </span>
+                                <span class="ranked-meta-abc">₱ <?= number_format((float)$item['abc'], 2) ?></span>
                             </div>
                         </div>
                     </div>
-                <?php 
-                    $rank++;
-                endforeach; 
-                ?>
+                <?php $rank++; endforeach; ?>
             </div>
 
             <div class="ranking-card-foot">
-                <a href="#bid-schedule" class="btn-view-schedule-link">
-                    View Full Procurement Schedule <i class="bi bi-arrow-down-short" style="font-size:16px;"></i>
+                <a href="bid_schedule.php" class="btn-view-schedule-link">
+                    View All Procurement <i class="bi bi-arrow-right" style="font-size:14px;"></i>
                 </a>
             </div>
         </div>
+        <?php endif; ?>
 
     </div>
 </section>
@@ -1312,65 +1465,78 @@ if ($total_awarded === 0) $total_awarded = 76;
 </section>
 
 <!-- ========================= -->
-<!-- BID SCHEDULE SECTION      -->
+<!-- BID OPENINGS TEASER       -->
 <!-- ========================= -->
 <section class="section-wrap bid-schedule-section" id="bid-schedule">
     <div class="section-header-center">
-        <h2 class="section-main-heading">Upcoming Bid Opening Schedule</h2>
+        <h2 class="section-main-heading">Upcoming Bid Openings</h2>
         <p class="section-lead-p">
-            Real-time timetable of procurement projects, envelope cutoff deadlines, and public bid decryption dates administered by the SLSU Bids and Awards Committee.
+            The nearest public procurement opening schedules administered by the SLSU Bids and Awards Committee.
         </p>
     </div>
 
-    <div class="schedule-grid">
-        <?php foreach ($all_schedules as $sched): 
+    <div class="schedule-grid" style="max-width:1240px; margin:0 auto;">
+        <?php foreach (array_slice($ranked_openings, 0, 3) as $sched):
             $statusStr = strtolower($sched['status'] ?? 'open');
-            $openDate = !empty($sched['opening_date']) ? date('F d, Y · g:i A', strtotime($sched['opening_date'])) : 'To Be Announced';
-            $closeDate = !empty($sched['closing_date']) ? date('M d, Y · g:i A', strtotime($sched['closing_date'])) : 'Not Specified';
-            $postDate = !empty($sched['posting_date']) ? date('M d, Y', strtotime($sched['posting_date'])) : 'Recent';
+            $openDate  = !empty($sched['opening_date'])  ? date('M d, Y · g:i A', strtotime($sched['opening_date']))  : 'To Be Announced';
+            $closeDate = !empty($sched['closing_date'])  ? date('M d, Y · g:i A', strtotime($sched['closing_date'])) : 'Not Specified';
+            $isFallback = ($sched['id'] >= 101 && $sched['id'] <= 103);
         ?>
-            <div class="schedule-card">
-                <div>
-                    <div class="schedule-card-top">
-                        <span class="schedule-status-badge <?= $statusStr === 'open' ? 'open' : ($statusStr === 'closed' ? 'closed' : 'upcoming') ?>">
-                            <i class="bi bi-circle-fill" style="font-size:7px;"></i> <?= ucfirst($statusStr) ?>
-                        </span>
-                        <span class="schedule-ref">
-                            <i class="bi bi-hash"></i> <?= htmlspecialchars($sched['philgeps_ref_no']) ?>
-                        </span>
-                    </div>
-
-                    <div class="schedule-title">
-                        <?= htmlspecialchars($sched['title']) ?>
-                    </div>
-
-                    <div class="schedule-timeline-box">
-                        <div class="timeline-row">
-                            <span class="timeline-label"><i class="bi bi-calendar-check"></i> Bid Opening:</span>
-                            <span class="timeline-val" style="color:#ffc107;"><?= $openDate ?></span>
-                        </div>
-                        <div class="timeline-row">
-                            <span class="timeline-label"><i class="bi bi-clock-history"></i> Submission Cutoff:</span>
-                            <span class="timeline-val"><?= $closeDate ?></span>
-                        </div>
-                        <div class="timeline-row">
-                            <span class="timeline-label"><i class="bi bi-tag"></i> Mode:</span>
-                            <span class="timeline-val"><?= htmlspecialchars($sched['procurement_mode'] ?? 'Public Bidding') ?></span>
-                        </div>
-                    </div>
+        <div class="schedule-card">
+            <div>
+                <div class="schedule-card-top">
+                    <span class="schedule-status-badge <?= $statusStr === 'open' ? 'open' : ($statusStr === 'closed' ? 'closed' : 'upcoming') ?>">
+                        <i class="bi bi-circle-fill" style="font-size:7px;"></i> <?= ucfirst($statusStr) ?>
+                    </span>
+                    <span class="schedule-ref"><i class="bi bi-hash"></i> <?= htmlspecialchars($sched['philgeps_ref_no'] ?: 'SLSU-BAC') ?></span>
                 </div>
 
-                <div class="schedule-card-foot">
-                    <div>
-                        <div style="font-size:10px; color:#8fa699; text-transform:uppercase; font-weight:700;">Approved Budget (ABC)</div>
-                        <div class="schedule-abc-val">₱ <?= number_format((float)$sched['abc'], 2) ?></div>
+                <div class="schedule-title"><?= htmlspecialchars($sched['title']) ?></div>
+
+                <div class="schedule-timeline-box">
+                    <div class="timeline-row">
+                        <span class="timeline-label"><i class="bi bi-calendar-check"></i> Bid Opening:</span>
+                        <span class="timeline-val" style="color:#d97706;"><?= $openDate ?></span>
                     </div>
-                    <a href="login.php" class="btn-schedule-action">
-                        <i class="bi bi-box-arrow-in-right"></i> Participate
-                    </a>
+                    <div class="timeline-row">
+                        <span class="timeline-label"><i class="bi bi-clock-history"></i> Submission Cutoff:</span>
+                        <span class="timeline-val"><?= $closeDate ?></span>
+                    </div>
                 </div>
             </div>
+
+            <div class="schedule-card-foot">
+                <div>
+                    <div style="font-size:10px; color:#8fa699; text-transform:uppercase; font-weight:700;">Approved Budget (ABC)</div>
+                    <div class="schedule-abc-val">₱ <?= number_format((float)$sched['abc'], 2) ?></div>
+                </div>
+                <?php if ($isFallback): ?>
+                    <a href="login.php" class="btn-schedule-action">
+                        <i class="bi bi-box-arrow-in-right"></i> View Details
+                    </a>
+                <?php else: ?>
+                    <a href="bid_view.php?id=<?= (int)$sched['id'] ?>" class="btn-schedule-action">
+                        <i class="bi bi-eye"></i> View Details
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
         <?php endforeach; ?>
+    </div>
+
+    <!-- View All CTA -->
+    <div style="text-align:center; margin-top:36px;">
+        <a href="bid_schedule.php" style="
+            display:inline-flex; align-items:center; gap:9px;
+            background:#06251b; color:#ffc107;
+            font-size:13.5px; font-weight:800;
+            padding:13px 30px; border-radius:12px;
+            text-decoration:none;
+            box-shadow:0 4px 16px rgba(6,37,27,.18);
+            transition:all .2s ease;">
+            <i class="bi bi-calendar3"></i> View All Procurement
+            <i class="bi bi-arrow-right"></i>
+        </a>
     </div>
 </section>
 
@@ -1474,7 +1640,7 @@ if ($total_awarded === 0) $total_awarded = 76;
             <h5>Navigation</h5>
             <ul>
                 <li><a href="#home">Home</a></li>
-                <li><a href="#bid-schedule">Bid Schedule</a></li>
+                <li><a href="bid_schedule.php">Procurement</a></li>
                 <li><a href="#about">About System</a></li>
                 <li><a href="login.php">Bidder Portal</a></li>
             </ul>

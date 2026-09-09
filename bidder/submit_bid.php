@@ -1,6 +1,7 @@
 <?php
 include("utils/protect-page.php");
 require_once("../utils/crypto.php");
+require_once(__DIR__ . "/../admin/utils/audit_helper.php");
 
 $procurement_id = isset($_GET['id']) ? intval($_GET['id']) : (isset($_GET['procurement_id']) ? intval($_GET['procurement_id']) : 0);
 $bidder_id      = intval($_SESSION['user_id']);
@@ -184,6 +185,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_bid'])) {
             $doc_stmt->close();
 
             $conn->commit();
+
+            // ── Audit: BID_SUBMITTED (after successful commit) ──────────────────
+            audit_log($conn, 'BID_SUBMITTED', 'bids', $bid_id,
+                "Bidder #{$bidder_id} submitted bid #{$bid_id} for procurement #{$procurement_id} covering " . count($selected_lots) . " lot(s)",
+                null,
+                [
+                    'bid_id'           => $bid_id,
+                    'bidder_id'        => $bidder_id,
+                    'procurement_id'   => $procurement_id,
+                    'lots'             => array_values(array_map('intval', $selected_lots)),
+                    'document_count'   => count($uploaded_file_paths),
+                ]
+            );
+
+            // ── Audit: BID_DOCUMENT_UPLOADED (one entry per file type group) ────
+            $doc_types_uploaded = array_unique(
+                array_merge(['other'], array_keys(array_filter(['eligibility' => true, 'financial' => true]))
+            ));
+            foreach (['other', 'eligibility', 'financial'] as $dtype) {
+                $dc = $conn->prepare("SELECT COUNT(*) FROM bid_documents WHERE bid_id = ? AND document_type = ?");
+                $dc->bind_param("is", $bid_id, $dtype);
+                $dc->execute();
+                $dcnt = (int)$dc->get_result()->fetch_row()[0];
+                $dc->close();
+                if ($dcnt > 0) {
+                    audit_log($conn, 'BID_DOCUMENT_UPLOADED', 'bids', $bid_id,
+                        "Bid #{$bid_id}: {$dcnt} {$dtype} document(s) uploaded by bidder #{$bidder_id}",
+                        null,
+                        ['bid_id' => $bid_id, 'document_type' => $dtype, 'count' => $dcnt, 'bidder_id' => $bidder_id, 'procurement_id' => $procurement_id]
+                    );
+                }
+            }
+
             $_SESSION['alert_success'] = "Your proposal and payment receipt were submitted and encrypted successfully!";
             header("Location: my_bids.php");
             exit();

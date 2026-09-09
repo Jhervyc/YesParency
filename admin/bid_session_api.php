@@ -16,6 +16,7 @@
 require_once __DIR__ . '/../config/db_connect.php';
 require_once __DIR__ . '/../utils/crypto.php';
 require_once __DIR__ . '/../config/pusher.php';
+require_once __DIR__ . '/utils/audit_helper.php';
 session_start();
 
 header('Content-Type: application/json');
@@ -356,17 +357,64 @@ if ($action === 'set_eligible') {
     }
 
     if ($phase === 'financial') {
+        // Snapshot old value before update
+        $old_bl = $conn->prepare("SELECT financial_status FROM bid_lots WHERE bid_id = ? AND lot_id = ? LIMIT 1");
+        $old_bl->bind_param("ii", $bid_id, $lot_id);
+        $old_bl->execute();
+        $old_bl_row = $old_bl->get_result()->fetch_assoc();
+        $old_bl->close();
+        $old_fin_status = $old_bl_row['financial_status'] ?? 'pending';
+
         $fin_status = $eligible ? 'qualified' : 'non_compliant';
         $lupd = $conn->prepare("UPDATE bid_lots SET financial_status = ? WHERE bid_id = ? AND lot_id = ?");
         $lupd->bind_param("sii", $fin_status, $bid_id, $lot_id);
         $lupd->execute();
         $lupd->close();
+
+        // Fetch bid_lot_id for audit
+        $bl_row2 = null;
+        if ($bid_lot_id <= 0) {
+            $bls = $conn->prepare("SELECT id FROM bid_lots WHERE bid_id = ? AND lot_id = ? LIMIT 1");
+            $bls->bind_param("ii", $bid_id, $lot_id);
+            $bls->execute();
+            $bl_row2 = $bls->get_result()->fetch_assoc();
+            $bls->close();
+            $bid_lot_id = (int)($bl_row2['id'] ?? 0);
+        }
+        audit_log($conn, 'FINANCIAL_DECISION_CHANGED', 'bid_opening', $bid_lot_id,
+            "Financial evaluation: bid #{$bid_id} on lot #{$lot_id} marked " . strtoupper($fin_status),
+            ['financial_status' => $old_fin_status],
+            ['financial_status' => $fin_status, 'bid_id' => $bid_id, 'lot_id' => $lot_id, 'session_id' => $session_id]
+        );
     } else {
+        // Snapshot old value before update
+        $old_bl = $conn->prepare("SELECT eligibility_status FROM bid_lots WHERE bid_id = ? AND lot_id = ? LIMIT 1");
+        $old_bl->bind_param("ii", $bid_id, $lot_id);
+        $old_bl->execute();
+        $old_bl_row = $old_bl->get_result()->fetch_assoc();
+        $old_bl->close();
+        $old_elig_status = $old_bl_row['eligibility_status'] ?? 'pending';
+
         $elig_status = $eligible ? 'eligible' : 'disqualified';
         $lupd = $conn->prepare("UPDATE bid_lots SET eligibility_status = ? WHERE bid_id = ? AND lot_id = ?");
         $lupd->bind_param("sii", $elig_status, $bid_id, $lot_id);
         $lupd->execute();
         $lupd->close();
+
+        // Fetch bid_lot_id for audit
+        if ($bid_lot_id <= 0) {
+            $bls = $conn->prepare("SELECT id FROM bid_lots WHERE bid_id = ? AND lot_id = ? LIMIT 1");
+            $bls->bind_param("ii", $bid_id, $lot_id);
+            $bls->execute();
+            $bl_row2 = $bls->get_result()->fetch_assoc();
+            $bls->close();
+            $bid_lot_id = (int)($bl_row2['id'] ?? 0);
+        }
+        audit_log($conn, 'ELIGIBILITY_DECISION_CHANGED', 'bid_opening', $bid_lot_id,
+            "Eligibility evaluation: bid #{$bid_id} on lot #{$lot_id} marked " . strtoupper($elig_status),
+            ['eligibility_status' => $old_elig_status],
+            ['eligibility_status' => $elig_status, 'bid_id' => $bid_id, 'lot_id' => $lot_id, 'session_id' => $session_id]
+        );
 
         // Disqualifying eligibility cascades to financial on the same lot
         if (!$eligible) {
@@ -405,6 +453,11 @@ if ($action === 'start_phase') {
         echo json_encode(['success' => false, 'message' => 'Invalid parameters.']); exit();
     }
 
+    // Fetch previous status BEFORE the update for accurate audit old_values
+    $prev_phase = 'unknown';
+    $ps = $conn->prepare("SELECT status FROM bid_opening_sessions WHERE id = ?");
+    if ($ps) { $ps->bind_param("i", $session_id); $ps->execute(); $pr = $ps->get_result()->fetch_assoc(); $ps->close(); $prev_phase = $pr['status'] ?? 'unknown'; }
+
     if ($phase === 'ended') {
         $upd = $conn->prepare("UPDATE bid_opening_sessions SET status = 'ended', ended_at = NOW() WHERE id = ?");
         $upd->bind_param("i", $session_id);
@@ -416,6 +469,18 @@ if ($action === 'start_phase') {
     }
     $upd->execute();
     $upd->close();
+
+    if ($phase === 'ended') {
+        audit_log($conn, 'BID_SESSION_ENDED', 'bid_opening', $session_id,
+            "Bid opening session #{$session_id} ended via start_phase",
+            ['status' => $prev_phase], ['status' => 'ended', 'session_id' => $session_id]
+        );
+    } else {
+        audit_log($conn, 'BID_SESSION_STAGE_CHANGED', 'bid_opening', $session_id,
+            "Session #{$session_id} stage changed to '{$phase}'",
+            ['status' => $prev_phase], ['status' => $phase, 'session_id' => $session_id]
+        );
+    }
 
     pusher_trigger($session_id, 'phase_changed', ['phase' => $phase]);
 
@@ -449,6 +514,14 @@ if ($action === 'start_session') {
     $affected = $upd->affected_rows;
     $upd->close();
 
+    if ($affected > 0) {
+        audit_log($conn, 'BID_SESSION_STARTED', 'bid_opening', $session_id,
+            "Bid opening session #{$session_id} started",
+            ['status' => 'scheduled'],
+            ['status' => 'started', 'session_id' => $session_id, 'first_lot_id' => $first_lot_id]
+        );
+    }
+
     pusher_trigger($session_id, 'session_started', []);
 
     echo json_encode(['success' => true, 'new_status' => 'started']); exit();
@@ -470,6 +543,11 @@ if ($action === 'set_current_lot') {
         }
         $upd->execute();
         $upd->close();
+
+        audit_log($conn, 'BID_SESSION_LOT_CHANGED', 'bid_opening', $session_id,
+            "Session #{$session_id} active lot changed to lot_id #{$lot_id}",
+            null, ['session_id' => $session_id, 'current_lot_id' => $lot_id]
+        );
     }
     pusher_trigger($session_id, 'lot_changed', ['lot_id' => $lot_id]);
     echo json_encode(['success' => true]); exit();
@@ -519,6 +597,11 @@ if ($action === 'fail_lot') {
     $upd->execute();
     $upd->close();
 
+    audit_log($conn, 'LOT_STATUS_CHANGED', 'lots', $lot_id,
+        "Lot #{$lot_id} marked as failed (no award) in session #{$session_id}",
+        ['status' => 'pending'], ['status' => 'failed', 'session_id' => $session_id]
+    );
+
     // Remove any stale award row for this lot (in case of undo from awarded state)
     $del = $conn->prepare("DELETE FROM awards WHERE lot_id = ?");
     $del->bind_param("i", $lot_id);
@@ -560,6 +643,7 @@ if ($action === 'award_lot') {
     ");
     $ins->bind_param("iid", $lot_id, $bid_lot_id, $awarded_amount);
     $ins->execute();
+    $award_id = $conn->insert_id ?: null;
     $ins->close();
 
     // Mark the winning bid as awarded
@@ -574,6 +658,16 @@ if ($action === 'award_lot') {
     $lupd->bind_param("i", $lot_id);
     $lupd->execute();
     $lupd->close();
+
+    audit_log($conn, 'AWARD_CREATED', 'lots', $lot_id,
+        "Lot #{$lot_id} awarded to bid_lot #{$bid_lot_id} for ₱" . number_format($awarded_amount, 2) . " in session #{$session_id}",
+        null,
+        ['lot_id' => $lot_id, 'bid_lot_id' => $bid_lot_id, 'awarded_amount' => $awarded_amount, 'session_id' => $session_id]
+    );
+    audit_log($conn, 'LOT_STATUS_CHANGED', 'lots', $lot_id,
+        "Lot #{$lot_id} status changed to awarded",
+        ['status' => 'pending'], ['status' => 'awarded']
+    );
 
     pusher_trigger($session_id, 'lot_awarded', [
         'lot_id'     => $lot_id,
@@ -601,6 +695,11 @@ if ($action === 'end_session') {
     $upd->bind_param("i", $session_id);
     $upd->execute();
     $upd->close();
+
+    audit_log($conn, 'BID_SESSION_ENDED', 'bid_opening', $session_id,
+        "Bid opening session #{$session_id} officially ended",
+        ['status' => 'active'], ['status' => 'ended', 'session_id' => $session_id, 'proc_id' => $proc_id]
+    );
 
     if ($proc_id > 0) {
 
@@ -639,6 +738,11 @@ if ($action === 'end_session') {
         $pupd->bind_param("si", $proc_status, $proc_id);
         $pupd->execute();
         $pupd->close();
+
+        audit_log($conn, 'PROCUREMENT_STATUS_CHANGED', 'procurements', $proc_id,
+            "Procurement #{$proc_id} status set to '{$proc_status}' after session #{$session_id} ended",
+            ['status' => 'open'], ['status' => $proc_status, 'session_id' => $session_id]
+        );
     }
 
     pusher_trigger($session_id, 'session_ended', []);
@@ -729,7 +833,16 @@ if ($action === 'sign_lot') {
     ");
     $ins->bind_param("iis", $bid_lot_id, $user_id, $opening_type);
     $ins->execute();
+    $newly_signed = $ins->affected_rows > 0;
     $ins->close();
+
+    if ($newly_signed) {
+        audit_log($conn, 'BAC_SIGNATURE_RECORDED', 'bid_opening', $bid_lot_id,
+            "BAC signature recorded for bid_lot #{$bid_lot_id} ({$opening_type}) in session #{$session_id}",
+            null,
+            ['bid_lot_id' => $bid_lot_id, 'opening_type' => $opening_type, 'session_id' => $session_id]
+        );
+    }
 
     // 5. Check quorum — count BAC members invited to this session
     $bac_count_stmt = $conn->prepare("
@@ -1103,6 +1216,15 @@ if ($action === 'save_checklist_item') {
     $checked_at = ($result !== 'pending') ? date('Y-m-d H:i:s') : null;
     $checked_by = ($result !== 'pending') ? $user_id : null;
 
+    // Snapshot old value for audit
+    $old_chk = $conn->prepare("SELECT result, remarks, item_name FROM bid_checklist WHERE id = ?");
+    $old_chk->bind_param("i", $checklist_id);
+    $old_chk->execute();
+    $old_chk_row = $old_chk->get_result()->fetch_assoc();
+    $old_chk->close();
+    $old_result = $old_chk_row['result'] ?? 'pending';
+    $item_name  = $old_chk_row['item_name'] ?? "item #{$checklist_id}";
+
     $upd = $conn->prepare("
         UPDATE bid_checklist
         SET result = ?, remarks = ?, checked_by = ?, checked_at = ?
@@ -1111,6 +1233,15 @@ if ($action === 'save_checklist_item') {
     $upd->bind_param("ssisi", $result, $remarks, $checked_by, $checked_at, $checklist_id);
     $upd->execute();
     $upd->close();
+
+    // Only audit if result actually changed
+    if ($old_result !== $result) {
+        audit_log($conn, 'CHECKLIST_RESULT_CHANGED', 'bid_opening', (int)$row['bid_lot_id'],
+            "Checklist item '{$item_name}' changed from '{$old_result}' to '{$result}' on bid_lot #{$row['bid_lot_id']}",
+            ['result' => $old_result, 'remarks' => $old_chk_row['remarks'] ?? null],
+            ['result' => $result, 'remarks' => $remarks, 'bid_lot_id' => $row['bid_lot_id'], 'checklist_id' => $checklist_id, 'session_id' => $session_id]
+        );
+    }
 
     pusher_trigger($session_id, 'checklist_updated', [
         'checklist_id' => $checklist_id,

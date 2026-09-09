@@ -1,5 +1,6 @@
 <?php
 include("utils/protect-page.php");
+require_once(__DIR__ . "/../admin/utils/audit_helper.php");
 
 $user_id     = (int)$_SESSION['user_id'];
 $bidder_role = $_SESSION['role'] ?? 'bidder';
@@ -143,6 +144,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $upd_stmt->bind_param("si", $new_hash, $user_id);
         if ($upd_stmt->execute()) {
             $pw_success = "Your password has been changed successfully.";
+            audit_log($conn, 'USER_PASSWORD_CHANGED', 'users', $user_id,
+                "Bidder #{$user_id} changed their own password",
+                null, ['user_id' => $user_id]
+            );
         } else {
             $pw_error = "An error occurred while updating your password. Please try again.";
         }

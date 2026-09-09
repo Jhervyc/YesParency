@@ -237,190 +237,132 @@ $logs_data = [];
         </div>
     </div>
 
-    <!-- ── Log list panel (matching account-management.php) ── -->
-    <div class="sp-panel sp-list-panel">
-        <!-- ── Search + filter bar ── -->
-        <form method="GET" action="audit_trail.php" class="ap2-controls" style="margin-bottom:16px;">
-            <div class="ap2-search-field">
-                <i class="bi bi-search"></i>
-                <input type="text" name="search"
-                    placeholder="Search by description, record ID, or user..."
-                    value="<?= htmlspecialchars($search) ?>">
-            </div>
-
-            <!-- Action Filters -->
-            <div class="ap2-filters">
-                <?php
-                $action_tabs = [
-                    'all'    => 'All Actions',
-                    'CREATE' => 'Created',
-                    'UPDATE' => 'Updated',
-                    'DELETE' => 'Deleted'
-                ];
-                foreach ($action_tabs as $val => $lbl):
-                ?>
+    <!-- ── Log list panel ── -->
+    <div class="proc-table-panel" style="margin-bottom:24px;">
+        <div class="filter-bar">
+            <form method="GET" action="audit_trail.php" id="auditFilterForm" style="display:contents;">
+                <div class="ap2-search-field">
+                    <i class="bi bi-search"></i>
+                    <input type="text" name="search"
+                        placeholder="Search by description, record ID, or user..."
+                        value="<?= htmlspecialchars($search) ?>">
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <?php foreach (['all'=>'All','CREATE'=>'Created','UPDATE'=>'Updated','DELETE'=>'Deleted'] as $val => $lbl): ?>
                     <button type="submit" name="action" value="<?= $val ?>"
                             class="ap2-filter-btn <?= $action_filter === $val ? 'active' : '' ?>">
                         <?= $lbl ?>
                     </button>
-                <?php endforeach; ?>
-            </div>
-
-            <!-- Module dropdown filter -->
-            <div class="module-select-wrap">
-                <select name="module" onchange="this.form.submit()">
-                    <option value="all" <?= $module_filter === 'all' ? 'selected' : '' ?>>All Modules</option>
-                    <option value="procurements" <?= $module_filter === 'procurements' ? 'selected' : '' ?>>Procurements</option>
-                    <option value="bids" <?= $module_filter === 'bids' ? 'selected' : '' ?>>Bids</option>
-                    <option value="lots" <?= $module_filter === 'lots' ? 'selected' : '' ?>>Lots</option>
-                    <option value="users" <?= $module_filter === 'users' ? 'selected' : '' ?>>Users</option>
-                    <option value="announcements" <?= $module_filter === 'announcements' ? 'selected' : '' ?>>Announcements</option>
-                    <option value="settings" <?= $module_filter === 'settings' ? 'selected' : '' ?>>Settings</option>
-                    <option value="bid_opening" <?= $module_filter === 'bid_opening' ? 'selected' : '' ?>>Bid Opening</option>
-                </select>
-            </div>
-
-            <button type="submit" class="ap2-go-btn">
-                <i class="bi bi-search"></i> Search
-            </button>
-        </form>
-
-        <?php if ($total_shown === 0): ?>
-            <div class="empty-state" style="padding:48px;">
-                <i class="bi bi-database-exclamation"></i>
-                <p>No audit trail records found<?= $search ? ' for "' . htmlspecialchars($search) . '"' : '' ?>.</p>
-            </div>
-        <?php else: ?>
-
-        <div class="proc-table-list">
-        <?php while ($row = $result->fetch_assoc()):
-            $logs_data[$row['log_id']] = $row;
-            $act = strtoupper($row['action']);
-
-            // Left bar and styling based on database modification type
-            $barColor = '#8B958E';
-            $pillBg   = '#EEF0ED';
-            $pillFg   = '#8B958E';
-            $iconBg   = '#f0f4f2';
-            $iconFg   = '#06251b';
-            $icon     = 'bi-database';
-
-            $is_create = in_array($act, ['CREATE', 'INSERT']) || str_ends_with($act, '_CREATED') || str_ends_with($act, 'SUBMITTED') || str_ends_with($act, 'INVITED') || str_ends_with($act, 'RECORDED');
-            $is_update = in_array($act, ['UPDATE', 'PUBLISH', 'APPROVE', 'REJECT', 'TOGGLE_MAINTENANCE']) || str_ends_with($act, '_UPDATED') || str_ends_with($act, '_CHANGED') || str_ends_with($act, '_APPROVED') || str_ends_with($act, '_REJECTED') || str_ends_with($act, '_STARTED') || str_ends_with($act, '_ACTIVATED') || str_ends_with($act, '_DEACTIVATED') || str_ends_with($act, '_REORDERED');
-            $is_delete = $act === 'DELETE' || str_ends_with($act, '_DELETED') || str_ends_with($act, '_CANCELLED') || str_ends_with($act, '_REMOVED');
-
-            if ($is_create) {
-                $barColor = '#219653';
-                $pillBg   = '#D9F2DF';
-                $pillFg   = '#1f7a3d';
-                $iconBg   = '#E4F5EA';
-                $iconFg   = '#219653';
-                $icon     = 'bi-plus-circle';
-            } elseif ($is_update) {
-                $barColor = '#2F6FED';
-                $pillBg   = '#E7EEFE';
-                $pillFg   = '#2F6FED';
-                $iconBg   = '#E7EEFE';
-                $iconFg   = '#2F6FED';
-                $icon     = 'bi-pencil-square';
-            } elseif ($is_delete) {
-                $barColor = '#c23b3b';
-                $pillBg   = '#FBE1E1';
-                $pillFg   = '#c23b3b';
-                $iconBg   = '#FBE1E1';
-                $iconFg   = '#c23b3b';
-                $icon     = 'bi-trash3';
-            }
-
-            $actorName = $row['username']
-                ? ($row['firstname'] . ' ' . $row['lastname'])
-                : 'System / Automated';
-            $usernameStr = $row['username'] ? '@' . $row['username'] : 'System';
-            $timeStr     = date('M j, Y · g:i A', strtotime($row['created_at']));
-            $moduleName  = ucfirst($row['module']);
-        ?>
-            <div class="proc-row">
-                <div class="proc-row-status-bar" style="background:<?= $barColor ?>"></div>
-
-                <div class="proc-row-body">
-                    <div class="proc-row-main" style="display:flex; align-items:center; gap:14px;">
-                        <!-- Action Icon Avatar -->
-                        <div class="ap2-avatar"
-                             style="width:40px; height:40px; border-radius:11px; flex-shrink:0; background:<?= $iconBg ?>; color:<?= $iconFg ?>; display:flex; align-items:center; justify-content:center; font-size:16px;">
-                            <i class="bi <?= $icon ?>"></i>
-                        </div>
-
-                        <div style="min-width:0;">
-                            <div class="proc-row-title">
-                                <?= htmlspecialchars($row['description']) ?>
-                            </div>
-                            <div class="proc-row-meta">
-                                <span><i class="bi bi-person"></i><?= htmlspecialchars($actorName) ?> (<?= htmlspecialchars($usernameStr) ?>)</span>
-                                <span><i class="bi bi-folder2-open"></i><?= htmlspecialchars($moduleName) ?><?= $row['record_id'] ? ' #' . intval($row['record_id']) : '' ?></span>
-                                <span><i class="bi bi-clock"></i><?= $timeStr ?></span>
-                                <span><i class="bi bi-hdd-network"></i><?= htmlspecialchars($row['ip_address'] ?? '—') ?></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="proc-row-actions">
-                        <span class="sp-status-pill" style="background:<?= $pillBg ?>; color:<?= $pillFg ?>">
-                            <?= htmlspecialchars($act) ?>
-                        </span>
-                        <button type="button" class="proc-action-btn review" onclick="loadLogDetail(<?= $row['log_id'] ?>)">
-                            <i class="bi bi-eye"></i> View
-                        </button>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
-            </div>
-        <?php endwhile; ?>
+                <select name="module" class="filter-dropdowns" style="border:1.5px solid #eaeeec; background:#eef2f0; color:#16241d; font-family:'Poppins',sans-serif; font-size:12.5px; font-weight:600; padding:8px 12px; border-radius:9px; outline:none; cursor:pointer;" onchange="document.getElementById('auditFilterForm').submit()">
+                    <option value="all" <?= $module_filter==='all'?'selected':'' ?>>All Modules</option>
+                    <option value="procurements" <?= $module_filter==='procurements'?'selected':'' ?>>Procurements</option>
+                    <option value="bids" <?= $module_filter==='bids'?'selected':'' ?>>Bids</option>
+                    <option value="lots" <?= $module_filter==='lots'?'selected':'' ?>>Lots</option>
+                    <option value="users" <?= $module_filter==='users'?'selected':'' ?>>Users</option>
+                    <option value="announcements" <?= $module_filter==='announcements'?'selected':'' ?>>Announcements</option>
+                    <option value="settings" <?= $module_filter==='settings'?'selected':'' ?>>Settings</option>
+                    <option value="bid_opening" <?= $module_filter==='bid_opening'?'selected':'' ?>>Bid Opening</option>
+                </select>
+                <button type="submit" class="ap2-go-btn"><i class="bi bi-search"></i> Search</button>
+            </form>
         </div>
 
+        <?php if ($total_shown === 0): ?>
+        <div style="padding:52px 20px; text-align:center; color:#88968d;">
+            <i class="bi bi-database-exclamation" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
+            <div style="font-size:13px; font-weight:700;">No audit records found<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.</div>
+        </div>
+        <?php else: ?>
+        <div style="overflow-x:auto;">
+            <table class="proc-table">
+                <thead>
+                    <tr>
+                        <th style="width:42px;"></th>
+                        <th>Description</th>
+                        <th class="col-mode">Actor</th>
+                        <th class="col-opening">Module</th>
+                        <th class="col-abc">IP Address</th>
+                        <th class="col-status">Time</th>
+                        <th style="text-align:right; min-width:80px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php while ($row = $result->fetch_assoc()):
+                    $logs_data[$row['log_id']] = $row;
+                    $act = strtoupper($row['action']);
+                    $iconBg='#f0f4f2'; $iconFg='#06251b'; $icon='bi-database';
+                    $pillBg='#EEF0ED'; $pillFg='#8B958E';
+                    $is_create = in_array($act,['CREATE','INSERT'])||str_ends_with($act,'_CREATED')||str_ends_with($act,'SUBMITTED')||str_ends_with($act,'INVITED')||str_ends_with($act,'RECORDED');
+                    $is_update = in_array($act,['UPDATE','PUBLISH','APPROVE','REJECT','TOGGLE_MAINTENANCE'])||str_ends_with($act,'_UPDATED')||str_ends_with($act,'_CHANGED')||str_ends_with($act,'_APPROVED')||str_ends_with($act,'_REJECTED')||str_ends_with($act,'_STARTED')||str_ends_with($act,'_ACTIVATED')||str_ends_with($act,'_DEACTIVATED')||str_ends_with($act,'_REORDERED');
+                    $is_delete = $act==='DELETE'||str_ends_with($act,'_DELETED')||str_ends_with($act,'_CANCELLED')||str_ends_with($act,'_REMOVED');
+                    if ($is_create) { $iconBg='#E4F5EA'; $iconFg='#219653'; $icon='bi-plus-circle'; $pillBg='#D9F2DF'; $pillFg='#1f7a3d'; }
+                    elseif ($is_update) { $iconBg='#E7EEFE'; $iconFg='#2F6FED'; $icon='bi-pencil-square'; $pillBg='#E7EEFE'; $pillFg='#2F6FED'; }
+                    elseif ($is_delete) { $iconBg='#FBE1E1'; $iconFg='#c23b3b'; $icon='bi-trash3'; $pillBg='#FBE1E1'; $pillFg='#c23b3b'; }
+                    $actorName = $row['username'] ? trim($row['firstname'].' '.$row['lastname']) : 'System';
+                    $usernameStr = $row['username'] ? '@'.$row['username'] : '—';
+                ?>
+                <tr>
+                    <td style="padding:14px 8px 14px 16px;">
+                        <div style="width:32px; height:32px; border-radius:9px; background:<?= $iconBg ?>; color:<?= $iconFg ?>; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">
+                            <i class="bi <?= $icon ?>"></i>
+                        </div>
+                    </td>
+                    <td class="proc-title-cell">
+                        <?= htmlspecialchars(mb_strimwidth($row['description'], 0, 70, '…')) ?>
+                        <div style="font-size:10.5px; color:#88968d; margin-top:2px;">
+                            <span class="proc-status-pill" style="background:<?= $pillBg ?>; color:<?= $pillFg ?>; font-size:9.5px; padding:2px 7px;">
+                                <?= htmlspecialchars($act) ?>
+                            </span>
+                        </div>
+                    </td>
+                    <td class="proc-deadline-cell col-mode">
+                        <strong><?= htmlspecialchars($actorName) ?></strong>
+                        <span style="color:#88968d;"><?= htmlspecialchars($usernameStr) ?></span>
+                    </td>
+                    <td class="proc-deadline-cell col-opening">
+                        <strong><?= htmlspecialchars(ucfirst($row['module'])) ?></strong>
+                        <?php if ($row['record_id']): ?><span style="color:#88968d;">#<?= intval($row['record_id']) ?></span><?php endif; ?>
+                    </td>
+                    <td class="proc-deadline-cell col-abc"><?= htmlspecialchars($row['ip_address'] ?? '—') ?></td>
+                    <td class="proc-deadline-cell col-status" style="white-space:nowrap;">
+                        <?= date('M j, Y', strtotime($row['created_at'])) ?><br>
+                        <span style="color:#88968d;"><?= date('g:i A', strtotime($row['created_at'])) ?></span>
+                    </td>
+                    <td style="text-align:right;">
+                        <button type="button" class="proc-action-btn btn-view" onclick="loadLogDetail(<?= $row['log_id'] ?>)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+                <?php endwhile; ?>
+                </tbody>
+            </table>
+        </div>
         <?php endif; ?>
 
-        <!-- Footer / Pagination -->
-        <div class="sp-list-foot" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div class="table-foot">
             <div>
-                Showing <?= number_format(min($total_shown, $offset + 1)) ?>–<?= number_format(min($total_shown, $offset + $per_page)) ?> of <?= number_format($total_shown) ?> record<?= $total_shown != 1 ? 's' : '' ?>
-                <?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>
+                Showing <strong><?= number_format(min($total_shown,$offset+1)) ?></strong>–<strong><?= number_format(min($total_shown,$offset+$per_page)) ?></strong>
+                of <strong><?= number_format($total_shown) ?></strong> record<?= $total_shown!=1?'s':'' ?>
+                <?= $search?' for "'.htmlspecialchars($search).'"':'' ?>
             </div>
-
-            <?php if ($total_pages > 1): ?>
-                <?php
-                $qp = array_filter([
-                    'action' => $action_filter !== 'all' ? $action_filter : null,
-                    'module' => $module_filter !== 'all' ? $module_filter : null,
-                    'search' => $search ?: null
-                ]);
-                $qs = $qp ? '?' . http_build_query($qp) . '&' : '?';
-                ?>
-                <div style="display:inline-flex; gap:5px;">
-                    <a href="<?= $qs ?>page=<?= max(1, $page - 1) ?>"
-                       class="ap2-filter-btn <?= $page <= 1 ? 'disabled' : '' ?>"
-                       style="padding:6px 12px; font-size:12px; text-decoration:none; <?= $page <= 1 ? 'opacity:0.4; pointer-events:none;' : '' ?>">
-                        <i class="bi bi-chevron-left"></i> Prev
-                    </a>
-                    <?php
-                    $sp = max(1, min($page - 2, $total_pages - 4));
-                    $ep = min($total_pages, $sp + 4);
-                    for ($p = $sp; $p <= $ep; $p++):
-                    ?>
-                        <a href="<?= $qs ?>page=<?= $p ?>"
-                           class="ap2-filter-btn <?= $p === $page ? 'active' : '' ?>"
-                           style="padding:6px 12px; font-size:12px; text-decoration:none;">
-                            <?= $p ?>
-                        </a>
-                    <?php endfor; ?>
-                    <a href="<?= $qs ?>page=<?= min($total_pages, $page + 1) ?>"
-                       class="ap2-filter-btn <?= $page >= $total_pages ? 'disabled' : '' ?>"
-                       style="padding:6px 12px; font-size:12px; text-decoration:none; <?= $page >= $total_pages ? 'opacity:0.4; pointer-events:none;' : '' ?>">
-                        Next <i class="bi bi-chevron-right"></i>
-                    </a>
-                </div>
+            <?php if ($total_pages > 1):
+                $qp = array_filter(['action'=>$action_filter!=='all'?$action_filter:null,'module'=>$module_filter!=='all'?$module_filter:null,'search'=>$search?:null]);
+                $qs = $qp ? '?'.http_build_query($qp).'&' : '?';
+            ?>
+            <div class="pagination">
+                <a href="<?= $qs ?>page=<?= max(1,$page-1) ?>" class="page-link <?= $page<=1?'disabled':'' ?>"><i class="bi bi-chevron-left"></i></a>
+                <?php for ($p=max(1,min($page-2,$total_pages-4)); $p<=min($total_pages,$p+4); $p++): ?>
+                <a href="<?= $qs ?>page=<?= $p ?>" class="page-link <?= $p===$page?'active':'' ?>"><?= $p ?></a>
+                <?php endfor; ?>
+                <a href="<?= $qs ?>page=<?= min($total_pages,$page+1) ?>" class="page-link <?= $page>=$total_pages?'disabled':'' ?>"><i class="bi bi-chevron-right"></i></a>
+            </div>
             <?php endif; ?>
         </div>
 
-    </div><!-- /.sp-panel.sp-list-panel -->
+    </div><!-- /.proc-table-panel -->
 
 </div>
 </main>

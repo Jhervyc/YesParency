@@ -2,47 +2,131 @@
 /**
  * config/mediamtx.php — MediaMTX server configuration helper.
  *
- * Reads MEDIAMTX_* values from the environment (.env via dotenv).
- * Provides a single function to build a WebRTC playback URL from a stream path.
+ * Priority order for each setting:
+ *   1. system_settings table in the DB  (superadmin can change via Live tab)
+ *   2. .env fallback
+ *   3. Hard-coded default
  *
- * IMPORTANT: This file provides SERVER config only.
- * Individual stream paths come from bid_opening_sessions.stream_path in the database.
+ * In-memory cache (static vars) means the DB is hit at most ONCE per PHP
+ * request, no matter how many times mediamtx_url() is called.
+ *
+ * Cache invalidation:
+ *   When the admin saves new config, the save handler touches a sentinel file
+ *   (storage/mediamtx_cache.bust).  The next request that sees a newer mtime
+ *   on that file flushes the static cache and re-reads from the DB.
  */
 
-// Load dotenv if not already loaded (idempotent — safe to call multiple times)
-if (!function_exists('mediamtx_url')) {
+// ── Bootstrap dotenv once ────────────────────────────────────────────────────
+if (empty($_ENV['MEDIAMTX_HOST'])) {
+    $__envFile = dirname(__DIR__) . '/.env';
+    if (file_exists($__envFile)) {
+        require_once dirname(__DIR__) . '/vendor/autoload.php';
+        $__dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
+        $__dotenv->safeLoad();
+    }
+    unset($__envFile, $__dotenv);
+}
 
-    // Ensure dotenv is loaded — bootstrap.php may not have been included yet
-    if (!isset($_ENV['MEDIAMTX_HOST'])) {
-        $envFile = dirname(__DIR__) . '/.env';
-        if (file_exists($envFile)) {
-            require_once dirname(__DIR__) . '/vendor/autoload.php';
-            $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
-            $dotenv->safeLoad(); // safeLoad won't throw if .env is missing
+// ── Sentinel file path ───────────────────────────────────────────────────────
+define('MEDIAMTX_BUST_FILE', dirname(__DIR__) . '/storage/mediamtx_cache.bust');
+
+/**
+ * Internal: load all mediamtx_* keys from system_settings, with in-memory cache.
+ * Returns an associative array keyed by setting_key.
+ */
+function _mediamtx_load_config(): array
+{
+    static $cache     = null;   // the config array
+    static $bustMtime = 0;      // mtime of the sentinel file when last loaded
+
+    // Check if the sentinel file has been touched since we last loaded
+    $currentMtime = file_exists(MEDIAMTX_BUST_FILE) ? (int)filemtime(MEDIAMTX_BUST_FILE) : 0;
+
+    if ($cache !== null && $currentMtime === $bustMtime) {
+        return $cache; // still fresh — return in-memory copy
+    }
+
+    // Re-read from DB
+    $defaults = [
+        'mediamtx_host'         => $_ENV['MEDIAMTX_HOST']         ?? 'localhost',
+        'mediamtx_webrtc_port'  => $_ENV['MEDIAMTX_WEBRTC_PORT']  ?? '8889',
+        'mediamtx_rtmp_port'    => $_ENV['MEDIAMTX_RTMP_PORT']    ?? '1935',
+        'mediamtx_default_path' => $_ENV['MEDIAMTX_DEFAULT_PATH'] ?? 'live',
+    ];
+
+    $loaded = [];
+
+    // $conn is the global mysqli connection (set by config/db_connect.php)
+    global $conn;
+    if ($conn instanceof mysqli) {
+        $keys         = array_keys($defaults);
+        $placeholders = implode(',', array_fill(0, count($keys), '?'));
+        $types        = str_repeat('s', count($keys));
+
+        $stmt = $conn->prepare(
+            "SELECT setting_key, setting_value
+             FROM system_settings
+             WHERE setting_key IN ($placeholders)"
+        );
+        if ($stmt) {
+            $stmt->bind_param($types, ...$keys);
+            $stmt->execute();
+            $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+            foreach ($rows as $row) {
+                $loaded[$row['setting_key']] = $row['setting_value'];
+            }
         }
     }
 
-    /**
-     * Build the WebRTC playback URL for a given stream path.
-     *
-     * @param  string $streamPath  Value from bid_opening_sessions.stream_path (e.g. "live", "bid-opening-001")
-     * @return string              Full URL for iframe src, e.g. "http://localhost:8889/live"
-     */
-    function mediamtx_url(string $streamPath): string {
-        $host = $_ENV['MEDIAMTX_HOST']         ?? 'localhost';
-        // $port = $_ENV['MEDIAMTX_WEBRTC_PORT']  ?? '8889';
-        // Sanitize — only host/port from env, only path from DB
-        $host = rtrim($host, '/');
-        // $port = (int)$port ?: 8889;
-        $path = ltrim($streamPath, '/');
-        // return "http://{$host}:{$port}/{$path}";
-        return "http://{$host}/{$path}";
-    }
+    // Merge: DB values win over .env defaults
+    $cache     = array_merge($defaults, $loaded);
+    $bustMtime = $currentMtime;
 
-    /**
-     * Default stream path from env (used as placeholder in create-event form).
-     */
-    function mediamtx_default_path(): string {
-        return $_ENV['MEDIAMTX_DEFAULT_PATH'] ?? 'live';
+    return $cache;
+}
+
+/**
+ * Build the WebRTC playback URL for a given stream path.
+ *
+ * @param  string $streamPath  Value from bid_opening_sessions.stream_path (e.g. "live", "bid-opening-001")
+ * @return string              Full URL for iframe src, e.g. "http://stream.example.com:8889/live"
+ */
+function mediamtx_url(string $streamPath): string
+{
+    $cfg  = _mediamtx_load_config();
+    $host = rtrim($cfg['mediamtx_host'], '/');
+    $port = (int)($cfg['mediamtx_webrtc_port'] ?: 8889);
+    $path = ltrim($streamPath, '/');
+    return "http://{$host}:{$port}/{$path}";
+}
+
+/**
+ * Default stream path (used as placeholder in create-event form).
+ */
+function mediamtx_default_path(): string
+{
+    return _mediamtx_load_config()['mediamtx_default_path'] ?? 'live';
+}
+
+/**
+ * Full config array — use when you need all values at once (e.g. admin UI).
+ */
+function mediamtx_config(): array
+{
+    return _mediamtx_load_config();
+}
+
+/**
+ * Bust the cache sentinel file.
+ * Call this after saving new config to system_settings so that the
+ * next PHP request re-reads from the DB immediately.
+ */
+function mediamtx_bust_cache(): void
+{
+    $dir = dirname(MEDIAMTX_BUST_FILE);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
     }
+    file_put_contents(MEDIAMTX_BUST_FILE, (string)time());
 }

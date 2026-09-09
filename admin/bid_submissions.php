@@ -169,109 +169,93 @@ $ps->close();
     </div>
 
     <!-- ── List panel ── -->
-    <div class="sp-panel sp-list-panel">
-        <!-- ── Search & Filter Controls ── -->
-        <form method="GET" action="" class="ap2-controls" style="margin-bottom:16px;">
-            <div class="ap2-search-field">
-                <i class="bi bi-search"></i>
-                <input type="text" name="search"
-                    placeholder="Search by procurement title or PhilGEPS ref..."
-                    value="<?= htmlspecialchars($search) ?>">
-            </div>
-
-            <div class="ap2-filters">
-                <button type="submit" name="filter" value="all"
-                        class="ap2-filter-btn <?= $filter === 'all' ? 'active' : '' ?>">
-                    All Open
-                </button>
-                <button type="submit" name="filter" value="pending"
-                        class="ap2-filter-btn <?= $filter === 'pending' ? 'active' : '' ?>">
-                    <i class="bi bi-hourglass-split"></i> Pending Bids
-                    <?php if ($stat_proc_pending > 0): ?>
-                        <span style="background:<?= $filter === 'pending' ? '#ffc107' : '#e67e22' ?>; color:<?= $filter === 'pending' ? '#06251b' : '#fff' ?>; font-size:10.5px; font-weight:800; padding:1px 6px; border-radius:10px; margin-left:4px;">
-                            <?= $stat_proc_pending ?>
-                        </span>
-                    <?php endif; ?>
-                </button>
-                <button type="submit" name="filter" value="has_bids"
-                        class="ap2-filter-btn <?= $filter === 'has_bids' ? 'active' : '' ?>">
-                    <i class="bi bi-inbox"></i> With Bids
-                </button>
-            </div>
-
-            <button type="submit" class="ap2-go-btn">
-                <i class="bi bi-search"></i> Search
-            </button>
-        </form>
+    <div class="proc-table-panel" style="margin-bottom:24px;">
+        <div class="filter-bar">
+            <form method="GET" action="" style="display:contents;">
+                <div class="ap2-search-field">
+                    <i class="bi bi-search"></i>
+                    <input type="text" name="search"
+                        placeholder="Search by procurement title or PhilGEPS ref..."
+                        value="<?= htmlspecialchars($search) ?>">
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button type="submit" name="filter" value="all" class="ap2-filter-btn <?= $filter==='all'?'active':'' ?>">All Open</button>
+                    <button type="submit" name="filter" value="pending" class="ap2-filter-btn <?= $filter==='pending'?'active':'' ?>">
+                        <i class="bi bi-hourglass-split"></i> Pending Bids
+                        <?php if ($stat_proc_pending > 0): ?>
+                            <span style="background:<?= $filter==='pending'?'#ffc107':'#e67e22' ?>; color:<?= $filter==='pending'?'#06251b':'#fff' ?>; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; margin-left:4px;"><?= $stat_proc_pending ?></span>
+                        <?php endif; ?>
+                    </button>
+                    <button type="submit" name="filter" value="has_bids" class="ap2-filter-btn <?= $filter==='has_bids'?'active':'' ?>">
+                        <i class="bi bi-inbox"></i> With Bids
+                    </button>
+                </div>
+                <button type="submit" class="ap2-go-btn"><i class="bi bi-search"></i> Search</button>
+            </form>
+        </div>
 
         <?php if (empty($procurements)): ?>
-            <div class="empty-state" style="padding:48px;">
-                <i class="bi bi-inbox"></i>
-                <p>
-                    <?php if ($filter === 'pending'): ?>
-                        No procurements currently have pending bids to review<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.
-                    <?php elseif ($filter === 'has_bids'): ?>
-                        No procurements with submitted bids found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.
-                    <?php else: ?>
-                        No open procurements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.
-                    <?php endif; ?>
-                </p>
+        <div style="padding:52px 20px; text-align:center; color:#88968d;">
+            <i class="bi bi-inbox" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
+            <div style="font-size:13px; font-weight:700;">
+                <?php if ($filter==='pending'): ?>No procurements with pending bids<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.
+                <?php elseif ($filter==='has_bids'): ?>No procurements with submitted bids found<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.
+                <?php else: ?>No open procurements found<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.
+                <?php endif; ?>
             </div>
-
+        </div>
         <?php else: ?>
-        <div class="proc-table-list">
-        <?php foreach ($procurements as $proc):
-            $hasPending  = intval($proc['pending_bids']) > 0;
-            $totalBids   = intval($proc['total_bids']);
-            $pendingBids = intval($proc['pending_bids']);
-        ?>
-            <div class="proc-row <?= $hasPending ? 'bsv-row-pending' : '' ?>">
-
-                <!-- Colored left bar: orange if pending, green otherwise -->
-                <div class="proc-row-status-bar" style="background:<?= $hasPending ? '#e67e22' : '#219653' ?>"></div>
-
-                <div class="proc-row-body">
-                    <div class="proc-row-main">
-                        <div class="proc-row-title">
-                            <?= htmlspecialchars($proc['procurement_title']) ?>
-                        </div>
-                        <div class="proc-row-meta">
-                            <span><i class="bi bi-hash"></i> <?= htmlspecialchars($proc['philgeps_ref_no'] ?? 'N/A') ?></span>
-                            <span><i class="bi bi-inbox"></i> <?= $totalBids ?> bid<?= $totalBids != 1 ? 's' : '' ?> received</span>
-                            <?php if ($hasPending): ?>
-                                <span style="color:#e67e22; font-weight:700;">
-                                    <i class="bi bi-hourglass-split"></i> <?= $pendingBids ?> pending
-                                </span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <div class="proc-row-actions">
+        <div style="overflow-x:auto;">
+            <table class="proc-table">
+                <thead>
+                    <tr>
+                        <th style="width:130px;">PhilGEPS Ref</th>
+                        <th>Procurement Title</th>
+                        <th class="col-abc">Total Bids</th>
+                        <th class="col-status">Status</th>
+                        <th style="text-align:right; min-width:100px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($procurements as $proc):
+                    $hasPending  = intval($proc['pending_bids']) > 0;
+                    $totalBids   = intval($proc['total_bids']);
+                    $pendingBids = intval($proc['pending_bids']);
+                ?>
+                <tr>
+                    <td class="proc-ref-cell">
+                        <i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i>
+                        <?= htmlspecialchars($proc['philgeps_ref_no'] ?? '—') ?>
+                    </td>
+                    <td class="proc-title-cell">
+                        <?= htmlspecialchars(mb_strimwidth($proc['procurement_title'], 0, 65, '…')) ?>
                         <?php if ($hasPending): ?>
-                            <span class="bsv-pending-badge">
-                                <i class="bi bi-hourglass-split"></i> <?= $pendingBids ?> Pending
-                            </span>
+                        <div style="font-size:10.5px; color:#e67e22; font-weight:700; margin-top:2px;">
+                            <i class="bi bi-hourglass-split"></i> <?= $pendingBids ?> pending review
+                        </div>
                         <?php endif; ?>
-
-                        <span class="proc-status-pill open">OPEN</span>
-
-                        <a href="bid-submission-view.php?id=<?= $proc['procurement_id'] ?>" class="proc-action-btn review">
+                    </td>
+                    <td class="proc-abc-cell col-abc"><?= $totalBids ?></td>
+                    <td class="col-status">
+                        <span class="proc-status-pill status-open">
+                            <i class="bi bi-circle-fill" style="font-size:7px;"></i> Open
+                        </span>
+                    </td>
+                    <td style="text-align:right;">
+                        <a href="bid-submission-view.php?id=<?= $proc['procurement_id'] ?>" class="proc-action-btn btn-view">
                             <i class="bi bi-eye"></i> View
                         </a>
-                    </div>
-                </div>
-
-            </div>
-        <?php endforeach; ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <div class="table-foot">
+            <div><?= count($procurements) ?> open procurement<?= count($procurements)!=1?'s':'' ?> shown<?= $filter==='pending'?' (filtered: pending bids)':'' ?></div>
         </div>
         <?php endif; ?>
-
-        <div class="sp-list-foot">
-            <?= count($procurements) ?> open procurement<?= count($procurements) != 1 ? 's' : '' ?> shown
-            <?= $filter === 'pending' ? ' (filtered by pending bids)' : '' ?>
-        </div>
-
-    </div><!-- /.sp-panel.sp-list-panel -->
+    </div><!-- /.proc-table-panel -->
 
 </div>
 </main>

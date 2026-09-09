@@ -205,120 +205,138 @@ $result = mysqli_stmt_get_result($stmt);
 
     <!-- ════ PROCUREMENT LIST ════ -->
     <!-- New procurement button -->
-    <a href="create_procurement.php" class="sp-new-btn">
+    <a href="create_procurement.php" class="sp-new-btn" style="background:#06251b; color:#ffc107; box-shadow:0 6px 16px -6px rgba(6,37,27,.35);">
         <i class="bi bi-plus-circle"></i> New Procurement
     </a>
 
     <!-- List -->
-    <div class="sp-panel sp-list-panel">
-        <!-- Toolbar: tabs + search (matching user-role-management layout) -->
-        <form method="GET" action="" class="ap2-controls" style="margin-bottom:12px;">
-            <div class="ap2-search-field">
-                <i class="bi bi-search"></i>
-                <input type="text" name="search"
-                    placeholder="Search by title or PhilGEPS ref..."
-                    value="<?= htmlspecialchars($search) ?>">
-            </div>
-
-            <div class="ap2-filters">
-                <?php
-                $tabs = ['all'=>'All','draft'=>'Draft','open'=>'Open','closed'=>'Closed','awarded'=>'Awarded'];
-                foreach ($tabs as $val => $label):
-                ?>
-                    <button type="submit" name="status" value="<?= $val ?>"
-                            class="ap2-filter-btn <?= $status_filter === $val ? 'active' : '' ?>">
-                        <?= $label ?>
-                    </button>
-                <?php endforeach; ?>
-            </div>
-
-            <button type="submit" class="ap2-go-btn">
-                <i class="bi bi-search"></i> Search
-            </button>
-        </form>
-        <?php if (mysqli_num_rows($result) > 0):
-            while ($row = mysqli_fetch_assoc($result)):
-                $cs = strtolower($row['status']);
-                $lc = ['draft'=>'#8B958E','open'=>'#219653','closed'=>'#2F6FED','awarded'=>'#F0B92E'][$cs] ?? '#8B958E';
-                $pillBg = ['draft'=>'#EEF0ED','open'=>'#E4F5EA','closed'=>'#E7EEFE','awarded'=>'#FCF1CF'][$cs] ?? '#EEF0ED';
-                $pillFg = ['draft'=>'#8B958E','open'=>'#219653','closed'=>'#2F6FED','awarded'=>'#C99A1D'][$cs] ?? '#8B958E';
-        ?>
-        <div class="sp-proc-row" style="border-left-color:<?= $lc ?>">
-            <div class="sp-proc-body">
-                <div class="sp-proc-title"><?= htmlspecialchars($row['title']) ?></div>
-                <div class="sp-proc-meta">
-                    <span><i class="bi bi-hash"></i> <?= htmlspecialchars($row['philgeps_ref_no'] ?? 'N/A') ?></span>
-                    <span><i class="bi bi-cash"></i> ₱<?= number_format($row['abc'], 2) ?></span>
-                    <span><i class="bi bi-briefcase"></i> <?= htmlspecialchars($row['procurement_mode'] ?? 'N/A') ?></span>
+    <div class="proc-table-panel" style="margin-bottom:24px;">
+        <div class="filter-bar">
+            <form method="GET" action="" id="procFilterForm" style="display:contents;">
+                <div class="ap2-search-field">
+                    <i class="bi bi-search"></i>
+                    <input type="text" name="search"
+                        placeholder="Search by title or PhilGEPS ref..."
+                        value="<?= htmlspecialchars($search) ?>">
                 </div>
-            </div>
-            <div class="sp-proc-actions">
-                <span class="sp-status-pill" style="background:<?= $pillBg ?>; color:<?= $pillFg ?>">
-                    <?= strtoupper($cs) ?>
-                </span> | 
-                <?php if ($cs !== 'draft'): ?>
-                    <a href="procurement-view.php?id=<?= $row['id'] ?>" class="sp-act-btn" style="background:#f0f4f2; color:#06251b;">
-                        <i class="bi bi-eye"></i> View
-                    </a>
-                <?php endif; ?>
-
-                <?php if ($cs === 'draft'): ?>
-                    <a href="review_procurement.php?id=<?= $row['id'] ?>" class="sp-act-btn" style="background:#E7EEFE; color:#2F6FED;">
-                        <i class="bi bi-eye"></i> Review
-                    </a>
-                    <a href="manage_lots.php?id=<?= $row['id'] ?>" class="sp-act-btn" style="background:#E4F5EA; color:#219653;">
-                        <i class="bi bi-sliders"></i> Manage
-                    </a>
-                <?php endif; ?>
-
-                <form method="POST" action="procurement.php?status=<?= urlencode($status_filter) ?><?= $search ? '&search='.urlencode($search) : '' ?>" style="display:inline;">
-                    <input type="hidden" name="procurement_id" value="<?= $row['id'] ?>">
-                    <button type="button" class="sp-act-btn"
-                            style="background:#FBE7E8; color:#DB4C4C; border:none;"
-                            onclick="openDeleteModal(<?= $row['id'] ?>, '<?= htmlspecialchars(addslashes($row['title'])) ?>')">
-                        <i class="bi bi-trash3"></i> Delete
-                    </button>
-                </form>
-            </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <?php
+                    $tabs = ['all'=>'All','draft'=>'Draft','open'=>'Open','closed'=>'Closed','awarded'=>'Awarded'];
+                    foreach ($tabs as $val => $label):
+                    ?>
+                        <button type="submit" name="status" value="<?= $val ?>"
+                                class="ap2-filter-btn <?= $status_filter === $val ? 'active' : '' ?>">
+                            <?= $label ?>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
+                <button type="submit" class="ap2-go-btn">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </form>
         </div>
-        <?php endwhile;
-        else: ?>
-            <div class="empty-state" style="padding:48px;">
-                <i class="bi bi-folder2-open"></i>
-                <p>No procurements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</p>
+
+        <?php if (mysqli_num_rows($result) > 0): ?>
+        <div style="overflow-x:auto;">
+            <table class="proc-table">
+                <thead>
+                    <tr>
+                        <th style="width:130px;">PhilGEPS Ref</th>
+                        <th>Title</th>
+                        <th class="col-mode">Mode</th>
+                        <th class="col-abc">ABC</th>
+                        <th class="col-status">Status</th>
+                        <th style="text-align:right; min-width:180px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php while ($row = mysqli_fetch_assoc($result)):
+                    $cs = strtolower($row['status']);
+                    $stClass = match($cs) { 'open'=>'status-open','closed'=>'status-closed','awarded'=>'status-awarded', default=>'status-draft' };
+                ?>
+                <tr>
+                    <td class="proc-ref-cell">
+                        <i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i>
+                        <?= htmlspecialchars($row['philgeps_ref_no'] ?? '—') ?>
+                    </td>
+                    <td class="proc-title-cell">
+                        <?php if ($cs !== 'draft'): ?>
+                            <a href="procurement-view.php?id=<?= $row['id'] ?>"><?= htmlspecialchars(mb_strimwidth($row['title'], 0, 65, '…')) ?></a>
+                        <?php else: ?>
+                            <?= htmlspecialchars(mb_strimwidth($row['title'], 0, 65, '…')) ?>
+                        <?php endif; ?>
+                        <div style="font-size:10.5px; color:#88968d; margin-top:2px;">
+                            <i class="bi bi-briefcase"></i> <?= htmlspecialchars($row['procurement_mode'] ?? '—') ?>
+                        </div>
+                    </td>
+                    <td class="col-mode">
+                        <span class="proc-mode-tag"><?= htmlspecialchars($row['procurement_mode'] ?? '—') ?></span>
+                    </td>
+                    <td class="proc-abc-cell col-abc">₱<?= number_format($row['abc'], 2) ?></td>
+                    <td class="col-status">
+                        <span class="proc-status-pill <?= $stClass ?>">
+                            <i class="bi bi-circle-fill" style="font-size:7px;"></i> <?= ucfirst($cs) ?>
+                        </span>
+                    </td>
+                    <td style="text-align:right;">
+                        <div style="display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
+                            <?php if ($cs !== 'draft'): ?>
+                                <a href="procurement-view.php?id=<?= $row['id'] ?>" class="proc-action-btn btn-view">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            <?php endif; ?>
+                            <?php if ($cs === 'draft'): ?>
+                                <a href="review_procurement.php?id=<?= $row['id'] ?>" class="proc-action-btn" style="background:#e7eefe; color:#2F6FED;">
+                                    <i class="bi bi-eye"></i> Review
+                                </a>
+                                <a href="manage_lots.php?id=<?= $row['id'] ?>" class="proc-action-btn btn-open">
+                                    <i class="bi bi-sliders"></i> Manage
+                                </a>
+                            <?php endif; ?>
+                            <form method="POST" action="procurement.php?status=<?= urlencode($status_filter) ?><?= $search ? '&search='.urlencode($search) : '' ?>" style="display:inline;">
+                                <input type="hidden" name="procurement_id" value="<?= $row['id'] ?>">
+                                <button type="button" class="proc-action-btn"
+                                        style="background:#fef2f2; color:#dc2626; border:none;"
+                                        onclick="openDeleteModal(<?= $row['id'] ?>, '<?= htmlspecialchars(addslashes($row['title'])) ?>')">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                <?php endwhile; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-foot">
+            <div>
+                Showing <strong><?= min($total_shown, $offset + 1) ?></strong>–<strong><?= min($total_shown, $offset + $per_page) ?></strong>
+                of <strong><?= number_format($total_shown) ?></strong> procurement<?= $total_shown != 1 ? 's' : '' ?>
+                <?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>
             </div>
+            <?php if ($total_pages > 1):
+                $qs = array_filter(['search'=>$search, 'status'=>$status_filter !== 'all' ? $status_filter : null]);
+                $qstr = $qs ? '&'.http_build_query($qs) : '';
+            ?>
+            <div class="pagination">
+                <a href="?page=<?= max(1,$page-1) ?><?= $qstr ?>" class="page-link <?= $page<=1?'disabled':'' ?>"><i class="bi bi-chevron-left"></i></a>
+                <?php for ($p = max(1,$page-2); $p <= min($total_pages,$page+2); $p++): ?>
+                <a href="?page=<?= $p ?><?= $qstr ?>" class="page-link <?= $p===$page?'active':'' ?>"><?= $p ?></a>
+                <?php endfor; ?>
+                <a href="?page=<?= min($total_pages,$page+1) ?><?= $qstr ?>" class="page-link <?= $page>=$total_pages?'disabled':'' ?>"><i class="bi bi-chevron-right"></i></a>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <?php else: ?>
+        <div style="padding:52px 20px; text-align:center; color:#88968d;">
+            <i class="bi bi-folder2-open" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
+            <div style="font-size:13px; font-weight:700;">No procurements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</div>
+        </div>
         <?php endif; ?>
 
         <?php mysqli_stmt_close($stmt); ?>
-
-        <!-- ── Pagination ── -->
-        <?php if ($total_pages > 1): ?>
-            <div class="ap2-pagination" style="padding:14px 20px; border-top:1px solid #edf1ee; display:flex; align-items:center; justify-content:space-between;">
-                <div class="ap2-pagination-info" style="font-size:12px; color:#88968d;">
-                    Showing <strong><?= min($total_shown, $offset + 1) ?></strong> to <strong><?= min($total_shown, $offset + $per_page) ?></strong> of <strong><?= number_format($total_shown) ?></strong> procurements
-                </div>
-                <div class="ap2-pagination-links" style="display:flex; gap:4px;">
-                    <?php if ($page > 1): ?>
-                        <a href="?search=<?= urlencode($search) ?>&status=<?= urlencode($status_filter) ?>&page=<?= $page - 1 ?>" class="vp-back-link" style="padding:4px 10px; font-size:11.5px;">
-                            <i class="bi bi-chevron-left"></i> Prev
-                        </a>
-                    <?php endif; ?>
-
-                    <?php for ($p = 1; $p <= $total_pages; $p++): ?>
-                        <a href="?search=<?= urlencode($search) ?>&status=<?= urlencode($status_filter) ?>&page=<?= $p ?>"
-                           class="vp-back-link" style="padding:4px 10px; font-size:11.5px; <?= $p === $page ? 'background:#06251b; color:#ffc107;' : '' ?>">
-                            <?= $p ?>
-                        </a>
-                    <?php endfor; ?>
-
-                    <?php if ($page < $total_pages): ?>
-                        <a href="?search=<?= urlencode($search) ?>&status=<?= urlencode($status_filter) ?>&page=<?= $page + 1 ?>" class="vp-back-link" style="padding:4px 10px; font-size:11.5px;">
-                            Next <i class="bi bi-chevron-right"></i>
-                        </a>
-                    <?php endif; ?>
-                </div>
-            </div>
-        <?php endif; ?>
     </div>
 
 </div>

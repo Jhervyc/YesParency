@@ -612,7 +612,13 @@ $inv_res->close();
                 <div class="skel" style="height:120px;border-radius:12px"></div>
             </div>
         </div>
-        <div style="padding:16px 20px;border-top:1px solid #f0f4f2;background:#fafcfb;display:flex;justify-content:flex-end">
+        <div style="padding:16px 20px;border-top:1px solid #f0f4f2;background:#fafcfb;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <?php if ($can_manage): ?>
+            <a href="checklist_pdf.php?session=<?= (int)$session_id ?>" target="_blank"
+               style="display:inline-flex;align-items:center;gap:8px;background:#1d4ed8;color:#fff;font-size:13px;font-weight:800;padding:9px 20px;border-radius:10px;text-decoration:none;font-family:'Poppins',sans-serif;transition:all .15s">
+                <i class="bi bi-file-earmark-pdf-fill"></i> Download Checklist PDF
+            </a>
+            <?php else: ?><span></span><?php endif; ?>
             <a href="dashboard.php" style="display:inline-flex;align-items:center;gap:8px;background:#06251b;color:#ffc107;font-size:13px;font-weight:800;padding:9px 20px;border-radius:10px;text-decoration:none;font-family:'Poppins',sans-serif;transition:all .15s">
                 <i class="bi bi-house-fill"></i> Go to Dashboard
             </a>
@@ -2593,6 +2599,51 @@ function doEndSession(){
 
 function mkEl(tag,cls){ const e=document.createElement(tag); if(cls) e.className=cls; return e; }
 
+// ── Conclusion: render file list for a bidder+lot+phase (uses openedDocs cache) ──
+function _conclusionFileList(bidderId, lotId, phase){
+    // Fetch files from API then render inline — returns a placeholder div
+    const id = `cl-files-${bidderId}-${lotId}-${phase}`;
+    // Use a setTimeout so the DOM has been inserted before we try to populate it
+    setTimeout(()=>{
+        get({ action:'files', bidder_id:bidderId, lot_id:lotId, phase:phase, session_id:SESSION_ID })
+        .then(d => {
+            const el = document.getElementById(id);
+            if(!el) return;
+            const files = d.files || [];
+            if(!files.length){ el.innerHTML = '<span style="font-size:11px;color:#9ca3af">No documents.</span>'; return; }
+            el.innerHTML = files.map(f => {
+                const opened = !!openedDocs[f.id];
+                const ext = (f.display_name||'').split('.').pop().toLowerCase();
+                const icon = ext==='pdf' ? 'bi-file-earmark-pdf'
+                           : ['jpg','jpeg','png','gif','webp'].includes(ext) ? 'bi-file-earmark-image'
+                           : 'bi-file-earmark-text';
+                return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f7faf8">
+                    <i class="bi ${esc(icon)}" style="color:#88968d;font-size:13px;flex-shrink:0"></i>
+                    <span style="flex:1;font-size:11.5px;color:#06251b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.display_name)}</span>
+                    <button class="btn-view${opened?' active':''}" onclick="viewDoc(${f.id})"
+                        style="font-size:11px;padding:3px 10px"
+                        title="${opened?'View document':'File not yet decrypted'}">
+                        <i class="bi bi-eye"></i> View
+                    </button>
+                </div>`;
+            }).join('');
+            // Trigger silent decrypt for any not yet in cache
+            (async ()=>{
+                for(const f of files){
+                    if(openedDocs[f.id]) continue;
+                    const res = await post({ action:'decrypt_file', doc_id:f.id, session_id:SESSION_ID });
+                    if(res.success){
+                        openedDocs[f.id] = { data_url:res.data_url, mime:res.mime, file_name:res.file_name };
+                        const vbtn = el.querySelector(`button[onclick="viewDoc(${f.id})"]`);
+                        if(vbtn){ vbtn.classList.add('active'); vbtn.title='View document'; }
+                    }
+                }
+            })();
+        });
+    }, 0);
+    return `<div id="${id}" style="padding:2px 0"><span style="font-size:11px;color:#9ca3af">Loading…</span></div>`;
+}
+
 // ── Conclusion Tab ────────────────────────────────────────────────────────
 function loadConclusion(){
     const body = document.getElementById('conclusion-body');
@@ -2716,7 +2767,54 @@ function loadConclusion(){
             </div>
         </div>`;
 
+        // Set main content first
         body.innerHTML = html;
+
+        // ── Bidder files per lot — fetched after main HTML is in DOM ──────
+        const bFilesSection = document.createElement('div');
+        body.appendChild(bFilesSection);
+
+        Promise.all(LOTS.map(lot =>
+            Promise.all([
+                get({ action:'bidders', lot_id:lot.id, phase:'eligibility', session_id:SESSION_ID }),
+                get({ action:'bidders', lot_id:lot.id, phase:'financial',   session_id:SESSION_ID })
+            ]).then(([ed, fd]) => ({ lot, eligBidders: ed.bidders||[], finBidders: fd.bidders||[] }))
+        )).then(lotBidders => {
+            let bHtml = `<div style="font-size:12px;font-weight:800;color:#88968d;letter-spacing:.06em;text-transform:uppercase;margin:18px 0 10px">Submitted Bid Documents</div>`;
+            lotBidders.forEach(({ lot, eligBidders }) => {
+                if(!eligBidders.length) return;
+                const lotName = `Lot ${lot.lot_number}${lot.lot_title ? ' · '+lot.lot_title : ''}`;
+                bHtml += `<div style="border:1px solid #eaeeec;border-radius:14px;overflow:hidden;margin-bottom:14px">
+                    <div style="background:#f8faf9;border-bottom:1px solid #eaeeec;padding:10px 16px;font-size:13px;font-weight:800;color:#06251b">
+                        <i class="bi bi-layers-fill" style="color:#1f7a3d"></i> ${esc(lotName)}
+                    </div>`;
+
+                eligBidders.forEach(b => {
+                    const bName = b.business_name || (b.firstname+' '+b.lastname);
+                    const ini   = (b.firstname||'').charAt(0).toUpperCase()+(b.lastname||'').charAt(0).toUpperCase();
+                    const statusColor = b.eligibility_status==='eligible' ? '#15803d' : b.eligibility_status==='disqualified' ? '#dc2626' : '#f59e0b';
+                    const statusLabel = b.eligibility_status==='eligible' ? 'Eligible' : b.eligibility_status==='disqualified' ? 'Disqualified' : b.eligibility_status;
+
+                    bHtml += `<div style="padding:12px 16px;border-bottom:1px solid #f0f4f2">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                            <div style="width:28px;height:28px;border-radius:50%;background:#06251b;color:#ffc107;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+                                ${b.avatar ? `<img src="../${esc(b.avatar)}" style="width:100%;height:100%;object-fit:cover">` : esc(ini)}
+                            </div>
+                            <div style="font-size:12.5px;font-weight:700;color:#06251b;flex:1">${esc(bName)}</div>
+                            <span style="font-size:10.5px;font-weight:700;color:${statusColor}">${esc(statusLabel)}</span>
+                        </div>
+                        <div style="font-size:10.5px;font-weight:700;color:#88968d;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Eligibility Documents</div>
+                        ${_conclusionFileList(b.bidder_id, lot.id, 'eligibility')}
+                        ${b.eligibility_status !== 'disqualified' ? `
+                        <div style="font-size:10.5px;font-weight:700;color:#88968d;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.05em">Financial Documents</div>
+                        ${_conclusionFileList(b.bidder_id, lot.id, 'financial')}` : ''}
+                    </div>`;
+                });
+
+                bHtml += `</div>`;
+            });
+            bFilesSection.innerHTML = bHtml;
+        });
     }).catch(()=>{
         body.innerHTML = '<div class="p-empty"><i class="bi bi-exclamation-circle"></i>Failed to load session summary.</div>';
     });
@@ -2929,39 +3027,24 @@ function _onPusherEvent(event, data){
 
         // ── Signing flow ──────────────────────────────────────────────────
         case 'signing_started':
-            // Secretariat hit "Start Opening" — everyone needs to see fresh button state.
-            // Reset hash to force re-render, then let renderLotBidderArea + selectBidderTab
-            // fetch fresh quorum internally (avoids race with _silentRefreshQuorum).
+            // Secretariat hit "Start Opening" — full re-render for everyone.
             if(activeLotId > 0 && typeof STATE.currentTab === 'number'){
                 _rt.lastBiddersHash = '';
-                _silentRefreshBidders(activeLotId, stage);
+                fetchAndRenderBiddersByDB(activeLotId);
             }
             break;
 
         case 'bac_signed':
-            // A BAC member signed — force a full bidder area re-render for everyone
-            // (Secretariat sees "Open Now", BAC sees updated quorum count/pill).
+            // A BAC member signed — always do a full guaranteed re-render.
+            // Skip _silentRefreshBidders entirely — its hash guard can still
+            // bail even after a reset if a concurrent call updates the hash
+            // before the response arrives. fetchAndRenderBiddersByDB has no
+            // hash check and always re-renders with fresh quorum from DB.
             if(activeLotId > 0 && typeof STATE.currentTab === 'number'){
                 _rt.lastSigningStatus = data.signing_status || 'signing';
                 SIGNING_STATUS = data.signing_status || 'signing';
-
-                // Seed _activeBidLotId from payload if not set yet
-                if(!_rt._activeBidLotId && data.bid_lot_id){
-                    _rt._activeBidLotId = data.bid_lot_id;
-                }
-
-                if(data.quorum_reached){
-                    // Quorum reached — Secretariat must see "Open Now" immediately.
-                    // Use fetchAndRenderBiddersByDB (full reload) to guarantee the
-                    // action buttons repaint with the fresh quorum state from DB.
-                    // Reset hash first so the next _silentRefreshBidders doesn't skip.
-                    _rt.lastBiddersHash = '';
-                    fetchAndRenderBiddersByDB(activeLotId);
-                } else {
-                    // Not yet quorum — silent re-render is enough (quorum bar count update)
-                    _rt.lastBiddersHash = '';
-                    _silentRefreshBidders(activeLotId, stage);
-                }
+                _rt.lastBiddersHash = '';
+                fetchAndRenderBiddersByDB(activeLotId);
             }
             break;
 

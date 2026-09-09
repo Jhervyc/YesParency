@@ -432,109 +432,109 @@ function timeAgo($datetime) {
 
     <!-- ════ ANNOUNCEMENTS LIST (matching procurement.php) ════ -->
     <!-- New announcement button -->
-    <button type="button" class="sp-new-btn" onclick="openCreateModal()" style="cursor:pointer;">
+    <button type="button" class="sp-new-btn" onclick="openCreateModal()" style="cursor:pointer; background:#06251b; color:#ffc107; box-shadow:0 6px 16px -6px rgba(6,37,27,.35);">
         <i class="bi bi-plus-circle"></i> Broadcast New Announcement
     </button>
 
     <!-- List panel -->
-    <div class="sp-panel sp-list-panel">
-        <!-- Toolbar: tabs + search (matching procurement.php layout) -->
-        <form method="GET" action="" class="ap2-controls" style="margin-bottom:12px;">
-            <div class="ap2-search-field">
-                <i class="bi bi-search"></i>
-                <input type="text" name="search"
-                    placeholder="Search by title, message, or author..."
-                    value="<?= htmlspecialchars($search) ?>">
-            </div>
+    <div class="proc-table-panel" style="margin-bottom:24px;">
+        <div class="filter-bar">
+            <form method="GET" action="" id="annoFilterForm" style="display:contents;">
+                <div class="ap2-search-field">
+                    <i class="bi bi-search"></i>
+                    <input type="text" name="search"
+                        placeholder="Search by title, message, or author..."
+                        value="<?= htmlspecialchars($search) ?>">
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <?php
+                    $tabs = ['all'=>'All','broadcast'=>'Broadcast','bidders'=>'Bidders','admins'=>'Admins','users'=>'Users','direct'=>'Direct'];
+                    foreach ($tabs as $val => $label):
+                    ?>
+                        <button type="submit" name="type" value="<?= $val ?>"
+                                class="ap2-filter-btn <?= $filter_type === $val ? 'active' : '' ?>">
+                            <?= $label ?>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
+                <button type="submit" class="ap2-go-btn"><i class="bi bi-search"></i> Search</button>
+            </form>
+        </div>
 
-            <div class="ap2-filters">
-                <?php
-                $tabs = [
-                    'all'       => 'All',
-                    'broadcast' => 'Broadcast (All)',
-                    'bidders'   => 'Bidders',
-                    'admins'    => 'Admins',
-                    'users'     => 'Users',
-                    'direct'    => 'Direct'
-                ];
-                foreach ($tabs as $val => $label):
-                ?>
-                    <button type="submit" name="type" value="<?= $val ?>"
-                            class="ap2-filter-btn <?= $filter_type === $val ? 'active' : '' ?>">
-                        <?= $label ?>
-                    </button>
-                <?php endforeach; ?>
-            </div>
-
-            <button type="submit" class="ap2-go-btn">
-                <i class="bi bi-search"></i> Search
-            </button>
-        </form>
-
-        <?php if ($announcements_res->num_rows > 0):
-            while ($row = $announcements_res->fetch_assoc()):
-                $tt = $row['target_type'];
-                $lc = '#1565c0';
-                $pillBg = '#E7EEFE';
-                $pillFg = '#1565c0';
-                $badgeTxt = 'BROADCAST (ALL)';
-                $badgeIcn = 'globe';
-
-                if ($tt === 'role') {
-                    $r = $row['target_role'];
-                    if ($r === 'bidder') {
-                        $lc = '#C99A1D'; $pillBg = '#FCF1CF'; $pillFg = '#C99A1D'; $badgeTxt = 'ROLE: BIDDERS'; $badgeIcn = 'person-badge';
-                    } elseif ($r === 'admin') {
-                        $lc = '#219653'; $pillBg = '#E4F5EA'; $pillFg = '#219653'; $badgeTxt = 'ROLE: ADMINS'; $badgeIcn = 'shield-check';
-                    } elseif ($r === 'user') {
-                        $lc = '#7b1fa2'; $pillBg = '#F3E5F5'; $pillFg = '#7b1fa2'; $badgeTxt = 'ROLE: USERS'; $badgeIcn = 'people';
-                    } elseif ($r === 'superadmin') {
-                        $lc = '#06251b'; $pillBg = '#E0F2F1'; $pillFg = '#004D40'; $badgeTxt = 'ROLE: SUPERADMINS'; $badgeIcn = 'person-gear';
+        <?php if ($announcements_res->num_rows > 0): ?>
+        <div style="overflow-x:auto;">
+            <table class="proc-table">
+                <thead>
+                    <tr>
+                        <th>Title / Message</th>
+                        <th class="col-mode">Target</th>
+                        <th class="col-opening">Posted By</th>
+                        <th class="col-abc">Date</th>
+                        <th class="col-status">Views</th>
+                        <th style="text-align:right; min-width:140px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php while ($row = $announcements_res->fetch_assoc()):
+                    $tt = $row['target_type'];
+                    $pillBg = '#E7EEFE'; $pillFg = '#1565c0'; $badgeTxt = 'Broadcast'; $badgeIcn = 'globe';
+                    if ($tt === 'role') {
+                        $r = $row['target_role'];
+                        if ($r === 'bidder')     { $pillBg='#FCF1CF'; $pillFg='#C99A1D'; $badgeTxt='Bidders';    $badgeIcn='person-badge'; }
+                        elseif ($r === 'admin')  { $pillBg='#E4F5EA'; $pillFg='#219653'; $badgeTxt='Admins';     $badgeIcn='shield-check'; }
+                        elseif ($r === 'user')   { $pillBg='#F3E5F5'; $pillFg='#7b1fa2'; $badgeTxt='Users';      $badgeIcn='people'; }
+                        elseif ($r === 'superadmin') { $pillBg='#E0F2F1'; $pillFg='#004D40'; $badgeTxt='Superadmins'; $badgeIcn='person-gear'; }
+                    } elseif ($tt === 'user') {
+                        $pillBg='#EDE7F6'; $pillFg='#512da8';
+                        $targetName = trim(($row['target_fname']??'').' '.($row['target_lname']??'')) ?: $row['target_username'];
+                        $badgeTxt = 'Direct: '.$targetName; $badgeIcn='person';
                     }
-                } elseif ($tt === 'user') {
-                    $lc = '#512da8'; $pillBg = '#EDE7F6'; $pillFg = '#512da8';
-                    $targetName = trim(($row['target_fname'] ?? '') . ' ' . ($row['target_lname'] ?? '')) ?: $row['target_username'];
-                    $badgeTxt = 'DIRECT: ' . $targetName;
-                    $badgeIcn = 'person';
-                }
-
-                $creatorName = trim(($row['creator_fname'] ?? '') . ' ' . ($row['creator_lname'] ?? '')) ?: ($row['creator_username'] ?? 'Superadmin');
-        ?>
-        <div class="sp-proc-row" style="border-left-color:<?= $lc ?>">
-            <div class="sp-proc-body">
-                <div class="sp-proc-title"><?= htmlspecialchars($row['title']) ?></div>
-                <div class="sp-proc-meta">
-                    <span><i class="bi bi-person"></i> By: <?= htmlspecialchars($creatorName) ?></span>
-                    <span><i class="bi bi-calendar3"></i> <?= date('M j, Y', strtotime($row['created_at'])) ?> (<?= timeAgo($row['created_at']) ?>)</span>
-                    <span><i class="bi bi-eye"></i> <?= (int)$row['read_count'] ?> views</span>
-                </div>
-                <div style="margin-top:6px; font-size:12.5px; color:#5c6b61; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
-                    <?= htmlspecialchars($row['message']) ?>
-                </div>
-            </div>
-            <div class="sp-proc-actions">
-                <span class="sp-status-pill" style="background:<?= $pillBg ?>; color:<?= $pillFg ?>">
-                    <i class="bi bi-<?= $badgeIcn ?>"></i> <?= htmlspecialchars($badgeTxt) ?>
-                </span> | 
-                <button type="button" class="sp-act-btn" style="background:#f0f4f2; color:#06251b; border:none; cursor:pointer;" onclick="viewAnnouncement(<?= htmlspecialchars(json_encode($row)) ?>)">
-                    <i class="bi bi-eye"></i> View
-                </button>
-                <button type="button" class="sp-act-btn" style="background:#FBE7E8; color:#DB4C4C; border:none; cursor:pointer;" onclick="confirmDelete(<?= $row['notification_id'] ?>, '<?= htmlspecialchars(addslashes($row['title'])) ?>')">
-                    <i class="bi bi-trash3"></i> Delete
-                </button>
-            </div>
+                    $creatorName = trim(($row['creator_fname']??'').' '.($row['creator_lname']??'')) ?: ($row['creator_username']??'Superadmin');
+                ?>
+                <tr>
+                    <td class="proc-title-cell">
+                        <span style="font-weight:700; color:#06251b;"><?= htmlspecialchars($row['title']) ?></span>
+                        <div style="font-size:11px; color:#63736a; margin-top:3px; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;">
+                            <?= htmlspecialchars($row['message']) ?>
+                        </div>
+                    </td>
+                    <td class="col-mode">
+                        <span class="proc-status-pill" style="background:<?= $pillBg ?>; color:<?= $pillFg ?>;">
+                            <i class="bi bi-<?= $badgeIcn ?>" style="font-size:9px;"></i> <?= htmlspecialchars($badgeTxt) ?>
+                        </span>
+                    </td>
+                    <td class="proc-deadline-cell col-opening"><?= htmlspecialchars($creatorName) ?></td>
+                    <td class="proc-deadline-cell col-abc"><?= date('M j, Y', strtotime($row['created_at'])) ?></td>
+                    <td class="col-status" style="font-size:12px; color:#55665a; font-weight:600;">
+                        <i class="bi bi-eye" style="color:#88968d;"></i> <?= (int)$row['read_count'] ?>
+                    </td>
+                    <td style="text-align:right;">
+                        <div style="display:flex; gap:6px; justify-content:flex-end;">
+                            <button type="button" class="proc-action-btn btn-view"
+                                    onclick="viewAnnouncement(<?= htmlspecialchars(json_encode($row)) ?>)">
+                                <i class="bi bi-eye"></i> View
+                            </button>
+                            <button type="button" class="proc-action-btn"
+                                    style="background:#fef2f2; color:#dc2626; border:none; cursor:pointer;"
+                                    onclick="confirmDelete(<?= $row['notification_id'] ?>, '<?= htmlspecialchars(addslashes($row['title'])) ?>')">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <?php endwhile; ?>
+                </tbody>
+            </table>
         </div>
-        <?php endwhile;
-        else: ?>
-            <div class="empty-state" style="padding:48px;">
-                <i class="bi bi-megaphone"></i>
-                <p>No announcements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</p>
-            </div>
+        <div class="table-foot">
+            <div><?= $announcements_res->num_rows ?> announcement<?= $announcements_res->num_rows != 1 ? 's' : '' ?> shown</div>
+        </div>
+        <?php else: ?>
+        <div style="padding:52px 20px; text-align:center; color:#88968d;">
+            <i class="bi bi-megaphone" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
+            <div style="font-size:13px; font-weight:700;">No announcements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</div>
+        </div>
         <?php endif; ?>
-
-        <div class="sp-list-foot">
-            Showing <?= $announcements_res->num_rows ?> announcement(s)
-        </div>
     </div>
 
 </div>

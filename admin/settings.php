@@ -5,6 +5,121 @@ $user_id    = (int)$_SESSION['user_id'];
 $admin_role = $_SESSION['role'] ?? 'admin';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// LIVE CONFIG — seed defaults into system_settings if not yet present
+// ─────────────────────────────────────────────────────────────────────────────
+$live_defaults = [
+    'mediamtx_host'         => $_ENV['MEDIAMTX_HOST']         ?? 'localhost',
+    'mediamtx_webrtc_port'  => $_ENV['MEDIAMTX_WEBRTC_PORT']  ?? '8889',
+    'mediamtx_rtmp_port'    => $_ENV['MEDIAMTX_RTMP_PORT']    ?? '1935',
+    'mediamtx_default_path' => $_ENV['MEDIAMTX_DEFAULT_PATH'] ?? 'live',
+];
+foreach ($live_defaults as $k => $v) {
+    $conn->query("INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES ('" . $conn->real_escape_string($k) . "', '" . $conn->real_escape_string($v) . "')");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LIVE CONFIG AJAX ENDPOINTS
+// ─────────────────────────────────────────────────────────────────────────────
+if (isset($_GET['live_action'])) {
+    header('Content-Type: application/json');
+
+    // ── GET live config ───────────────────────────────────────────────────────
+    if ($_GET['live_action'] === 'get') {
+        $keys = array_keys($live_defaults);
+        $placeholders = implode(',', array_fill(0, count($keys), '?'));
+        $types = str_repeat('s', count($keys));
+        $stmt = $conn->prepare("SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ($placeholders)");
+        $stmt->bind_param($types, ...$keys);
+        $stmt->execute();
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        $config = [];
+        foreach ($rows as $row) {
+            $config[$row['setting_key']] = $row['setting_value'];
+        }
+        echo json_encode(['success' => true, 'config' => $config]);
+        exit;
+    }
+
+    // ── SAVE live config ──────────────────────────────────────────────────────
+    if ($_GET['live_action'] === 'save') {
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        $allowed_keys = array_keys($live_defaults);
+        $errors = [];
+        $saved  = [];
+
+        foreach ($allowed_keys as $key) {
+            if (!array_key_exists($key, $data)) continue;
+            $val = trim($data[$key] ?? '');
+
+            // Basic validation
+            if (in_array($key, ['mediamtx_webrtc_port', 'mediamtx_rtmp_port'], true)) {
+                $port = (int)$val;
+                if ($port < 1 || $port > 65535) {
+                    $errors[] = "$key must be a valid port (1–65535).";
+                    continue;
+                }
+                $val = (string)$port;
+            } elseif ($key === 'mediamtx_default_path') {
+                $val = ltrim($val, '/');
+                if ($val === '') {
+                    $errors[] = "mediamtx_default_path cannot be empty.";
+                    continue;
+                }
+            } elseif ($key === 'mediamtx_host') {
+                if ($val === '') {
+                    $errors[] = "mediamtx_host cannot be empty.";
+                    continue;
+                }
+            }
+
+            $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value)
+                                    VALUES (?, ?)
+                                    ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+            $stmt->bind_param("ss", $key, $val);
+            $stmt->execute();
+            $stmt->close();
+            $saved[$key] = $val;
+        }
+
+        if (!empty($errors)) {
+            echo json_encode(['success' => false, 'message' => implode(' ', $errors)]);
+            exit;
+        }
+
+        // Bust PHP in-memory cache sentinel so next request re-reads from DB
+        require_once __DIR__ . '/../config/mediamtx.php';
+        mediamtx_bust_cache();
+
+        // Audit log
+        require_once __DIR__ . '/utils/audit_helper.php';
+        audit_log($conn, 'LIVE_CONFIG_UPDATED', 'system_settings', null,
+            'Updated MediaMTX live configuration', null, $saved);
+
+        // Broadcast config:updated so the PHP in-memory cache knows to refresh
+        require_once __DIR__ . '/../config/pusher.php';
+        try {
+            $pusher = new Pusher\Pusher(
+                $_ENV['PUSHER_APP_KEY']    ?? '',
+                $_ENV['PUSHER_APP_SECRET'] ?? '',
+                $_ENV['PUSHER_APP_ID']     ?? '',
+                ['cluster' => $_ENV['PUSHER_APP_CLUSTER'] ?? 'ap3', 'useTLS' => true]
+            );
+            $pusher->trigger('system-config', 'config:updated', ['keys' => array_keys($saved)]);
+        } catch (\Throwable $e) {
+            error_log('Pusher config trigger failed: ' . $e->getMessage());
+        }
+
+        echo json_encode(['success' => true, 'saved' => $saved]);
+        exit;
+    }
+
+    echo json_encode(['success' => false, 'message' => 'Unknown live action.']);
+    exit;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CHECKLIST AJAX ENDPOINTS
 // All JSON responses, must come before any HTML output.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1167,14 +1282,67 @@ $active_tab = in_array($_GET['tab'] ?? '', ['profile', 'checklist', 'live'])
             display: flex; align-items: center; gap: 5px;
         }
 
-        /* Live tab placeholder */
-        .live-placeholder {
-            text-align: center; padding: 64px 20px; color: #88968d;
+        /* ─────────────────────────────────────────────────────────────────────
+           LIVE CONFIG TAB
+        ───────────────────────────────────────────────────────────────────── */
+        .live-config-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 640px) { .live-config-grid { grid-template-columns: 1fr; } }
+
+        .live-field-group { display: flex; flex-direction: column; gap: 6px; }
+
+        .live-field-label {
+            font-size: 11.5px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .4px; color: #55665a;
+            display: flex; align-items: center; gap: 6px;
         }
 
-        .live-placeholder i { font-size: 52px; display: block; margin-bottom: 14px; color: #c8d8ce; }
-        .live-placeholder h3 { font-size: 16px; font-weight: 700; color: #385141; margin: 0 0 6px; }
-        .live-placeholder p  { font-size: 13px; margin: 0; }
+        .live-field-wrap { position: relative; display: flex; align-items: center; }
+        .live-field-wrap i.prefix-icon {
+            position: absolute; left: 14px; color: #88968d; font-size: 14px; pointer-events: none;
+        }
+
+        .live-field-input {
+            width: 100%; padding: 10px 14px 10px 38px;
+            border: 1.5px solid #d4e0d8; border-radius: 10px;
+            font-size: 13px; font-family: 'Poppins', sans-serif;
+            color: #1a1a1a; outline: none; background: #ffffff;
+            transition: border-color .15s, box-shadow .15s;
+            box-sizing: border-box;
+        }
+        .live-field-input:focus { border-color: #1f7a3d; box-shadow: 0 0 0 3px rgba(31,122,61,.1); }
+
+        .live-field-hint { font-size: 11px; color: #88968d; line-height: 1.4; }
+
+        .live-preview-box {
+            background: #f4f8f5; border: 1px solid #dcebe1; border-radius: 12px;
+            padding: 14px 18px; margin-top: 4px; margin-bottom: 20px;
+            font-size: 12px; color: #385141;
+        }
+        .live-preview-box strong { color: #06251b; font-size: 12.5px; }
+        .live-preview-url {
+            font-family: monospace; font-size: 12.5px; color: #1f7a3d;
+            word-break: break-all; margin-top: 4px;
+            display: block;
+        }
+
+        .live-save-row {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px;
+        }
+
+        .live-status-msg {
+            font-size: 12.5px; font-weight: 600;
+            display: flex; align-items: center; gap: 7px;
+            opacity: 0; transition: opacity .25s;
+        }
+        .live-status-msg.show { opacity: 1; }
+        .live-status-msg.success { color: #1f7a3d; }
+        .live-status-msg.error   { color: #dc2626; }
     </style>
 </head>
 <body class="dash-body">
@@ -1592,16 +1760,91 @@ include("components/topbar.php");
         <div class="set-card">
             <div class="set-card-head">
                 <span class="set-card-title">
-                    <i class="bi bi-broadcast" style="color:#dc2626;"></i> Live Settings
+                    <i class="bi bi-broadcast" style="color:#dc2626;"></i> MediaMTX Live Configuration
                 </span>
                 <span style="font-size:11px; font-weight:700; color:#88968d;">Streaming</span>
             </div>
             <div class="set-card-body">
-                <div class="live-placeholder">
-                    <i class="bi bi-broadcast"></i>
-                    <h3>Live Settings</h3>
-                    <p>Live streaming configuration will be available here in a future update.</p>
+
+                <div class="info-alert-box" style="margin-bottom:22px;">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <div class="info-alert-text">
+                        <strong>Live Stream Settings:</strong> These values control how the system connects to the
+                        MediaMTX media server. Changes take effect immediately across all active stream URLs —
+                        no restart required.
+                    </div>
                 </div>
+
+                <!-- Fields -->
+                <div class="live-config-grid" id="liveConfigGrid">
+
+                    <div class="live-field-group">
+                        <label class="live-field-label" for="liveHost">
+                            <i class="bi bi-hdd-network"></i> Host / Domain
+                        </label>
+                        <div class="live-field-wrap">
+                            <i class="bi bi-hdd-network prefix-icon"></i>
+                            <input type="text" id="liveHost" class="live-field-input"
+                                   placeholder="e.g. stream.yourdomain.com" autocomplete="off">
+                        </div>
+                        <span class="live-field-hint">Hostname or IP of the MediaMTX server. No trailing slash.</span>
+                    </div>
+
+                    <div class="live-field-group">
+                        <label class="live-field-label" for="liveDefaultPath">
+                            <i class="bi bi-signpost-split"></i> Default Stream Path
+                        </label>
+                        <div class="live-field-wrap">
+                            <i class="bi bi-signpost-split prefix-icon"></i>
+                            <input type="text" id="liveDefaultPath" class="live-field-input"
+                                   placeholder="e.g. live" autocomplete="off">
+                        </div>
+                        <span class="live-field-hint">The default path used when creating new bid sessions.</span>
+                    </div>
+
+                    <div class="live-field-group">
+                        <label class="live-field-label" for="liveWebrtcPort">
+                            <i class="bi bi-ethernet"></i> WebRTC Port
+                        </label>
+                        <div class="live-field-wrap">
+                            <i class="bi bi-ethernet prefix-icon"></i>
+                            <input type="number" id="liveWebrtcPort" class="live-field-input"
+                                   placeholder="8889" min="1" max="65535" autocomplete="off">
+                        </div>
+                        <span class="live-field-hint">Port for WebRTC playback (default: 8889).</span>
+                    </div>
+
+                    <div class="live-field-group">
+                        <label class="live-field-label" for="liveRtmpPort">
+                            <i class="bi bi-ethernet"></i> RTMP Port
+                        </label>
+                        <div class="live-field-wrap">
+                            <i class="bi bi-ethernet prefix-icon"></i>
+                            <input type="number" id="liveRtmpPort" class="live-field-input"
+                                   placeholder="1935" min="1" max="65535" autocomplete="off">
+                        </div>
+                        <span class="live-field-hint">Port for RTMP ingest (default: 1935).</span>
+                    </div>
+
+                </div>
+
+                <!-- Live URL preview -->
+                <div class="live-preview-box" id="livePreviewBox">
+                    <strong><i class="bi bi-eye"></i> WebRTC Playback URL Preview</strong>
+                    <span class="live-preview-url" id="livePreviewUrl">—</span>
+                </div>
+
+                <!-- Save row -->
+                <div class="live-save-row">
+                    <span class="live-status-msg" id="liveStatusMsg">
+                        <i class="bi bi-check-circle-fill"></i> <span id="liveStatusText"></span>
+                    </span>
+                    <button class="btn-set-primary" id="liveSaveBtn" onclick="saveLiveConfig()"
+                            style="width:auto; min-width:160px;">
+                        <i class="bi bi-floppy"></i> Save Configuration
+                    </button>
+                </div>
+
             </div>
         </div>
 
@@ -2250,6 +2493,120 @@ function escHtml(str) {
     const activeTab = '<?= $active_tab ?>';
     if (activeTab === 'checklist') {
         loadChecklist();
+    }
+})();
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     LIVE CONFIG JS
+     ══════════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+    // ── Field refs ────────────────────────────────────────────────────────────
+    const hostEl    = () => document.getElementById('liveHost');
+    const pathEl    = () => document.getElementById('liveDefaultPath');
+    const webrtcEl  = () => document.getElementById('liveWebrtcPort');
+    const rtmpEl    = () => document.getElementById('liveRtmpPort');
+    const previewEl = () => document.getElementById('livePreviewUrl');
+    const statusEl  = () => document.getElementById('liveStatusMsg');
+    const statusTxt = () => document.getElementById('liveStatusText');
+    const saveBtn   = () => document.getElementById('liveSaveBtn');
+
+    // ── URL preview ───────────────────────────────────────────────────────────
+    function updatePreview() {
+        const host = (hostEl()?.value || '').replace(/\/+$/, '');
+        const path = (pathEl()?.value || '').replace(/^\/+/, '');
+        const port = webrtcEl()?.value || '8889';
+        if (host && path) {
+            previewEl().textContent = `http://${host}:${port}/${path}`;
+        } else {
+            previewEl().textContent = '—';
+        }
+    }
+
+    // ── Load config from server ───────────────────────────────────────────────
+    function loadLiveConfig() {
+        fetch('settings.php?live_action=get')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                const c = data.config;
+                if (hostEl())   hostEl().value   = c.mediamtx_host         ?? '';
+                if (pathEl())   pathEl().value   = c.mediamtx_default_path ?? '';
+                if (webrtcEl()) webrtcEl().value  = c.mediamtx_webrtc_port  ?? '8889';
+                if (rtmpEl())   rtmpEl().value    = c.mediamtx_rtmp_port    ?? '1935';
+                updatePreview();
+            })
+            .catch(() => {}); // silent — fields retain placeholder
+    }
+
+    // ── Save ──────────────────────────────────────────────────────────────────
+    window.saveLiveConfig = function () {
+        const btn = saveBtn();
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Saving…'; }
+
+        const payload = {
+            mediamtx_host:         hostEl()?.value.trim()   ?? '',
+            mediamtx_default_path: pathEl()?.value.trim()   ?? '',
+            mediamtx_webrtc_port:  webrtcEl()?.value.trim() ?? '',
+            mediamtx_rtmp_port:    rtmpEl()?.value.trim()   ?? '',
+        };
+
+        fetch('settings.php?live_action=save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        })
+        .then(r => r.json())
+        .then(data => {
+            showLiveStatus(data.success, data.success
+                ? 'Configuration saved successfully.'
+                : (data.message || 'Save failed.'));
+            updatePreview();
+        })
+        .catch(() => showLiveStatus(false, 'Network error. Please try again.'))
+        .finally(() => {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-floppy"></i> Save Configuration'; }
+        });
+    };
+
+    // ── Status message ────────────────────────────────────────────────────────
+    function showLiveStatus(ok, msg) {
+        const el  = statusEl();
+        const txt = statusTxt();
+        if (!el || !txt) return;
+        txt.textContent = msg;
+        el.className = 'live-status-msg show ' + (ok ? 'success' : 'error');
+        el.querySelector('i').className = ok ? 'bi bi-check-circle-fill' : 'bi bi-exclamation-circle-fill';
+        clearTimeout(el._timer);
+        el._timer = setTimeout(() => el.classList.remove('show'), 4000);
+    }
+
+    // ── Live preview on input ─────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        ['liveHost', 'liveDefaultPath', 'liveWebrtcPort'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', updatePreview);
+        });
+
+        // Load config when Live tab is first opened or already active
+        if (document.querySelector('#stab-live.active')) {
+            loadLiveConfig();
+        }
+    });
+
+    // Re-load when switching to Live tab
+    const origSwitch = window.switchSettingsTab;
+    window.switchSettingsTab = function (tab) {
+        origSwitch(tab);
+        if (tab === 'live') loadLiveConfig();
+    };
+
+    // Spin keyframe (reuse if already defined)
+    if (!document.getElementById('liveSpinStyle')) {
+        const s = document.createElement('style');
+        s.id = 'liveSpinStyle';
+        s.textContent = '@keyframes spin { to { transform: rotate(360deg); } } .spin { display:inline-block; animation: spin .7s linear infinite; }';
+        document.head.appendChild(s);
     }
 })();
 </script>
