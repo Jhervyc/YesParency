@@ -16,7 +16,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
         case "user":       $user_dashboard_link = "user/dashboard.php"; break;
         case "bidder":     $user_dashboard_link = "bidder/dashboard.php"; break;
         case "admin":      $user_dashboard_link = "admin/dashboard.php"; break;
-        case "superadmin": $user_dashboard_link = "superadmin/dashboard.php"; break;
+        case "superadmin": $user_dashboard_link = "admin/dashboard.php"; break;
     }
 }
 

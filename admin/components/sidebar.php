@@ -19,6 +19,7 @@ $is_announcements_active = in_array($active, ['announcements.php', 'announcement
 $is_audit_active         = in_array($active, ['audit_trail.php', 'audit_trail']);
 $is_settings_active      = in_array($active, ['settings.php', 'settings']);
 $is_notification_active  = in_array($active, ['notification.php', 'notification']);
+$is_user_mgmt_active     = in_array($active, ['user-role-management.php', 'user-role-management']);
 
 $admin_username = htmlspecialchars($_SESSION['username'] ?? 'Admin');
 
@@ -110,6 +111,14 @@ $is_restricted = in_array($admin_type, ['BAC', 'TWG']);
         <a href="audit_trail.php" class="nav-item <?= $is_audit_active ? 'active' : '' ?>">
             <i class="bi bi-journal-text"></i><span>Audit Trail</span>
         </a>
+
+        <!-- ── Super Admin ──────────────────────────────────────────── -->
+        <?php if (($_SESSION['role'] ?? '') === 'superadmin'): ?>
+        <div class="nav-section-label">Super Admin</div>
+        <a href="user-role-management.php" class="nav-item <?= $is_user_mgmt_active ? 'active' : '' ?>">
+            <i class="bi bi-person-gear"></i><span>User &amp; Role Management</span>
+        </a>
+        <?php endif; ?>
 
         <!-- ── System ───────────────────────────────────────────────────── -->
         <div class="nav-section-label">System</div>

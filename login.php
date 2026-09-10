@@ -23,7 +23,7 @@
             case "user":       header("Location: user/dashboard.php");       exit();
             case "bidder":     header("Location: bidder/dashboard.php");     exit();
             case "admin":      header("Location: admin/dashboard.php");      exit();
-            case "superadmin": header("Location: superadmin/dashboard.php"); exit();
+            case "superadmin": header("Location: admin/dashboard.php"); exit();
         }
     }
 
@@ -65,7 +65,7 @@
                             case "user":       header("Location: user/dashboard.php");       exit();
                             case "bidder":     header("Location: bidder/dashboard.php");     exit();
                             case "admin":      header("Location: admin/dashboard.php");      exit();
-                            case "superadmin": header("Location: superadmin/dashboard.php"); exit();
+                            case "superadmin": header("Location: admin/dashboard.php"); exit();
                         }
                     }
                 }

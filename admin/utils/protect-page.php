@@ -20,7 +20,7 @@
     require_once (__DIR__ . "/audit_helper.php");
 
     // 3. Authentication & Role Validation
-    if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'superadmin')) {
         header("Location: ../login.php");
         exit();
     }

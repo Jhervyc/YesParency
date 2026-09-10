@@ -591,6 +591,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit();
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. HANDLE SAVE ORGANIZATION SETTINGS (SUPERADMIN ONLY)
+// ─────────────────────────────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_org']) && $admin_role === 'superadmin') {
+    $org_fields = ['org_name', 'short_name', 'official_website', 'contact_email', 'address'];
+    $org_stmt   = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value)
+                                   VALUES (?, ?)
+                                   ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+    foreach ($org_fields as $key) {
+        $val = trim($_POST[$key] ?? '');
+        $org_stmt->bind_param("ss", $key, $val);
+        $org_stmt->execute();
+    }
+    $org_stmt->close();
+
+    require_once __DIR__ . '/utils/audit_helper.php';
+    audit_log($conn, 'SYSTEM_SETTINGS_UPDATED', 'system_settings', null,
+        'Updated organization/system settings', null,
+        array_intersect_key($_POST, array_flip($org_fields)));
+
+    $_SESSION['org_success'] = "Organization info saved successfully!";
+    header("Location: settings.php?tab=system_config");
+    exit();
+}
+
 // Flash Messages
 $avatar_error   = $_SESSION['avatar_error']   ?? ''; unset($_SESSION['avatar_error']);
 $avatar_success = $_SESSION['avatar_success'] ?? ''; unset($_SESSION['avatar_success']);
@@ -598,6 +623,7 @@ $prof_error     = $_SESSION['prof_error']     ?? ''; unset($_SESSION['prof_error
 $prof_success   = $_SESSION['prof_success']   ?? ''; unset($_SESSION['prof_success']);
 $pw_error       = $_SESSION['pw_error']       ?? ''; unset($_SESSION['pw_error']);
 $pw_success     = $_SESSION['pw_success']     ?? ''; unset($_SESSION['pw_success']);
+$org_success    = $_SESSION['org_success']    ?? ''; unset($_SESSION['org_success']);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. FETCH CURRENT ADMIN DATA
@@ -628,10 +654,33 @@ $member_since = !empty($current_user['created_at'])
 
 $initials = strtoupper(substr($firstname ?: 'A', 0, 1) . substr($lastname ?: 'D', 0, 1));
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. LOAD SYSTEM SETTINGS (used by superadmin tabs)
+// ─────────────────────────────────────────────────────────────────────────────
+$settings = [];
+if ($admin_role === 'superadmin') {
+    $sys_res = $conn->query("SELECT setting_key, setting_value FROM system_settings");
+    if ($sys_res) {
+        while ($sys_row = $sys_res->fetch_assoc()) {
+            $settings[$sys_row['setting_key']] = $sys_row['setting_value'];
+        }
+    }
+}
+if (!function_exists('setting')) {
+    function setting(array $s, string $k, string $default = ''): string {
+        return htmlspecialchars($s[$k] ?? $default);
+    }
+}
+
 // Active tab (from query string, default profile)
-$active_tab = in_array($_GET['tab'] ?? '', ['profile', 'checklist', 'live'])
+$active_tab = in_array($_GET['tab'] ?? '', ['profile', 'checklist', 'live', 'system_config', 'maintenance'])
               ? ($_GET['tab'])
               : 'profile';
+
+// Superadmin-only tabs: redirect non-superadmins back to profile
+if (in_array($active_tab, ['system_config', 'maintenance']) && $admin_role !== 'superadmin') {
+    $active_tab = 'profile';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1382,6 +1431,18 @@ include("components/topbar.php");
                 onclick="switchSettingsTab('live')">
             <i class="bi bi-broadcast"></i> Live
         </button>
+        <?php if ($admin_role === 'superadmin'): ?>
+        <button class="stab-btn <?= $active_tab === 'system_config' ? 'active' : '' ?>"
+                role="tab" aria-selected="<?= $active_tab === 'system_config' ? 'true' : 'false' ?>"
+                onclick="switchSettingsTab('system_config')">
+            <i class="bi bi-building-gear"></i> System Config
+        </button>
+        <button class="stab-btn <?= $active_tab === 'maintenance' ? 'active' : '' ?>"
+                role="tab" aria-selected="<?= $active_tab === 'maintenance' ? 'true' : 'false' ?>"
+                onclick="switchSettingsTab('maintenance')">
+            <i class="bi bi-tools"></i> Maintenance
+        </button>
+        <?php endif; ?>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════
@@ -1849,6 +1910,165 @@ include("components/topbar.php");
         </div>
 
     </div><!-- /stab-live -->
+
+    <?php if ($admin_role === 'superadmin'): ?>
+
+    <!-- ══════════════════════════════════════════════════════════
+         TAB: SYSTEM CONFIG (Superadmin only)
+         ══════════════════════════════════════════════════════════ -->
+    <div id="stab-system_config" class="stab-panel <?= $active_tab === 'system_config' ? 'active' : '' ?>" role="tabpanel">
+
+        <div class="set-card">
+            <div class="set-card-head">
+                <span class="set-card-title">
+                    <i class="bi bi-building-gear" style="color:#1f7a3d;"></i> Institutional &amp; Organization Parameters
+                </span>
+                <span style="font-size:11px; font-weight:700; color:#88968d;">Global Config</span>
+            </div>
+            <div class="set-card-body">
+
+                <?php if (!empty($org_success)): ?>
+                    <div class="flash-alert success" style="display:flex; align-items:center; gap:8px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#166534; font-weight:600;">
+                        <i class="bi bi-check-circle-fill"></i> <?= htmlspecialchars($org_success) ?>
+                    </div>
+                <?php endif; ?>
+
+                <div style="display:flex; align-items:flex-start; gap:10px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px 16px; margin-bottom:20px; font-size:12.5px; color:#1e40af;">
+                    <i class="bi bi-info-circle-fill" style="font-size:15px; margin-top:1px; flex-shrink:0;"></i>
+                    <div><strong>System Identity:</strong> These official organization details appear on public procurement notices, bid invitation exports, and broadcast notifications.</div>
+                </div>
+
+                <form method="POST" action="settings.php">
+                    <input type="hidden" name="save_org" value="1">
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+
+                        <div>
+                            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:6px;"><i class="bi bi-building"></i> Organization Name</label>
+                            <div style="position:relative;">
+                                <i class="bi bi-building" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#88968d; font-size:14px; pointer-events:none;"></i>
+                                <input type="text" name="org_name" class="field-input" style="padding-left:36px;" value="<?= setting($settings, 'org_name', 'YesParency') ?>" placeholder="e.g. Provincial Government / Agency">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:6px;"><i class="bi bi-tag"></i> Short Name / Acronym</label>
+                            <div style="position:relative;">
+                                <i class="bi bi-tag" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#88968d; font-size:14px; pointer-events:none;"></i>
+                                <input type="text" name="short_name" class="field-input" style="padding-left:36px;" value="<?= setting($settings, 'short_name', 'YSP') ?>" placeholder="e.g. BAC, LGU, DBM">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:6px;"><i class="bi bi-globe"></i> Official Website URL</label>
+                            <div style="position:relative;">
+                                <i class="bi bi-globe" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#88968d; font-size:14px; pointer-events:none;"></i>
+                                <input type="url" name="official_website" class="field-input" style="padding-left:36px;" value="<?= setting($settings, 'official_website') ?>" placeholder="https://example.gov.ph">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:6px;"><i class="bi bi-envelope"></i> Secretariat Contact Email</label>
+                            <div style="position:relative;">
+                                <i class="bi bi-envelope" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#88968d; font-size:14px; pointer-events:none;"></i>
+                                <input type="email" name="contact_email" class="field-input" style="padding-left:36px;" value="<?= setting($settings, 'contact_email') ?>" placeholder="bac.secretariat@example.gov.ph">
+                            </div>
+                        </div>
+
+                        <div style="grid-column:1/-1;">
+                            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:6px;"><i class="bi bi-geo-alt"></i> Official Physical Office Address</label>
+                            <div style="position:relative;">
+                                <i class="bi bi-geo-alt" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#88968d; font-size:14px; pointer-events:none;"></i>
+                                <input type="text" name="address" class="field-input" style="padding-left:36px;" value="<?= setting($settings, 'address') ?>" placeholder="Full official address of the procuring entity...">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div style="display:flex; justify-content:flex-end; margin-top:18px;">
+                        <button type="submit" class="btn-set-primary" style="width:auto; padding:10px 24px;">
+                            <i class="bi bi-check2-circle"></i> Save System Parameters
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+
+    </div><!-- /stab-system_config -->
+
+    <!-- ══════════════════════════════════════════════════════════
+         TAB: MAINTENANCE (Superadmin only)
+         ══════════════════════════════════════════════════════════ -->
+    <div id="stab-maintenance" class="stab-panel <?= $active_tab === 'maintenance' ? 'active' : '' ?>" role="tabpanel">
+
+        <!-- Environment Info -->
+        <div class="set-card">
+            <div class="set-card-head">
+                <span class="set-card-title">
+                    <i class="bi bi-hdd-network" style="color:#2F6FED;"></i> System Runtime &amp; Server Environment
+                </span>
+                <span style="font-size:11px; font-weight:700; color:#88968d;">Diagnostics</span>
+            </div>
+            <div class="set-card-body" style="padding:0;">
+                <?php
+                $sys_info = [
+                    ['Application Engine', 'YesParency Transparency Portal', 'green'],
+                    ['PHP Runtime',        phpversion(),                      'blue'],
+                    ['Web Server Host',    $_SERVER['SERVER_SOFTWARE'] ?? 'Apache/XAMPP', null],
+                    ['Environment Mode',   'Local / Development',             'yellow'],
+                    ['Database Status',    'MySQL / MariaDB Connected',       'green'],
+                    ['System Timestamp',   date('F j, Y, g:i a'),             null],
+                ];
+                foreach ($sys_info as $si_row):
+                ?>
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 20px; border-bottom:1px solid #f0f4f2; font-size:12.5px;">
+                    <span style="color:#55665a; font-weight:600;"><?= htmlspecialchars($si_row[0]) ?></span>
+                    <?php if (!empty($si_row[2])): ?>
+                        <?php
+                        $badge_colors = [
+                            'green'  => 'background:#dcfce7; color:#166534;',
+                            'blue'   => 'background:#dbeafe; color:#1d4ed8;',
+                            'yellow' => 'background:#fef9c3; color:#854d0e;',
+                        ];
+                        $bc = $badge_colors[$si_row[2]] ?? '';
+                        ?>
+                        <span style="font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:20px; <?= $bc ?>"><?= htmlspecialchars($si_row[1]) ?></span>
+                    <?php else: ?>
+                        <span style="font-size:12.5px; color:#6c776e; font-weight:600;"><?= htmlspecialchars($si_row[1]) ?></span>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="set-card" style="border-color:#fee2e2;">
+            <div class="set-card-head" style="background:#fef2f2; border-bottom-color:#fecaca;">
+                <span class="set-card-title" style="color:#b91c1c;">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Restricted Danger Zone
+                </span>
+                <span style="font-size:11px; font-weight:700; color:#b91c1c;">Superadmin Only</span>
+            </div>
+            <div class="set-card-body">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
+                    <div style="max-width:550px;">
+                        <div style="font-size:13.5px; font-weight:700; color:#06251b; margin-bottom:3px;">System Maintenance Mode</div>
+                        <div style="font-size:12px; color:#88968d; line-height:1.45;">
+                            Temporarily restrict portal access for regular bidders and non-admin users during scheduled database updates or migrations.
+                        </div>
+                    </div>
+                    <button type="button" class="btn-set-danger" style="width:auto; padding:9px 18px;"
+                            onclick="alert('Maintenance mode toggled for demonstration.')">
+                        <i class="bi bi-power"></i> Toggle Mode
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /stab-maintenance -->
+
+    <?php endif; // superadmin only tabs ?>
 
 </div>
 </main>
