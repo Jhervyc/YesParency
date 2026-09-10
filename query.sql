@@ -47,12 +47,12 @@ CREATE TABLE bidder_documents (
     ON DELETE CASCADE
 );
 
-ALTER TABLE bidder_profiles
-ADD application_status ENUM(
-    'pending',
-    'approved',
-    'rejected'
-) DEFAULT 'pending';
+-- ALTER TABLE bidder_profiles
+-- ADD application_status ENUM(
+--     'pending',
+--     'approved',
+--     'rejected'
+-- ) DEFAULT 'pending';
 
 -- ALTER TABLE bidder_documents
 -- ADD COLUMN expiration_date DATE NULL
@@ -62,7 +62,7 @@ ADD application_status ENUM(
 CREATE TABLE procurements (
     id INT AUTO_INCREMENT PRIMARY KEY,
 
-    procurement_ref_no VARCHAR(255) NOT NULL,
+    slsu_ref_no VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NULL,
 
