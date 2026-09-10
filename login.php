@@ -13,6 +13,10 @@
 
     $error = "";
 
+    // Flash messages from accept_invitation.php and register.php
+    $flash_success = $_SESSION['inv_success'] ?? '';
+    unset($_SESSION['inv_success']);
+
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $username = trim($_POST['username']);
         $password = $_POST['password'];
@@ -151,6 +155,12 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
         <h3>Welcome back</h3>
         <p>Sign in to your YesParency account</p>
 
+        <?php if ($flash_success): ?>
+            <div class="alert-error" style="background:#eaf7ee; color:#1f7a3d; border-color:#c9e8d3;">
+                <i class="bi bi-check-circle-fill"></i>
+                <?= htmlspecialchars($flash_success) ?>
+            </div>
+        <?php endif; ?>
         <?php if ($error): ?>
             <div class="alert-error">
                 <i class="bi bi-exclamation-circle-fill"></i>
@@ -187,7 +197,7 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
         </form>
 
         <div class="login-footer">
-            Don't have an account? <a href="register.php">Create a User Account</a>
+            Don't have an account? <a href="register.php">Request Access</a>
         </div>
 
     </div>

@@ -647,3 +647,39 @@ CREATE TABLE email_queue (
     INDEX idx_status_scheduled (status, scheduled_at),
     INDEX idx_recipient (recipient_email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =================== Invitation tables (run these if tables don't exist yet) =======================
+
+-- user_invitations: stores one-time tokens sent to approved applicants
+CREATE TABLE IF NOT EXISTS `user_invitations` (
+    `id`         INT AUTO_INCREMENT PRIMARY KEY,
+    `email`      VARCHAR(255) NOT NULL,
+    `role`       VARCHAR(50)  NOT NULL DEFAULT 'user',
+    `token`      VARCHAR(64)  NOT NULL UNIQUE,
+    `status`     ENUM('pending','accepted','expired') DEFAULT 'pending',
+    `created_at` TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    `expires_at` DATETIME     NOT NULL,
+    INDEX idx_token  (token),
+    INDEX idx_email  (email),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- invitation_requests: stores portal access requests submitted via register.php
+CREATE TABLE IF NOT EXISTS `invitation_requests` (
+    `id`               INT AUTO_INCREMENT PRIMARY KEY,
+    `company_name`     VARCHAR(255) NOT NULL,
+    `contact_person`   VARCHAR(255) NOT NULL,
+    `email`            VARCHAR(255) NOT NULL,
+    `phone`            VARCHAR(50)  DEFAULT NULL,
+    `tax_id_tin`       VARCHAR(100) DEFAULT NULL,
+    `business_address` TEXT         DEFAULT NULL,
+    `business_type`    VARCHAR(100) DEFAULT NULL,
+    `requested_role`   VARCHAR(50)  DEFAULT 'user',
+    `status`           ENUM('pending','approved','rejected') DEFAULT 'pending',
+    `admin_notes`      TEXT         DEFAULT NULL,
+    `reviewed_by`      INT          DEFAULT NULL,
+    `reviewed_at`      DATETIME     DEFAULT NULL,
+    `created_at`       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_email  (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

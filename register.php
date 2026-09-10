@@ -1,66 +1,106 @@
-<?php 
-    session_start();
+<?php
+session_start();
+include("config/db_connect.php");
 
-    include ("config/db_connect.php");
+$error   = $_SESSION['reg_error']   ?? '';
+$success = $_SESSION['reg_success'] ?? '';
+unset($_SESSION['reg_error'], $_SESSION['reg_success']);
 
-    $error   = $_SESSION['error'] ?? "";
-    $success = $_SESSION['success'] ?? "";
+// Preserve form values on error
+$old = $_SESSION['reg_old'] ?? [];
+unset($_SESSION['reg_old']);
 
-    unset($_SESSION['error'], $_SESSION['success']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $company_name     = trim($_POST['company_name']     ?? '');
+    $contact_person   = trim($_POST['contact_person']   ?? '');
+    $email            = trim($_POST['email']            ?? '');
+    $phone            = trim($_POST['phone']            ?? '');
+    $tax_id_tin       = trim($_POST['tax_id_tin']       ?? '');
+    $business_address = trim($_POST['business_address'] ?? '');
+    $business_type    = trim($_POST['business_type']    ?? '');
 
-    if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        $firstname       = trim($_POST['firstname'] ?? '');
-        $lastname        = trim($_POST['lastname'] ?? '');
-        $email           = trim($_POST['email'] ?? '');
-        $username        = trim($_POST['username'] ?? '');
-        $password        = $_POST['password'] ?? '';
-        $confirmPassword = $_POST['confirm_password'] ?? '';
+    // Validation
+    $errors = [];
+    if (empty($company_name))   $errors[] = "Company / Organization name is required.";
+    if (empty($contact_person)) $errors[] = "Contact person is required.";
+    if (empty($email))          $errors[] = "Email address is required.";
+    elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "Please enter a valid email address.";
+    if (empty($business_type))  $errors[] = "Please select a business type.";
 
-        // 1. Backend Validation for Empty Fields
-        if (empty($firstname) || empty($lastname) || empty($email) || empty($username) || empty($password) || empty($confirmPassword)) {
-            $_SESSION['error'] = "All fields are required.";
-        } 
-        // 2. Validate Email Format
-        elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $_SESSION['error'] = "Please enter a valid email address.";
-        }
-        // 3. Match Passwords
-        elseif ($password !== $confirmPassword) {
-            $_SESSION['error'] = "Passwords do not match.";
-        } 
-        // 4. Check for existing username or email
-        else {
-            $check = $conn->prepare("SELECT user_id FROM users WHERE username = ? OR email = ?");
-            $check->bind_param("ss", $username, $email);
-            $check->execute();
-            $result = $check->get_result();
+    if (empty($errors)) {
+        // Check for existing pending or approved request with same email
+        $chk = $conn->prepare("SELECT id, status FROM invitation_requests WHERE email = ? AND status IN ('pending','approved') LIMIT 1");
+        $chk->bind_param("s", $email);
+        $chk->execute();
+        $existing = $chk->get_result()->fetch_assoc();
+        $chk->close();
 
-            if ($result->num_rows > 0) {
-                $_SESSION['error'] = "Username or Email already exists.";
+        if ($existing) {
+            if ($existing['status'] === 'approved') {
+                $errors[] = "An invitation has already been sent to this email. Please check your inbox.";
             } else {
-                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
-                $stmt = $conn->prepare("INSERT INTO users (firstname, lastname, email, username, password) VALUES (?, ?, ?, ?, ?)");
-                $stmt->bind_param("sssss", $firstname, $lastname, $email, $username, $hashedPassword);
-
-                if ($stmt->execute()) {
-                    $_SESSION['success'] = "Registration successful! You can now log in.";
-                } else {
-                    $_SESSION['error'] = "Error: " . $stmt->error;
-                }
+                $errors[] = "A registration request from this email is already pending review.";
             }
+        } else {
+            // Also block if they already have a user account
+            $chk2 = $conn->prepare("SELECT user_id FROM users WHERE email = ? LIMIT 1");
+            $chk2->bind_param("s", $email);
+            $chk2->execute();
+            $chk2->store_result();
+            if ($chk2->num_rows > 0) {
+                $errors[] = "An account with this email already exists. Please log in.";
+            }
+            $chk2->close();
         }
-        
-        header("Location: register.php");
-        exit();
     }
+
+    if (empty($errors)) {
+        $ins = $conn->prepare("
+            INSERT INTO invitation_requests
+                (company_name, contact_person, email, phone, tax_id_tin, business_address, business_type, requested_role, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'user', 'pending')
+        ");
+        $ins->bind_param(
+            "sssssss",
+            $company_name, $contact_person, $email,
+            $phone, $tax_id_tin, $business_address, $business_type
+        );
+
+        if ($ins->execute()) {
+            $_SESSION['reg_success'] = "Your request has been submitted! We'll review it and send you an invitation by email.";
+        } else {
+            $_SESSION['reg_error'] = "Something went wrong. Please try again.";
+        }
+        $ins->close();
+    } else {
+        $_SESSION['reg_error'] = implode(' ', $errors);
+        // Preserve values
+        $_SESSION['reg_old'] = compact(
+            'company_name','contact_person','email',
+            'phone','tax_id_tin','business_address','business_type'
+        );
+    }
+
+    header("Location: register.php");
+    exit();
+}
+
+$business_types = [
+    'Sole Proprietorship',
+    'Corporation',
+    'Partnership',
+    'Cooperative',
+    'Supplier / Vendor',
+    'Contractor',
+    'Other',
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register | YesParency</title>
+    <title>Request Access | YesParency</title>
     <link rel="icon" type="image/png" href="images/logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
@@ -81,7 +121,7 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
 .auth-card {
     background: #fff; border: 1px solid #e2ece6;
     border-radius: 20px; padding: 40px 36px;
-    width: 100%; max-width: 560px;
+    width: 100%; max-width: 620px;
     box-shadow: 0 4px 32px rgba(6,37,27,.08);
 }
 
@@ -100,39 +140,46 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
 }
 .alert-success {
     background: #eaf7ee; color: #1f7a3d; border: 1px solid #c9e8d3;
-    border-radius: 10px; padding: 10px 14px; font-size: 12.5px; font-weight: 600;
-    margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+    border-radius: 10px; padding: 12px 16px; font-size: 13px; font-weight: 600;
+    margin-bottom: 18px; display: flex; align-items: flex-start; gap: 10px;
+    line-height: 1.6;
 }
+.alert-success i { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
 
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .form-row { grid-template-columns: 1fr; } }
 
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; font-size: 12px; font-weight: 700; color: #06251b; margin-bottom: 6px; }
+.form-group label .opt { color: #88968d; font-weight: 400; font-size: 11px; margin-left: 3px; }
+
 .input-wrapper { position: relative; display: flex; align-items: center; }
 .input-icon-left { position: absolute; left: 13px; color: #88968d; font-size: 14px; pointer-events: none; }
-.input-wrapper input {
-    width: 100%; padding: 10px 42px 10px 38px;
+.input-wrapper input,
+.input-wrapper select,
+.input-wrapper textarea {
+    width: 100%; padding: 10px 14px 10px 38px;
     border: 1.5px solid #d4e0d8; border-radius: 10px;
     font-size: 13px; font-family: 'Poppins', sans-serif;
     color: #1a1a1a; outline: none; background: #fff;
     transition: border-color .15s, box-shadow .15s;
 }
-.input-wrapper input:focus { border-color: #1f7a3d; box-shadow: 0 0 0 3px rgba(31,122,61,.1); }
-.toggle-password {
-    position: absolute; right: 12px; background: none; border: none;
-    color: #88968d; cursor: pointer; font-size: 14px; padding: 4px;
-    display: flex; align-items: center;
+.input-wrapper input:focus,
+.input-wrapper select:focus,
+.input-wrapper textarea:focus {
+    border-color: #1f7a3d; box-shadow: 0 0 0 3px rgba(31,122,61,.1);
 }
-.toggle-password:hover { color: #06251b; }
+.input-wrapper.textarea-wrap { align-items: flex-start; }
+.input-wrapper.textarea-wrap i { margin-top: 12px; }
+.input-wrapper textarea { resize: vertical; min-height: 78px; padding-top: 10px; }
+.input-wrapper select { padding-left: 38px; cursor: pointer; appearance: none; }
 
-.strength-bar { display: flex; gap: 4px; margin-top: 6px; }
-.strength-bar span { flex: 1; height: 3px; border-radius: 4px; background: #e2ece6; transition: background .2s; }
-.strength-bar span.weak   { background: #ef4444; }
-.strength-bar span.fair   { background: #f97316; }
-.strength-bar span.good   { background: #eab308; }
-.strength-bar span.strong { background: #22c55e; }
-.strength-label { font-size: 11px; font-weight: 700; color: #63736a; margin-top: 3px; }
+.info-note {
+    background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #ffc107;
+    border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #78350f;
+    margin-bottom: 22px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.6;
+}
+.info-note i { font-size: 15px; color: #ffc107; flex-shrink: 0; margin-top: 1px; }
 
 .btn-register {
     width: 100%; background: #06251b; color: #ffc107; border: none;
@@ -143,11 +190,43 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
 }
 .btn-register:hover { background: #144937; color: #fff; transform: translateY(-1px); }
 
+.section-divider {
+    font-size: 10.5px; font-weight: 800; color: #88968d; text-transform: uppercase;
+    letter-spacing: .08em; margin: 6px 0 14px;
+    display: flex; align-items: center; gap: 10px;
+}
+.section-divider::before, .section-divider::after {
+    content: ''; flex: 1; height: 1px; background: #e2ece6;
+}
+
 .login-footer { text-align: center; margin-top: 20px; font-size: 13px; color: #63736a; }
 .login-footer a { color: #1f7a3d; font-weight: 700; text-decoration: none; }
 .login-footer a:hover { text-decoration: underline; }
 
-@media (max-width: 480px) { .auth-card { padding: 28px 20px; } }
+.steps-strip {
+    display: flex; align-items: center; gap: 0; margin-bottom: 28px;
+    background: #f4f8f5; border-radius: 12px; padding: 14px 16px;
+    counter-reset: step;
+}
+.step-item {
+    display: flex; align-items: center; gap: 8px; flex: 1;
+    font-size: 11.5px; font-weight: 600; color: #63736a; position: relative;
+}
+.step-item:not(:last-child)::after {
+    content: ''; position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    width: 1px; height: 24px; background: #d4e0d8;
+}
+.step-num {
+    width: 22px; height: 22px; border-radius: 50%; background: #06251b; color: #ffc107;
+    font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-family: 'Space Grotesk', sans-serif;
+}
+
+@media (max-width: 520px) {
+    .auth-card { padding: 28px 18px; }
+    .steps-strip { flex-direction: column; gap: 8px; }
+    .step-item:not(:last-child)::after { display: none; }
+}
 </style>
 </head>
 <body>
@@ -165,92 +244,123 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
             </div>
         </div>
 
-        <h3>Create your account</h3>
-        <p>Fill in the details below to register as a user</p>
+        <h3>Request Portal Access</h3>
+        <p>Fill in your organization details to request an account invitation</p>
+
+        <!-- How it works strip -->
+        <div class="steps-strip">
+            <div class="step-item"><span class="step-num">1</span> Submit Request</div>
+            <div class="step-item"><span class="step-num">2</span> Admin Reviews</div>
+            <div class="step-item"><span class="step-num">3</span> Get Invite Email</div>
+            <div class="step-item"><span class="step-num">4</span> Create Account</div>
+        </div>
 
         <?php if ($error): ?>
             <div class="alert-error"><i class="bi bi-exclamation-circle-fill"></i> <?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
         <?php if ($success): ?>
-            <div class="alert-success"><i class="bi bi-check-circle-fill"></i> <?= htmlspecialchars($success) ?></div>
+            <div class="alert-success">
+                <i class="bi bi-envelope-check-fill"></i>
+                <div><?= htmlspecialchars($success) ?></div>
+            </div>
         <?php endif; ?>
 
-        <form action="<?= htmlspecialchars($_SERVER["PHP_SELF"]) ?>" method="POST">
+        <?php if (!$success): ?>
+
+        <div class="info-note">
+            <i class="bi bi-info-circle-fill"></i>
+            <div>Registration requires admin approval. Once reviewed, you will receive an email invitation with a link to set up your account.</div>
+        </div>
+
+        <form action="register.php" method="POST">
+
+            <div class="section-divider">Organization Information</div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="firstname">First Name</label>
+                    <label for="company_name">Company / Organization <span style="color:#e53935;">*</span></label>
                     <div class="input-wrapper">
-                        <i class="bi bi-person input-icon-left"></i>
-                        <input type="text" id="firstname" name="firstname" placeholder="Juan"
-                               value="<?= isset($_POST['firstname']) ? htmlspecialchars($_POST['firstname']) : '' ?>"
-                               required autocomplete="given-name">
+                        <i class="bi bi-building input-icon-left"></i>
+                        <input type="text" id="company_name" name="company_name"
+                               placeholder="ABC Corporation"
+                               value="<?= htmlspecialchars($old['company_name'] ?? '') ?>" required>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="lastname">Last Name</label>
+                    <label for="contact_person">Contact Person <span style="color:#e53935;">*</span></label>
                     <div class="input-wrapper">
                         <i class="bi bi-person input-icon-left"></i>
-                        <input type="text" id="lastname" name="lastname" placeholder="dela Cruz"
-                               value="<?= isset($_POST['lastname']) ? htmlspecialchars($_POST['lastname']) : '' ?>"
-                               required autocomplete="family-name">
+                        <input type="text" id="contact_person" name="contact_person"
+                               placeholder="Juan dela Cruz"
+                               value="<?= htmlspecialchars($old['contact_person'] ?? '') ?>" required>
                     </div>
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="email">Email Address</label>
+                    <label for="email">Email Address <span style="color:#e53935;">*</span></label>
                     <div class="input-wrapper">
                         <i class="bi bi-envelope input-icon-left"></i>
-                        <input type="email" id="email" name="email" placeholder="juan@email.com"
-                               value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>"
-                               required autocomplete="email">
+                        <input type="email" id="email" name="email"
+                               placeholder="juan@company.com"
+                               value="<?= htmlspecialchars($old['email'] ?? '') ?>" required>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="username">Username</label>
+                    <label for="phone">Phone Number <span class="opt">(optional)</span></label>
                     <div class="input-wrapper">
-                        <i class="bi bi-at input-icon-left"></i>
-                        <input type="text" id="username" name="username" placeholder="juandelacruz"
-                               value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>"
-                               required autocomplete="username">
+                        <i class="bi bi-telephone input-icon-left"></i>
+                        <input type="text" id="phone" name="phone"
+                               placeholder="+63 9XX XXX XXXX"
+                               value="<?= htmlspecialchars($old['phone'] ?? '') ?>">
                     </div>
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="password">Password</label>
+                    <label for="business_type">Business Type <span style="color:#e53935;">*</span></label>
                     <div class="input-wrapper">
-                        <i class="bi bi-lock input-icon-left"></i>
-                        <input type="password" id="password" name="password" placeholder="Create a password"
-                               required autocomplete="new-password" oninput="checkStrength(this.value)">
-                        <button type="button" class="toggle-password" onclick="togglePass('password','icon-pw')">
-                            <i class="bi bi-eye" id="icon-pw"></i>
-                        </button>
+                        <i class="bi bi-briefcase input-icon-left"></i>
+                        <select id="business_type" name="business_type" required>
+                            <option value="" disabled <?= empty($old['business_type']) ? 'selected' : '' ?>>Select type...</option>
+                            <?php foreach ($business_types as $bt): ?>
+                                <option value="<?= htmlspecialchars($bt) ?>"
+                                    <?= ($old['business_type'] ?? '') === $bt ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($bt) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                    <div class="strength-bar"><span id="s1"></span><span id="s2"></span><span id="s3"></span><span id="s4"></span></div>
-                    <div class="strength-label" id="strength-label"></div>
                 </div>
                 <div class="form-group">
-                    <label for="confirm_password">Confirm Password</label>
+                    <label for="tax_id_tin">TIN / Registration No. <span class="opt">(optional)</span></label>
                     <div class="input-wrapper">
-                        <i class="bi bi-lock-fill input-icon-left"></i>
-                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Repeat your password"
-                               required autocomplete="new-password">
-                        <button type="button" class="toggle-password" onclick="togglePass('confirm_password','icon-cpw')">
-                            <i class="bi bi-eye" id="icon-cpw"></i>
-                        </button>
+                        <i class="bi bi-file-earmark-text input-icon-left"></i>
+                        <input type="text" id="tax_id_tin" name="tax_id_tin"
+                               placeholder="000-000-000-000"
+                               value="<?= htmlspecialchars($old['tax_id_tin'] ?? '') ?>">
                     </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="business_address">Business Address <span class="opt">(optional)</span></label>
+                <div class="input-wrapper textarea-wrap">
+                    <i class="bi bi-geo-alt input-icon-left"></i>
+                    <textarea id="business_address" name="business_address"
+                              placeholder="Street, City, Province, ZIP Code"><?= htmlspecialchars($old['business_address'] ?? '') ?></textarea>
                 </div>
             </div>
 
             <button type="submit" class="btn-register">
-                <i class="bi bi-person-plus-fill"></i> Create Account
+                <i class="bi bi-send-fill"></i> Submit Access Request
             </button>
 
         </form>
+
+        <?php endif; ?>
 
         <div class="login-footer">
             Already have an account? <a href="login.php">Sign in here</a>
@@ -259,27 +369,5 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
     </div>
 </div>
 
-<script>
-function togglePass(inputId, iconId) {
-    const input = document.getElementById(inputId);
-    const icon  = document.getElementById(iconId);
-    input.type  = input.type === 'password' ? 'text' : 'password';
-    icon.className = input.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
-}
-function checkStrength(val) {
-    const bars  = ['s1','s2','s3','s4'].map(id => document.getElementById(id));
-    const label = document.getElementById('strength-label');
-    const levels = ['weak','fair','good','strong'];
-    const texts  = ['Weak','Fair','Good','Strong'];
-    let score = 0;
-    if (val.length >= 8)          score++;
-    if (/[A-Z]/.test(val))        score++;
-    if (/[0-9]/.test(val))        score++;
-    if (/[^A-Za-z0-9]/.test(val)) score++;
-    bars.forEach((b, i) => { b.className = i < score ? levels[score - 1] : ''; });
-    label.textContent = val.length ? (texts[score - 1] || '') : '';
-}
-</script>
 </body>
 </html>
-

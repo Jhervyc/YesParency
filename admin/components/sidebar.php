@@ -13,6 +13,7 @@ $is_dashboard_active     = in_array($active, ['dashboard.php', 'dashboard', 'das
 $is_bid_opening_active   = in_array($active, ['bid_opening.php', 'bid_opening', 'bid_opening_conduct.php', 'schedule_bid_opening.php', 'bid-session-list.php']);
 $is_procurement_active   = in_array($active, ['procurement.php', 'create_procurement.php', 'manage_lots.php', 'review_procurement.php', 'procurement-view.php', 'procurement', 'procurement-twd-bac.php']);
 $is_bids_active          = in_array($active, ['bid_submissions.php', 'bid-submission-view.php', 'quotation_management.php']);
+$is_invitations_active   = in_array($active, ['invitation_requests.php']);
 $is_accounts_active      = in_array($active, ['account-management.php', 'account-management']);
 $is_announcements_active = in_array($active, ['announcements.php', 'announcements']);
 $is_audit_active         = in_array($active, ['audit_trail.php', 'audit_trail']);
@@ -85,6 +86,17 @@ $is_restricted = in_array($admin_type, ['BAC', 'TWG']);
         </a>
         <a href="announcements.php" class="nav-item <?= $is_announcements_active ? 'active' : '' ?>">
             <i class="bi bi-megaphone"></i><span>Announcements</span>
+        </a>
+        <a href="invitation_requests.php" class="nav-item <?= $is_invitations_active ? 'active' : '' ?>">
+            <i class="bi bi-envelope-paper-fill"></i><span>Invitations</span>
+            <?php
+            // Badge for pending invitation requests
+            if (isset($conn)) {
+                $inv_pending = $conn->query("SELECT COUNT(*) FROM invitation_requests WHERE status='pending'")?->fetch_row()[0] ?? 0;
+                if ($inv_pending > 0):
+            ?>
+                <span style="background:#e67e22; color:#fff; font-size:9px; font-weight:800; padding:1px 5px; border-radius:8px; margin-left:auto;"><?= $inv_pending ?></span>
+            <?php endif; } ?>
         </a>
         <?php endif; ?>
 

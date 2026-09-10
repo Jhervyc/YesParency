@@ -766,3 +766,80 @@ function notify_lot_awarded(mysqli $conn, int $lotId, int $bidLotId, float $awar
     $queueId = queue_email($conn, $winner['email'], $recipientName, $subject, 'award_notification', $payload);
     return dispatch_queued_email_safe($conn, $queueId);
 }
+
+/**
+ * 6. Notify Invitation Approved
+ *
+ * Sends the one-time invite link to the applicant after admin approval.
+ *
+ * @param mysqli  $conn
+ * @param string  $email          Recipient email (from invitation_requests)
+ * @param string  $contactPerson  Contact person name
+ * @param string  $companyName    Organization name
+ * @param string  $token          64-char hex token from user_invitations
+ * @param string  $expiresAt      MySQL DATETIME string from user_invitations.expires_at
+ * @return bool
+ */
+function notify_invitation_approved(
+    mysqli $conn,
+    string $email,
+    string $contactPerson,
+    string $companyName,
+    string $token,
+    string $expiresAt
+): bool {
+    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) return false;
+    if (empty($token)) return false;
+
+    $appUrl    = mailer_get_app_url();
+    $inviteUrl = $appUrl . '/accept_invitation.php?token=' . urlencode($token);
+    $expiryFmt = date('F j, Y \a\t g:i A', strtotime($expiresAt));
+
+    $subject = "Your YesParency Access Request Has Been Approved — Action Required";
+    $payload = [
+        'recipient_name' => $contactPerson,
+        'company_name'   => $companyName,
+        'invite_url'     => $inviteUrl,
+        'expires_at'     => $expiryFmt,
+        'token'          => $token,  // stored in payload for reference; never exposed directly
+    ];
+
+    $queueId = queue_email($conn, $email, $contactPerson, $subject, 'invitation_approved', $payload);
+    return dispatch_queued_email_safe($conn, $queueId);
+}
+
+/**
+ * 7. Notify Invitation Rejected
+ *
+ * Informs the applicant their request was declined.
+ *
+ * @param mysqli       $conn
+ * @param string       $email         Recipient email
+ * @param string       $contactPerson Contact person name
+ * @param string       $companyName   Organization name
+ * @param string|null  $adminNotes    Optional rejection reason from the admin
+ * @return bool
+ */
+function notify_invitation_rejected(
+    mysqli $conn,
+    string $email,
+    string $contactPerson,
+    string $companyName,
+    ?string $adminNotes = null
+): bool {
+    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) return false;
+
+    $appUrl      = mailer_get_app_url();
+    $registerUrl = $appUrl . '/register.php';
+
+    $subject = "Update on Your YesParency Access Request";
+    $payload = [
+        'recipient_name' => $contactPerson,
+        'company_name'   => $companyName,
+        'admin_notes'    => $adminNotes,
+        'register_url'   => $registerUrl,
+    ];
+
+    $queueId = queue_email($conn, $email, $contactPerson, $subject, 'invitation_rejected', $payload);
+    return dispatch_queued_email_safe($conn, $queueId);
+}
