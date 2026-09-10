@@ -44,16 +44,45 @@ while ($l = $lots_res->fetch_assoc()) {
 }
 $lot_stmt->close();
 
-// 4. Fetch Downloadable Documents
+if (!function_exists('resolve_proc_doc_url')) {
+    function resolve_proc_doc_url($file_path, $context = 'user') {
+        $raw = trim($file_path ?? '');
+        if (empty($raw)) return '#';
+        if (preg_match('/^https?:\/\//i', $raw)) return $raw;
+
+        $rel = ltrim($raw, '/');
+        while (strpos($rel, '../') === 0) {
+            $rel = substr($rel, 3);
+        }
+        if (strpos($rel, 'uploads/') !== 0) {
+            $rel = 'uploads/procurements/' . $rel;
+        }
+
+        if (in_array($context, ['admin', 'bidder', 'user'])) {
+            return '../' . $rel;
+        }
+        return $rel;
+    }
+}
+
+// 4. Fetch Downloadable Documents (Categorized into Original and Associated)
 $doc_stmt = $conn->prepare("SELECT * FROM procurement_documents WHERE procurement_id = ? ORDER BY uploaded_at DESC");
 $doc_stmt->bind_param("i", $procurement_id);
 $doc_stmt->execute();
 $docs_res = $doc_stmt->get_result();
-$documents = [];
+$original_documents   = [];
+$associated_documents = [];
 while ($d = $docs_res->fetch_assoc()) {
-    $documents[] = $d;
+    if (($d['document_category'] ?? 'original') === 'associated') {
+        $associated_documents[] = $d;
+    } else {
+        $original_documents[] = $d;
+    }
 }
 $doc_stmt->close();
+
+// The existing Bidding Documents & Files section displays only original documents
+$documents = $original_documents;
 
 $p_status = strtolower($procurement['status'] ?? 'open');
 $is_open  = ($p_status === 'open');
@@ -510,6 +539,18 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
             color: #ffffff;
         }
 
+        .badge-associated-pill {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 6px;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
         /* ── Action / Accreditation Sidebar Card ── */
         .accredit-cta-box {
             background: #f7faf8;
@@ -707,18 +748,20 @@ include("components/topbar.php");
                 </div>
             <?php endif; ?>
 
-            <!-- 3. Official Downloadable Documents -->
+            <!-- 3. Official Downloadable Documents (Original Category Only) -->
             <div class="vp-card">
                 <div class="vp-card-head">
                     <div class="vp-card-title">
                         <i class="bi bi-file-earmark-arrow-down" style="color:#1565c0;"></i>
                         <span>Official Bidding Documents &amp; Notices</span>
                     </div>
-                    <span class="vp-card-count"><?= count($documents) ?> File<?= count($documents) != 1 ? 's' : '' ?></span>
+                    <span class="vp-card-count"><?= count($original_documents) ?> File<?= count($original_documents) != 1 ? 's' : '' ?></span>
                 </div>
                 <div class="vp-card-body">
-                    <?php if (!empty($documents)): ?>
-                        <?php foreach ($documents as $doc): ?>
+                    <?php if (!empty($original_documents)): ?>
+                        <?php foreach ($original_documents as $doc): 
+                            $dl_url = resolve_proc_doc_url($doc['file_path'], 'user');
+                        ?>
                             <div class="doc-item-row">
                                 <div class="doc-left">
                                     <div class="doc-icon"><i class="bi bi-file-earmark-pdf"></i></div>
@@ -727,7 +770,7 @@ include("components/topbar.php");
                                         <div style="font-size:11px; color:#88968d;">Uploaded: <?= date('M j, Y', strtotime($doc['uploaded_at'])) ?></div>
                                     </div>
                                 </div>
-                                <a href="../uploads/documents/<?= urlencode($doc['file_path']) ?>" download class="doc-dl-btn">
+                                <a href="<?= htmlspecialchars($dl_url) ?>" download class="doc-dl-btn">
                                     <i class="bi bi-download"></i> Download
                                 </a>
                             </div>
@@ -735,7 +778,52 @@ include("components/topbar.php");
                     <?php else: ?>
                         <div style="text-align:center; padding:18px 0; color:#88968d; font-size:12.5px;">
                             <i class="bi bi-folder-x" style="font-size:24px; display:block; margin-bottom:4px;"></i>
-                            No bidding documents uploaded yet for this opportunity.
+                            No original bidding documents uploaded yet for this opportunity.
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- 4. Associated Documents (Associated Category Only) -->
+            <div class="vp-card" style="margin-top:20px;">
+                <div class="vp-card-head">
+                    <div class="vp-card-title">
+                        <i class="bi bi-paperclip" style="color:#0284c7;"></i>
+                        <span>Associated Documents</span>
+                    </div>
+                    <span class="vp-card-count"><?= count($associated_documents) ?> File<?= count($associated_documents) != 1 ? 's' : '' ?></span>
+                </div>
+                <div class="vp-card-body">
+                    <?php if (!empty($associated_documents)): ?>
+                        <?php foreach ($associated_documents as $adoc): 
+                            $adl_url = resolve_proc_doc_url($adoc['file_path'], 'user');
+                            $aext = strtolower(pathinfo($adoc['document_name'], PATHINFO_EXTENSION));
+                            $aicon = 'bi-file-earmark-pdf';
+                            if (in_array($aext, ['doc','docx'])) $aicon = 'bi-file-earmark-word';
+                            elseif (in_array($aext, ['xls','xlsx'])) $aicon = 'bi-file-earmark-excel';
+                            elseif (in_array($aext, ['zip','rar','7z'])) $aicon = 'bi-file-earmark-zip';
+                            elseif (in_array($aext, ['jpg','jpeg','png'])) $aicon = 'bi-file-earmark-image';
+                        ?>
+                            <div class="doc-item-row">
+                                <div class="doc-left">
+                                    <div class="doc-icon"><i class="bi <?= $aicon ?>" style="color:#0284c7;"></i></div>
+                                    <div style="min-width:0;">
+                                        <div class="doc-title" title="<?= htmlspecialchars($adoc['document_name']) ?>">
+                                            <?= htmlspecialchars($adoc['document_name']) ?>
+                                            <span class="badge-associated-pill">Associated</span>
+                                        </div>
+                                        <div style="font-size:11px; color:#88968d;">Uploaded: <?= date('M j, Y · g:i A', strtotime($adoc['uploaded_at'])) ?></div>
+                                    </div>
+                                </div>
+                                <a href="<?= htmlspecialchars($adl_url) ?>" download class="doc-dl-btn" style="background:#0284c7; color:#ffffff;">
+                                    <i class="bi bi-download"></i> Download
+                                </a>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div style="text-align:center; padding:18px 0; color:#88968d; font-size:12.5px;">
+                            <i class="bi bi-folder-x" style="font-size:24px; display:block; margin-bottom:4px;"></i>
+                            No associated documents (bid bulletins, addenda, notices) uploaded yet.
                         </div>
                     <?php endif; ?>
                 </div>

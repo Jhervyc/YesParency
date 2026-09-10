@@ -2,6 +2,7 @@
 include("utils/protect-page.php");
 require_once("../utils/crypto.php");
 require_once(__DIR__ . "/../admin/utils/audit_helper.php");
+require_once(__DIR__ . "/../utils/procurement_mode_helper.php");
 
 $procurement_id = isset($_GET['id']) ? intval($_GET['id']) : (isset($_GET['procurement_id']) ? intval($_GET['procurement_id']) : 0);
 $bidder_id      = intval($_SESSION['user_id']);
@@ -21,6 +22,12 @@ $stmt->close();
 if (!$procurement) {
     $_SESSION['alert_error'] = "This procurement is not available for bidding or is no longer open.";
     header("Location: procurement.php");
+    exit();
+}
+
+// Route SVP / Shopping to the quotation submission page — they don't use encryption or bid-sessions
+if (is_quotation_mode($procurement['procurement_mode'] ?? '')) {
+    header("Location: submit_quotation.php?id=" . $procurement_id);
     exit();
 }
 

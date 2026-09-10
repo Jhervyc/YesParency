@@ -1,5 +1,6 @@
 <?php
 include("utils/protect-page.php");
+require_once(__DIR__ . "/../utils/procurement_mode_helper.php");
 
 $procurement_id = isset($_GET['id']) ? intval($_GET['id']) : (isset($_GET['procurement_id']) ? intval($_GET['procurement_id']) : 0);
 $bidder_id      = intval($_SESSION['user_id']);
@@ -35,16 +36,45 @@ while ($l = $lots_res->fetch_assoc()) {
 }
 $lot_stmt->close();
 
-// 3. Fetch Downloadable Documents
+if (!function_exists('resolve_proc_doc_url')) {
+    function resolve_proc_doc_url($file_path, $context = 'bidder') {
+        $raw = trim($file_path ?? '');
+        if (empty($raw)) return '#';
+        if (preg_match('/^https?:\/\//i', $raw)) return $raw;
+
+        $rel = ltrim($raw, '/');
+        while (strpos($rel, '../') === 0) {
+            $rel = substr($rel, 3);
+        }
+        if (strpos($rel, 'uploads/') !== 0) {
+            $rel = 'uploads/procurements/' . $rel;
+        }
+
+        if (in_array($context, ['admin', 'bidder', 'user'])) {
+            return '../' . $rel;
+        }
+        return $rel;
+    }
+}
+
+// 3. Fetch Downloadable Documents (Separated by document_category)
 $doc_stmt = $conn->prepare("SELECT * FROM procurement_documents WHERE procurement_id = ? ORDER BY uploaded_at DESC");
 $doc_stmt->bind_param("i", $procurement_id);
 $doc_stmt->execute();
 $docs_res = $doc_stmt->get_result();
-$documents = [];
+$original_documents   = [];
+$associated_documents = [];
 while ($d = $docs_res->fetch_assoc()) {
-    $documents[] = $d;
+    if (($d['document_category'] ?? 'original') === 'associated') {
+        $associated_documents[] = $d;
+    } else {
+        $original_documents[] = $d;
+    }
 }
 $doc_stmt->close();
+
+// The existing Bidding Documents & Files section displays only original documents
+$documents = $original_documents;
 
 // 4. Check for Existing Bid Proposal by Current Bidder
 $bid_check = $conn->prepare("SELECT id, submission_date, status FROM bids WHERE bidder_id = ? AND procurement_id = ? LIMIT 1");
@@ -74,6 +104,19 @@ if (!empty($procurement['closing_date'])) {
 // Status styles
 $status_badge_bg = ['open'=>'#e4f5ea', 'draft'=>'#eef0ed', 'closed'=>'#e7eefe', 'awarded'=>'#fcf1cf', 'cancelled'=>'#ffebee'][$p_status] ?? '#e4f5ea';
 $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 'awarded'=>'#b78103', 'cancelled'=>'#c23b3b'][$p_status] ?? '#1f7a3d';
+
+// Submission routing — SVP / Shopping → quotation page, everything else → bid page
+$_proc_mode      = $procurement['procurement_mode'] ?? '';
+$_is_quotation   = is_quotation_mode($_proc_mode);
+$submit_url      = $_is_quotation
+    ? "submit_quotation.php?id={$procurement_id}"
+    : "submit_bid.php?id={$procurement_id}";
+$submit_label    = $_is_quotation ? 'Submit Price Quotation' : 'Submit Bid Proposal';
+$submit_icon     = $_is_quotation ? 'bi-file-earmark-text-fill' : 'bi-send-fill';
+$cta_title       = $_is_quotation ? 'Submit a Price Quotation' : 'Submit Electronic Bid';
+$cta_desc        = $_is_quotation
+    ? 'Upload your quotation document for each lot. The procurement officer will confirm your offered price after review.'
+    : 'Ensure all lot financial components and eligibility documents comply with RA 9184 before the submission deadline.';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -976,12 +1019,12 @@ include("components/topbar.php");
                     </a>
                 <?php elseif ($is_open): ?>
                     <div class="cta-icon-wrap"><i class="bi bi-send-check-fill"></i></div>
-                    <div class="cta-title">Submit Electronic Bid</div>
+                    <div class="cta-title"><?= htmlspecialchars($cta_title) ?></div>
                     <div class="cta-desc">
-                        Ensure all lot financial components and eligibility documents comply with RA 9184 before the submission deadline.
+                        <?= htmlspecialchars($cta_desc) ?>
                     </div>
-                    <a href="submit_bid.php?id=<?= $procurement_id ?>" class="btn-submit-proposal">
-                        <i class="bi bi-send-fill"></i> Submit Bid Proposal Now
+                    <a href="<?= htmlspecialchars($submit_url) ?>" class="btn-submit-proposal">
+                        <i class="bi <?= $submit_icon ?>"></i> <?= htmlspecialchars($submit_label) ?> Now
                     </a>
                 <?php else: ?>
                     <div class="cta-icon-wrap" style="background:#ffebee; color:#c23b3b;"><i class="bi bi-lock-fill"></i></div>
@@ -995,22 +1038,22 @@ include("components/topbar.php");
                 <?php endif; ?>
             </div>
 
-            <!-- 2. Downloadable Bidding Documents Card -->
+            <!-- 2. Downloadable Bidding Documents Card (Original Only) -->
             <div class="vp-card">
                 <div class="vp-card-head">
                     <div class="vp-card-title">
                         <i class="bi bi-paperclip" style="color:#06251b;"></i>
                         Bidding Documents &amp; Files
                     </div>
-                    <span class="vp-card-count"><?= count($documents) ?> File(s)</span>
+                    <span class="vp-card-count"><?= count($original_documents) ?> File(s)</span>
                 </div>
 
                 <div>
-                    <?php if (count($documents) > 0): ?>
+                    <?php if (count($original_documents) > 0): ?>
                         <div>
-                            <?php foreach ($documents as $doc):
+                            <?php foreach ($original_documents as $doc):
                                 $fname = $doc['document_name'] ?? 'Bidding Document';
-                                $fpath = $doc['file_path'] ?? '';
+                                $furl  = resolve_proc_doc_url($doc['file_path'], 'bidder');
                                 $ext = strtolower(pathinfo($fname, PATHINFO_EXTENSION));
                                 $ficon = 'bi-file-earmark-pdf';
                                 if (in_array($ext, ['doc','docx'])) $ficon = 'bi-file-earmark-word';
@@ -1025,7 +1068,7 @@ include("components/topbar.php");
                                         <div class="doc-date">Uploaded <?= !empty($doc['uploaded_at']) ? date('M j, Y', strtotime($doc['uploaded_at'])) : 'N/A' ?></div>
                                     </div>
                                 </div>
-                                <a href="../admin/<?= htmlspecialchars($fpath) ?>" target="_blank" download class="doc-download-btn">
+                                <a href="<?= htmlspecialchars($furl) ?>" target="_blank" download class="doc-download-btn">
                                     <i class="bi bi-download"></i> Get
                                 </a>
                             </div>
@@ -1034,7 +1077,56 @@ include("components/topbar.php");
                     <?php else: ?>
                         <div style="padding:28px 16px; text-align:center; color:#88968d; font-size:12px;">
                             <i class="bi bi-file-earmark-x" style="font-size:24px; color:#c7d2cb; display:block; margin-bottom:4px;"></i>
-                            No downloadable documents attached yet.
+                            No original bidding documents attached yet.
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- 3. Associated Documents Card (Associated Only) -->
+            <div class="vp-card" style="margin-top: 18px;">
+                <div class="vp-card-head">
+                    <div class="vp-card-title">
+                        <i class="bi bi-files" style="color:#0284c7;"></i>
+                        Associated Documents
+                    </div>
+                    <span class="vp-card-count"><?= count($associated_documents) ?> File(s)</span>
+                </div>
+
+                <div>
+                    <?php if (count($associated_documents) > 0): ?>
+                        <div>
+                            <?php foreach ($associated_documents as $adoc):
+                                $fname = $adoc['document_name'] ?? 'Associated Document';
+                                $furl  = resolve_proc_doc_url($adoc['file_path'], 'bidder');
+                                $ext   = strtolower(pathinfo($fname, PATHINFO_EXTENSION));
+                                $ficon = 'bi-file-earmark-pdf';
+                                if (in_array($ext, ['doc','docx'])) $ficon = 'bi-file-earmark-word';
+                                elseif (in_array($ext, ['xls','xlsx'])) $ficon = 'bi-file-earmark-excel';
+                                elseif (in_array($ext, ['zip','rar','7z'])) $ficon = 'bi-file-earmark-zip';
+                                elseif (in_array($ext, ['jpg','jpeg','png'])) $ficon = 'bi-file-earmark-image';
+                            ?>
+                            <div class="doc-item-row">
+                                <div class="doc-left">
+                                    <div class="doc-icon"><i class="bi <?= $ficon ?>" style="color:#0284c7;"></i></div>
+                                    <div style="min-width:0; overflow:hidden; flex:1 1 0;">
+                                        <div class="doc-title" title="<?= htmlspecialchars($fname) ?>">
+                                            <?= htmlspecialchars($fname) ?>
+                                            <span style="font-size:10px; font-weight:700; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; margin-left:4px;">Associated</span>
+                                        </div>
+                                        <div class="doc-date">Uploaded <?= !empty($adoc['uploaded_at']) ? date('M j, Y · g:i A', strtotime($adoc['uploaded_at'])) : 'N/A' ?></div>
+                                    </div>
+                                </div>
+                                <a href="<?= htmlspecialchars($furl) ?>" target="_blank" download class="doc-download-btn" style="background:#0284c7;">
+                                    <i class="bi bi-download"></i> Get
+                                </a>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div style="padding:28px 16px; text-align:center; color:#88968d; font-size:12px;">
+                            <i class="bi bi-folder-x" style="font-size:24px; color:#c7d2cb; display:block; margin-bottom:4px;"></i>
+                            No associated documents (bid bulletins, notices) published yet.
                         </div>
                     <?php endif; ?>
                 </div>

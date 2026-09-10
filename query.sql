@@ -57,7 +57,7 @@ ADD application_status ENUM(
 CREATE TABLE procurements (
     id INT AUTO_INCREMENT PRIMARY KEY,
 
-    philgeps_ref_no VARCHAR(255) NOT NULL,
+    procurement_ref_no VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NULL,
 
@@ -98,6 +98,9 @@ CREATE TABLE procurements (
 -- ) NOT NULL DEFAULT 'goods_services'
 -- AFTER procurement_mode;
 
+-- ALTER TABLE procurements
+-- CHANGE COLUMN philgeps_ref_no procurement_ref_no VARCHAR(255) NOT NULL;
+
 -- =================== lots table =======================
 CREATE TABLE lots (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -130,32 +133,61 @@ CREATE TABLE lots (
 
 CREATE TABLE procurement_documents (
     id INT AUTO_INCREMENT PRIMARY KEY,
+
     procurement_id INT NOT NULL,
-    document_name VARCHAR(255),
-    file_path VARCHAR(255),
+
+    document_category ENUM(
+        'original',
+        'associated'
+    ) NOT NULL DEFAULT 'original',
+
+    document_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (procurement_id)
-    REFERENCES procurements(id)
-    ON DELETE CASCADE
-);
+        REFERENCES procurements(id)
+        ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ALTER TABLE procurement_documents
+-- ADD COLUMN document_category ENUM(
+--     'original',
+--     'associated'
+-- ) NOT NULL DEFAULT 'original'
+-- AFTER procurement_id;
 
 -- =================== Bids table =======================
 CREATE TABLE bids (
     id INT AUTO_INCREMENT PRIMARY KEY,
     bidder_id INT NOT NULL,
     procurement_id INT NOT NULL,
+    bid_type ENUM(
+        'quotation',
+        'bid'
+    ) NOT NULL DEFAULT 'bid',
     submission_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     status ENUM('submitted','opened','pending','awarded','rejected') DEFAULT 'submitted',
     UNIQUE KEY unique_bidder_procurement (bidder_id, procurement_id),
     FOREIGN KEY (bidder_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (procurement_id) REFERENCES procurements(id) ON DELETE CASCADE
 );
+
+-- ALTER TABLE bids
+-- ADD COLUMN bid_type ENUM(
+--     'quotation',
+--     'bid'
+-- ) NOT NULL DEFAULT 'bid'
+-- AFTER procurement_id;
 -- =================== Bids_lots table =======================
 CREATE TABLE bid_lots (
     id INT AUTO_INCREMENT PRIMARY KEY,
     bid_id INT NOT NULL,
     lot_id INT NOT NULL,
+
+    total_offered_bid DECIMAL(15,2) NULL,
 
     eligibility_status ENUM(
         'opened',
@@ -206,17 +238,29 @@ CREATE TABLE bid_lots (
 -- ) NOT NULL DEFAULT 'pending'
 -- AFTER eligibility_status;
 
+-- ALTER TABLE bid_lots
+-- ADD COLUMN total_offered_bid DECIMAL(15,2) NULL
+-- AFTER lot_id;
+
 -- =================== Bids_Documents table =======================
 CREATE TABLE bid_documents (
     id INT AUTO_INCREMENT PRIMARY KEY,
     bid_id INT NOT NULL,
-    document_type ENUM('eligibility', 'financial', 'other') DEFAULT 'other',
+    document_type ENUM('eligibility', 'financial', 'qoutation', 'other') DEFAULT 'other',
     document_name VARCHAR(255) NOT NULL,
     file_path VARCHAR(255) NOT NULL,
     uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (bid_id) REFERENCES bids(id) ON DELETE CASCADE
 );
+
+-- ALTER TABLE bid_documents
+-- MODIFY COLUMN document_type ENUM(
+--     'eligibility',
+--     'financial',
+--     'quotation',
+--     'other'
+-- );
 
 -- =================== Awards table =======================
 CREATE TABLE IF NOT EXISTS awards (

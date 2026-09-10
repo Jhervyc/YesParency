@@ -1,5 +1,6 @@
 <?php
 include("utils/protect-page.php");
+require_once(__DIR__ . "/../utils/procurement_mode_helper.php");
 
 $bidder_id = intval($_SESSION['user_id']);
 
@@ -7,6 +8,7 @@ $bidder_id = intval($_SESSION['user_id']);
 $sql = "
     SELECT 
         b.id AS bid_id,
+        b.bid_type,
         b.submission_date,
         b.status AS bid_status,
         p.id AS procurement_id,
@@ -253,7 +255,6 @@ $status_config = [
             overflow: hidden;
             box-shadow: 0 1px 2px rgba(16,36,26,.02);
             transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
         }
 
         .bid-accordion-item:hover {
@@ -264,20 +265,6 @@ $status_config = [
         .bid-accordion-item.is-open {
             border-color: #06251b;
             box-shadow: 0 4px 16px rgba(6, 37, 27, 0.08);
-        }
-
-        /* Status Bar strip on left side of row */
-        .bid-status-bar {
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            transition: width .2s ease;
-        }
-
-        .bid-accordion-item.is-open .bid-status-bar {
-            width: 6px;
         }
 
         /* Compact Header Row (Clickable) */
@@ -759,55 +746,35 @@ include("components/topbar.php");
         </div>
     </div>
 
-    <!-- ── Proposals List Panel (Matching admin/audit_trail.php panel & controls) ── -->
-    <div class="sp-panel sp-list-panel" style="background:#fff; border:1px solid #eaeeec; border-radius:18px; padding:18px; box-shadow:0 1px 2px rgba(16,36,26,.03);">
+    <!-- ── Proposals List Panel (Matching admin/bid_opening.php panel & controls) ── -->
+    <div class="proc-table-panel" style="margin-bottom:24px;">
         
-        <!-- ── Search + Filter Bar (1 Row Only matching admin/audit_trail.php) ── -->
-        <div class="ap2-controls" style="display:flex; align-items:center; gap:10px; flex-wrap:nowrap; padding:0 0 16px 0; margin-bottom:14px; border-bottom:1px solid #f0f4f2; overflow-x:auto;">
-            <div class="ap2-search-field" style="flex:1; min-width:200px;">
+        <!-- Filter bar -->
+        <div class="filter-bar">
+            <div class="ap2-search-field">
                 <i class="bi bi-search"></i>
                 <input type="text" id="bidSearchInput"
                     placeholder="Search by proposal title or PhilGEPS reference..."
                     oninput="handleSearch()"
                     onkeydown="if(event.key==='Enter'){event.preventDefault(); handleSearch();}">
             </div>
-
-            <!-- Action / Status Filters -->
-            <div class="ap2-filters" style="display:flex; gap:6px; flex-shrink:0;">
-                <button type="button" class="ap2-filter-btn active" onclick="filterBids('all', this)">
-                    All
-                </button>
-                <button type="button" class="ap2-filter-btn" onclick="filterBids('pending', this)">
-                    Pending
-                </button>
-                <button type="button" class="ap2-filter-btn" onclick="filterBids('submitted', this)">
-                    Verified
-                </button>
-                <button type="button" class="ap2-filter-btn" onclick="filterBids('opened', this)">
-                    Opened
-                </button>
-                <button type="button" class="ap2-filter-btn" onclick="filterBids('awarded', this)">
-                    Awarded
-                </button>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="ap2-filter-btn active" onclick="filterBids('all', this)">All</button>
+                <button type="button" class="ap2-filter-btn" onclick="filterBids('pending', this)">Pending</button>
+                <button type="button" class="ap2-filter-btn" onclick="filterBids('submitted', this)">Verified</button>
+                <button type="button" class="ap2-filter-btn" onclick="filterBids('opened', this)">Opened</button>
+                <button type="button" class="ap2-filter-btn" onclick="filterBids('awarded', this)">Awarded</button>
                 <?php if ($stats['rejected'] > 0): ?>
-                    <button type="button" class="ap2-filter-btn" onclick="filterBids('rejected', this)">
-                        Rejected
-                    </button>
+                    <button type="button" class="ap2-filter-btn" onclick="filterBids('rejected', this)">Rejected</button>
                 <?php endif; ?>
             </div>
-
-            <!-- Sort dropdown -->
-            <div class="module-select-wrap" style="flex-shrink:0;">
-                <select id="sortSelect" onchange="handleSort()">
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                    <option value="highest_abc">Highest Value</option>
-                    <option value="lowest_abc">Lowest Value</option>
-                </select>
-            </div>
-
-            <!-- Search Button (Matching admin/audit_trail.php) -->
-            <button type="button" class="ap2-go-btn" onclick="handleSearch()" style="flex-shrink:0;">
+            <select id="sortSelect" onchange="handleSort()" class="filter-dropdowns" style="border:1.5px solid #eaeeec; background:#eef2f0; color:#16241d; font-family:'Poppins',sans-serif; font-size:12.5px; font-weight:600; padding:8px 12px; border-radius:9px; outline:none; cursor:pointer; min-width:140px;">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="highest_abc">Highest Value</option>
+                <option value="lowest_abc">Lowest Value</option>
+            </select>
+            <button type="button" class="ap2-go-btn" onclick="handleSearch()">
                 <i class="bi bi-search"></i> Search
             </button>
         </div>
@@ -826,7 +793,7 @@ include("components/topbar.php");
 
         <?php else: ?>
 
-            <div id="bidsListContainer">
+            <div id="bidsListContainer" style="padding:0 16px 16px;">
                 <?php foreach ($my_bids as $index => $bid):
                     $s       = strtolower($bid['bid_status']);
                     $cfg     = $status_config[$s] ?? [
@@ -851,9 +818,6 @@ include("components/topbar.php");
                          data-date="<?= $date_time ?>"
                          data-abc="<?= $total_abc ?>">
 
-                        <!-- Status bar indicator -->
-                        <div class="bid-status-bar" style="background:<?= $cfg['barColor'] ?>;"></div>
-
                         <!-- Compact Header Row (Dropdown Toggle) -->
                         <div class="bid-row-header" onclick="toggleBidAccordion(<?= $bid['bid_id'] ?>, event)">
                             <div class="bid-row-left">
@@ -875,6 +839,15 @@ include("components/topbar.php");
                                             <i class="bi bi-hash"></i> <?= htmlspecialchars($ref_text) ?>
                                             <i class="bi bi-copy" style="font-size:9px; opacity:0.7;"></i>
                                         </span>
+
+                                        <?php if (($bid['bid_type'] ?? 'bid') === 'quotation'): ?>
+                                        <span style="display:inline-flex; align-items:center; gap:4px;
+                                                     background:#fff8e1; border:1px solid #ffe082;
+                                                     color:#b78103; font-size:10px; font-weight:800;
+                                                     padding:2px 8px; border-radius:20px; white-space:nowrap;">
+                                            <i class="bi bi-file-earmark-text-fill"></i> Quotation
+                                        </span>
+                                        <?php endif; ?>
                                     </div>
 
                                     <div class="bid-row-meta">

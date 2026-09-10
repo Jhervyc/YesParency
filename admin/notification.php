@@ -272,156 +272,124 @@ include("components/topbar.php");
     </div>
 
     <!-- ── Notification List Panel ── -->
-    <div class="sp-panel sp-list-panel">
+    <div class="proc-table-panel" style="margin-bottom:24px;">
 
-        <!-- Controls: Search + Filter Tabs + Mark Read -->
-        <form method="GET" action="notification.php" class="ap2-controls" style="margin-bottom:16px;">
-            <div class="ap2-search-field">
-                <i class="bi bi-search"></i>
-                <input type="text" name="search"
-                    placeholder="Search by title, message, or author..."
-                    value="<?= htmlspecialchars($search) ?>">
-            </div>
-
-            <!-- Filter Tabs -->
-            <div class="ap2-filters">
-                <?php
-                $filter_tabs = [
-                    'all'       => 'All',
-                    'unread'    => 'Unread',
-                    'broadcast' => 'Broadcast',
-                    'direct'    => 'Direct / Role'
-                ];
-                foreach ($filter_tabs as $val => $lbl):
-                ?>
-                    <button type="submit" name="type" value="<?= $val ?>"
-                            class="ap2-filter-btn <?= $filter_type === $val ? 'active' : '' ?>">
-                        <?= $lbl ?>
+        <!-- Filter bar -->
+        <div class="filter-bar">
+            <form method="GET" action="notification.php" id="notifForm" style="display:contents;">
+                <div class="ap2-search-field">
+                    <i class="bi bi-search"></i>
+                    <input type="text" name="search"
+                        placeholder="Search by title, message, or author..."
+                        value="<?= htmlspecialchars($search) ?>">
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <?php foreach (['all'=>'All','unread'=>'Unread','broadcast'=>'Broadcast','direct'=>'Direct / Role'] as $val => $lbl): ?>
+                        <button type="submit" name="type" value="<?= $val ?>"
+                                class="ap2-filter-btn <?= $filter_type === $val ? 'active' : '' ?>">
+                            <?= $lbl ?>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
+                <button type="submit" class="ap2-go-btn"><i class="bi bi-search"></i> Search</button>
+                <?php if ($stat_unread > 0): ?>
+                    <button type="button" class="btn-mark-read-all" onclick="pageMarkAllRead()">
+                        <i class="bi bi-check2-all"></i> Mark All as Read
                     </button>
-                <?php endforeach; ?>
-            </div>
-
-            <button type="submit" class="ap2-go-btn">
-                <i class="bi bi-search"></i> Search
-            </button>
-
-            <?php if ($stat_unread > 0): ?>
-                <button type="button" class="btn-mark-read-all" onclick="pageMarkAllRead()">
-                    <i class="bi bi-check2-all"></i> Mark All as Read
-                </button>
-            <?php endif; ?>
-        </form>
+                <?php endif; ?>
+            </form>
+        </div>
 
         <?php if ($total_shown === 0): ?>
-            <div class="empty-state" style="padding:56px 20px; text-align:center;">
-                <i class="bi bi-bell-slash" style="font-size:38px; color:#c7d2cb; display:block; margin-bottom:12px;"></i>
-                <h4 style="font-size:15px; font-weight:700; color:#182019; margin-bottom:4px;">No notifications found</h4>
-                <p style="font-size:12px; color:#88968d; margin-bottom:16px;">
-                    <?= $search ? 'No matches for "' . htmlspecialchars($search) . '"' : 'You currently have no notifications in this view.' ?>
-                </p>
-                <?php if ($search !== '' || $filter_type !== 'all'): ?>
-                    <a href="notification.php" class="vp-back-link">
-                        Reset Filters
-                    </a>
-                <?php endif; ?>
-            </div>
+        <div style="padding:52px 20px; text-align:center; color:#88968d;">
+            <i class="bi bi-bell-slash" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
+            <div style="font-size:13px; font-weight:700; margin-bottom:8px;">No notifications found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?></div>
+            <?php if ($search !== '' || $filter_type !== 'all'): ?>
+                <a href="notification.php" class="vp-back-link" style="display:inline-flex; margin-top:4px;">Reset Filters</a>
+            <?php endif; ?>
+        </div>
         <?php else: ?>
-
-            <div style="padding-top:4px;">
-            <?php while ($nt = $notifs_result->fetch_assoc()):
-                $notifs_data[$nt['notification_id']] = $nt;
-                $isRead      = (bool)$nt['is_read'];
-                $tt          = $nt['target_type'];
-                
-                $lc       = '#1565c0';
-                $pillBg   = '#E7EEFE';
-                $pillFg   = '#1565c0';
-                $badgeTxt = 'BROADCAST (ALL)';
-                $badgeIcn = 'globe';
-
-                if ($tt === 'role') {
-                    $r = $nt['target_role'];
-                    if ($r === 'user') {
-                        $lc = '#1565c0'; $pillBg = '#E3F2FD'; $pillFg = '#1565c0'; $badgeTxt = 'ROLE: USERS'; $badgeIcn = 'person';
-                    } elseif ($r === 'bidder') {
-                        $lc = '#C99A1D'; $pillBg = '#FCF1CF'; $pillFg = '#C99A1D'; $badgeTxt = 'ROLE: BIDDERS'; $badgeIcn = 'person-badge';
-                    } elseif ($r === 'admin') {
-                        $lc = '#219653'; $pillBg = '#E4F5EA'; $pillFg = '#219653'; $badgeTxt = 'ROLE: ADMINS'; $badgeIcn = 'shield-check';
-                    } else {
-                        $lc = '#7b1fa2'; $pillBg = '#F3E5F5'; $pillFg = '#7b1fa2'; $badgeTxt = 'ROLE: ' . strtoupper($r); $badgeIcn = 'people';
-                    }
-                } elseif ($tt === 'user') {
-                    $lc       = '#512da8';
-                    $pillBg   = '#EDE7F6';
-                    $pillFg   = '#512da8';
-                    $badgeTxt = 'DIRECT TO YOU';
-                    $badgeIcn = 'person';
-                }
-
-                $creatorName = trim(($nt['creator_fname'] ?? '') . ' ' . ($nt['creator_lname'] ?? '')) ?: 'BAC Secretariat';
-            ?>
-                <div class="sp-proc-row <?= !$isRead ? 'unread' : '' ?>" style="border-left-color:<?= $lc ?>; <?= !$isRead ? 'background:#fdfaf3;' : '' ?>" id="notif-row-<?= $nt['notification_id'] ?>">
-                    <div class="sp-proc-body">
-                        <div class="sp-proc-title" style="display:flex; align-items:center; gap:8px;">
-                            <span><?= htmlspecialchars($nt['title']) ?></span>
+        <div style="overflow-x:auto;">
+            <table class="proc-table">
+                <thead>
+                    <tr>
+                        <th>Title / Message</th>
+                        <th class="col-mode">Target</th>
+                        <th class="col-opening">From</th>
+                        <th class="col-abc">Date</th>
+                        <th style="text-align:right; min-width:170px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php while ($nt = $notifs_result->fetch_assoc()):
+                    $notifs_data[$nt['notification_id']] = $nt;
+                    $isRead = (bool)$nt['is_read'];
+                    $tt = $nt['target_type'];
+                    $pillBg = '#E7EEFE'; $pillFg = '#1565c0'; $badgeTxt = 'Broadcast'; $badgeIcn = 'globe';
+                    if ($tt === 'role') {
+                        $r = $nt['target_role'];
+                        if ($r === 'user')   { $pillBg='#E3F2FD'; $pillFg='#1565c0'; $badgeTxt='Users';    $badgeIcn='person'; }
+                        elseif ($r === 'bidder') { $pillBg='#FCF1CF'; $pillFg='#C99A1D'; $badgeTxt='Bidders';  $badgeIcn='person-badge'; }
+                        elseif ($r === 'admin')  { $pillBg='#E4F5EA'; $pillFg='#219653'; $badgeTxt='Admins';   $badgeIcn='shield-check'; }
+                        else                 { $pillBg='#F3E5F5'; $pillFg='#7b1fa2'; $badgeTxt=strtoupper($r); $badgeIcn='people'; }
+                    } elseif ($tt === 'user') { $pillBg='#EDE7F6'; $pillFg='#512da8'; $badgeTxt='Direct'; $badgeIcn='person'; }
+                    $creatorName = trim(($nt['creator_fname']??'').' '.($nt['creator_lname']??'')) ?: 'BAC Secretariat';
+                ?>
+                <tr id="notif-row-<?= $nt['notification_id'] ?>" <?= !$isRead ? 'style="background:#fdfaf3;"' : '' ?>>
+                    <td class="proc-title-cell">
+                        <div style="display:flex; align-items:center; gap:7px; font-weight:700; color:#06251b; margin-bottom:3px;">
+                            <?= htmlspecialchars($nt['title']) ?>
                             <?php if (!$isRead): ?>
-                                <span style="background:#fff3e0; color:#e67e22; padding:1px 7px; border-radius:10px; font-weight:800; font-size:9.5px; vertical-align:middle;">UNREAD</span>
+                                <span style="background:#fff3e0; color:#e67e22; padding:1px 7px; border-radius:10px; font-weight:800; font-size:9.5px; flex-shrink:0;">UNREAD</span>
                             <?php endif; ?>
                         </div>
-                        <div class="sp-proc-meta">
-                            <span><i class="bi bi-person"></i> By: <?= htmlspecialchars($creatorName) ?></span>
-                            <span><i class="bi bi-calendar3"></i> <?= date('M j, Y', strtotime($nt['created_at'])) ?> (<?= timeAgo($nt['created_at']) ?>)</span>
-                        </div>
-                        <div style="margin-top:6px; font-size:12.5px; color:#5c6b61; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
+                        <div style="font-size:11px; color:#63736a; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;">
                             <?= htmlspecialchars($nt['message']) ?>
                         </div>
-                    </div>
-                    <div class="sp-proc-actions">
-                        <span class="sp-status-pill" style="background:<?= $pillBg ?>; color:<?= $pillFg ?>;">
-                            <i class="bi bi-<?= $badgeIcn ?>"></i> <?= htmlspecialchars($badgeTxt) ?>
-                        </span> | 
-                        <?php if (!$isRead): ?>
-                        <button type="button" class="sp-act-btn mark-read-btn" style="background:#e4f5ea; color:#1f7a3d; border:none; cursor:pointer;" onclick="pageMarkSingleRead(<?= $nt['notification_id'] ?>, this)" title="Mark as Read">
-                            <i class="bi bi-check2"></i> Mark as Read
-                        </button>
-                        <?php endif; ?>
-                        <button type="button" class="sp-act-btn" style="background:#f0f4f2; color:#06251b; border:none; cursor:pointer;" onclick="viewNotification(<?= $nt['notification_id'] ?>)">
-                            <i class="bi bi-eye"></i> View
-                        </button>
-                    </div>
-                </div>
-            <?php endwhile; ?>
-            </div>
+                    </td>
+                    <td class="col-mode">
+                        <span class="proc-status-pill" style="background:<?= $pillBg ?>; color:<?= $pillFg ?>; font-size:10px; padding:3px 8px; border-radius:20px; display:inline-flex; align-items:center; gap:4px; white-space:nowrap;">
+                            <i class="bi bi-<?= $badgeIcn ?>" style="font-size:9px;"></i> <?= htmlspecialchars($badgeTxt) ?>
+                        </span>
+                    </td>
+                    <td class="proc-deadline-cell col-opening"><?= htmlspecialchars($creatorName) ?></td>
+                    <td class="proc-deadline-cell col-abc" style="white-space:nowrap;">
+                        <?= date('M j, Y', strtotime($nt['created_at'])) ?><br>
+                        <span style="color:#88968d; font-size:10.5px;"><?= timeAgo($nt['created_at']) ?></span>
+                    </td>
+                    <td style="text-align:right;">
+                        <div style="display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
+                            <?php if (!$isRead): ?>
+                            <button type="button" class="proc-action-btn mark-read-btn"
+                                    style="background:#e4f5ea; color:#1f7a3d; border:none; cursor:pointer;"
+                                    onclick="pageMarkSingleRead(<?= $nt['notification_id'] ?>, this)">
+                                <i class="bi bi-check2"></i> Read
+                            </button>
+                            <?php endif; ?>
+                            <button type="button" class="proc-action-btn btn-view"
+                                    onclick="viewNotification(<?= $nt['notification_id'] ?>)">
+                                <i class="bi bi-eye"></i> View
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <?php endwhile; ?>
+                </tbody>
+            </table>
+        </div>
 
-            <!-- Pagination -->
+        <div class="table-foot">
+            <div>Showing <strong><?= min($total_shown,$offset+1) ?></strong>–<strong><?= min($total_shown,$offset+$per_page) ?></strong> of <strong><?= number_format($total_shown) ?></strong> notices</div>
             <?php if ($total_pages > 1): ?>
-                <div class="ap2-pagination" style="padding:16px 20px;">
-                    <div class="ap2-pagination-info">
-                        Showing <strong><?= min($total_shown, $offset + 1) ?></strong> to <strong><?= min($total_shown, $offset + $per_page) ?></strong> of <strong><?= number_format($total_shown) ?></strong> notices
-                    </div>
-                    <div class="ap2-pagination-links">
-                        <?php if ($page > 1): ?>
-                            <a href="?type=<?= urlencode($filter_type) ?>&search=<?= urlencode($search) ?>&page=<?= $page - 1 ?>" class="ap2-page-link">
-                                <i class="bi bi-chevron-left"></i> Prev
-                            </a>
-                        <?php endif; ?>
-
-                        <?php for ($p = 1; $p <= $total_pages; $p++): ?>
-                            <a href="?type=<?= urlencode($filter_type) ?>&search=<?= urlencode($search) ?>&page=<?= $p ?>"
-                               class="ap2-page-link <?= $p === $page ? 'active' : '' ?>">
-                                <?= $p ?>
-                            </a>
-                        <?php endfor; ?>
-
-                        <?php if ($page < $total_pages): ?>
-                            <a href="?type=<?= urlencode($filter_type) ?>&search=<?= urlencode($search) ?>&page=<?= $page + 1 ?>" class="ap2-page-link">
-                                Next <i class="bi bi-chevron-right"></i>
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                </div>
+            <div class="pagination">
+                <a href="?type=<?= urlencode($filter_type) ?>&search=<?= urlencode($search) ?>&page=<?= max(1,$page-1) ?>" class="page-link <?= $page<=1?'disabled':'' ?>"><i class="bi bi-chevron-left"></i></a>
+                <?php for ($p=max(1,$page-2); $p<=min($total_pages,$page+2); $p++): ?>
+                <a href="?type=<?= urlencode($filter_type) ?>&search=<?= urlencode($search) ?>&page=<?= $p ?>" class="page-link <?= $p===$page?'active':'' ?>"><?= $p ?></a>
+                <?php endfor; ?>
+                <a href="?type=<?= urlencode($filter_type) ?>&search=<?= urlencode($search) ?>&page=<?= min($total_pages,$page+1) ?>" class="page-link <?= $page>=$total_pages?'disabled':'' ?>"><i class="bi bi-chevron-right"></i></a>
+            </div>
             <?php endif; ?>
-
+        </div>
         <?php endif; ?>
 
     </div>

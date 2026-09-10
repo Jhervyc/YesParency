@@ -12,7 +12,6 @@ if (!isset($topbar_title) || empty($topbar_title)) {
         'procurement.php'           => 'Procurements',
         'view_procurement.php'      => 'Procurement Details',
         'bidder-registration.php'   => 'Bidder Registration',
-        'notification.php'          => 'Notifications & Announcements',
         'settings.php'              => 'Account Settings',
     ];
     $topbar_title = $titles_map[$script_name] ?? 'YesParency';
@@ -28,7 +27,6 @@ $user_tb_avatar = !empty($_SESSION['profile_picture_url']) ? '../' . ltrim($_SES
         <span class="topbar-title"><?= htmlspecialchars($topbar_title) ?></span>
     </div>
     <div class="topbar-right">
-        <?php include(__DIR__ . "/notifications.php"); ?>
 
         <a href="settings.php" class="topbar-avatar" style="overflow:hidden; display:flex; align-items:center; justify-content:center; text-decoration:none;" title="Account Settings">
             <?php if (!empty($user_tb_avatar)): ?>

@@ -1,6 +1,7 @@
 <?php
 include("utils/protect-page.php");
 include("utils/protect-secretariat.php");
+require_once(__DIR__ . "/../utils/procurement_mode_helper.php");
 
 $procurement_id = isset($_GET['id']) ? intval($_GET['id']) : (isset($_GET['procurement_id']) ? intval($_GET['procurement_id']) : 0);
 if ($procurement_id === 0) {
@@ -162,6 +163,47 @@ $stats_stmt->close();
 $p_status = strtolower($proc['status'] ?? 'open');
 $status_badge_bg = ['open'=>'#e4f5ea', 'draft'=>'#eef0ed', 'closed'=>'#e7eefe', 'awarded'=>'#fcf1cf', 'cancelled'=>'#ffebee'][$p_status] ?? '#e4f5ea';
 $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 'awarded'=>'#b78103', 'cancelled'=>'#c23b3b'][$p_status] ?? '#1f7a3d';
+
+// ── Quotation data for SVP / Shopping procurements ────────────────────────────
+$_bsv_is_quotation = is_quotation_mode($proc['procurement_mode'] ?? '');
+$bsv_quotations    = [];   // lot_id → [ rows ]
+$bsv_awards_map    = [];   // lot_id → award row
+if ($_bsv_is_quotation) {
+    $aw_bsv = $conn->prepare("SELECT * FROM awards WHERE lot_id IN (SELECT id FROM lots WHERE procurement_id = ?)");
+    $aw_bsv->bind_param("i", $procurement_id);
+    $aw_bsv->execute();
+    foreach ($aw_bsv->get_result()->fetch_all(MYSQLI_ASSOC) as $_aw) $bsv_awards_map[$_aw['lot_id']] = $_aw;
+    $aw_bsv->close();
+
+    foreach ($lots as $_l) $bsv_quotations[$_l['id']] = [];
+
+    $bsv_q = $conn->prepare("
+        SELECT b.id AS bid_id, b.submission_date, b.status AS bid_status,
+               bl.id AS bid_lot_id, bl.lot_id, bl.total_offered_bid,
+               u.firstname, u.lastname, u.email, u.profile_picture_url,
+               bp.business_name,
+               (SELECT bd.id FROM bid_documents bd WHERE bd.bid_id = b.id AND bd.document_type = 'quotation' LIMIT 1) AS doc_id
+        FROM bids b
+        JOIN bid_lots bl ON bl.bid_id = b.id
+        JOIN users u ON b.bidder_id = u.user_id
+        LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id
+        WHERE b.procurement_id = ? AND b.bid_type = 'quotation'
+        ORDER BY bl.lot_id ASC, bl.total_offered_bid ASC, b.submission_date ASC
+    ");
+    $bsv_q->bind_param("i", $procurement_id);
+    $bsv_q->execute();
+    foreach ($bsv_q->get_result()->fetch_all(MYSQLI_ASSOC) as $_qr) {
+        if (isset($bsv_quotations[$_qr['lot_id']])) $bsv_quotations[$_qr['lot_id']][] = $_qr;
+    }
+    $bsv_q->close();
+
+    foreach ($bsv_quotations as $_lid => $_rows) {
+        $_rank = 1;
+        foreach ($_rows as $_i => $_row) {
+            $bsv_quotations[$_lid][$_i]['computed_rank'] = ($_row['total_offered_bid'] !== null) ? $_rank++ : null;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1319,6 +1361,7 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
         <div class="vp-left-col">
 
             <!-- 1. Bid Submissions Desk -->
+            <?php if (!$_bsv_is_quotation): ?>
             <div class="vp-card">
                 <div class="vp-card-head">
                     <div class="vp-card-title">
@@ -1404,6 +1447,99 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
                 <?php endif; ?>
 
             </div>
+
+            <?php else: ?>
+            <!-- ── Quotation Rankings (SVP / Shopping) ── -->
+            <div class="vp-card" style="margin-bottom:22px;">
+                <div class="vp-card-head">
+                    <div class="vp-card-title">
+                        <i class="bi bi-list-ol" style="color:#b78103;"></i>
+                        <span>Quotation Rankings</span>
+                    </div>
+                    <a href="quotation_management.php?id=<?= $procurement_id ?>"
+                       style="display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; color:#1f7a3d; text-decoration:none; background:#eef7f1; border:1px solid #c8e6c9; border-radius:8px; padding:4px 10px; transition:all .15s;"
+                       onmouseover="this.style.background='#1f7a3d'; this.style.color='#fff';"
+                       onmouseout="this.style.background='#eef7f1'; this.style.color='#1f7a3d';">
+                        <i class="bi bi-arrow-up-right-square"></i> Full Management
+                    </a>
+                </div>
+                <div>
+                <?php if (empty($lots)): ?>
+                    <div style="padding:30px 20px; text-align:center; color:#88968d; font-size:13px;">No lots defined yet.</div>
+                <?php else:
+                    foreach ($lots as $_bsvlot):
+                        $_bsv_quotes  = $bsv_quotations[$_bsvlot['id']] ?? [];
+                        $_bsv_award   = $bsv_awards_map[$_bsvlot['id']] ?? null;
+                        $_bsv_lot_status = strtolower($_bsvlot['status'] ?? 'pending');
+                ?>
+                    <div style="border-bottom:1px solid #f0f4f2; padding:14px 20px;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                            <span style="background:#06251b; color:#ffc107; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; font-family:'Space Grotesk',sans-serif;">Lot <?= $_bsvlot['lot_number'] ?></span>
+                            <span style="font-size:13px; font-weight:700; color:#06251b;"><?= htmlspecialchars($_bsvlot['lot_title']) ?></span>
+                            <?php if ($_bsv_lot_status === 'awarded'): ?>
+                                <span style="margin-left:auto; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:12px; background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7;"><i class="bi bi-trophy-fill"></i> Awarded</span>
+                            <?php elseif ($_bsv_lot_status === 'failed'): ?>
+                                <span style="margin-left:auto; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:12px; background:#ffebee; color:#b71c1c; border:1px solid #ef9a9a;"><i class="bi bi-x-circle-fill"></i> Failed</span>
+                            <?php endif; ?>
+                        </div>
+                        <?php if (empty($_bsv_quotes)): ?>
+                            <div style="font-size:12px; color:#88968d; font-style:italic; padding:8px 0;">No quotations submitted yet.</div>
+                        <?php else: ?>
+                            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                                <thead>
+                                    <tr style="background:#fafcfb; border-bottom:1px solid #eaeeec;">
+                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Rank</th>
+                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Bidder</th>
+                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Offered Price</th>
+                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Status</th>
+                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Doc</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                <?php foreach ($_bsv_quotes as $_bq):
+                                    $_br    = $_bq['computed_rank'];
+                                    $_bbiz  = $_bq['business_name'] ?: ($_bq['firstname'].' '.$_bq['lastname']);
+                                    $_bwinner = $_bsv_award && $_bsv_award['bid_lot_id'] == $_bq['bid_lot_id'];
+                                    $_bbs   = $_bq['bid_status'];
+                                    $_bbs_label = match($_bbs) { 'confirmed'=>'Confirmed','awarded'=>'Awarded','rejected'=>'Rejected','submitted'=>'Verified',default=>ucfirst($_bbs) };
+                                    $_bbs_color = match($_bbs) { 'confirmed'=>'#1b5e20','awarded'=>'#0d47a1','rejected'=>'#991b1b',default=>'#92400e' };
+                                    $_bbs_bg    = match($_bbs) { 'confirmed'=>'#e8f5e9','awarded'=>'#e3f2fd','rejected'=>'#fee2e2',default=>'#fef3c7' };
+                                ?>
+                                <tr style="border-bottom:1px solid #f4f6f5; <?= $_bwinner ? 'background:#f0fdf4;' : '' ?>">
+                                    <td style="padding:8px 10px;">
+                                        <span style="font-family:'Space Grotesk',sans-serif; font-weight:800; font-size:12px; color:<?= $_br===1?'#b78103':($_br===2?'#45655a':($_br===3?'#a0522d':'#6c776e')) ?>;">
+                                            <?= $_br ? '#'.$_br : '—' ?>
+                                        </span>
+                                    </td>
+                                    <td style="padding:8px 10px; font-weight:700; color:#06251b;">
+                                        <?= htmlspecialchars($_bbiz) ?>
+                                        <?php if ($_bwinner): ?><span style="font-size:9.5px; background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7; border-radius:5px; padding:1px 5px; margin-left:4px; font-weight:800;">WINNER</span><?php endif; ?>
+                                    </td>
+                                    <td style="padding:8px 10px; font-family:'Space Grotesk',sans-serif; font-weight:800; color:#1f7a3d;">
+                                        <?= $_bq['total_offered_bid'] !== null ? '₱'.number_format((float)$_bq['total_offered_bid'],2) : '<span style="color:#88968d;font-style:italic;font-size:11px;">Pending</span>' ?>
+                                    </td>
+                                    <td style="padding:8px 10px;">
+                                        <span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; background:<?= $_bbs_bg ?>; color:<?= $_bbs_color ?>;"><?= $_bbs_label ?></span>
+                                    </td>
+                                    <td style="padding:8px 10px;">
+                                        <?php if ($_bq['doc_id']): ?>
+                                            <a href="quotation_management.php?id=<?= $procurement_id ?>&action=view_doc&doc_id=<?= $_bq['doc_id'] ?>"
+                                               target="_blank"
+                                               style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; color:#1f7a3d; text-decoration:none;">
+                                                <i class="bi bi-file-earmark-text-fill"></i> View
+                                            </a>
+                                        <?php else: ?><span style="color:#b0bec5; font-size:11px;">—</span><?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <!-- 2. Project Specifications & Scope Overview -->
             <div class="vp-card">

@@ -42,12 +42,45 @@ $lots = []; $total_lots_abc = 0;
 while ($l = $lots_res->fetch_assoc()) { $lots[] = $l; $total_lots_abc += (float)$l['abc']; }
 $lot_stmt->close();
 
-// 3. Documents
+if (!function_exists('resolve_proc_doc_url')) {
+    function resolve_proc_doc_url($file_path, $context = 'root') {
+        $raw = trim($file_path ?? '');
+        if (empty($raw)) return '#';
+        if (preg_match('/^https?:\/\//i', $raw)) return $raw;
+
+        $rel = ltrim($raw, '/');
+        while (strpos($rel, '../') === 0) {
+            $rel = substr($rel, 3);
+        }
+        if (strpos($rel, 'uploads/') !== 0) {
+            $rel = 'uploads/procurements/' . $rel;
+        }
+
+        if (in_array($context, ['admin', 'bidder', 'user'])) {
+            return '../' . $rel;
+        }
+        return $rel;
+    }
+}
+
+// 3. Documents (Categorized into Original and Associated)
 $doc_stmt = $conn->prepare("SELECT * FROM procurement_documents WHERE procurement_id = ? ORDER BY uploaded_at DESC");
 $doc_stmt->bind_param("i", $procurement_id);
 $doc_stmt->execute();
-$documents = $doc_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$all_docs = $doc_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $doc_stmt->close();
+
+$original_documents   = [];
+$associated_documents = [];
+foreach ($all_docs as $d) {
+    if (($d['document_category'] ?? 'original') === 'associated') {
+        $associated_documents[] = $d;
+    } else {
+        $original_documents[] = $d;
+    }
+}
+// Existing Official Bidding Documents section displays only original documents
+$documents = $original_documents;
 
 $p_status = strtolower($procurement['status'] ?? 'open');
 $is_open  = $p_status === 'open';
@@ -216,6 +249,17 @@ body.bview-page {
     transition:all .15s; flex-shrink:0;
 }
 .doc-dl-btn:hover { background:#0a3a2a; color:#fff; }
+.badge-associated-pill {
+    display: inline-block;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
 
 /* timeline */
 .tl-list { position:relative; padding-left:24px; }
@@ -409,17 +453,19 @@ body.bview-page {
         </div>
         <?php endif; ?>
 
-        <!-- Documents -->
+        <!-- Documents (Original Only) -->
         <div class="bv-card">
             <div class="bv-card-head">
                 <div class="bv-card-title">
                     <i class="bi bi-file-earmark-arrow-down" style="color:#1565c0;"></i> Official Bidding Documents
                 </div>
-                <span class="bv-card-count"><?= count($documents) ?> File<?= count($documents) != 1 ? 's' : '' ?></span>
+                <span class="bv-card-count"><?= count($original_documents) ?> File<?= count($original_documents) != 1 ? 's' : '' ?></span>
             </div>
             <div class="bv-card-body">
-                <?php if (!empty($documents)): ?>
-                    <?php foreach ($documents as $doc): ?>
+                <?php if (!empty($original_documents)): ?>
+                    <?php foreach ($original_documents as $doc): 
+                        $dl_url = resolve_proc_doc_url($doc['file_path'], 'root');
+                    ?>
                     <div class="doc-row">
                         <div style="display:flex; align-items:center; gap:10px; min-width:0;">
                             <div class="doc-icon"><i class="bi bi-file-earmark-pdf"></i></div>
@@ -428,7 +474,7 @@ body.bview-page {
                                 <div style="font-size:11px; color:#88968d;">Uploaded: <?= date('M j, Y', strtotime($doc['uploaded_at'])) ?></div>
                             </div>
                         </div>
-                        <a href="uploads/documents/<?= urlencode($doc['file_path']) ?>" download class="doc-dl-btn">
+                        <a href="<?= htmlspecialchars($dl_url) ?>" download class="doc-dl-btn">
                             <i class="bi bi-download"></i> Download
                         </a>
                     </div>
@@ -436,7 +482,51 @@ body.bview-page {
                 <?php else: ?>
                     <div style="text-align:center; padding:18px 0; color:#88968d; font-size:12.5px;">
                         <i class="bi bi-folder-x" style="font-size:24px; display:block; margin-bottom:4px;"></i>
-                        No bidding documents uploaded yet.
+                        No original bidding documents uploaded yet.
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Associated Documents (Associated Only) -->
+        <div class="bv-card" style="margin-top:20px;">
+            <div class="bv-card-head">
+                <div class="bv-card-title">
+                    <i class="bi bi-paperclip" style="color:#0284c7;"></i> Associated Documents
+                </div>
+                <span class="bv-card-count"><?= count($associated_documents) ?> File<?= count($associated_documents) != 1 ? 's' : '' ?></span>
+            </div>
+            <div class="bv-card-body">
+                <?php if (!empty($associated_documents)): ?>
+                    <?php foreach ($associated_documents as $adoc): 
+                        $adl_url = resolve_proc_doc_url($adoc['file_path'], 'root');
+                        $aext    = strtolower(pathinfo($adoc['document_name'], PATHINFO_EXTENSION));
+                        $aicon   = 'bi-file-earmark-pdf';
+                        if (in_array($aext, ['doc','docx'])) $aicon = 'bi-file-earmark-word';
+                        elseif (in_array($aext, ['xls','xlsx'])) $aicon = 'bi-file-earmark-excel';
+                        elseif (in_array($aext, ['zip','rar','7z'])) $aicon = 'bi-file-earmark-zip';
+                        elseif (in_array($aext, ['jpg','jpeg','png'])) $aicon = 'bi-file-earmark-image';
+                    ?>
+                    <div class="doc-row">
+                        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                            <div class="doc-icon" style="background:#e0f2fe; color:#0284c7;"><i class="bi <?= $aicon ?>"></i></div>
+                            <div style="min-width:0;">
+                                <div class="doc-title" title="<?= htmlspecialchars($adoc['document_name']) ?>">
+                                    <?= htmlspecialchars($adoc['document_name']) ?>
+                                    <span class="badge-associated-pill">Associated</span>
+                                </div>
+                                <div style="font-size:11px; color:#88968d;">Uploaded: <?= date('M j, Y · g:i A', strtotime($adoc['uploaded_at'])) ?></div>
+                            </div>
+                        </div>
+                        <a href="<?= htmlspecialchars($adl_url) ?>" download class="doc-dl-btn" style="background:#0284c7; color:#ffffff;">
+                            <i class="bi bi-download"></i> Download
+                        </a>
+                    </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div style="text-align:center; padding:18px 0; color:#88968d; font-size:12.5px;">
+                        <i class="bi bi-folder-x" style="font-size:24px; display:block; margin-bottom:4px;"></i>
+                        No associated documents (bulletins, addenda, notices) published yet.
                     </div>
                 <?php endif; ?>
             </div>

@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_procurement'])) 
             $upload_dir = "../uploads/procurements/";
             if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
 
-            $ins = $conn->prepare("INSERT INTO procurement_documents (procurement_id, document_name, file_path) VALUES (?, ?, ?)");
+            $ins = $conn->prepare("INSERT INTO procurement_documents (procurement_id, document_category, document_name, file_path) VALUES (?, 'original', ?, ?)");
             foreach ($_FILES['new_documents']['tmp_name'] as $i => $tmp) {
                 if ($_FILES['new_documents']['error'][$i] !== UPLOAD_ERR_OK) continue;
                 $orig   = basename($_FILES['new_documents']['name'][$i]);

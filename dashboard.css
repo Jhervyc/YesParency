@@ -5046,3 +5046,26 @@ body.dash-body {
 }
 .page-link:hover, .page-link.active { background:#06251b; color:#ffc107; }
 .page-link.disabled { opacity:.4; pointer-events:none; }
+
+.filter-dropdowns {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.filter-dropdowns select {
+    border: 1.5px solid #eaeeec;
+    background: #eef2f0;
+    color: #16241d;
+    font-family: 'Poppins', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 9px;
+    outline: none;
+    cursor: pointer;
+    flex: 1;
+    min-width: 120px;
+}
+.filter-dropdowns select:focus {
+    border-color: #1f7a3d;
+}

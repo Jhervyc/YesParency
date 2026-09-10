@@ -116,8 +116,8 @@
                     }
 
                     $doc_stmt = $conn->prepare("
-                        INSERT INTO procurement_documents (procurement_id, document_name, file_path) 
-                        VALUES (?, ?, ?)
+                        INSERT INTO procurement_documents (procurement_id, document_category, document_name, file_path) 
+                        VALUES (?, 'original', ?, ?)
                     ");
 
                     $uploaded_doc_names = [];
@@ -1063,11 +1063,7 @@
                                     <select id="procurement_mode" name="procurement_mode" required>
                                         <option value="" disabled <?= empty($_POST['procurement_mode']) ? 'selected' : '' ?>>-- Select Procurement Mode --</option>
                                         <option value="Public Bidding" <?= (($_POST['procurement_mode'] ?? '') === 'Public Bidding') ? 'selected' : '' ?>>Public Bidding (Competitive)</option>
-                                        <option value="Limited Source Bidding" <?= (($_POST['procurement_mode'] ?? '') === 'Limited Source Bidding') ? 'selected' : '' ?>>Limited Source Bidding</option>
-                                        <option value="Direct Contracting" <?= (($_POST['procurement_mode'] ?? '') === 'Direct Contracting') ? 'selected' : '' ?>>Direct Contracting (Single Source)</option>
-                                        <option value="Repeat Order" <?= (($_POST['procurement_mode'] ?? '') === 'Repeat Order') ? 'selected' : '' ?>>Repeat Order</option>
                                         <option value="Shopping" <?= (($_POST['procurement_mode'] ?? '') === 'Shopping') ? 'selected' : '' ?>>Shopping (Sec. 52)</option>
-                                        <option value="Negotiated Procurement" <?= (($_POST['procurement_mode'] ?? '') === 'Negotiated Procurement') ? 'selected' : '' ?>>Negotiated Procurement</option>
                                         <option value="Small Value Procurement" <?= (($_POST['procurement_mode'] ?? '') === 'Small Value Procurement') ? 'selected' : '' ?>>Small Value Procurement (SVP)</option>
                                     </select>
                                     <i class="bi bi-briefcase input-icon"></i>

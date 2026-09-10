@@ -1,10 +1,128 @@
 <?php
 include("utils/protect-page.php");
 include("utils/protect-secretariat.php");
+require_once(__DIR__ . "/../utils/procurement_mode_helper.php");
 
 $procurement_id = isset($_GET['id']) ? intval($_GET['id']) : (isset($_GET['procurement_id']) ? intval($_GET['procurement_id']) : 0);
 if ($procurement_id === 0) {
     header("Location: bid_submissions.php");
+    exit();
+}
+
+// ── Document management permissions ──────────────────────────────────────────
+if (!isset($_SESSION['admin_type']) && isset($conn) && isset($_SESSION['user_id'])) {
+    $at_stmt = $conn->prepare("SELECT admin_type FROM admin_roles WHERE user_id = ?");
+    if ($at_stmt) {
+        $at_stmt->bind_param("i", $_SESSION['user_id']);
+        $at_stmt->execute();
+        $at_row = $at_stmt->get_result()->fetch_assoc();
+        $_SESSION['admin_type'] = $at_row['admin_type'] ?? 'SECRETARIAT';
+        $at_stmt->close();
+    }
+}
+$_pv_admin_type    = $_SESSION['admin_type'] ?? 'SECRETARIAT';
+$_pv_user_role     = $_SESSION['role'] ?? 'admin';
+$can_manage_docs   = ($_pv_user_role === 'superadmin' || $_pv_admin_type === 'SECRETARIAT');
+
+if (!function_exists('resolve_proc_doc_url')) {
+    function resolve_proc_doc_url($file_path, $context = 'admin') {
+        $raw = trim($file_path ?? '');
+        if (empty($raw)) return '#';
+        if (preg_match('/^https?:\/\//i', $raw)) return $raw;
+        $rel = ltrim($raw, '/');
+        while (strpos($rel, '../') === 0) { $rel = substr($rel, 3); }
+        if (strpos($rel, 'uploads/') !== 0) { $rel = 'uploads/procurements/' . $rel; }
+        return in_array($context, ['admin','bidder','user']) ? '../' . $rel : $rel;
+    }
+}
+
+// ── Handle Associated Document Upload ────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_upload_associated_doc_pv'])) {
+    if (!$can_manage_docs) {
+        $_SESSION['alert_error'] = "Unauthorized. Only Secretariat or Administrators can upload associated documents.";
+        header("Location: procurement-view.php?id=" . $procurement_id);
+        exit();
+    }
+    $doc_name = trim($_POST['document_name'] ?? '');
+    if (empty($doc_name)) {
+        $_SESSION['alert_error'] = "Please provide a document title/name.";
+        header("Location: procurement-view.php?id=" . $procurement_id);
+        exit();
+    }
+    if (empty($_FILES['associated_document_pv']['name']) || $_FILES['associated_document_pv']['error'] !== UPLOAD_ERR_OK) {
+        $_SESSION['alert_error'] = "Please select a valid file to upload.";
+        header("Location: procurement-view.php?id=" . $procurement_id);
+        exit();
+    }
+    $file = $_FILES['associated_document_pv'];
+    if ($file['size'] > 50 * 1024 * 1024) {
+        $_SESSION['alert_error'] = "File size exceeds the 50MB limit.";
+        header("Location: procurement-view.php?id=" . $procurement_id);
+        exit();
+    }
+    $orig_name = basename($file['name']);
+    $file_ext  = strtolower(pathinfo($orig_name, PATHINFO_EXTENSION));
+    $allowed_exts = ['pdf','doc','docx','xls','xlsx','ppt','pptx','txt','rtf','zip','rar','7z','png','jpg','jpeg'];
+    if (!in_array($file_ext, $allowed_exts)) {
+        $_SESSION['alert_error'] = "Invalid file type. Allowed: " . implode(', ', $allowed_exts);
+        header("Location: procurement-view.php?id=" . $procurement_id);
+        exit();
+    }
+    $upload_dir = "../uploads/procurements/";
+    if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+    $clean_orig      = preg_replace('/[^a-zA-Z0-9._-]/', '_', $orig_name);
+    $unique_filename = time() . '_' . uniqid() . '_' . $clean_orig;
+    $target_path     = $upload_dir . $unique_filename;
+    if (move_uploaded_file($file['tmp_name'], $target_path)) {
+        $ins = $conn->prepare("INSERT INTO procurement_documents (procurement_id, document_category, document_name, file_path) VALUES (?, 'associated', ?, ?)");
+        $ins->bind_param("iss", $procurement_id, $doc_name, $target_path);
+        if ($ins->execute()) {
+            $ins_id = $ins->insert_id;
+            audit_log($conn, 'PROCUREMENT_DOCUMENT_UPLOADED', 'procurement_documents', $ins_id,
+                "Uploaded associated document '{$doc_name}' for procurement #{$procurement_id}", [],
+                ['procurement_id'=>$procurement_id,'document_name'=>$doc_name,'document_category'=>'associated','file_path'=>$target_path]);
+            $_SESSION['alert_success'] = "Associated document '{$doc_name}' uploaded successfully.";
+        } else {
+            $_SESSION['alert_error'] = "Failed to record document in database.";
+        }
+        $ins->close();
+    } else {
+        $_SESSION['alert_error'] = "Failed to save the uploaded file to server.";
+    }
+    header("Location: procurement-view.php?id=" . $procurement_id);
+    exit();
+}
+
+// ── Handle Associated Document Delete ────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_delete_associated_doc_pv'])) {
+    if (!$can_manage_docs) {
+        $_SESSION['alert_error'] = "Unauthorized.";
+        header("Location: procurement-view.php?id=" . $procurement_id);
+        exit();
+    }
+    $doc_id = intval($_POST['doc_id'] ?? 0);
+    $d_stmt = $conn->prepare("SELECT id, document_name, file_path, document_category FROM procurement_documents WHERE id = ? AND procurement_id = ? LIMIT 1");
+    $d_stmt->bind_param("ii", $doc_id, $procurement_id);
+    $d_stmt->execute();
+    $doc_row = $d_stmt->get_result()->fetch_assoc();
+    $d_stmt->close();
+    if ($doc_row) {
+        if (!empty($doc_row['file_path']) && file_exists($doc_row['file_path'])) @unlink($doc_row['file_path']);
+        $del = $conn->prepare("DELETE FROM procurement_documents WHERE id = ?");
+        $del->bind_param("i", $doc_id);
+        if ($del->execute()) {
+            audit_log($conn, 'PROCUREMENT_DOCUMENT_DELETED', 'procurement_documents', $doc_id,
+                "Deleted {$doc_row['document_category']} document '{$doc_row['document_name']}' from procurement #{$procurement_id}",
+                ['document_name'=>$doc_row['document_name'],'document_category'=>$doc_row['document_category']], []);
+            $_SESSION['alert_success'] = "Document '{$doc_row['document_name']}' removed successfully.";
+        } else {
+            $_SESSION['alert_error'] = "Failed to remove document record.";
+        }
+        $del->close();
+    } else {
+        $_SESSION['alert_error'] = "Document not found.";
+    }
+    header("Location: procurement-view.php?id=" . $procurement_id);
     exit();
 }
 
@@ -162,6 +280,66 @@ $stats_stmt->close();
 $p_status = strtolower($proc['status'] ?? 'open');
 $status_badge_bg = ['open'=>'#e4f5ea', 'draft'=>'#eef0ed', 'closed'=>'#e7eefe', 'awarded'=>'#fcf1cf', 'cancelled'=>'#ffebee'][$p_status] ?? '#e4f5ea';
 $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 'awarded'=>'#b78103', 'cancelled'=>'#c23b3b'][$p_status] ?? '#1f7a3d';
+
+// ── Fetch Procurement Documents (Categorized) ─────────────────────────────────
+$doc_stmt = $conn->prepare("SELECT * FROM procurement_documents WHERE procurement_id = ? ORDER BY uploaded_at DESC");
+$doc_stmt->bind_param("i", $procurement_id);
+$doc_stmt->execute();
+$docs_res = $doc_stmt->get_result();
+$pv_original_docs   = [];
+$pv_associated_docs = [];
+while ($d = $docs_res->fetch_assoc()) {
+    if (($d['document_category'] ?? 'original') === 'associated') {
+        $pv_associated_docs[] = $d;
+    } else {
+        $pv_original_docs[] = $d;
+    }
+}
+$doc_stmt->close();
+
+// ── Fetch quotation data for SVP / Shopping procurements ──────────────────────
+$_pv_is_quotation = is_quotation_mode($proc['procurement_mode'] ?? '');
+$pv_quotations    = [];   // lot_id → [ rows ]
+$pv_awards_map    = [];   // lot_id → award row
+if ($_pv_is_quotation) {
+    // Awards
+    $aw2 = $conn->prepare("SELECT * FROM awards WHERE lot_id IN (SELECT id FROM lots WHERE procurement_id = ?)");
+    $aw2->bind_param("i", $procurement_id);
+    $aw2->execute();
+    foreach ($aw2->get_result()->fetch_all(MYSQLI_ASSOC) as $aw) $pv_awards_map[$aw['lot_id']] = $aw;
+    $aw2->close();
+
+    // Initialise keyed by lot
+    foreach ($lots as $_l) $pv_quotations[$_l['id']] = [];
+
+    $pv_q = $conn->prepare("
+        SELECT b.id AS bid_id, b.submission_date, b.status AS bid_status,
+               bl.id AS bid_lot_id, bl.lot_id, bl.total_offered_bid,
+               u.firstname, u.lastname, u.email, u.profile_picture_url,
+               bp.business_name,
+               (SELECT bd.id FROM bid_documents bd WHERE bd.bid_id = b.id AND bd.document_type = 'quotation' LIMIT 1) AS doc_id
+        FROM bids b
+        JOIN bid_lots bl ON bl.bid_id = b.id
+        JOIN users u ON b.bidder_id = u.user_id
+        LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id
+        WHERE b.procurement_id = ? AND b.bid_type = 'quotation'
+        ORDER BY bl.lot_id ASC, bl.total_offered_bid ASC, b.submission_date ASC
+    ");
+    $pv_q->bind_param("i", $procurement_id);
+    $pv_q->execute();
+    foreach ($pv_q->get_result()->fetch_all(MYSQLI_ASSOC) as $_qr) {
+        if (isset($pv_quotations[$_qr['lot_id']])) $pv_quotations[$_qr['lot_id']][] = $_qr;
+    }
+    $pv_q->close();
+
+    // Compute rank per lot
+    foreach ($pv_quotations as $_lid => $_rows) {
+        $_rank = 1;
+        foreach ($_rows as $_i => $_row) {
+            $pv_quotations[$_lid][$_i]['computed_rank'] = ($_row['total_offered_bid'] !== null) ? $_rank++ : null;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1194,6 +1372,261 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
+
+        /* ── Document Cards (right column) ── */
+        .doc-pill-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: #f7faf8;
+            border: 1px solid #edf1ee;
+            border-radius: 10px;
+            padding: 10px 13px;
+            transition: all .15s ease;
+        }
+        .doc-pill-row:hover {
+            background: #eef7f1;
+            border-color: #c2e8ce;
+        }
+        .doc-pill-icon {
+            width: 32px;
+            height: 32px;
+            background: #e4f5ea;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1f7a3d;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .doc-pill-name {
+            flex: 1;
+            min-width: 0;
+            font-size: 12px;
+            font-weight: 700;
+            color: #06251b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .doc-pill-name small {
+            display: block;
+            font-size: 10px;
+            font-weight: 500;
+            color: #88968d;
+            margin-top: 1px;
+        }
+        .doc-pill-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .btn-doc-view {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #1f7a3d;
+            background: #eef7f1;
+            border: 1px solid #c2e8ce;
+            border-radius: 7px;
+            padding: 5px 10px;
+            text-decoration: none;
+            transition: all .15s ease;
+        }
+        .btn-doc-view:hover {
+            background: #1f7a3d;
+            color: #ffffff;
+        }
+        .btn-doc-del {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #c23b3b;
+            background: #fff2f2;
+            border: 1px solid #f7caca;
+            border-radius: 7px;
+            padding: 5px 10px;
+            cursor: pointer;
+            transition: all .15s ease;
+        }
+        .btn-doc-del:hover {
+            background: #c23b3b;
+            color: #ffffff;
+        }
+        .doc-empty-state {
+            text-align: center;
+            padding: 20px 10px;
+            color: #88968d;
+            font-size: 12px;
+        }
+        .doc-empty-state i {
+            display: block;
+            font-size: 28px;
+            margin-bottom: 6px;
+            opacity: 0.5;
+        }
+        /* ── Upload Associated Doc Modal ── */
+        .assoc-modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(6, 37, 27, 0.55);
+            backdrop-filter: blur(4px);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            opacity: 0;
+            transition: opacity .2s ease;
+        }
+        .assoc-modal-backdrop.open {
+            display: flex;
+            opacity: 1;
+        }
+        .assoc-modal-box {
+            background: #ffffff;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 20px 48px rgba(0,0,0,0.22);
+            animation: modalPopIn .2s ease;
+            overflow: hidden;
+        }
+        .assoc-modal-head {
+            background: #06251b;
+            padding: 18px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .assoc-modal-head h3 {
+            font-size: 15px;
+            font-weight: 800;
+            color: #ffc107;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .assoc-modal-body {
+            padding: 22px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .assoc-field-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #55665a;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            margin-bottom: 5px;
+        }
+        .assoc-text-input {
+            width: 100%;
+            border: 1.5px solid #d7e2db;
+            border-radius: 10px;
+            padding: 10px 13px;
+            font-size: 13px;
+            font-family: 'Poppins', sans-serif;
+            color: #06251b;
+            outline: none;
+            transition: border-color .15s;
+        }
+        .assoc-text-input:focus {
+            border-color: #1f7a3d;
+            box-shadow: 0 0 0 3px rgba(31,122,61,0.1);
+        }
+        .assoc-file-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1.5px dashed #c2d8ca;
+            border-radius: 10px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all .15s;
+            background: #f7faf8;
+        }
+        .assoc-file-label:hover {
+            border-color: #1f7a3d;
+            background: #eef7f1;
+        }
+        .assoc-file-label i {
+            font-size: 20px;
+            color: #1f7a3d;
+        }
+        .assoc-file-label span {
+            font-size: 12px;
+            font-weight: 600;
+            color: #55665a;
+        }
+        .assoc-modal-foot {
+            padding: 14px 24px;
+            background: #fafcfb;
+            border-top: 1px solid #eaeeec;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .btn-assoc-cancel {
+            background: #ffffff;
+            border: 1px solid #d7e2db;
+            color: #55665a;
+            font-size: 12.5px;
+            font-weight: 700;
+            padding: 9px 18px;
+            border-radius: 9px;
+            cursor: pointer;
+            transition: all .15s;
+            font-family: 'Poppins', sans-serif;
+        }
+        .btn-assoc-cancel:hover {
+            background: #f0f4f2;
+        }
+        .btn-assoc-save {
+            background: #1f7a3d;
+            color: #ffffff;
+            border: none;
+            font-size: 12.5px;
+            font-weight: 700;
+            padding: 9px 20px;
+            border-radius: 9px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all .15s;
+            font-family: 'Poppins', sans-serif;
+        }
+        .btn-assoc-save:hover {
+            background: #16602f;
+        }
+        .btn-add-assoc {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #1f7a3d;
+            background: #eef7f1;
+            border: 1px solid #c2e8ce;
+            border-radius: 8px;
+            padding: 5px 11px;
+            cursor: pointer;
+            transition: all .15s ease;
+        }
+        .btn-add-assoc:hover {
+            background: #1f7a3d;
+            color: #ffffff;
+        }
     </style>
 </head>
 <body class="dash-body">
@@ -1319,6 +1752,7 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
         <div class="vp-left-col">
 
             <!-- 1. Bid Submissions Desk -->
+            <?php if (!$_pv_is_quotation): ?>
             <div class="vp-card">
                 <div class="vp-card-head">
                     <div class="vp-card-title">
@@ -1404,6 +1838,100 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
                 <?php endif; ?>
 
             </div>
+
+            <?php else: ?>
+            <!-- ── Quotation Rankings (SVP / Shopping) ── -->
+            <div class="vp-card" style="margin-bottom:22px;">
+                <div class="vp-card-head">
+                    <div class="vp-card-title">
+                        <i class="bi bi-list-ol" style="color:#b78103;"></i>
+                        <span>Quotation Rankings</span>
+                    </div>
+                    <a href="quotation_management.php?id=<?= $procurement_id ?>"
+                       style="display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; color:#1f7a3d; text-decoration:none; background:#eef7f1; border:1px solid #c8e6c9; border-radius:8px; padding:4px 10px; transition:all .15s;"
+                       onmouseover="this.style.background='#1f7a3d'; this.style.color='#fff';"
+                       onmouseout="this.style.background='#eef7f1'; this.style.color='#1f7a3d';">
+                        <i class="bi bi-arrow-up-right-square"></i> Full Management
+                    </a>
+                </div>
+                <div>
+                <?php if (empty($lots)): ?>
+                    <div style="padding:30px 20px; text-align:center; color:#88968d; font-size:13px;">No lots defined yet.</div>
+                <?php else:
+                    foreach ($lots as $_pvlot):
+                        $_pv_quotes  = $pv_quotations[$_pvlot['id']] ?? [];
+                        $_pv_award   = $pv_awards_map[$_pvlot['id']] ?? null;
+                        $_lot_status = strtolower($_pvlot['status'] ?? 'pending');
+                ?>
+                    <div style="border-bottom:1px solid #f0f4f2; padding:14px 20px;">
+                        <!-- Lot label row -->
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                            <span style="background:#06251b; color:#ffc107; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; font-family:'Space Grotesk',sans-serif;">Lot <?= $_pvlot['lot_number'] ?></span>
+                            <span style="font-size:13px; font-weight:700; color:#06251b;"><?= htmlspecialchars($_pvlot['lot_title']) ?></span>
+                            <?php if ($_lot_status === 'awarded'): ?>
+                                <span style="margin-left:auto; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:12px; background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7;"><i class="bi bi-trophy-fill"></i> Awarded</span>
+                            <?php elseif ($_lot_status === 'failed'): ?>
+                                <span style="margin-left:auto; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:12px; background:#ffebee; color:#b71c1c; border:1px solid #ef9a9a;"><i class="bi bi-x-circle-fill"></i> Failed</span>
+                            <?php endif; ?>
+                        </div>
+                        <?php if (empty($_pv_quotes)): ?>
+                            <div style="font-size:12px; color:#88968d; font-style:italic; padding:8px 0;">No quotations submitted yet.</div>
+                        <?php else: ?>
+                            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                                <thead>
+                                    <tr style="background:#fafcfb; border-bottom:1px solid #eaeeec;">
+                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Rank</th>
+                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Bidder</th>
+                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Offered Price</th>
+                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Status</th>
+                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Doc</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                <?php foreach ($_pv_quotes as $_pq):
+                                    $_r   = $_pq['computed_rank'];
+                                    $_biz = $_pq['business_name'] ?: ($_pq['firstname'].' '.$_pq['lastname']);
+                                    $_is_winner = $_pv_award && $_pv_award['bid_lot_id'] == $_pq['bid_lot_id'];
+                                    $_bs  = $_pq['bid_status'];
+                                    $_bs_label = match($_bs) { 'confirmed'=>'Confirmed','awarded'=>'Awarded','rejected'=>'Rejected','submitted'=>'Verified',default=>ucfirst($_bs) };
+                                    $_bs_color = match($_bs) { 'confirmed'=>'#1b5e20','awarded'=>'#0d47a1','rejected'=>'#991b1b',default=>'#92400e' };
+                                    $_bs_bg    = match($_bs) { 'confirmed'=>'#e8f5e9','awarded'=>'#e3f2fd','rejected'=>'#fee2e2',default=>'#fef3c7' };
+                                ?>
+                                <tr style="border-bottom:1px solid #f4f6f5; <?= $_is_winner ? 'background:#f0fdf4;' : '' ?>">
+                                    <td style="padding:8px 10px;">
+                                        <span style="font-family:'Space Grotesk',sans-serif; font-weight:800; font-size:12px; color:<?= $_r===1?'#b78103':($_r===2?'#45655a':($r===3?'#a0522d':'#6c776e')) ?>;">
+                                            <?= $_r ? '#'.$_r : '—' ?>
+                                        </span>
+                                    </td>
+                                    <td style="padding:8px 10px; font-weight:700; color:#06251b;">
+                                        <?= htmlspecialchars($_biz) ?>
+                                        <?php if ($_is_winner): ?><span style="font-size:9.5px; background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7; border-radius:5px; padding:1px 5px; margin-left:4px; font-weight:800;">WINNER</span><?php endif; ?>
+                                    </td>
+                                    <td style="padding:8px 10px; font-family:'Space Grotesk',sans-serif; font-weight:800; color:#1f7a3d;">
+                                        <?= $_pq['total_offered_bid'] !== null ? '₱'.number_format((float)$_pq['total_offered_bid'],2) : '<span style="color:#88968d;font-style:italic;font-size:11px;">Pending</span>' ?>
+                                    </td>
+                                    <td style="padding:8px 10px;">
+                                        <span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; background:<?= $_bs_bg ?>; color:<?= $_bs_color ?>;"><?= $_bs_label ?></span>
+                                    </td>
+                                    <td style="padding:8px 10px;">
+                                        <?php if ($_pq['doc_id']): ?>
+                                            <a href="quotation_management.php?id=<?= $procurement_id ?>&action=view_doc&doc_id=<?= $_pq['doc_id'] ?>"
+                                               target="_blank"
+                                               style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; color:#1f7a3d; text-decoration:none;">
+                                                <i class="bi bi-file-earmark-text-fill"></i> View
+                                            </a>
+                                        <?php else: ?><span style="color:#b0bec5; font-size:11px;">—</span><?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <!-- 2. Project Specifications & Scope Overview -->
             <div class="vp-card">
@@ -1572,6 +2100,99 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
                 </div>
             </div>
 
+            <!-- ── Bidding Documents (Original) ── -->
+            <div class="vp-card">
+                <div class="vp-card-head">
+                    <div class="vp-card-title">
+                        <i class="bi bi-folder2-open" style="color:#1f7a3d;"></i>
+                        <span>Bidding Documents</span>
+                    </div>
+                    <span class="vp-card-count"><?= count($pv_original_docs) ?> File<?= count($pv_original_docs) !== 1 ? 's' : '' ?></span>
+                </div>
+                <div class="vp-card-body" style="display:flex; flex-direction:column; gap:8px;">
+                    <?php if (empty($pv_original_docs)): ?>
+                        <div class="doc-empty-state">
+                            <i class="bi bi-file-earmark-x"></i>
+                            No original bidding documents uploaded yet.
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($pv_original_docs as $doc): ?>
+                            <?php
+                                $ext   = strtolower(pathinfo($doc['file_path'], PATHINFO_EXTENSION));
+                                $icon  = in_array($ext,['pdf']) ? 'bi-file-earmark-pdf' : (in_array($ext,['doc','docx']) ? 'bi-file-earmark-word' : (in_array($ext,['xls','xlsx']) ? 'bi-file-earmark-excel' : (in_array($ext,['png','jpg','jpeg']) ? 'bi-file-earmark-image' : 'bi-file-earmark-arrow-down')));
+                                $url   = resolve_proc_doc_url($doc['file_path'], 'admin');
+                                $dname = htmlspecialchars($doc['document_name'] ?: basename($doc['file_path']));
+                            ?>
+                            <div class="doc-pill-row">
+                                <div class="doc-pill-icon"><i class="bi <?= $icon ?>"></i></div>
+                                <div class="doc-pill-name">
+                                    <?= $dname ?>
+                                    <small><?= strtoupper($ext) ?> &bull; <?= !empty($doc['uploaded_at']) ? date('M j, Y', strtotime($doc['uploaded_at'])) : '' ?></small>
+                                </div>
+                                <div class="doc-pill-actions">
+                                    <a href="<?= htmlspecialchars($url) ?>" target="_blank" class="btn-doc-view"><i class="bi bi-eye"></i> View</a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- ── Associated Documents ── -->
+            <div class="vp-card">
+                <div class="vp-card-head">
+                    <div class="vp-card-title">
+                        <i class="bi bi-paperclip" style="color:#e67e22;"></i>
+                        <span>Associated Documents</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="vp-card-count"><?= count($pv_associated_docs) ?> File<?= count($pv_associated_docs) !== 1 ? 's' : '' ?></span>
+                        <?php if ($can_manage_docs): ?>
+                            <button type="button" class="btn-add-assoc" onclick="openAssocModal()">
+                                <i class="bi bi-plus-lg"></i> Add Document
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="vp-card-body" style="display:flex; flex-direction:column; gap:8px;">
+                    <?php if (empty($pv_associated_docs)): ?>
+                        <div class="doc-empty-state">
+                            <i class="bi bi-paperclip"></i>
+                            No associated documents uploaded yet.
+                            <?php if ($can_manage_docs): ?>
+                                <br><small style="margin-top:4px; display:block;">Click "Add Document" to upload one.</small>
+                            <?php endif; ?>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($pv_associated_docs as $doc): ?>
+                            <?php
+                                $ext   = strtolower(pathinfo($doc['file_path'], PATHINFO_EXTENSION));
+                                $icon  = in_array($ext,['pdf']) ? 'bi-file-earmark-pdf' : (in_array($ext,['doc','docx']) ? 'bi-file-earmark-word' : (in_array($ext,['xls','xlsx']) ? 'bi-file-earmark-excel' : (in_array($ext,['png','jpg','jpeg']) ? 'bi-file-earmark-image' : 'bi-file-earmark-arrow-down')));
+                                $url   = resolve_proc_doc_url($doc['file_path'], 'admin');
+                                $dname = htmlspecialchars($doc['document_name'] ?: basename($doc['file_path']));
+                            ?>
+                            <div class="doc-pill-row">
+                                <div class="doc-pill-icon" style="background:#fff4e6; color:#e67e22;"><i class="bi <?= $icon ?>"></i></div>
+                                <div class="doc-pill-name">
+                                    <?= $dname ?>
+                                    <small><?= strtoupper($ext) ?> &bull; <?= !empty($doc['uploaded_at']) ? date('M j, Y', strtotime($doc['uploaded_at'])) : '' ?></small>
+                                </div>
+                                <div class="doc-pill-actions">
+                                    <a href="<?= htmlspecialchars($url) ?>" target="_blank" class="btn-doc-view"><i class="bi bi-eye"></i> View</a>
+                                    <?php if ($can_manage_docs): ?>
+                                        <form method="POST" style="display:inline;" onsubmit="return confirm('Remove this document?');">
+                                            <input type="hidden" name="action_delete_associated_doc_pv" value="1">
+                                            <input type="hidden" name="doc_id" value="<?= (int)$doc['id'] ?>">
+                                            <button type="submit" class="btn-doc-del"><i class="bi bi-trash3"></i> Delete</button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
         </div>
 
     </div>
@@ -1698,6 +2319,41 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
                 <button type="submit" id="modalSubmitBtn" class="btn-action-verify approve" style="width:auto; padding:10px 24px; font-size:13px;">
                     <i class="bi bi-check-circle-fill"></i> Confirm Approval
                 </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- UPLOAD ASSOCIATED DOCUMENT MODAL               -->
+<!-- ============================================== -->
+<div id="assocDocModal" class="assoc-modal-backdrop" onclick="if(event.target===this)closeAssocModal()">
+    <div class="assoc-modal-box">
+        <div class="assoc-modal-head">
+            <h3><i class="bi bi-paperclip"></i> Upload Associated Document</h3>
+            <button type="button" class="modal-close-btn" onclick="closeAssocModal()" aria-label="Close">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <form method="POST" enctype="multipart/form-data" id="assocUploadForm">
+            <input type="hidden" name="action_upload_associated_doc_pv" value="1">
+            <div class="assoc-modal-body">
+                <div>
+                    <div class="assoc-field-label">Document Name / Title <span style="color:#c23b3b;">*</span></div>
+                    <input type="text" name="document_name" class="assoc-text-input" placeholder="e.g. Pre-bid Conference Minutes" required id="assocDocNameInput">
+                </div>
+                <div>
+                    <div class="assoc-field-label">Select File <span style="color:#c23b3b;">*</span></div>
+                    <label class="assoc-file-label" for="assocFileInput">
+                        <i class="bi bi-cloud-arrow-up"></i>
+                        <span id="assocFileLabel">Click to browse &mdash; PDF, Word, Excel, Image (max 50MB)</span>
+                    </label>
+                    <input type="file" name="associated_document_pv" id="assocFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf,.zip,.rar,.7z,.png,.jpg,.jpeg" style="display:none;" required>
+                </div>
+            </div>
+            <div class="assoc-modal-foot">
+                <button type="button" class="btn-assoc-cancel" onclick="closeAssocModal()">Cancel</button>
+                <button type="submit" class="btn-assoc-save"><i class="bi bi-cloud-upload"></i> Upload & Save</button>
             </div>
         </form>
     </div>
@@ -1904,6 +2560,22 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
             }, 2500);
         });
     }
+</script>
+<script>
+    // Associated Document Upload Modal
+    function openAssocModal() {
+        document.getElementById('assocDocModal').classList.add('open');
+        document.getElementById('assocDocNameInput').focus();
+    }
+    function closeAssocModal() {
+        document.getElementById('assocDocModal').classList.remove('open');
+        document.getElementById('assocUploadForm').reset();
+        document.getElementById('assocFileLabel').textContent = 'Click to browse \u2014 PDF, Word, Excel, Image (max 50MB)';
+    }
+    document.getElementById('assocFileInput').addEventListener('change', function() {
+        const lbl = document.getElementById('assocFileLabel');
+        lbl.textContent = this.files.length ? this.files[0].name : 'Click to browse \u2014 PDF, Word, Excel, Image (max 50MB)';
+    });
 </script>
 
 </body>

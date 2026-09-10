@@ -10,9 +10,9 @@ $active = $active_nav ?? $current_script;
 
 // Active state detection
 $is_dashboard_active     = ($active === 'dashboard.php' || $active === 'dashboard');
-$is_procurement_active   = in_array($active, ['procurement.php', 'view_procurement.php', 'submit_bid.php', 'procurement']);
+$is_procurement_active   = in_array($active, ['procurement.php', 'view_procurement.php', 'submit_bid.php', 'submit_quotation.php', 'procurement']);
 $is_bids_active          = in_array($active, ['my_bids.php', 'my_bids']);
-$is_schedule_active      = ($active === 'bid_schedule' || $active === 'schedule');
+$is_bid_opening_active   = in_array($active, ['bid_opening.php', 'bid-session-list.php', 'bid_opening']);
 $is_notifications_active = in_array($active, ['notification.php', 'notifications.php', 'notification']);
 $is_settings_active      = in_array($active, ['settings.php', 'settings']);
 
@@ -37,8 +37,8 @@ $bidder_avatar   = !empty($_SESSION['profile_picture_url']) ? '../' . ltrim($_SE
         <a href="dashboard.php" class="nav-item <?= $is_dashboard_active ? 'active' : '' ?>">
             <i class="bi bi-speedometer2"></i><span>Dashboard</span>
         </a>
-        <a href="javascript:void(0)" class="nav-item">
-            <i class="bi bi-broadcast"></i><span>Bid Opening</span>
+        <a href="bid_opening.php" class="nav-item <?= $is_bid_opening_active ? 'active' : '' ?>">
+            <i class="bi bi-envelope-open-fill"></i><span>Bid Opening</span>
         </a>
 
         <div class="nav-section-label">Main</div>
@@ -47,9 +47,6 @@ $bidder_avatar   = !empty($_SESSION['profile_picture_url']) ? '../' . ltrim($_SE
         </a>
         <a href="my_bids.php" class="nav-item <?= $is_bids_active ? 'active' : '' ?>">
             <i class="bi bi-inbox"></i><span>My Bids</span>
-        </a>
-        <a href="procurement.php" class="nav-item <?= $is_schedule_active ? 'active' : '' ?>">
-            <i class="bi bi-calendar-event"></i><span>Bid Schedule</span>
         </a>
         <a href="notification.php" class="nav-item <?= $is_notifications_active ? 'active' : '' ?>">
             <i class="bi bi-bell"></i><span>Notifications</span>

@@ -30,25 +30,8 @@ $total_open      = ($total_open_res && $row = $total_open_res->fetch_row()) ? (i
 $upcoming_res    = $conn->query("SELECT COUNT(*) FROM procurements WHERE opening_date >= NOW() AND status = 'open'");
 $upcoming_count  = ($upcoming_res && $row = $upcoming_res->fetch_row()) ? (int)$row[0] : 0;
 
-$today_open_res  = $conn->query("SELECT COUNT(*) FROM procurements WHERE DATE(opening_date) = CURDATE() AND status = 'open'");
-$today_openings  = ($today_open_res && $row = $today_open_res->fetch_row()) ? (int)$row[0] : 0;
-
 // ── 3. Unread Notifications Count ──────────────────────────────────────────────
-$notif_unread_stmt = $conn->prepare("
-    SELECT COUNT(*) 
-    FROM system_notifications sn
-    LEFT JOIN user_notification_reads unr 
-        ON sn.notification_id = unr.notification_id 
-        AND unr.user_id = ?
-    WHERE (sn.target_type = 'all'
-       OR (sn.target_type = 'role' AND sn.target_role = ?)
-       OR (sn.target_type = 'user' AND sn.target_user_id = ?))
-      AND unr.read_at IS NULL
-");
-$notif_unread_stmt->bind_param("isi", $user_id, $user_role, $user_id);
-$notif_unread_stmt->execute();
-$unread_notifs = (int)$notif_unread_stmt->get_result()->fetch_row()[0];
-$notif_unread_stmt->close();
+
 
 // ── 4. Open Procurements List ──────────────────────────────────────────────────
 $open_procs_result = $conn->query("
@@ -67,35 +50,7 @@ $open_procs_result = $conn->query("
     LIMIT 5
 ");
 
-// ── 5. Upcoming Bid Schedule ───────────────────────────────────────────────────
-$schedule_result = $conn->query("
-    SELECT 
-        id, philgeps_ref_no, title, opening_date, closing_date, abc
-    FROM procurements
-    WHERE status != 'draft'
-      AND opening_date IS NOT NULL 
-      AND opening_date >= CURDATE()
-    ORDER BY opening_date ASC
-    LIMIT 4
-");
 
-// ── 6. Recent Notifications ────────────────────────────────────────────────────
-$notifs_stmt = $conn->prepare("
-    SELECT sn.notification_id, sn.title, sn.message, sn.target_type, sn.target_role, sn.created_at,
-           u.firstname, u.lastname,
-           CASE WHEN unr.read_at IS NOT NULL THEN 1 ELSE 0 END AS is_read
-    FROM system_notifications sn
-    LEFT JOIN users u ON sn.created_by = u.user_id
-    LEFT JOIN user_notification_reads unr ON sn.notification_id = unr.notification_id AND unr.user_id = ?
-    WHERE sn.target_type = 'all'
-       OR (sn.target_type = 'role' AND sn.target_role = ?)
-       OR (sn.target_type = 'user' AND sn.target_user_id = ?)
-    ORDER BY sn.created_at DESC
-    LIMIT 3
-");
-$notifs_stmt->bind_param("isi", $user_id, $user_role, $user_id);
-$notifs_stmt->execute();
-$notifs_result = $notifs_stmt->get_result();
 
 function timeAgo($datetime) {
     $time = strtotime($datetime);
@@ -215,86 +170,7 @@ function timeAgo($datetime) {
             color: #ffc107;
         }
 
-        /* ── 4 Donut Stat Cards ── */
-        .ap2-stats-4-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 14px;
-            margin-bottom: 24px;
-        }
 
-        @media (max-width: 900px) {
-            .ap2-stats-4-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .ap2-stats-4-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .stat-donut-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 16px;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            transition: transform .15s ease, box-shadow .15s ease;
-        }
-
-        .stat-donut-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(16,36,26,.09);
-        }
-
-        .stat-donut-ring {
-            width: 46px;
-            height: 46px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            position: relative;
-        }
-
-        .stat-donut-inner {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            background: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-        }
-
-        .stat-donut-info {
-            line-height: 1.2;
-            min-width: 0;
-        }
-
-        .stat-donut-num {
-            font-size: 22px;
-            font-weight: 800;
-            color: #06251b;
-            line-height: 1.1;
-        }
-
-        .stat-donut-lbl {
-            font-size: 11.5px;
-            font-weight: 600;
-            color: #88968d;
-            margin-top: 3px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
 
         /* ── Accreditation Status Banner ── */
         .accredit-banner {
@@ -671,50 +547,6 @@ function timeAgo($datetime) {
             color: #ffffff;
         }
 
-        /* ── Notification Items ── */
-        .dash-notif-item {
-            padding: 14px 20px;
-            border-bottom: 1px solid #f2f5f3;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            transition: background .12s ease;
-        }
-
-        .dash-notif-item:last-child {
-            border-bottom: none;
-        }
-
-        .dash-notif-item:hover {
-            background: #fbfdfc;
-        }
-
-        .dash-notif-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #219653;
-            margin-top: 6px;
-            flex-shrink: 0;
-        }
-
-        .dash-notif-dot.unread {
-            background: #e67e22;
-            box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.2);
-        }
-
-        .dash-notif-title {
-            font-size: 12.5px;
-            font-weight: 700;
-            color: #16241d;
-            margin-bottom: 2px;
-        }
-
-        .dash-notif-time {
-            font-size: 11px;
-            color: #88968d;
-        }
-
         /* ── Steps Accordion / Guide Box ── */
         .guide-box {
             padding: 16px 20px;
@@ -792,69 +624,10 @@ include("components/topbar.php");
             <div class="hero-pill">
                 <i class="bi bi-folder2-open"></i> <?= $total_open ?> Active Opportunities
             </div>
-            <div class="hero-pill">
-                <i class="bi bi-bell"></i> <?= $unread_notifs ?> Unread Notices
-            </div>
         </div>
     </div>
 
     <!-- ── 4 Donut Stat Summary Cards ── -->
-    <div class="sad-section-label" style="font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#88968d; margin-bottom:10px;">Summary Overview</div>
-    <div class="ap2-stats-4-grid">
-        
-        <!-- 1. Active Opportunities -->
-        <div class="stat-donut-card">
-            <div class="stat-donut-ring" style="background:conic-gradient(#06251b 0% 100%, #e7ece9 0%);">
-                <div class="stat-donut-inner">
-                    <i class="bi bi-folder2-open" style="color:#06251b;"></i>
-                </div>
-            </div>
-            <div class="stat-donut-info">
-                <div class="stat-donut-num"><?= number_format($total_open) ?></div>
-                <div class="stat-donut-lbl">Active Procurements</div>
-            </div>
-        </div>
-
-        <!-- 2. Upcoming Openings -->
-        <div class="stat-donut-card">
-            <div class="stat-donut-ring" style="background:conic-gradient(#219653 0% 100%, #e7ece9 0%);">
-                <div class="stat-donut-inner">
-                    <i class="bi bi-calendar-event" style="color:#219653;"></i>
-                </div>
-            </div>
-            <div class="stat-donut-info">
-                <div class="stat-donut-num" style="color:#219653;"><?= number_format($upcoming_count) ?></div>
-                <div class="stat-donut-lbl">Upcoming Openings</div>
-            </div>
-        </div>
-
-        <!-- 3. Openings Today / Live -->
-        <div class="stat-donut-card">
-            <div class="stat-donut-ring" style="background:conic-gradient(#e67e22 0% 100%, #e7ece9 0%);">
-                <div class="stat-donut-inner">
-                    <i class="bi bi-broadcast" style="color:#e67e22;"></i>
-                </div>
-            </div>
-            <div class="stat-donut-info">
-                <div class="stat-donut-num" style="color:#e67e22;"><?= number_format($today_openings) ?></div>
-                <div class="stat-donut-lbl">Openings Today</div>
-            </div>
-        </div>
-
-        <!-- 4. Unread Notifications -->
-        <div class="stat-donut-card">
-            <div class="stat-donut-ring" style="background:conic-gradient(<?= $unread_notifs > 0 ? '#1565c0' : '#8B958E' ?> 0% 100%, #e7ece9 0%);">
-                <div class="stat-donut-inner">
-                    <i class="bi bi-bell-fill" style="color:<?= $unread_notifs > 0 ? '#1565c0' : '#8B958E' ?>;"></i>
-                </div>
-            </div>
-            <div class="stat-donut-info">
-                <div class="stat-donut-num" style="color:<?= $unread_notifs > 0 ? '#1565c0' : '#8B958E' ?>;"><?= number_format($unread_notifs) ?></div>
-                <div class="stat-donut-lbl">Unread Notices</div>
-            </div>
-        </div>
-
-    </div>
 
     <!-- ── Accreditation Status Banner ── -->
     <?php if ($app_status === 'approved'): ?>
@@ -965,44 +738,7 @@ include("components/topbar.php");
             </div>
 
             <!-- 2. Upcoming Bid Schedule -->
-            <div class="dash-card" id="schedule">
-                <div class="dash-card-head">
-                    <div class="dash-card-title">
-                        <i class="bi bi-calendar-event" style="color:#219653;"></i>
-                        <span>Upcoming Bid Opening Schedule</span>
-                    </div>
-                </div>
-
-                <?php if ($schedule_result && $schedule_result->num_rows > 0): ?>
-                    <?php while ($s = $schedule_result->fetch_assoc()): 
-                        $openTimestamp = strtotime($s['opening_date']);
-                        $isToday = (date('Y-m-d', $openTimestamp) === date('Y-m-d'));
-                    ?>
-                        <div class="sched-item">
-                            <div class="sched-date-box" style="<?= $isToday ? 'background:#fdf0cf; border-color:#fad580;' : '' ?>">
-                                <div class="sched-month" style="<?= $isToday ? 'color:#97710a;' : '' ?>"><?= date('M', $openTimestamp) ?></div>
-                                <div class="sched-day" style="<?= $isToday ? 'color:#e67e22;' : '' ?>"><?= date('j', $openTimestamp) ?></div>
-                            </div>
-                            <div class="sched-info">
-                                <div class="sched-title" title="<?= htmlspecialchars($s['title']) ?>"><?= htmlspecialchars($s['title']) ?></div>
-                                <div class="sched-sub">
-                                    <span><i class="bi bi-clock"></i> <?= date('h:i A', $openTimestamp) ?></span>
-                                    <span><i class="bi bi-geo-alt"></i> BAC Conference Room</span>
-                                    <span><i class="bi bi-tag"></i> ₱<?= number_format((float)$s['abc'], 2) ?></span>
-                                </div>
-                            </div>
-                            <?php if ($isToday): ?>
-                                <span class="opp-status closing-soon"><i class="bi bi-broadcast"></i> TODAY</span>
-                            <?php endif; ?>
-                        </div>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <div style="padding:32px 20px; text-align:center; color:#88968d;">
-                        <i class="bi bi-calendar-x" style="font-size:28px; display:block; margin-bottom:6px;"></i>
-                        <p style="font-size:12.5px; font-weight:600;">No scheduled bid opening sessions listed.</p>
-                    </div>
-                <?php endif; ?>
-            </div>
+           
 
         </div>
 
@@ -1026,10 +762,6 @@ include("components/topbar.php");
                         <div class="qa-icon"><i class="bi bi-folder2-open"></i></div>
                         <div class="qa-label">Procurements</div>
                     </a>
-                    <a href="notification.php" class="qa-btn">
-                        <div class="qa-icon"><i class="bi bi-bell"></i></div>
-                        <div class="qa-label">Notifications</div>
-                    </a>
                     <a href="settings.php" class="qa-btn">
                         <div class="qa-icon"><i class="bi bi-gear"></i></div>
                         <div class="qa-label">Account Settings</div>
@@ -1038,40 +770,7 @@ include("components/topbar.php");
             </div>
 
             <!-- 2. Recent Notices & Bulletins -->
-            <div class="dash-card">
-                <div class="dash-card-head">
-                    <div class="dash-card-title">
-                        <i class="bi bi-megaphone-fill" style="color:#1565c0;"></i>
-                        <span>Official Notices</span>
-                    </div>
-                    <a href="notification.php" class="dash-card-link">View all →</a>
-                </div>
-
-                <?php if ($notifs_result && $notifs_result->num_rows > 0): ?>
-                    <?php while ($n = $notifs_result->fetch_assoc()): 
-                        $isUnread = ((int)$n['is_read'] === 0);
-                    ?>
-                        <div class="dash-notif-item">
-                            <div class="dash-notif-dot <?= $isUnread ? 'unread' : '' ?>"></div>
-                            <div style="min-width:0; flex:1;">
-                                <div class="dash-notif-title"><?= htmlspecialchars($n['title']) ?></div>
-                                <div style="font-size:11.5px; color:#63736a; line-height:1.4; margin-bottom:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
-                                    <?= htmlspecialchars($n['message']) ?>
-                                </div>
-                                <div class="dash-notif-time">
-                                    <i class="bi bi-clock"></i> <?= timeAgo($n['created_at']) ?>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <div style="padding:28px 20px; text-align:center; color:#88968d;">
-                        <i class="bi bi-bell-slash" style="font-size:26px; display:block; margin-bottom:6px;"></i>
-                        <p style="font-size:12px; font-weight:600;">No active announcements.</p>
-                    </div>
-                <?php endif; ?>
-            </div>
-
+           
             <!-- 3. Supplier Accreditation Checklist Guide -->
             <div class="dash-card">
                 <div class="dash-card-head">

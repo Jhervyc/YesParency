@@ -12,7 +12,6 @@ $active = $active_nav ?? $current_script;
 $is_dashboard_active     = in_array($active, ['dashboard.php', 'dashboard']);
 $is_procurement_active   = in_array($active, ['procurement.php', 'view_procurement.php', 'procurement']);
 $is_registration_active  = in_array($active, ['bidder-registration.php', 'bidder-registration', 'registration']);
-$is_notifications_active = in_array($active, ['notification.php', 'notifications.php', 'notification', 'announcements.php']);
 $is_settings_active      = in_array($active, ['settings.php', 'settings']);
 
 $user_username = htmlspecialchars($_SESSION['username'] ?? 'User');
@@ -36,14 +35,8 @@ $user_avatar   = !empty($_SESSION['profile_picture_url']) ? '../' . ltrim($_SESS
         <a href="dashboard.php" class="nav-item <?= $is_dashboard_active ? 'active' : '' ?>">
             <i class="bi bi-speedometer2"></i><span>Dashboard</span>
         </a>
-        <a href="dashboard.php#live-bids" class="nav-item">
-            <i class="bi bi-broadcast"></i><span>Bid Opening Live</span>
-        </a>
         <a href="procurement.php" class="nav-item <?= $is_procurement_active ? 'active' : '' ?>">
             <i class="bi bi-folder2-open"></i><span>Procurement</span>
-        </a>
-        <a href="notification.php" class="nav-item <?= $is_notifications_active ? 'active' : '' ?>">
-            <i class="bi bi-bell"></i><span>Notifications</span>
         </a>
 
         <div class="nav-section-label">Bidder Accreditation</div>

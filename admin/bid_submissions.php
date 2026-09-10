@@ -1,6 +1,7 @@
 <?php
 include("utils/protect-page.php");
 include("utils/protect-secretariat.php");
+require_once(__DIR__ . "/../utils/procurement_mode_helper.php");
 
 // Handle Verify / Reject
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_verify_bid'])) {
@@ -56,6 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_verify_bid']))
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $filter = isset($_GET['filter']) && in_array($_GET['filter'], ['all', 'pending', 'has_bids']) 
           ? $_GET['filter'] : 'all';
+$mode_filter = isset($_GET['mode_filter']) && in_array($_GET['mode_filter'], ['all', 'public_bidding', 'svp', 'shopping'])
+               ? $_GET['mode_filter'] : 'all';
 
 // Live stat counts
 $stat_open   = (int)$conn->query("SELECT COUNT(*) FROM procurements WHERE status = 'open'")->fetch_row()[0];
@@ -86,6 +89,7 @@ if ($search !== '') {
     $like = '%' . $search . '%';
     $ps = $conn->prepare("
         SELECT p.id AS procurement_id, p.title AS procurement_title, p.philgeps_ref_no,
+               p.procurement_mode,
                COUNT(b.id) AS total_bids,
                SUM(CASE WHEN b.status='pending' THEN 1 ELSE 0 END) AS pending_bids
         FROM procurements p
@@ -99,6 +103,7 @@ if ($search !== '') {
 } else {
     $ps = $conn->prepare("
         SELECT p.id AS procurement_id, p.title AS procurement_title, p.philgeps_ref_no,
+               p.procurement_mode,
                COUNT(b.id) AS total_bids,
                SUM(CASE WHEN b.status='pending' THEN 1 ELSE 0 END) AS pending_bids
         FROM procurements p
@@ -117,6 +122,13 @@ while ($p_row = $proc_result->fetch_assoc()) {
     $procurements[] = $p_row;
 }
 $ps->close();
+
+// Post-filter by procurement mode category if selected
+if ($mode_filter !== 'all') {
+    $procurements = array_values(array_filter($procurements, function($p) use ($mode_filter) {
+        return get_procurement_category($p['procurement_mode'] ?? '') === $mode_filter;
+    }));
+}
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -186,7 +198,18 @@ $ps->close();
                         placeholder="Search by procurement title or PhilGEPS ref..."
                         value="<?= htmlspecialchars($search) ?>">
                 </div>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                    <select name="mode_filter"
+                            style="border:1.5px solid #eaeeec; background:#f4f7f5; color:#06251b;
+                                   font-family:'Poppins',sans-serif; font-size:12px; font-weight:600;
+                                   padding:7px 10px; border-radius:9px; outline:none; cursor:pointer;
+                                   transition:border-color .15s;"
+                            onchange="this.form.submit()">
+                        <option value="all"            <?= $mode_filter==='all'?'selected':'' ?>>All Modes</option>
+                        <option value="public_bidding" <?= $mode_filter==='public_bidding'?'selected':'' ?>>Public Bidding</option>
+                        <option value="svp"            <?= $mode_filter==='svp'?'selected':'' ?>>Small Value Procurement</option>
+                        <option value="shopping"       <?= $mode_filter==='shopping'?'selected':'' ?>>Shopping</option>
+                    </select>
                     <button type="submit" name="filter" value="all" class="ap2-filter-btn <?= $filter==='all'?'active':'' ?>">All Open</button>
                     <button type="submit" name="filter" value="pending" class="ap2-filter-btn <?= $filter==='pending'?'active':'' ?>">
                         <i class="bi bi-hourglass-split"></i> Pending Bids
@@ -237,6 +260,11 @@ $ps->close();
                     </td>
                     <td class="proc-title-cell">
                         <?= htmlspecialchars(mb_strimwidth($proc['procurement_title'], 0, 65, '…')) ?>
+                        <?php if (is_quotation_mode($proc['procurement_mode'] ?? '')): ?>
+                        <span style="display:inline-flex; align-items:center; gap:3px; background:#fff8e1; border:1px solid #ffe082; color:#b78103; font-size:10px; font-weight:800; padding:1px 7px; border-radius:20px; margin-left:5px;">
+                            <i class="bi bi-file-earmark-text-fill"></i> Quotation
+                        </span>
+                        <?php endif; ?>
                         <?php if ($hasPending): ?>
                         <div style="font-size:10.5px; color:#e67e22; font-weight:700; margin-top:2px;">
                             <i class="bi bi-hourglass-split"></i> <?= $pendingBids ?> pending review
@@ -250,7 +278,12 @@ $ps->close();
                         </span>
                     </td>
                     <td style="text-align:right;">
-                        <a href="bid-submission-view.php?id=<?= $proc['procurement_id'] ?>" class="proc-action-btn btn-view">
+                        <?php
+                            $view_url = is_quotation_mode($proc['procurement_mode'] ?? '')
+                                ? "bid-submission-view.php?id={$proc['procurement_id']}"
+                                : "bid-submission-view.php?id={$proc['procurement_id']}";
+                        ?>
+                        <a href="<?= htmlspecialchars($view_url) ?>" class="proc-action-btn btn-view">
                             <i class="bi bi-eye"></i> View
                         </a>
                     </td>

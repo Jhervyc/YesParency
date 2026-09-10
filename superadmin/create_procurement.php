@@ -115,8 +115,8 @@
                     }
 
                     $doc_stmt = $conn->prepare("
-                        INSERT INTO procurement_documents (procurement_id, document_name, file_path) 
-                        VALUES (?, ?, ?)
+                        INSERT INTO procurement_documents (procurement_id, document_category, document_name, file_path) 
+                        VALUES (?, 'original', ?, ?)
                     ");
 
                     foreach ($_FILES['documents']['name'] as $index => $original_name) {
