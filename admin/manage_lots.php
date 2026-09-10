@@ -1110,8 +1110,8 @@
     <div class="vp-hero-card">
         <div class="vp-hero-top">
             <div class="vp-hero-badges">
-                <span class="hero-pill ref" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($proc['philgeps_ref_no']) ?>');" title="Click to copy">
-                    <i class="bi bi-hash"></i> <?= htmlspecialchars($proc['philgeps_ref_no']) ?> <i class="bi bi-copy" style="font-size:10px; opacity:0.8;"></i>
+                <span class="hero-pill ref" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($proc['slsu_ref_no']) ?>');" title="Click to copy">
+                    <i class="bi bi-hash"></i> <?= htmlspecialchars($proc['slsu_ref_no']) ?> <i class="bi bi-copy" style="font-size:10px; opacity:0.8;"></i>
                 </span>
                 <span class="hero-pill mode">
                     <i class="bi bi-briefcase"></i> <?= htmlspecialchars($proc['procurement_mode']) ?>

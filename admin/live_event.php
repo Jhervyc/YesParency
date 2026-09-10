@@ -85,7 +85,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
 
 // Active/scheduled events
 $events_result = $conn->query("
-    SELECT le.*, p.title AS proc_title, p.philgeps_ref_no
+    SELECT le.*, p.title AS proc_title, p.slsu_ref_no
     FROM live_events le
     JOIN procurements p ON le.procurement_id = p.id
     WHERE le.status IN ('live','scheduled')
@@ -94,7 +94,7 @@ $events_result = $conn->query("
 
 // Open procurements (for create form)
 $procs_result = $conn->query("
-    SELECT id, title, philgeps_ref_no FROM procurements
+    SELECT id, title, slsu_ref_no FROM procurements
     WHERE status IN ('open','closed')
     ORDER BY created_at DESC
 ");
@@ -221,7 +221,7 @@ function timeAgo($dt) {
                     </h3>
                 </div>
                 <div style="padding:12px 18px; font-size:12px; color:#55665a; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between;">
-                    <span><i class="bi bi-hash"></i> <?= htmlspecialchars($ev['philgeps_ref_no']) ?></span>
+                    <span><i class="bi bi-hash"></i> <?= htmlspecialchars($ev['slsu_ref_no']) ?></span>
                     <span><i class="bi bi-broadcast"></i> Path: <code><?= htmlspecialchars($ev['stream_path']) ?></code></span>
                     <div style="display:flex; gap:8px;">
                         <?php if ($ev['status'] === 'scheduled'): ?>
@@ -258,7 +258,7 @@ function timeAgo($dt) {
                                 <option value="">— Select procurement —</option>
                                 <?php while ($p = $procs_result->fetch_assoc()): ?>
                                     <option value="<?= $p['id'] ?>">
-                                        [<?= htmlspecialchars($p['philgeps_ref_no']) ?>] <?= htmlspecialchars(mb_strimwidth($p['title'],0,60,'…')) ?>
+                                        [<?= htmlspecialchars($p['slsu_ref_no']) ?>] <?= htmlspecialchars(mb_strimwidth($p['title'],0,60,'…')) ?>
                                     </option>
                                 <?php endwhile; ?>
                             </select>

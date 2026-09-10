@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_doc'])) {
 // 5. Handle Edit Procurement (with optional new file uploads)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_procurement'])) {
     $title          = trim($_POST['title'] ?? '');
-    $philgeps       = trim($_POST['philgeps_ref_no'] ?? '');
+    $slsu       = trim($_POST['slsu_ref_no'] ?? '');
     $mode           = trim($_POST['procurement_mode'] ?? '');
     $description    = trim($_POST['description'] ?? '');
     $abc            = floatval($_POST['abc'] ?? 0);
@@ -96,13 +96,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_procurement'])) 
 
     $upd = $conn->prepare("
         UPDATE procurements
-        SET title = ?, philgeps_ref_no = ?, procurement_mode = ?,
+        SET title = ?, slsu_ref_no = ?, procurement_mode = ?,
             description = ?, abc = ?,
             posting_date = ?, closing_date = ?, opening_date = ?
         WHERE id = ?
     ");
     $upd->bind_param("ssssdsssi",
-        $title, $philgeps, $mode,
+        $title, $slsu, $mode,
         $description, $abc,
         $posting_date, $closing_date, $opening_date,
         $procurement_id
@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_procurement'])) 
             "Updated procurement project: {$title}",
             [
                 'title' => $procurement['title'],
-                'philgeps_ref_no' => $procurement['philgeps_ref_no'],
+                'slsu_ref_no' => $procurement['slsu_ref_no'],
                 'procurement_mode' => $procurement['procurement_mode'],
                 'description' => $procurement['description'],
                 'abc' => (float)$procurement['abc'],
@@ -149,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_procurement'])) 
             ],
             [
                 'title' => $title,
-                'philgeps_ref_no' => $philgeps,
+                'slsu_ref_no' => $slsu,
                 'procurement_mode' => $mode,
                 'description' => $description,
                 'abc' => $abc,
@@ -1055,9 +1055,9 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
     <div class="vp-hero-card">
         <div class="vp-hero-top">
             <div class="vp-hero-badges">
-                <?php if (!empty($procurement['philgeps_ref_no'])): ?>
-                    <span class="hero-pill ref" onclick="copyPhilgeps('<?= htmlspecialchars($procurement['philgeps_ref_no']) ?>')" title="Click to copy Reference No.">
-                        <i class="bi bi-hash"></i> REF: <?= htmlspecialchars($procurement['philgeps_ref_no']) ?>
+                <?php if (!empty($procurement['slsu_ref_no'])): ?>
+                    <span class="hero-pill ref" onclick="copyPhilgeps('<?= htmlspecialchars($procurement['slsu_ref_no']) ?>')" title="Click to copy Reference No.">
+                        <i class="bi bi-hash"></i> REF: <?= htmlspecialchars($procurement['slsu_ref_no']) ?>
                         <i class="bi bi-copy" style="font-size:10px; opacity:0.8;"></i>
                     </span>
                 <?php endif; ?>
@@ -1121,8 +1121,8 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
                     
                     <div class="spec-fields-grid">
                         <div class="spec-field-box">
-                            <div class="spec-field-lbl">PhilGEPS Reference No.</div>
-                            <div class="spec-field-val"><?= htmlspecialchars($procurement['philgeps_ref_no'] ?: 'N/A') ?></div>
+                            <div class="spec-field-lbl">SLSU Reference No.</div>
+                            <div class="spec-field-val"><?= htmlspecialchars($procurement['slsu_ref_no'] ?: 'N/A') ?></div>
                         </div>
                         <div class="spec-field-box">
                             <div class="spec-field-lbl">Procurement Mode</div>
@@ -1413,13 +1413,13 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
                     </div>
                 </div>
 
-                <!-- PhilGEPS + Mode -->
+                <!-- SLSU + Mode -->
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
                     <div class="form-group-custom">
-                        <label>PhilGEPS Reference No.</label>
+                        <label>SLSU Reference No.</label>
                         <div class="form-input-wrap">
                             <i class="bi bi-hash"></i>
-                            <input type="text" name="philgeps_ref_no" value="<?= htmlspecialchars($procurement['philgeps_ref_no'] ?? '') ?>" placeholder="e.g. 10928374">
+                            <input type="text" name="slsu_ref_no" value="<?= htmlspecialchars($procurement['slsu_ref_no'] ?? '') ?>" placeholder="e.g. 10928374">
                         </div>
                     </div>
                     <div class="form-group-custom">
@@ -1678,7 +1678,7 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
         navigator.clipboard.writeText(text).then(() => {
             const toast = document.createElement('div');
             toast.className = 'toast-alert success';
-            toast.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#2ecc71;"></i> PhilGEPS Reference No. copied to clipboard!';
+            toast.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#2ecc71;"></i> SLSU Reference No. copied to clipboard!';
             document.body.appendChild(toast);
             setTimeout(() => {
                 toast.style.opacity = '0';

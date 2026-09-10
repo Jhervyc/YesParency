@@ -1,9 +1,8 @@
 <?php
 /**
  * Notice of Award Email Template
- * Sent strictly to the winning bidder of the awarded lot.
  */
-$recipient_name    = $recipient_name ?? 'Winning Bidder';
+$recipient_name    = $recipient_name ?? 'Bidder';
 $business_name     = $business_name ?? '';
 $procurement_title = $procurement_title ?? 'Procurement Project';
 $philgeps_ref_no   = $philgeps_ref_no ?? 'N/A';
@@ -13,32 +12,32 @@ $awarded_amount    = is_numeric($awarded_amount ?? null) ? number_format((float)
 $award_date        = $award_date ?? date('F j, Y');
 $login_url         = $login_url ?? ($app_url . '/login.php');
 ?>
-<h2 class="email-title">Notice of Award</h2>
+<h2 class="email-title">You've Been Awarded a Contract</h2>
 
-<p>Dear <strong><?= htmlspecialchars($recipient_name) ?></strong>,</p>
+<p>Hi <strong><?= htmlspecialchars($recipient_name) ?></strong>,</p>
 
-<p>We are pleased to notify you that following the evaluation and post-qualification conducted by the Bids and Awards Committee (BAC), the contract for the project below has been <span class="badge badge-success">Awarded</span> to <strong><?= htmlspecialchars($business_name ?: $recipient_name) ?></strong>.</p>
+<p>Congratulations! <strong><?= htmlspecialchars($business_name ?: $recipient_name) ?></strong> has been selected as the winning bidder for the procurement project below.</p>
 
 <div class="info-card">
     <div class="info-row">
-        <span class="info-label">Award Status</span>
+        <span class="info-label">Status</span>
         <span class="info-value"><span class="badge badge-success">Awarded</span></span>
     </div>
     <div class="info-row">
-        <span class="info-label">Procurement Title</span>
+        <span class="info-label">Procurement</span>
         <span class="info-value"><?= htmlspecialchars($procurement_title) ?></span>
     </div>
     <div class="info-row">
-        <span class="info-label">PhilGEPS Ref. No.</span>
+        <span class="info-label">Ref. No.</span>
         <span class="info-value"><?= htmlspecialchars($philgeps_ref_no) ?></span>
     </div>
     <div class="info-row">
         <span class="info-label">Awarded Lot</span>
-        <span class="info-value">Lot #<?= htmlspecialchars((string)$lot_number) ?>: <?= htmlspecialchars($lot_title) ?></span>
+        <span class="info-value">Lot #<?= (int)$lot_number ?>: <?= htmlspecialchars($lot_title) ?></span>
     </div>
     <div class="info-row">
         <span class="info-label">Contract Amount</span>
-        <span class="info-value" style="color: #047857; font-size: 15px;">₱<?= htmlspecialchars($awarded_amount) ?></span>
+        <span class="info-value" style="color:#166534; font-weight:700;">&#8369;<?= htmlspecialchars($awarded_amount) ?></span>
     </div>
     <div class="info-row">
         <span class="info-label">Award Date</span>
@@ -46,12 +45,7 @@ $login_url         = $login_url ?? ($app_url . '/login.php');
     </div>
 </div>
 
-<p><strong>Next Steps:</strong></p>
-<ol style="padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-    <li>Please log in to your YesParency bidder portal to review the formal Notice of Award documents.</li>
-    <li>Within ten (10) calendar days from receipt of this notice, submit the required Performance Security in the form and amount prescribed under R.A. 9184.</li>
-    <li>Coordinate with the BAC Secretariat for contract signing and issuance of the Notice to Proceed.</li>
-</ol>
+<p>Log in to the portal to view the full award details and coordinate with the Secretariat for the next steps.</p>
 
 <div class="btn-wrapper">
     <a href="<?= htmlspecialchars($login_url) ?>" class="btn">View Award in Portal</a>

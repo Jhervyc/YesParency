@@ -7,7 +7,7 @@
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_procurement'])) {
 
         // 1. Sanitize and retrieve inputs
-        $ref_no = isset($_POST['philgeps_ref_no']) ? trim($_POST['philgeps_ref_no']) : '';
+        $ref_no = isset($_POST['slsu_ref_no']) ? trim($_POST['slsu_ref_no']) : '';
         $title = isset($_POST['title']) ? trim($_POST['title']) : '';
         $description = isset($_POST['description']) ? trim($_POST['description']) : '';
         $abc = isset($_POST['abc']) ? floatval($_POST['abc']) : 0.00;
@@ -22,7 +22,7 @@
 
         // Validation
         if (empty($ref_no)) {
-            $errors[] = "PhilGEPS Reference Number / Project Ref is required.";
+            $errors[] = "SLSU Reference is required.";
         }
         if (empty($title)) {
             $errors[] = "Project Title is required.";
@@ -59,15 +59,15 @@
             }
         }
 
-        // 2. Check for duplicate PhilGEPS Ref No
+        // 2. Check for duplicate SLSU Ref No
         if (!empty($ref_no)) {
-            $check_stmt = $conn->prepare("SELECT id FROM procurements WHERE philgeps_ref_no = ? LIMIT 1");
+            $check_stmt = $conn->prepare("SELECT id FROM procurements WHERE slsu_ref_no = ? LIMIT 1");
             $check_stmt->bind_param("s", $ref_no);
             $check_stmt->execute();
             $check_stmt->store_result();
 
             if ($check_stmt->num_rows > 0) {
-                $errors[] = "PhilGEPS Reference Number '" . htmlspecialchars($ref_no) . "' is already in use.";
+                $errors[] = "SLSU Reference Number '" . htmlspecialchars($ref_no) . "' is already in use.";
             }
             $check_stmt->close();
         }
@@ -77,7 +77,7 @@
             $stmt = $conn->prepare("
                 INSERT INTO procurements
                 (
-                    philgeps_ref_no,
+                    slsu_ref_no,
                     title,
                     description,
                     abc,
@@ -153,7 +153,7 @@
                     null,
                     [
                         'title' => $title,
-                        'philgeps_ref_no' => $ref_no,
+                        'slsu_ref_no' => $ref_no,
                         'abc' => $abc,
                         'procurement_mode' => $mode,
                         'posting_date' => $posting_date,
@@ -1037,21 +1037,21 @@
                     <div class="step-card-body">
                         <div class="form-grid-2col">
 
-                            <!-- PhilGEPS Ref No -->
+                            <!-- SLSU Ref No -->
                             <div class="field-group">
-                                <label class="field-label" for="philgeps_ref_no">
-                                    PhilGEPS / Project Reference No. <span class="req">*</span>
+                                <label class="field-label" for="slsu_ref_no">
+                                    SLSU / Project Reference No. <span class="req">*</span>
                                 </label>
                                 <div class="input-icon-box">
                                     <input type="text" 
-                                           id="philgeps_ref_no" 
-                                           name="philgeps_ref_no"
+                                           id="slsu_ref_no" 
+                                           name="slsu_ref_no"
                                            placeholder="e.g. SLSU-BAC-2026-001" 
-                                           value="<?= htmlspecialchars($_POST['philgeps_ref_no'] ?? '') ?>" 
+                                           value="<?= htmlspecialchars($_POST['slsu_ref_no'] ?? '') ?>" 
                                            required>
                                     <i class="bi bi-hash input-icon"></i>
                                 </div>
-                                <span class="field-hint">Official reference identifier registered in PhilGEPS</span>
+                                <span class="field-hint">Official reference identifier registered in SLSU</span>
                             </div>
 
                             <!-- Procurement Mode -->
@@ -1157,7 +1157,7 @@
                                            required>
                                     <i class="bi bi-calendar-event input-icon"></i>
                                 </div>
-                                <span class="field-hint">PhilGEPS publication date</span>
+                                <span class="field-hint">SLSU publication date</span>
                             </div>
 
                             <!-- Bid Submission Deadline (Closing Date) -->
@@ -1279,7 +1279,7 @@
                         <div class="checklist-group">
                             <div class="check-item" id="chk_ref">
                                 <div class="check-dot"><i class="bi bi-check-lg"></i></div>
-                                <span>Step 1: PhilGEPS Ref No.</span>
+                                <span>Step 1: SLSU Ref No.</span>
                             </div>
                             <div class="check-item" id="chk_mode">
                                 <div class="check-dot"><i class="bi bi-check-lg"></i></div>
@@ -1519,7 +1519,7 @@
 
     // ── Live Progress & Checklist Calculation ──
     function updateProgress() {
-        const refInput   = document.getElementById('philgeps_ref_no');
+        const refInput   = document.getElementById('slsu_ref_no');
         const modeInput  = document.getElementById('procurement_mode');
         const titleInput = document.getElementById('title');
         const abcInput   = document.getElementById('abc');

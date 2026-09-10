@@ -28,7 +28,7 @@ $live_session = null;
 if (isset($conn) && $conn instanceof mysqli) {
     $ls = $conn->query("
         SELECT bos.id AS session_id, bos.status AS session_status, bos.stream_path,
-               p.title AS proc_title, p.philgeps_ref_no, p.abc
+               p.title AS proc_title, p.slsu_ref_no, p.abc
         FROM bid_opening_sessions bos
         JOIN procurements p ON bos.procurement_id = p.id
         WHERE bos.status IN ('started', 'eligibility','financial','awarding')
@@ -54,7 +54,7 @@ if (isset($conn) && $conn instanceof mysqli) {
     }
     if ($search !== '') {
         $like = '%' . $search . '%';
-        $where[] = "(p.title LIKE ? OR p.philgeps_ref_no LIKE ?)";
+        $where[] = "(p.title LIKE ? OR p.slsu_ref_no LIKE ?)";
         $params[] = $like; $params[] = $like; $types .= 'ss';
     }
     $wsql = 'WHERE ' . implode(' AND ', $where);
@@ -81,7 +81,7 @@ if (isset($conn) && $conn instanceof mysqli) {
     $lp = array_merge($params, [$per_page, $offset]);
     $lt = $types . 'ii';
     $stmt = $conn->prepare("
-        SELECT p.id, p.title, p.philgeps_ref_no, p.procurement_mode,
+        SELECT p.id, p.title, p.slsu_ref_no, p.procurement_mode,
                p.abc, p.status, p.posting_date, p.closing_date, p.opening_date,
                (SELECT COUNT(*) FROM lots WHERE lots.procurement_id = p.id) AS lots_count
         FROM procurements p
@@ -291,7 +291,7 @@ body.sched-page {
                 <div class="live-banner-label"><i class="bi bi-broadcast"></i> &nbsp;Live Now — Bid Opening in Progress</div>
                 <div class="live-banner-title"><?= htmlspecialchars(mb_strimwidth($live_session['proc_title'], 0, 70, '…')) ?></div>
                 <div class="live-banner-ref">
-                    <i class="bi bi-hash"></i> <?= htmlspecialchars($live_session['philgeps_ref_no']) ?>
+                    <i class="bi bi-hash"></i> <?= htmlspecialchars($live_session['slsu_ref_no']) ?>
                     &nbsp;·&nbsp; <?= ucfirst($live_session['session_status']) ?> Phase
                     &nbsp;·&nbsp; ₱<?= number_format((float)$live_session['abc'], 2) ?>
                 </div>
@@ -311,7 +311,7 @@ body.sched-page {
         <input type="hidden" name="sort"   id="hiddenSort"   value="<?= htmlspecialchars($sort) ?>">
         <div class="filter-search">
             <i class="bi bi-search"></i>
-            <input type="text" name="search" placeholder="Search by title or PhilGEPS ref…" value="<?= htmlspecialchars($search) ?>">
+            <input type="text" name="search" placeholder="Search by title or SLSU ref…" value="<?= htmlspecialchars($search) ?>">
         </div>
 
         <!-- Status -->
@@ -365,7 +365,7 @@ body.sched-page {
             <table class="proc-table">
                 <thead>
                     <tr>
-                        <th style="width:130px;">PhilGEPS Ref</th>
+                        <th style="width:130px;">SLSU Ref</th>
                         <th>Project Title</th>
                         <th>Mode</th>
                         <th>ABC</th>
@@ -392,7 +392,7 @@ body.sched-page {
                     };
                 ?>
                 <tr>
-                    <td class="col-ref"><i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i> <?= htmlspecialchars($p['philgeps_ref_no'] ?: '—') ?></td>
+                    <td class="col-ref"><i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i> <?= htmlspecialchars($p['slsu_ref_no'] ?: '—') ?></td>
                     <td class="col-title">
                         <a href="bid_view.php?id=<?= (int)$p['id'] ?>"><?= htmlspecialchars(mb_strimwidth($p['title'], 0, 65, '…')) ?></a>
                         <?php if ((int)$p['lots_count'] > 0): ?>

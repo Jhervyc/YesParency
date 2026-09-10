@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_procurement'])
     $procurement_id = isset($_POST['procurement_id']) ? intval($_POST['procurement_id']) : 0;
     if ($procurement_id > 0) {
         // Fetch snapshot before deletion
-        $snap = $conn->prepare("SELECT title, philgeps_ref_no, status, abc, procurement_mode FROM procurements WHERE id = ?");
+        $snap = $conn->prepare("SELECT title, slsu_ref_no, status, abc, procurement_mode FROM procurements WHERE id = ?");
         $snap->bind_param("i", $procurement_id);
         $snap->execute();
         $old_data = $snap->get_result()->fetch_assoc();
@@ -86,22 +86,22 @@ if (!$grad) $grad = '#e5eae4 0% 100%';
 if ($search !== '') {
     $like = '%' . $search . '%';
     if ($status_filter !== 'all') {
-        $count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements WHERE LOWER(status) = ? AND (title LIKE ? OR philgeps_ref_no LIKE ?)");
+        $count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements WHERE LOWER(status) = ? AND (title LIKE ? OR slsu_ref_no LIKE ?)");
         mysqli_stmt_bind_param($count_stmt, "sss", $status_filter, $like, $like);
         mysqli_stmt_execute($count_stmt);
         $total_shown = (int)mysqli_fetch_row(mysqli_stmt_get_result($count_stmt))[0];
         mysqli_stmt_close($count_stmt);
 
-        $stmt = mysqli_prepare($conn, "SELECT id, title, philgeps_ref_no, abc, procurement_mode, status FROM procurements WHERE LOWER(status) = ? AND (title LIKE ? OR philgeps_ref_no LIKE ?) ORDER BY id DESC LIMIT ? OFFSET ?");
+        $stmt = mysqli_prepare($conn, "SELECT id, title, slsu_ref_no, abc, procurement_mode, status FROM procurements WHERE LOWER(status) = ? AND (title LIKE ? OR slsu_ref_no LIKE ?) ORDER BY id DESC LIMIT ? OFFSET ?");
         mysqli_stmt_bind_param($stmt, "sssii", $status_filter, $like, $like, $per_page, $offset);
     } else {
-        $count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements WHERE title LIKE ? OR philgeps_ref_no LIKE ?");
+        $count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements WHERE title LIKE ? OR slsu_ref_no LIKE ?");
         mysqli_stmt_bind_param($count_stmt, "ss", $like, $like);
         mysqli_stmt_execute($count_stmt);
         $total_shown = (int)mysqli_fetch_row(mysqli_stmt_get_result($count_stmt))[0];
         mysqli_stmt_close($count_stmt);
 
-        $stmt = mysqli_prepare($conn, "SELECT id, title, philgeps_ref_no, abc, procurement_mode, status FROM procurements WHERE title LIKE ? OR philgeps_ref_no LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?");
+        $stmt = mysqli_prepare($conn, "SELECT id, title, slsu_ref_no, abc, procurement_mode, status FROM procurements WHERE title LIKE ? OR slsu_ref_no LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?");
         mysqli_stmt_bind_param($stmt, "ssii", $like, $like, $per_page, $offset);
     }
 } else {
@@ -112,7 +112,7 @@ if ($search !== '') {
         $total_shown = (int)mysqli_fetch_row(mysqli_stmt_get_result($count_stmt))[0];
         mysqli_stmt_close($count_stmt);
 
-        $stmt = mysqli_prepare($conn, "SELECT id, title, philgeps_ref_no, abc, procurement_mode, status FROM procurements WHERE LOWER(status) = ? ORDER BY id DESC LIMIT ? OFFSET ?");
+        $stmt = mysqli_prepare($conn, "SELECT id, title, slsu_ref_no, abc, procurement_mode, status FROM procurements WHERE LOWER(status) = ? ORDER BY id DESC LIMIT ? OFFSET ?");
         mysqli_stmt_bind_param($stmt, "sii", $status_filter, $per_page, $offset);
     } else {
         $count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements");
@@ -120,7 +120,7 @@ if ($search !== '') {
         $total_shown = (int)mysqli_fetch_row(mysqli_stmt_get_result($count_stmt))[0];
         mysqli_stmt_close($count_stmt);
 
-        $stmt = mysqli_prepare($conn, "SELECT id, title, philgeps_ref_no, abc, procurement_mode, status FROM procurements ORDER BY id DESC LIMIT ? OFFSET ?");
+        $stmt = mysqli_prepare($conn, "SELECT id, title, slsu_ref_no, abc, procurement_mode, status FROM procurements ORDER BY id DESC LIMIT ? OFFSET ?");
         mysqli_stmt_bind_param($stmt, "ii", $per_page, $offset);
     }
 }
@@ -216,7 +216,7 @@ $result = mysqli_stmt_get_result($stmt);
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
                     <input type="text" name="search"
-                        placeholder="Search by title or PhilGEPS ref..."
+                        placeholder="Search by title or SLSU ref..."
                         value="<?= htmlspecialchars($search) ?>">
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -241,7 +241,7 @@ $result = mysqli_stmt_get_result($stmt);
             <table class="proc-table">
                 <thead>
                     <tr>
-                        <th style="width:130px;">PhilGEPS Ref</th>
+                        <th style="width:130px;">SLSU Ref</th>
                         <th>Title</th>
                         <th class="col-mode">Mode</th>
                         <th class="col-abc">ABC</th>
@@ -257,7 +257,7 @@ $result = mysqli_stmt_get_result($stmt);
                 <tr>
                     <td class="proc-ref-cell">
                         <i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i>
-                        <?= htmlspecialchars($row['philgeps_ref_no'] ?? '—') ?>
+                        <?= htmlspecialchars($row['slsu_ref_no'] ?? '—') ?>
                     </td>
                     <td class="proc-title-cell">
                         <?php if ($cs !== 'draft'): ?>

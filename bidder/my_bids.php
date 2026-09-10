@@ -13,7 +13,7 @@ $sql = "
         b.status AS bid_status,
         p.id AS procurement_id,
         p.title AS procurement_title,
-        p.philgeps_ref_no,
+        p.slsu_ref_no,
         p.abc AS procurement_abc,
         p.procurement_mode,
         p.closing_date,
@@ -754,7 +754,7 @@ include("components/topbar.php");
             <div class="ap2-search-field">
                 <i class="bi bi-search"></i>
                 <input type="text" id="bidSearchInput"
-                    placeholder="Search by proposal title or PhilGEPS reference..."
+                    placeholder="Search by proposal title or SLSU reference..."
                     oninput="handleSearch()"
                     onkeydown="if(event.key==='Enter'){event.preventDefault(); handleSearch();}">
             </div>
@@ -806,7 +806,7 @@ include("components/topbar.php");
                         'icon'     => 'bi-circle'
                     ];
                     $title_text = $bid['procurement_title'];
-                    $ref_text   = $bid['philgeps_ref_no'] ?? 'N/A';
+                    $ref_text   = $bid['slsu_ref_no'] ?? 'N/A';
                     $total_abc  = (float)$bid['total_bid_abc'];
                     $date_time  = strtotime($bid['submission_date']);
                 ?>

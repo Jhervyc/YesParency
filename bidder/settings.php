@@ -293,7 +293,7 @@ $query = "
         u.profile_picture_url,
         u.created_at AS registered_at,
         bp.business_name,
-        bp.philgeps_number,
+        bp.slsu_number,
         bp.tin_number,
         bp.business_type,
         bp.year_established,
@@ -320,7 +320,7 @@ $avatar_url     = !empty($data['profile_picture_url']) ? '../' . ltrim($data['pr
 $member_since   = !empty($data['registered_at']) ? date('F j, Y', strtotime($data['registered_at'])) : 'N/A';
 
 $business_name   = $data['business_name'] ?? 'Not Specified';
-$philgeps_number = $data['philgeps_number'] ?? 'Not Specified';
+$slsu_number = $data['slsu_number'] ?? 'Not Specified';
 $tin_number      = $data['tin_number'] ?? 'Not Specified';
 $business_type   = $data['business_type'] ?? 'Not Specified';
 $year_est        = $data['year_established'] ?? 'Not Specified';
@@ -1307,7 +1307,7 @@ include("components/topbar.php");
                         <div class="readonly-field-group">
                             <span class="readonly-label"><i class="bi bi-hash"></i> PhilGEPS Certificate #</span>
                             <div class="readonly-value-box">
-                                <span style="font-family:'Space Grotesk',sans-serif; font-weight:700; color:#1f7a3d;"><?= htmlspecialchars($philgeps_number) ?></span>
+                                <span style="font-family:'Space Grotesk',sans-serif; font-weight:700; color:#1f7a3d;"><?= htmlspecialchars($slsu_number) ?></span>
                                 <i class="bi bi-lock-fill lock-icon"></i>
                             </div>
                         </div>

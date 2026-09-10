@@ -1461,8 +1461,8 @@ include("components/topbar.php");
     <div class="vp-hero-card">
         <div class="vp-hero-top">
             <div class="vp-hero-badges">
-                <span class="hero-pill ref" onclick="copyRefNo('<?= htmlspecialchars($procurement['philgeps_ref_no'] ?? '') ?>')" title="Click to copy reference number">
-                    <i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($procurement['philgeps_ref_no'] ?? 'N/A') ?>
+                <span class="hero-pill ref" onclick="copyRefNo('<?= htmlspecialchars($procurement['slsu_ref_no'] ?? '') ?>')" title="Click to copy reference number">
+                    <i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($procurement['slsu_ref_no'] ?? 'N/A') ?>
                     <i class="bi bi-copy" style="font-size:10px; opacity:0.7;"></i>
                 </span>
                 <span class="hero-pill mode">

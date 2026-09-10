@@ -2,21 +2,21 @@
 /**
  * Secretariat Notification: Bidder Document Re-uploaded Template
  */
-$recipient_name = $recipient_name ?? 'BAC Secretariat';
-$bidder_name    = $bidder_name ?? 'Bidder';
-$business_name  = $business_name ?? '';
+$recipient_name = $recipient_name ?? 'Secretariat';
+$bidder_name    = $bidder_name    ?? 'Bidder';
+$business_name  = $business_name  ?? '';
 $document_label = $document_label ?? 'Document';
-$review_url     = $review_url ?? ($app_url . '/admin/bidder-profile.php');
+$review_url     = $review_url     ?? ($app_url . '/admin/bidder-profile.php');
 ?>
-<h2 class="email-title">Bidder Document Re-uploaded for Review</h2>
+<h2 class="email-title">Document Re-uploaded — Review Needed</h2>
 
-<p>Dear <strong><?= htmlspecialchars($recipient_name) ?></strong>,</p>
+<p>Hi <strong><?= htmlspecialchars($recipient_name) ?></strong>,</p>
 
-<p>An accredited bidder has re-uploaded a legal eligibility document and is awaiting Secretariat review and expiration date validation:</p>
+<p>A bidder has uploaded a new document and is waiting for your review.</p>
 
 <div class="info-card">
     <div class="info-row">
-        <span class="info-label">Bidder Enterprise</span>
+        <span class="info-label">Bidder</span>
         <span class="info-value"><strong><?= htmlspecialchars($business_name ?: $bidder_name) ?></strong></span>
     </div>
     <div class="info-row">
@@ -24,8 +24,8 @@ $review_url     = $review_url ?? ($app_url . '/admin/bidder-profile.php');
         <span class="info-value"><?= htmlspecialchars($bidder_name) ?></span>
     </div>
     <div class="info-row">
-        <span class="info-label">Re-uploaded Document</span>
-        <span class="info-value"><span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 700;"><?= htmlspecialchars($document_label) ?></span></span>
+        <span class="info-label">Document</span>
+        <span class="info-value"><span class="badge badge-info"><?= htmlspecialchars($document_label) ?></span></span>
     </div>
     <div class="info-row">
         <span class="info-label">Status</span>
@@ -33,12 +33,8 @@ $review_url     = $review_url ?? ($app_url . '/admin/bidder-profile.php');
     </div>
 </div>
 
-<p>Please review the uploaded file on the dedicated Bidder Profile page, verify its authenticity, and set or update its official expiration date:</p>
+<p>Open the bidder profile to verify the document and set its expiration date. This will restore the bidder's access if it was previously locked.</p>
 
 <div class="btn-wrapper">
-    <a href="<?= htmlspecialchars($review_url) ?>" class="btn">Open Bidder Profile &amp; Review</a>
+    <a href="<?= htmlspecialchars($review_url) ?>" class="btn">Review Document</a>
 </div>
-
-<p style="font-size: 13px; color: #64748b; margin-top: 24px;">
-    Setting the expiration date unlocks bidding eligibility if the previous document was expired.
-</p>

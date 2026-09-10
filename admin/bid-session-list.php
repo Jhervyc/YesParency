@@ -38,7 +38,7 @@ if ($filter === 'live') {
 
 if ($search !== '') {
     $like = '%' . $search . '%';
-    $where_parts[] = "(p.title LIKE ? OR p.philgeps_ref_no LIKE ?)";
+    $where_parts[] = "(p.title LIKE ? OR p.slsu_ref_no LIKE ?)";
     $params[] = $like; $params[] = $like; $types .= 'ss';
 }
 
@@ -59,7 +59,7 @@ $list_types  = $types . 'ii';
 $list = $conn->prepare("
     SELECT bos.id AS session_id, bos.status AS session_status,
            bos.stream_path, bos.started_at, bos.ended_at, bos.created_at,
-           p.id AS proc_id, p.title AS proc_title, p.philgeps_ref_no,
+           p.id AS proc_id, p.title AS proc_title, p.slsu_ref_no,
            p.procurement_mode, p.abc,
            (SELECT COUNT(*) FROM bids b WHERE b.procurement_id = p.id) AS bid_count,
            (SELECT COUNT(*) FROM bid_session_invited bsi WHERE bsi.bid_session_id = bos.id) AS invited_count
@@ -317,7 +317,7 @@ $sessions = $list->get_result();
             <table class="proc-table">
                 <thead>
                     <tr>
-                        <th style="width:130px;">PhilGEPS Ref</th>
+                        <th style="width:130px;">SLSU Ref</th>
                         <th>Procurement</th>
                         <th>Mode</th>
                         <th>ABC</th>
@@ -349,7 +349,7 @@ $sessions = $list->get_result();
                 <tr>
                     <td class="proc-ref-cell">
                         <i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i>
-                        <?= htmlspecialchars($row['philgeps_ref_no']) ?>
+                        <?= htmlspecialchars($row['slsu_ref_no']) ?>
                     </td>
                     <td class="proc-title-cell">
                         <a href="view_procurement.php?id=<?= $row['proc_id'] ?>">
@@ -391,7 +391,7 @@ $sessions = $list->get_result();
                                 <input type="hidden" name="session_id" value="<?= $row['session_id'] ?>">
                                 <input type="hidden" name="open_now" value="1">
                                 <button type="button" class="proc-action-btn btn-schedule"
-                                    onclick="openNowModal(<?= $row['session_id'] ?>, '<?= addslashes(htmlspecialchars($row['proc_title'])) ?>', '<?= addslashes(htmlspecialchars($row['philgeps_ref_no'])) ?>', '<?= addslashes(htmlspecialchars($row['stream_path'])) ?>', '<?= addslashes(mediamtx_url($row['stream_path'])) ?>')">
+                                    onclick="openNowModal(<?= $row['session_id'] ?>, '<?= addslashes(htmlspecialchars($row['proc_title'])) ?>', '<?= addslashes(htmlspecialchars($row['slsu_ref_no'])) ?>', '<?= addslashes(htmlspecialchars($row['stream_path'])) ?>', '<?= addslashes(mediamtx_url($row['stream_path'])) ?>')">
                                     <i class="bi bi-play-fill"></i> Open Now
                                 </button>
                             </form>

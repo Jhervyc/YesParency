@@ -141,11 +141,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$token_error && $invitation) {
             $new_user_id = $conn->insert_id;
             $ins->close();
 
-            // Mark invitation as accepted
-            $upd = $conn->prepare("UPDATE user_invitations SET status = 'accepted' WHERE token = ?");
+            // Delete the used token — one-time use, no stale rows
+            $upd = $conn->prepare("DELETE FROM user_invitations WHERE token = ?");
             $upd->bind_param("s", $post_token);
             $upd->execute();
             $upd->close();
+
+            // Delete the invitation request — no longer needed, audit trail covers it
+            $delReq = $conn->prepare("DELETE FROM invitation_requests WHERE email = ? AND status = 'approved'");
+            $delReq->bind_param("s", $invitation['email']);
+            $delReq->execute();
+            $delReq->close();
 
             $conn->commit();
         } catch (Exception $e) {

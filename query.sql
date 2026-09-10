@@ -104,7 +104,7 @@ CREATE TABLE procurements (
 -- AFTER procurement_mode;
 
 -- ALTER TABLE procurements
--- CHANGE COLUMN philgeps_ref_no procurement_ref_no VARCHAR(255) NOT NULL;
+-- CHANGE COLUMN philgeps_ref_no slsu_ref_no VARCHAR(255) NOT NULL;
 
 -- =================== lots table =======================
 CREATE TABLE lots (
@@ -653,9 +653,8 @@ CREATE TABLE email_queue (
     INDEX idx_recipient (recipient_email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- =================== Invitation tables (run these if tables don't exist yet) =======================
+-- =================== user invitation table  =======================
 
--- user_invitations: stores one-time tokens sent to approved applicants
 CREATE TABLE IF NOT EXISTS `user_invitations` (
     `id`         INT AUTO_INCREMENT PRIMARY KEY,
     `email`      VARCHAR(255) NOT NULL,
@@ -669,7 +668,7 @@ CREATE TABLE IF NOT EXISTS `user_invitations` (
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- invitation_requests: stores portal access requests submitted via register.php
+-- =================== Invitation request table =======================
 CREATE TABLE IF NOT EXISTS `invitation_requests` (
     `id`               INT AUTO_INCREMENT PRIMARY KEY,
     `company_name`     VARCHAR(255) NOT NULL,
@@ -688,3 +687,15 @@ CREATE TABLE IF NOT EXISTS `invitation_requests` (
     INDEX idx_status (status),
     INDEX idx_email  (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =================== password resets table =======================
+CREATE TABLE IF NOT EXISTS password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    token_hash VARCHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used TINYINT(1) DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_email (email),
+    INDEX idx_token_hash (token_hash)
+);

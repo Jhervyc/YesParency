@@ -37,7 +37,7 @@ $upcoming_count  = ($upcoming_res && $row = $upcoming_res->fetch_row()) ? (int)$
 $open_procs_result = $conn->query("
     SELECT 
         p.id,
-        p.philgeps_ref_no,
+        p.SLSU_ref_no,
         p.title,
         p.abc,
         p.procurement_mode,
@@ -712,7 +712,7 @@ include("components/topbar.php");
                             <div class="opp-main">
                                 <div class="opp-title"><?= htmlspecialchars($p['title']) ?></div>
                                 <div class="opp-meta">
-                                    <span><i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($p['philgeps_ref_no'] ?: 'SLSU-BAC') ?></span>
+                                    <span><i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($p['SLSU_ref_no'] ?: 'SLSU-BAC') ?></span>
                                     <span><i class="bi bi-briefcase"></i> <?= htmlspecialchars($p['procurement_mode'] ?: 'Public Bidding') ?></span>
                                     <?php if ($p['closing_date']): ?>
                                         <span><i class="bi bi-calendar-x"></i> Closes: <?= date('M j, Y', strtotime($p['closing_date'])) ?></span>

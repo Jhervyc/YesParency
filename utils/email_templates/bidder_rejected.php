@@ -7,18 +7,16 @@ $business_name  = $business_name ?? '';
 $reason         = $reason ?? null;
 $login_url      = $login_url ?? ($app_url . '/login.php');
 ?>
-<h2 class="email-title">Notice Regarding Your Bidder Application</h2>
+<h2 class="email-title">Update on Your Bidder Application</h2>
 
-<p>Dear <strong><?= htmlspecialchars($recipient_name) ?></strong>,</p>
+<p>Hi <strong><?= htmlspecialchars($recipient_name) ?></strong>,</p>
 
-<p>Thank you for submitting your bidder accreditation application for <strong><?= htmlspecialchars($business_name ?: $recipient_name) ?></strong> to YesParency.</p>
-
-<p>After careful evaluation by the Bids and Awards Committee (BAC) Secretariat, we regret to inform you that your application has been <span class="badge badge-danger">Rejected</span>.</p>
+<p>Your bidder accreditation application for <strong><?= htmlspecialchars($business_name ?: $recipient_name) ?></strong> has been reviewed. Unfortunately, it wasn't approved this time.</p>
 
 <div class="info-card">
     <div class="info-row">
         <span class="info-label">Application Status</span>
-        <span class="info-value"><span class="badge badge-danger">Rejected</span></span>
+        <span class="info-value"><span class="badge badge-danger">Not Approved</span></span>
     </div>
     <?php if (!empty($business_name)): ?>
     <div class="info-row">
@@ -28,14 +26,14 @@ $login_url      = $login_url ?? ($app_url . '/login.php');
     <?php endif; ?>
     <?php if (!empty($reason)): ?>
     <div class="info-row">
-        <span class="info-label">Remarks / Reason</span>
-        <span class="info-value" style="color: #b91c1c;"><?= htmlspecialchars($reason) ?></span>
+        <span class="info-label">Reason</span>
+        <span class="info-value" style="color:#b91c1c;"><?= htmlspecialchars($reason) ?></span>
     </div>
     <?php endif; ?>
 </div>
 
-<p>If you believe this decision was made in error or if you need to provide updated eligibility documents, please sign in to review your profile or get in touch with the Secretariat.</p>
+<p>If you think there's been a mistake or you'd like to update your documents, you can log in to review your profile or reach out to the Secretariat through the portal.</p>
 
 <div class="btn-wrapper">
-    <a href="<?= htmlspecialchars($login_url) ?>" class="btn">Sign In to Review Account</a>
+    <a href="<?= htmlspecialchars($login_url) ?>" class="btn">Go to Portal</a>
 </div>

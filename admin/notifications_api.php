@@ -39,13 +39,14 @@ if ($action === 'fetch') {
         LEFT JOIN user_notification_reads unr 
             ON sn.notification_id = unr.notification_id 
             AND unr.user_id = ?
-        WHERE sn.target_type = 'all'
+        WHERE (sn.target_type = 'all'
            OR (sn.target_type = 'role' AND sn.target_role = ?)
-           OR (sn.target_type = 'user' AND sn.target_user_id = ?)
+           OR (sn.target_type = 'user' AND sn.target_user_id = ?))
+          AND sn.created_at >= (SELECT created_at FROM users WHERE user_id = ?)
         ORDER BY sn.created_at DESC
         LIMIT 30
     ");
-    $stmt->bind_param("isi", $current_user_id, $current_role, $current_user_id);
+    $stmt->bind_param("isii", $current_user_id, $current_role, $current_user_id, $current_user_id);
     $stmt->execute();
     $res = $stmt->get_result();
     
@@ -101,9 +102,10 @@ if ($action === 'mark_read') {
         WHERE (sn.target_type = 'all'
            OR (sn.target_type = 'role' AND sn.target_role = ?)
            OR (sn.target_type = 'user' AND sn.target_user_id = ?))
+          AND sn.created_at >= (SELECT created_at FROM users WHERE user_id = ?)
           AND unr.read_at IS NULL
     ");
-    $stmt->bind_param("isi", $current_user_id, $current_role, $current_user_id);
+    $stmt->bind_param("isii", $current_user_id, $current_role, $current_user_id, $current_user_id);
     $stmt->execute();
     $unread_count = (int)$stmt->get_result()->fetch_row()[0];
     $stmt->close();
@@ -123,9 +125,10 @@ if ($action === 'mark_all_read') {
         WHERE (sn.target_type = 'all'
            OR (sn.target_type = 'role' AND sn.target_role = ?)
            OR (sn.target_type = 'user' AND sn.target_user_id = ?))
+          AND sn.created_at >= (SELECT created_at FROM users WHERE user_id = ?)
           AND unr.read_at IS NULL
     ");
-    $stmt->bind_param("iisi", $current_user_id, $current_user_id, $current_role, $current_user_id);
+    $stmt->bind_param("iisii", $current_user_id, $current_user_id, $current_role, $current_user_id, $current_user_id);
     $stmt->execute();
     $stmt->close();
 

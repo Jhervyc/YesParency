@@ -20,7 +20,7 @@ $ss = $conn->prepare("
     SELECT bos.id AS session_id, bos.status AS session_status,
            bos.stream_path, bos.title AS session_title, bos.started_at, bos.ended_at,
            bos.current_lot_id, bos.signing_status,
-           p.id AS proc_id, p.title AS proc_title, p.philgeps_ref_no,
+           p.id AS proc_id, p.title AS proc_title, p.slsu_ref_no,
            p.abc, p.procurement_mode,
            COALESCE(p.procurement_type, 'goods_services') AS procurement_type,
            p.opening_date, p.closing_date
@@ -405,7 +405,7 @@ $inv_res->close();
 <!-- Procurement hero -->
 <div class="proc-hero">
     <div class="proc-badges">
-        <span class="ipill ref"><i class="bi bi-hash"></i><?= htmlspecialchars($session['philgeps_ref_no']) ?></span>
+        <span class="ipill ref"><i class="bi bi-hash"></i><?= htmlspecialchars($session['slsu_ref_no']) ?></span>
         <?php if ($session['procurement_mode']): ?>
         <span class="ipill mode"><i class="bi bi-tag"></i><?= htmlspecialchars($session['procurement_mode']) ?></span>
         <?php endif; ?>

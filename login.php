@@ -228,6 +228,8 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
 
         <div class="login-footer">
             Don't have an account? <a href="register.php">Request Access</a>
+            &nbsp;&bull;&nbsp;
+            <a href="forgot-password.php">Forgot password?</a>
         </div>
 
     </div>

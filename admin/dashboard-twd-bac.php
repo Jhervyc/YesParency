@@ -26,7 +26,7 @@ $awarded_procs = (int)($conn->query("SELECT COUNT(*) FROM procurements WHERE sta
 
 // ── Calendar: procurements with opening/closing dates ───────────────────────
 $cal_result = $conn->query("
-    SELECT id, title, philgeps_ref_no, abc, opening_date, closing_date, status
+    SELECT id, title, slsu_ref_no, abc, opening_date, closing_date, status
     FROM procurements
     WHERE opening_date IS NOT NULL OR closing_date IS NOT NULL
     ORDER BY COALESCE(opening_date, closing_date) ASC
@@ -1211,7 +1211,7 @@ include("components/topbar.php");
             card.innerHTML = `
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
                     ${typeBadge}
-                    <span style="font-size:11px; color:#88968d; font-weight:600;">Ref: ${e.philgeps_ref_no || 'N/A'}</span>
+                    <span style="font-size:11px; color:#88968d; font-weight:600;">Ref: ${e.slsu_ref_no || 'N/A'}</span>
                 </div>
                 <div style="font-weight:700; font-size:13px; color:#1a2a20; margin-bottom:8px; line-height:1.35;">${e.title}</div>
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">

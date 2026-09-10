@@ -8,7 +8,7 @@ $status = isset($_GET['status']) ? trim($_GET['status']) : 'all';
 
 if ($status !== 'all') {
     $stmt = mysqli_prepare($conn, "
-        SELECT id, title, philgeps_ref_no, abc, procurement_mode, status 
+        SELECT id, title, slsu_ref_no, abc, procurement_mode, status 
         FROM procurements 
         WHERE status = ? 
         ORDER BY id DESC
@@ -16,7 +16,7 @@ if ($status !== 'all') {
     mysqli_stmt_bind_param($stmt, "s", $status);
 } else {
     $stmt = mysqli_prepare($conn, "
-        SELECT id, title, philgeps_ref_no, abc, procurement_mode, status 
+        SELECT id, title, slsu_ref_no, abc, procurement_mode, status 
         FROM procurements 
         ORDER BY id DESC
     ");

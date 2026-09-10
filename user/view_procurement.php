@@ -603,7 +603,7 @@ include("components/topbar.php");
             <span>/</span>
             <a href="procurement.php"><i class="bi bi-folder2-open"></i> Procurements</a>
             <span>/</span>
-            <span><?= htmlspecialchars($procurement['philgeps_ref_no'] ?: 'Project Details') ?></span>
+            <span><?= htmlspecialchars($procurement['slsu_ref_no'] ?: 'Project Details') ?></span>
         </div>
         <a href="procurement.php" class="vp-back-link">
             <i class="bi bi-arrow-left"></i> Back to Opportunities
@@ -615,7 +615,7 @@ include("components/topbar.php");
         <div class="vp-hero-top">
             <div class="vp-hero-badges">
                 <span class="hero-pill ref">
-                    <i class="bi bi-hash"></i> PhilGEPS: <?= htmlspecialchars($procurement['philgeps_ref_no'] ?: 'SLSU-BAC') ?>
+                    <i class="bi bi-hash"></i> SLSU: <?= htmlspecialchars($procurement['slsu_ref_no'] ?: 'SLSU-BAC') ?>
                 </span>
                 <span class="hero-pill" style="background:<?= $status_badge_bg ?>; color:<?= $status_badge_fg ?>;">
                     <i class="bi bi-circle-fill" style="font-size:7px;"></i> <?= strtoupper($p_status) ?>
@@ -674,8 +674,8 @@ include("components/topbar.php");
                     
                     <div class="spec-fields-grid">
                         <div class="spec-field-item">
-                            <div class="spec-field-lbl">PhilGEPS Reference No.</div>
-                            <div class="spec-field-val" style="font-weight:700; color:#06251b;"><?= htmlspecialchars($procurement['philgeps_ref_no'] ?: 'N/A') ?></div>
+                            <div class="spec-field-lbl">SLSU Reference No.</div>
+                            <div class="spec-field-val" style="font-weight:700; color:#06251b;"><?= htmlspecialchars($procurement['slsu_ref_no'] ?: 'N/A') ?></div>
                         </div>
                         <div class="spec-field-item">
                             <div class="spec-field-lbl">Procurement Mode</div>

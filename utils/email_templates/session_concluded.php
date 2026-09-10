@@ -1,7 +1,6 @@
 <?php
 /**
- * Bid Session Concluded & Report Available Email Template
- * Sent to invited session users. Securely links to authorized report.
+ * Bid Opening Session Concluded Email Template
  */
 $recipient_name    = $recipient_name ?? 'Committee Member';
 $procurement_title = $procurement_title ?? 'Procurement Project';
@@ -12,39 +11,35 @@ $report_url        = $report_url ?? ($app_url . '/admin/checklist_pdf.php?sessio
 ?>
 <h2 class="email-title">Bid Opening Session Concluded</h2>
 
-<p>Dear <strong><?= htmlspecialchars($recipient_name) ?></strong>,</p>
+<p>Hi <strong><?= htmlspecialchars($recipient_name) ?></strong>,</p>
 
-<p>The formal Bid Opening Session for the procurement project titled <strong>"<?= htmlspecialchars($procurement_title) ?>"</strong> has officially <span class="badge badge-success">Concluded</span>.</p>
+<p>The bid opening session for <strong>"<?= htmlspecialchars($procurement_title) ?>"</strong> has wrapped up. The official checklist report is now ready for review.</p>
 
 <div class="info-card">
     <div class="info-row">
-        <span class="info-label">Session Status</span>
+        <span class="info-label">Status</span>
         <span class="info-value"><span class="badge badge-success">Concluded</span></span>
     </div>
     <div class="info-row">
-        <span class="info-label">Procurement Title</span>
+        <span class="info-label">Procurement</span>
         <span class="info-value"><?= htmlspecialchars($procurement_title) ?></span>
     </div>
     <div class="info-row">
-        <span class="info-label">PhilGEPS Ref. No.</span>
+        <span class="info-label">Ref. No.</span>
         <span class="info-value"><?= htmlspecialchars($philgeps_ref_no) ?></span>
     </div>
     <div class="info-row">
-        <span class="info-label">Conclusion Date</span>
+        <span class="info-label">Date Concluded</span>
         <span class="info-value"><?= htmlspecialchars($concluded_date) ?></span>
     </div>
     <div class="info-row">
-        <span class="info-label">Official Report</span>
-        <span class="info-value">Generated &amp; Available</span>
+        <span class="info-label">Report</span>
+        <span class="info-value"><span class="badge badge-success">Available</span></span>
     </div>
 </div>
 
-<p>The official BAC Bid Opening Checklist Report has been compiled. In accordance with data security and procurement transparency guidelines, the report is accessible securely inside YesParency following authentication.</p>
+<p>Sign in to access and download the official bid opening checklist report.</p>
 
 <div class="btn-wrapper">
-    <a href="<?= htmlspecialchars($report_url) ?>" class="btn">View Bid Opening Report</a>
+    <a href="<?= htmlspecialchars($report_url) ?>" class="btn">View Report</a>
 </div>
-
-<p style="font-size: 13px; color: #64748b; margin-top: 24px;">
-    <strong>Security Notice:</strong> You must be signed in with an authorized account to access the official PDF checklist. Unauthorized access is strictly prohibited under R.A. 9184 and R.A. 10173.
-</p>

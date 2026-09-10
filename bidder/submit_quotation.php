@@ -538,7 +538,7 @@ include("components/topbar.php");
         <div class="vp-hero-top">
             <div class="vp-hero-badges">
                 <span class="hero-pill ref">
-                    <i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($procurement['procurement_ref_no'] ?? $procurement['philgeps_ref_no'] ?? 'N/A') ?>
+                    <i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($procurement['procurement_ref_no'] ?? $procurement['slsu_ref_no'] ?? 'N/A') ?>
                 </span>
                 <span class="hero-pill mode">
                     <i class="bi bi-tag-fill"></i> <?= htmlspecialchars($procurement['procurement_mode'] ?? $mode_label) ?>

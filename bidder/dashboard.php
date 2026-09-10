@@ -18,7 +18,7 @@ $prof_stmt->close();
 
 $bidder_name     = trim(($profile['firstname'] ?? '') . ' ' . ($profile['lastname'] ?? '')) ?: htmlspecialchars($_SESSION['username']);
 $business_name   = $profile['business_name'] ?? 'Registered Bidder';
-$philgeps_number = $profile['philgeps_number'] ?? 'N/A';
+$slsu_number = $profile['slsu_number'] ?? 'N/A';
 $tin_number      = $profile['tin_number'] ?? 'N/A';
 $business_email  = $profile['business_email'] ?? ($profile['user_email'] ?? 'N/A');
 $business_phone  = $profile['business_phone'] ?? 'N/A';
@@ -62,7 +62,7 @@ $upcoming_openings = ($upcoming_open_res && $row = $upcoming_open_res->fetch_row
 
 // ── 5. Calendar Events ───────────────────────────────────────────────────────
 $cal_result = $conn->query("
-    SELECT id, title, philgeps_ref_no, opening_date, closing_date, status
+    SELECT id, title, slsu_ref_no, opening_date, closing_date, status
     FROM procurements
     WHERE status != 'draft' AND (opening_date IS NOT NULL OR closing_date IS NOT NULL)
     ORDER BY COALESCE(opening_date, closing_date) ASC
@@ -76,7 +76,7 @@ if ($cal_result) {
 $open_procs_stmt = $conn->prepare("
     SELECT 
         p.id,
-        p.philgeps_ref_no,
+        p.slsu_ref_no,
         p.title,
         p.abc,
         p.procurement_mode,
@@ -101,7 +101,7 @@ $recent_bids_stmt = $conn->prepare("
         b.status AS bid_status,
         p.id AS proc_id,
         p.title AS proc_title,
-        p.philgeps_ref_no,
+        p.slsu_ref_no,
         p.abc AS proc_abc
     FROM bids b
     JOIN procurements p ON b.procurement_id = p.id
@@ -963,7 +963,7 @@ include("components/topbar.php");
                                         <?= htmlspecialchars($mb['proc_title']) ?>
                                     </div>
                                     <div class="sub-item-meta">
-                                        <span>Ref: <?= htmlspecialchars($mb['philgeps_ref_no'] ?? 'N/A') ?></span>
+                                        <span>Ref: <?= htmlspecialchars($mb['slsu_ref_no'] ?? 'N/A') ?></span>
                                         <span>·</span>
                                         <span><?= date('M j, Y', strtotime($mb['submission_date'])) ?></span>
                                     </div>
@@ -1070,7 +1070,7 @@ include("components/topbar.php");
                 <div class="profile-details-grid">
                     <div class="profile-detail-item">
                         <div class="profile-detail-lbl">PhilGEPS No.</div>
-                        <div class="profile-detail-val" title="<?= htmlspecialchars($philgeps_number) ?>"><?= htmlspecialchars($philgeps_number) ?></div>
+                        <div class="profile-detail-val" title="<?= htmlspecialchars($slsu_number) ?>"><?= htmlspecialchars($slsu_number) ?></div>
                     </div>
                     <div class="profile-detail-item">
                         <div class="profile-detail-lbl">TIN Number</div>

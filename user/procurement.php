@@ -15,7 +15,7 @@ $offset         = ($page - 1) * $per_page;
 
 // ── Calendar Events ───────────────────────────────────────────────────────────
 $cal_result = $conn->query("
-    SELECT id, title, philgeps_ref_no, opening_date, closing_date, status
+    SELECT id, title, slsu_ref_no, opening_date, closing_date, status
     FROM procurements
     WHERE status != 'draft' AND (opening_date IS NOT NULL OR closing_date IS NOT NULL)
     ORDER BY COALESCE(opening_date, closing_date) ASC
@@ -29,7 +29,7 @@ if ($cal_result) {
 $ranking_sql = "
     SELECT 
         p.id,
-        p.philgeps_ref_no,
+        p.slsu_ref_no,
         p.title,
         p.abc,
         p.procurement_mode,
@@ -80,7 +80,7 @@ if ($mode_filter !== 'all' && $mode_filter !== '') {
 // Search
 if ($search !== '') {
     $like = '%' . $search . '%';
-    $where_parts[] = "(p.title LIKE ? OR p.philgeps_ref_no LIKE ? OR p.procurement_mode LIKE ?)";
+    $where_parts[] = "(p.title LIKE ? OR p.slsu_ref_no LIKE ? OR p.procurement_mode LIKE ?)";
     $params[] = $like;
     $params[] = $like;
     $params[] = $like;
@@ -112,7 +112,7 @@ $total_pages = max(1, ceil($total_shown / $per_page));
 $main_sql = "
     SELECT 
         p.id,
-        p.philgeps_ref_no,
+        p.slsu_ref_no,
         p.title,
         p.abc,
         p.procurement_mode,
@@ -1088,7 +1088,7 @@ include("components/topbar.php");
                             </a>
                         </div>
                         <div class="rank-item-meta">
-                            <span><i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($rp['philgeps_ref_no'] ?: 'N/A') ?></span>
+                            <span><i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($rp['slsu_ref_no'] ?: 'N/A') ?></span>
                             <span><i class="bi bi-briefcase"></i> <?= htmlspecialchars($rp['procurement_mode'] ?: 'Public Bidding') ?></span>
                             <span><i class="bi bi-calendar-x"></i> Deadline: <?= date('M j, Y', strtotime($rp['closing_date'])) ?></span>
                         </div>
@@ -1128,7 +1128,7 @@ include("components/topbar.php");
                     <div class="ap2-search-field">
                         <i class="bi bi-search"></i>
                         <input type="text" name="search"
-                            placeholder="Search by title, PhilGEPS ref, or mode..."
+                            placeholder="Search by title, SLSU ref, or mode..."
                             value="<?= htmlspecialchars($search) ?>">
                     </div>
 
@@ -1196,7 +1196,7 @@ include("components/topbar.php");
                 <table class="proc-table">
                     <thead>
                         <tr>
-                            <th style="width:140px;">PhilGEPS Ref</th>
+                            <th style="width:140px;">SLSU Ref</th>
                             <th>Procurement Project Title</th>
                             <th>Procurement Mode</th>
                             <th>Approved Budget (ABC)</th>
@@ -1215,7 +1215,7 @@ include("components/topbar.php");
                         ?>
                             <tr>
                                 <td class="proc-ref-cell">
-                                    <i class="bi bi-hash"></i> <?= htmlspecialchars($row['philgeps_ref_no'] ?: 'N/A') ?>
+                                    <i class="bi bi-hash"></i> <?= htmlspecialchars($row['slsu_ref_no'] ?: 'N/A') ?>
                                 </td>
                                 
                                 <td class="proc-title-cell">
@@ -1440,7 +1440,7 @@ function renderSideEventsList(month, year) {
                         <a href="view_procurement.php?id=${e.id}" style="color:inherit; text-decoration:none;">${e.title}</a>
                     </div>
                     <div style="font-size:11px; color:#728277; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                        <span><i class="bi bi-hash"></i> Ref: ${e.philgeps_ref_no || 'N/A'}</span>
+                        <span><i class="bi bi-hash"></i> Ref: ${e.slsu_ref_no || 'N/A'}</span>
                         <span><i class="bi bi-clock"></i> ${dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
                     </div>
                 </div>
@@ -1488,7 +1488,7 @@ function openDayEventsModal(dateStr, events) {
         card.innerHTML = `
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
                 ${typeBadge}
-                <span style="font-size:11px; color:#88968d; font-weight:600;">Ref: ${e.philgeps_ref_no || 'N/A'}</span>
+                <span style="font-size:11px; color:#88968d; font-weight:600;">Ref: ${e.slsu_ref_no || 'N/A'}</span>
             </div>
             <div style="font-weight:700; font-size:13px; color:#1a2a20; margin-bottom:8px;">${e.title}</div>
             <a href="view_procurement.php?id=${e.id}" class="proc-action-btn" style="font-size:11px; padding:4px 10px;">

@@ -29,11 +29,12 @@ if (!in_array($filter_type, $valid_types)) $filter_type = 'all';
 $stat_total_stmt = $conn->prepare("
     SELECT COUNT(*) 
     FROM system_notifications sn 
-    WHERE sn.target_type = 'all'
+    WHERE (sn.target_type = 'all'
        OR (sn.target_type = 'role' AND sn.target_role = ?)
-       OR (sn.target_type = 'user' AND sn.target_user_id = ?)
+       OR (sn.target_type = 'user' AND sn.target_user_id = ?))
+      AND sn.created_at >= (SELECT created_at FROM users WHERE user_id = ?)
 ");
-$stat_total_stmt->bind_param("si", $bidder_role, $bidder_id);
+$stat_total_stmt->bind_param("sii", $bidder_role, $bidder_id, $bidder_id);
 $stat_total_stmt->execute();
 $stat_total = (int)$stat_total_stmt->get_result()->fetch_row()[0];
 $stat_total_stmt->close();
@@ -48,25 +49,34 @@ $stat_unread_stmt = $conn->prepare("
     WHERE (sn.target_type = 'all'
        OR (sn.target_type = 'role' AND sn.target_role = ?)
        OR (sn.target_type = 'user' AND sn.target_user_id = ?))
+      AND sn.created_at >= (SELECT created_at FROM users WHERE user_id = ?)
       AND unr.read_at IS NULL
 ");
-$stat_unread_stmt->bind_param("isi", $bidder_id, $bidder_role, $bidder_id);
+$stat_unread_stmt->bind_param("isii", $bidder_id, $bidder_role, $bidder_id, $bidder_id);
 $stat_unread_stmt->execute();
 $stat_unread = (int)$stat_unread_stmt->get_result()->fetch_row()[0];
 $stat_unread_stmt->close();
 
 // 3. Broadcast Notifications
-$stat_broadcast_res = $conn->query("SELECT COUNT(*) FROM system_notifications WHERE target_type = 'all'");
-$stat_broadcast     = (int)($stat_broadcast_res ? $stat_broadcast_res->fetch_row()[0] : 0);
+$stat_broadcast_res = $conn->prepare("
+    SELECT COUNT(*) FROM system_notifications
+    WHERE target_type = 'all'
+      AND created_at >= (SELECT created_at FROM users WHERE user_id = ?)
+");
+$stat_broadcast_res->bind_param("i", $bidder_id);
+$stat_broadcast_res->execute();
+$stat_broadcast = (int)$stat_broadcast_res->get_result()->fetch_row()[0];
+$stat_broadcast_res->close();
 
 // 4. Direct / Role Targeted
 $stat_direct_stmt = $conn->prepare("
     SELECT COUNT(*) 
     FROM system_notifications sn
-    WHERE (sn.target_type = 'role' AND sn.target_role = ?)
-       OR (sn.target_type = 'user' AND sn.target_user_id = ?)
+    WHERE ((sn.target_type = 'role' AND sn.target_role = ?)
+       OR (sn.target_type = 'user' AND sn.target_user_id = ?))
+      AND sn.created_at >= (SELECT created_at FROM users WHERE user_id = ?)
 ");
-$stat_direct_stmt->bind_param("si", $bidder_role, $bidder_id);
+$stat_direct_stmt->bind_param("sii", $bidder_role, $bidder_id, $bidder_id);
 $stat_direct_stmt->execute();
 $stat_direct = (int)$stat_direct_stmt->get_result()->fetch_row()[0];
 $stat_direct_stmt->close();
@@ -75,6 +85,11 @@ $stat_direct_stmt->close();
 $where_parts = ["(sn.target_type = 'all' OR (sn.target_type = 'role' AND sn.target_role = ?) OR (sn.target_type = 'user' AND sn.target_user_id = ?))"];
 $params      = [$bidder_role, $bidder_id];
 $types       = 'si';
+
+// Only show notifications created after this user's account was registered
+$where_parts[] = "sn.created_at >= (SELECT created_at FROM users WHERE user_id = ?)";
+$params[]      = $bidder_id;
+$types        .= 'i';
 
 if ($filter_type === 'unread') {
     $where_parts[] = "unr.read_at IS NULL";

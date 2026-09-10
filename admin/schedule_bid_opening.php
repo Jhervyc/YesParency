@@ -514,7 +514,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
         <div class="vp-hero-top">
             <div class="vp-hero-badges">
                 <span class="hero-pill ref">
-                    <i class="bi bi-hash"></i><?= htmlspecialchars($procurement['philgeps_ref_no']) ?>
+                    <i class="bi bi-hash"></i><?= htmlspecialchars($procurement['slsu_ref_no']) ?>
                 </span>
                 <?php if ($procurement['procurement_mode']): ?>
                 <span class="hero-pill mode">
@@ -577,7 +577,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
                                 Linked Procurement
                             </label>
                             <input type="text" class="sbo-input" readonly
-                                value="[<?= htmlspecialchars($procurement['philgeps_ref_no']) ?>] <?= htmlspecialchars($procurement['title']) ?>">
+                                value="[<?= htmlspecialchars($procurement['slsu_ref_no']) ?>] <?= htmlspecialchars($procurement['title']) ?>">
                             <input type="hidden" name="procurement_id" value="<?= $procurement_id ?>">
                             <p class="sbo-hint"><i class="bi bi-lock-fill"></i> This field is pre-set and cannot be changed.</p>
                         </div>
@@ -677,7 +677,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
                         </div>
                         <div class="sbo-summary-row">
                             <span class="sbo-summary-lbl">Reference</span>
-                            <span class="sbo-summary-val"><?= htmlspecialchars($procurement['philgeps_ref_no']) ?></span>
+                            <span class="sbo-summary-val"><?= htmlspecialchars($procurement['slsu_ref_no']) ?></span>
                         </div>
                         <div class="sbo-summary-row">
                             <span class="sbo-summary-lbl">Bids Received</span>
@@ -730,7 +730,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
         <div class="urm-modal-text">
             <h3>Schedule Bid Opening</h3>
             <p>This will schedule a bid opening session and set the procurement status to <strong>Closed</strong>. This cannot be undone.</p>
-            <div class="urm-modal-user-pill"><?= htmlspecialchars($procurement['philgeps_ref_no']) ?> · <?= htmlspecialchars(mb_strimwidth($procurement['title'], 0, 55, '…')) ?></div>
+            <div class="urm-modal-user-pill"><?= htmlspecialchars($procurement['slsu_ref_no']) ?> · <?= htmlspecialchars(mb_strimwidth($procurement['title'], 0, 55, '…')) ?></div>
         </div>
         <div class="urm-modal-actions">
             <button type="button" onclick="closeScheduleModal()" class="urm-btn-cancel">Cancel</button>

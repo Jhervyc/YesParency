@@ -751,7 +751,7 @@ include("components/topbar.php");
         <div class="vp-breadcrumbs">
             <a href="procurement.php">Bidding Opportunities</a>
             <span>/</span>
-            <span style="color:#06251b;">Ref #<?= htmlspecialchars($procurement['philgeps_ref_no'] ?? $procurement['id']) ?></span>
+            <span style="color:#06251b;">Ref #<?= htmlspecialchars($procurement['slsu_ref_no'] ?? $procurement['id']) ?></span>
         </div>
 
         <a href="procurement.php" class="vp-back-link">
@@ -763,9 +763,9 @@ include("components/topbar.php");
     <div class="vp-hero-card">
         <div class="vp-hero-top">
             <div class="vp-hero-badges">
-                <!-- PhilGEPS Reference Badge -->
-                <span class="hero-pill ref" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($procurement['philgeps_ref_no'] ?? '') ?>'); alert('Reference number copied!');" title="Click to copy reference number">
-                    <i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($procurement['philgeps_ref_no'] ?? 'N/A') ?>
+                <!-- SLSU Reference Badge -->
+                <span class="hero-pill ref" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($procurement['slsu_ref_no'] ?? '') ?>'); alert('Reference number copied!');" title="Click to copy reference number">
+                    <i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($procurement['slsu_ref_no'] ?? 'N/A') ?>
                     <i class="bi bi-clipboard" style="font-size:10px; margin-left:2px; opacity:0.8;"></i>
                 </span>
 
@@ -845,9 +845,9 @@ include("components/topbar.php");
                 <div class="vp-card-body">
                     <div class="spec-fields-grid">
                         <div class="spec-field-box">
-                            <div class="spec-field-lbl">PhilGEPS Reference No.</div>
+                            <div class="spec-field-lbl">SLSU Reference No.</div>
                             <div class="spec-field-val" style="font-family:'Space Grotesk',sans-serif; color:#06251b;">
-                                <?= htmlspecialchars($procurement['philgeps_ref_no'] ?? 'N/A') ?>
+                                <?= htmlspecialchars($procurement['slsu_ref_no'] ?? 'N/A') ?>
                             </div>
                         </div>
 

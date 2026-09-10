@@ -1656,9 +1656,9 @@ if ($_pv_is_quotation) {
     <div class="vp-hero-card">
         <div class="vp-hero-top">
             <div class="vp-hero-badges">
-                <?php if (!empty($proc['philgeps_ref_no'])): ?>
-                    <span class="hero-pill ref" onclick="copyPhilgeps('<?= htmlspecialchars($proc['philgeps_ref_no']) ?>')" title="Click to copy Reference No.">
-                        <i class="bi bi-hash"></i> REF: <?= htmlspecialchars($proc['philgeps_ref_no']) ?>
+                <?php if (!empty($proc['slsu_ref_no'])): ?>
+                    <span class="hero-pill ref" onclick="copyPhilgeps('<?= htmlspecialchars($proc['slsu_ref_no']) ?>')" title="Click to copy Reference No.">
+                        <i class="bi bi-hash"></i> REF: <?= htmlspecialchars($proc['slsu_ref_no']) ?>
                         <i class="bi bi-copy" style="font-size:10px; opacity:0.8;"></i>
                     </span>
                 <?php endif; ?>
@@ -1944,8 +1944,8 @@ if ($_pv_is_quotation) {
                 <div class="vp-card-body">
                     <div class="spec-fields-grid">
                         <div class="spec-field-box">
-                            <div class="spec-field-lbl">PhilGEPS Reference No.</div>
-                            <div class="spec-field-val"><?= htmlspecialchars($proc['philgeps_ref_no'] ?: 'N/A') ?></div>
+                            <div class="spec-field-lbl">SLSU Reference No.</div>
+                            <div class="spec-field-val"><?= htmlspecialchars($proc['slsu_ref_no'] ?: 'N/A') ?></div>
                         </div>
                         <div class="spec-field-box">
                             <div class="spec-field-lbl">Procurement Mode</div>
@@ -2552,7 +2552,7 @@ if ($_pv_is_quotation) {
         navigator.clipboard.writeText(text).then(() => {
             const toast = document.createElement('div');
             toast.className = 'toast-alert success';
-            toast.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#2ecc71;"></i> PhilGEPS Reference No. copied to clipboard!';
+            toast.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#2ecc71;"></i> SLSU Reference No. copied to clipboard!';
             document.body.appendChild(toast);
             setTimeout(() => {
                 toast.style.opacity = '0';

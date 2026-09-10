@@ -16,7 +16,7 @@ $offset         = ($page - 1) * $per_page;
 
 // ── Calendar Events ───────────────────────────────────────────────────────────
 $cal_result = $conn->query("
-    SELECT id, title, philgeps_ref_no, abc, opening_date, closing_date, status
+    SELECT id, title, slsu_ref_no, abc, opening_date, closing_date, status
     FROM procurements
     WHERE status != 'draft' AND (opening_date IS NOT NULL OR closing_date IS NOT NULL)
     ORDER BY COALESCE(opening_date, closing_date) ASC
@@ -30,7 +30,7 @@ if ($cal_result) {
 $ranking_sql = "
     SELECT 
         p.id,
-        p.philgeps_ref_no,
+        p.slsu_ref_no,
         p.title,
         p.abc,
         p.procurement_mode,
@@ -85,7 +85,7 @@ if ($mode_filter !== 'all' && $mode_filter !== '') {
 // Search
 if ($search !== '') {
     $like = '%' . $search . '%';
-    $where_parts[] = "(p.title LIKE ? OR p.philgeps_ref_no LIKE ? OR p.procurement_mode LIKE ?)";
+    $where_parts[] = "(p.title LIKE ? OR p.slsu_ref_no LIKE ? OR p.procurement_mode LIKE ?)";
     $params[] = $like;
     $params[] = $like;
     $params[] = $like;
@@ -117,7 +117,7 @@ $total_pages = max(1, ceil($total_shown / $per_page));
 $main_sql = "
     SELECT 
         p.id,
-        p.philgeps_ref_no,
+        p.slsu_ref_no,
         p.title,
         p.description,
         p.abc,
@@ -1138,7 +1138,7 @@ include("components/topbar.php");
                             </a>
                         </div>
                         <div class="rank-item-meta">
-                            <span><i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($rp['philgeps_ref_no'] ?: 'N/A') ?></span>
+                            <span><i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($rp['slsu_ref_no'] ?: 'N/A') ?></span>
                             <span><i class="bi bi-briefcase"></i> <?= htmlspecialchars($rp['procurement_mode'] ?: 'Public Bidding') ?></span>
                             <span><i class="bi bi-calendar-x"></i> Deadline: <?= date('M j, Y', strtotime($rp['closing_date'])) ?></span>
                             <?php if (!empty($rp['my_bid_id'])): ?>
@@ -1179,7 +1179,7 @@ include("components/topbar.php");
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
                     <input type="text" name="search" id="procSearchInput"
-                        placeholder="Search by title, PhilGEPS ref..."
+                        placeholder="Search by title, SLSU ref..."
                         value="<?= htmlspecialchars($search) ?>">
                 </div>
 
@@ -1243,7 +1243,7 @@ include("components/topbar.php");
                 <table class="proc-table">
                     <thead>
                         <tr>
-                            <th style="width:140px;">PhilGEPS Ref</th>
+                            <th style="width:140px;">SLSU Ref</th>
                             <th>Procurement Project Title</th>
                             <th>Procurement Mode</th>
                             <th>Approved Budget (ABC)</th>
@@ -1269,9 +1269,9 @@ include("components/topbar.php");
                             }
                         ?>
                         <tr>
-                            <!-- PhilGEPS Ref -->
+                            <!-- SLSU Ref -->
                             <td class="proc-ref-cell">
-                                <span><?= htmlspecialchars($row['philgeps_ref_no'] ?? 'N/A') ?></span>
+                                <span><?= htmlspecialchars($row['slsu_ref_no'] ?? 'N/A') ?></span>
                                 <?php if ($hasBid): ?>
                                     <div style="margin-top:3px;">
                                         <span style="background:#e4f5ea; color:#1f7a3d; font-size:9.5px; font-weight:800; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:2px;">
@@ -1517,7 +1517,7 @@ include("components/topbar.php");
                             <a href="view_procurement.php?id=${e.id}" style="color:inherit; text-decoration:none;">${e.title}</a>
                         </div>
                         <div style="font-size:11px; color:#728277; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                            <span><i class="bi bi-hash"></i> Ref: ${e.philgeps_ref_no || 'N/A'}</span>
+                            <span><i class="bi bi-hash"></i> Ref: ${e.slsu_ref_no || 'N/A'}</span>
                             <span><i class="bi bi-clock"></i> ${dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
                         </div>
                     </div>
@@ -1565,7 +1565,7 @@ include("components/topbar.php");
             card.innerHTML = `
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
                     ${typeBadge}
-                    <span style="font-size:11px; color:#88968d; font-weight:600;">Ref: ${e.philgeps_ref_no || 'N/A'}</span>
+                    <span style="font-size:11px; color:#88968d; font-weight:600;">Ref: ${e.slsu_ref_no || 'N/A'}</span>
                 </div>
                 <div style="font-weight:700; font-size:13px; color:#1a2a20; margin-bottom:8px; line-height:1.35;">${e.title}</div>
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">

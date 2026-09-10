@@ -313,14 +313,14 @@ body.bview-page {
             <span>/</span>
             <a href="bid_schedule.php"><i class="bi bi-calendar3"></i> Bid Schedule</a>
             <span>/</span>
-            <span><?= htmlspecialchars($procurement['philgeps_ref_no'] ?: 'Project Details') ?></span>
+            <span><?= htmlspecialchars($procurement['slsu_ref_no'] ?: 'Project Details') ?></span>
         </div>
 
         <div class="bview-hero">
             <div class="bview-hero-top">
                 <div class="bview-badges">
                     <span class="bview-pill ref">
-                        <i class="bi bi-hash"></i> <?= htmlspecialchars($procurement['philgeps_ref_no'] ?: 'SLSU-BAC') ?>
+                        <i class="bi bi-hash"></i> <?= htmlspecialchars($procurement['slsu_ref_no'] ?: 'SLSU-BAC') ?>
                     </span>
                     <span class="bview-pill" style="background:<?= $sc['bg'] ?>;color:<?= $sc['fg'] ?>;">
                         <i class="bi bi-circle-fill" style="font-size:7px;"></i> <?= strtoupper($p_status) ?>
@@ -379,8 +379,8 @@ body.bview-page {
             <div class="bv-card-body">
                 <div class="spec-grid">
                     <div class="spec-item">
-                        <div class="spec-lbl">PhilGEPS Ref. No.</div>
-                        <div class="spec-val"><?= htmlspecialchars($procurement['philgeps_ref_no'] ?: 'N/A') ?></div>
+                        <div class="spec-lbl">SLSU Ref. No.</div>
+                        <div class="spec-val"><?= htmlspecialchars($procurement['slsu_ref_no'] ?: 'N/A') ?></div>
                     </div>
                     <div class="spec-item">
                         <div class="spec-lbl">Procurement Mode</div>

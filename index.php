@@ -34,7 +34,7 @@ if (isset($conn) && $conn instanceof mysqli) {
     $ls = $conn->query("
         SELECT bos.id AS session_id, bos.status AS session_status,
                bos.stream_path, bos.started_at,
-               p.id AS proc_id, p.title AS proc_title, p.philgeps_ref_no, p.abc,
+               p.id AS proc_id, p.title AS proc_title, p.slsu_ref_no, p.abc,
                p.procurement_mode,
                (SELECT COUNT(*) FROM lots WHERE lots.procurement_id = p.id) AS lots_count,
                (SELECT COUNT(*) FROM bids b WHERE b.procurement_id = p.id) AS bid_count
@@ -101,7 +101,7 @@ if (count($ranked_openings) < 3) {
     $fallback_items = [
         [
             'id' => 101,
-            'philgeps_ref_no' => 'SLSU-BAC-2026-003',
+            'slsu_ref_no' => 'SLSU-BAC-2026-003',
             'title' => 'Supply and Delivery of Science Laboratory Testing Equipment',
             'procurement_mode' => 'Public Bidding',
             'abc' => 2450000.00,
@@ -113,7 +113,7 @@ if (count($ranked_openings) < 3) {
         ],
         [
             'id' => 102,
-            'philgeps_ref_no' => 'SLSU-BAC-2026-007',
+            'slsu_ref_no' => 'SLSU-BAC-2026-007',
             'title' => 'Construction of Modern Multi-Purpose Academic Center',
             'procurement_mode' => 'Public Bidding',
             'abc' => 18750000.00,
@@ -125,7 +125,7 @@ if (count($ranked_openings) < 3) {
         ],
         [
             'id' => 103,
-            'philgeps_ref_no' => 'SLSU-BAC-2026-011',
+            'slsu_ref_no' => 'SLSU-BAC-2026-011',
             'title' => 'Supply, Delivery & Configuration of Campus ICT Infrastructure',
             'procurement_mode' => 'Competitive Bidding',
             'abc' => 3200000.00,
@@ -1290,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <!-- Ref + Title -->
             <div style="margin-bottom:20px;">
                 <div style="font-size:12px; font-weight:700; color:#ffc107; letter-spacing:.3px; margin-bottom:8px;">
-                    <i class="bi bi-hash"></i> <?= htmlspecialchars($live_session_hero['philgeps_ref_no'] ?: 'SLSU-BAC') ?>
+                    <i class="bi bi-hash"></i> <?= htmlspecialchars($live_session_hero['slsu_ref_no'] ?: 'SLSU-BAC') ?>
                 </div>
                 <div style="font-size:18px; font-weight:800; color:#fff; line-height:1.35; margin-bottom:8px;">
                     <?= htmlspecialchars($live_session_hero['proc_title']) ?>
@@ -1389,7 +1389,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="rank-medal-badge <?= $medalClass ?>">#<?= $rank ?></div>
                         <div class="ranked-item-details">
                             <div class="ranked-item-top">
-                                <span class="ranked-ref-badge"><i class="bi bi-hash"></i> <?= htmlspecialchars($item['philgeps_ref_no']) ?></span>
+                                <span class="ranked-ref-badge"><i class="bi bi-hash"></i> <?= htmlspecialchars($item['slsu_ref_no']) ?></span>
                                 <span class="ranked-countdown-pill <?= $isUrgent ? 'urgent' : '' ?>">
                                     <i class="bi bi-clock-history"></i> <?= $countdownText ?>
                                 </span>
@@ -1488,7 +1488,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="schedule-status-badge <?= $statusStr === 'open' ? 'open' : ($statusStr === 'closed' ? 'closed' : 'upcoming') ?>">
                         <i class="bi bi-circle-fill" style="font-size:7px;"></i> <?= ucfirst($statusStr) ?>
                     </span>
-                    <span class="schedule-ref"><i class="bi bi-hash"></i> <?= htmlspecialchars($sched['philgeps_ref_no'] ?: 'SLSU-BAC') ?></span>
+                    <span class="schedule-ref"><i class="bi bi-hash"></i> <?= htmlspecialchars($sched['slsu_ref_no'] ?: 'SLSU-BAC') ?></span>
                 </div>
 
                 <div class="schedule-title"><?= htmlspecialchars($sched['title']) ?></div>

@@ -36,7 +36,7 @@ if ($session_id <= 0) { http_response_code(400); exit('Invalid session.'); }
 // ── Session ────────────────────────────────────────────────────────────────
 $ss = $conn->prepare("
     SELECT bos.id, bos.status, bos.started_at, bos.ended_at,
-           p.id AS proc_id, p.title AS proc_title, p.philgeps_ref_no,
+           p.id AS proc_id, p.title AS proc_title, p.slsu_ref_no,
            p.abc AS proc_abc, p.procurement_mode,
            COALESCE(p.procurement_type, 'goods_services') AS procurement_type
     FROM bid_opening_sessions bos

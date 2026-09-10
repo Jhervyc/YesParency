@@ -1,0 +1,15 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Block all direct HTTP access to config files.
+# db_connect.php, pusher.php, mediamtx.php contain credentials and must never
+# be reachable via a URL. PHP include/require still works fine.
+# ─────────────────────────────────────────────────────────────────────────────
+
+<IfModule mod_authz_core.c>
+    # Apache 2.4+
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    # Apache 2.2 fallback
+    Order deny,allow
+    Deny from all
+</IfModule>

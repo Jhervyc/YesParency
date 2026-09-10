@@ -48,7 +48,7 @@ $page_error  = null;
 if ($procurement_id > 0) {
     // Validate procurement exists
     $ps = $conn->prepare("
-        SELECT id, title, philgeps_ref_no, description, abc,
+        SELECT id, title, slsu_ref_no, description, abc,
                procurement_mode, procurement_type, opening_date, closing_date, status
         FROM procurements
         WHERE id = ?
@@ -793,7 +793,7 @@ body {
 <!-- ══ HERO BANNER ══════════════════════════════════════════════════════════ -->
 <div class="hero-banner">
     <div style="display:flex;flex-wrap:wrap;gap:6px;flex:1 1 100%">
-        <span class="hero-badge ref"><i class="bi bi-hash"></i> <?= htmlspecialchars($procurement['philgeps_ref_no']) ?></span>
+        <span class="hero-badge ref"><i class="bi bi-hash"></i> <?= htmlspecialchars($procurement['slsu_ref_no']) ?></span>
         <span class="hero-badge mode"><i class="bi bi-tag-fill"></i> <?= htmlspecialchars($procurement['procurement_mode']) ?></span>
         <span class="hero-badge type"><i class="bi bi-layers"></i> <?= $procurement['procurement_type'] === 'infrastructure' ? 'Infrastructure' : 'Goods &amp; Services' ?></span>
     </div>

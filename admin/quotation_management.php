@@ -540,7 +540,7 @@ $p_status   = strtolower($proc['status'] ?? 'open');
         <div class="qm-hero-top">
             <div class="qm-hero-badges">
                 <span class="hero-pill ref">
-                    <i class="bi bi-hash"></i> <?= htmlspecialchars($proc['procurement_ref_no'] ?? $proc['philgeps_ref_no'] ?? 'N/A') ?>
+                    <i class="bi bi-hash"></i> <?= htmlspecialchars($proc['procurement_ref_no'] ?? $proc['slsu_ref_no'] ?? 'N/A') ?>
                 </span>
                 <span class="hero-pill mode">
                     <i class="bi bi-tag-fill"></i> <?= htmlspecialchars($mode_label) ?>

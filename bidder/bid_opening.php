@@ -13,7 +13,7 @@ $live_session = null;
 $ls = $conn->query("
     SELECT bos.id AS session_id, bos.status AS session_status,
            bos.started_at, bos.stream_path,
-           p.id AS proc_id, p.title AS proc_title, p.philgeps_ref_no
+           p.id AS proc_id, p.title AS proc_title, p.slsu_ref_no
     FROM bid_opening_sessions bos
     JOIN procurements p ON bos.procurement_id = p.id
     WHERE bos.status IN ('started','eligibility','financial','awarding')
@@ -24,7 +24,7 @@ if ($ls) $live_session = $ls->fetch_assoc();
 // ── Scheduled sessions (up to 3) ─────────────────────────────────────────
 $scheduled_res = $conn->query("
     SELECT bos.id AS session_id, bos.created_at,
-           p.title AS proc_title, p.philgeps_ref_no, p.procurement_mode,
+           p.title AS proc_title, p.slsu_ref_no, p.procurement_mode,
            (SELECT COUNT(*) FROM bids b WHERE b.procurement_id = p.id) AS bid_count
     FROM bid_opening_sessions bos
     JOIN procurements p ON bos.procurement_id = p.id
@@ -57,7 +57,7 @@ if ($mode_filter !== '' && $mode_filter !== 'all') {
 }
 if ($search !== '') {
     $like = '%'.$search.'%';
-    $where_parts[] = "(p.title LIKE ? OR p.philgeps_ref_no LIKE ?)";
+    $where_parts[] = "(p.title LIKE ? OR p.slsu_ref_no LIKE ?)";
     $params[] = $like; $params[] = $like; $types .= 'ss';
 }
 $wsql = 'WHERE '.implode(' AND ', $where_parts);
@@ -83,7 +83,7 @@ $total_pages = max(1, ceil($total_shown / $per_page));
 $mp = array_merge($params, [$per_page, $offset]);
 $mt = $types.'ii';
 $main = $conn->prepare("
-    SELECT p.id, p.philgeps_ref_no, p.title, p.abc, p.procurement_mode,
+    SELECT p.id, p.slsu_ref_no, p.title, p.abc, p.procurement_mode,
            p.closing_date, p.opening_date, p.status,
            (SELECT COUNT(*) FROM lots l WHERE l.procurement_id = p.id) AS lot_count,
            (SELECT COUNT(*) FROM bids b WHERE b.procurement_id = p.id) AS bid_count
@@ -233,7 +233,7 @@ if ($sp) while ($r = $sp->fetch_row()) $scheduled_proc_ids[] = (int)$r[0];
                     </div>
                     <div class="bo-live-title"><?= htmlspecialchars($live_session['proc_title']) ?></div>
                     <div class="bo-live-meta">
-                        <span><i class="bi bi-hash"></i><?= htmlspecialchars($live_session['philgeps_ref_no']) ?></span>
+                        <span><i class="bi bi-hash"></i><?= htmlspecialchars($live_session['slsu_ref_no']) ?></span>
                         <span><i class="bi bi-activity"></i><?= ucfirst($live_session['session_status']) ?> phase</span>
                         <?php if ($live_session['started_at']): ?>
                         <span><i class="bi bi-clock"></i>Started <?= date('g:i A', strtotime($live_session['started_at'])) ?></span>
@@ -279,7 +279,7 @@ if ($sp) while ($r = $sp->fetch_row()) $scheduled_proc_ids[] = (int)$r[0];
                 <div class="sched-info">
                     <div class="sched-title"><?= htmlspecialchars(mb_strimwidth($ss['proc_title'],0,55,'…')) ?></div>
                     <div class="sched-meta">
-                        <span><i class="bi bi-hash"></i><?= htmlspecialchars($ss['philgeps_ref_no']) ?></span>
+                        <span><i class="bi bi-hash"></i><?= htmlspecialchars($ss['slsu_ref_no']) ?></span>
                         <?php if ($ss['procurement_mode']): ?>
                         <span><?= htmlspecialchars($ss['procurement_mode']) ?></span>
                         <?php endif; ?>
@@ -337,7 +337,7 @@ if ($sp) while ($r = $sp->fetch_row()) $scheduled_proc_ids[] = (int)$r[0];
             <table class="proc-table">
                 <thead>
                     <tr>
-                        <th style="width:120px;">PhilGEPS Ref</th>
+                        <th style="width:120px;">SLSU Ref</th>
                         <th>Title</th>
                         <th class="col-mode">Mode</th>
                         <th class="col-abc">ABC</th>
@@ -355,7 +355,7 @@ if ($sp) while ($r = $sp->fetch_row()) $scheduled_proc_ids[] = (int)$r[0];
                 <tr>
                     <td class="proc-ref-cell">
                         <i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i>
-                        <?= htmlspecialchars($row['philgeps_ref_no']) ?>
+                        <?= htmlspecialchars($row['slsu_ref_no']) ?>
                     </td>
                     <td class="proc-title-cell">
                         <a href="view_procurement.php?id=<?= $row['id'] ?>">

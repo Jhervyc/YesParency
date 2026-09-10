@@ -88,13 +88,13 @@ if ($filter === 'pending') {
 if ($search !== '') {
     $like = '%' . $search . '%';
     $ps = $conn->prepare("
-        SELECT p.id AS procurement_id, p.title AS procurement_title, p.philgeps_ref_no,
+        SELECT p.id AS procurement_id, p.title AS procurement_title, p.slsu_ref_no,
                p.procurement_mode,
                COUNT(b.id) AS total_bids,
                SUM(CASE WHEN b.status='pending' THEN 1 ELSE 0 END) AS pending_bids
         FROM procurements p
         LEFT JOIN bids b ON p.id = b.procurement_id
-        WHERE p.status = 'open' AND (p.title LIKE ? OR p.philgeps_ref_no LIKE ?)
+        WHERE p.status = 'open' AND (p.title LIKE ? OR p.slsu_ref_no LIKE ?)
         GROUP BY p.id
         $having_clause
         ORDER BY pending_bids DESC, p.id DESC
@@ -102,7 +102,7 @@ if ($search !== '') {
     $ps->bind_param("ss", $like, $like);
 } else {
     $ps = $conn->prepare("
-        SELECT p.id AS procurement_id, p.title AS procurement_title, p.philgeps_ref_no,
+        SELECT p.id AS procurement_id, p.title AS procurement_title, p.slsu_ref_no,
                p.procurement_mode,
                COUNT(b.id) AS total_bids,
                SUM(CASE WHEN b.status='pending' THEN 1 ELSE 0 END) AS pending_bids
@@ -195,7 +195,7 @@ if ($mode_filter !== 'all') {
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
                     <input type="text" name="search"
-                        placeholder="Search by procurement title or PhilGEPS ref..."
+                        placeholder="Search by procurement title or SLSU ref..."
                         value="<?= htmlspecialchars($search) ?>">
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
@@ -240,7 +240,7 @@ if ($mode_filter !== 'all') {
             <table class="proc-table">
                 <thead>
                     <tr>
-                        <th style="width:130px;">PhilGEPS Ref</th>
+                        <th style="width:130px;">SLSU Ref</th>
                         <th>Procurement Title</th>
                         <th class="col-abc">Total Bids</th>
                         <th class="col-status">Status</th>
@@ -256,7 +256,7 @@ if ($mode_filter !== 'all') {
                 <tr>
                     <td class="proc-ref-cell">
                         <i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i>
-                        <?= htmlspecialchars($proc['philgeps_ref_no'] ?? '—') ?>
+                        <?= htmlspecialchars($proc['slsu_ref_no'] ?? '—') ?>
                     </td>
                     <td class="proc-title-cell">
                         <?= htmlspecialchars(mb_strimwidth($proc['procurement_title'], 0, 65, '…')) ?>

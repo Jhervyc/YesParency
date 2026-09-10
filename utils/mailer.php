@@ -1082,3 +1082,53 @@ function notify_secretariat_document_reuploaded(mysqli $conn, int $userId, int $
     return $queuedCount;
 }
 
+
+/**
+ * 11. Send Password Reset Email
+ *
+ * Queues a one-time password reset email for the given user.
+ * Does NOT interact with the database for token storage — the caller
+ * is responsible for inserting the token into password_resets first.
+ *
+ * @param mysqli $conn          Active DB connection (for queue_email)
+ * @param string $to_email      Recipient email address
+ * @param string $recipient_name Recipient first/full name for personalisation
+ * @param string $reset_url     Full one-time reset URL (contains raw token)
+ * @return bool                 True if successfully queued, false on failure
+ */
+function send_password_reset_email(
+    mysqli $conn,
+    string $to_email,
+    string $recipient_name,
+    string $reset_url
+): bool {
+    $to_email = trim($to_email);
+    if (!filter_var($to_email, FILTER_VALIDATE_EMAIL)) {
+        error_log("[send_password_reset_email] Invalid email: {$to_email}");
+        return false;
+    }
+
+    $subject         = 'Password Reset Request — YesParency';
+    $expires_minutes = 15;
+
+    $queueId = queue_email(
+        $conn,
+        $to_email,
+        $recipient_name,
+        $subject,
+        'password_reset',
+        [
+            'recipient_name'  => $recipient_name,
+            'reset_url'       => $reset_url,
+            'expires_minutes' => $expires_minutes,
+        ]
+    );
+
+    if (!$queueId) {
+        error_log("[send_password_reset_email] Failed to queue reset email for {$to_email}");
+        return false;
+    }
+
+    // Send immediately — password resets are time-sensitive
+    return send_queued_email($conn, $queueId);
+}
