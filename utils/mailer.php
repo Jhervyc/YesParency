@@ -843,3 +843,242 @@ function notify_invitation_rejected(
     $queueId = queue_email($conn, $email, $contactPerson, $subject, 'invitation_rejected', $payload);
     return dispatch_queued_email_safe($conn, $queueId);
 }
+
+/**
+ * Check if a document expiration notification has already been queued/sent (Duplicate Prevention)
+ */
+function is_doc_notification_queued(
+    mysqli $conn,
+    string $template,
+    string $recipientEmail,
+    int $docId,
+    ?string $expirationDate
+): bool {
+    $stmt = $conn->prepare("
+        SELECT payload FROM email_queue
+        WHERE template = ?
+          AND recipient_email = ?
+          AND status IN ('pending', 'processing', 'sent', 'failed')
+    ");
+    if (!$stmt) return false;
+    $stmt->bind_param("ss", $template, $recipientEmail);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    $exists = false;
+    while ($row = $res->fetch_assoc()) {
+        $p = !empty($row['payload']) ? json_decode($row['payload'], true) : [];
+        if (isset($p['document_id']) && (int)$p['document_id'] === $docId) {
+            if ($expirationDate === null || (isset($p['expiration_date']) && (string)$p['expiration_date'] === (string)$expirationDate)) {
+                $exists = true;
+                break;
+            }
+        }
+    }
+    $stmt->close();
+
+    return $exists;
+}
+
+/**
+ * 8. Notify Bidder: Document Expiring Soon (30 days or 7 days)
+ */
+function notify_bidder_document_expiring(mysqli $conn, int $docId, int $daysLeft): bool
+{
+    if ($docId <= 0) return false;
+
+    require_once __DIR__ . '/bidder_document_helper.php';
+
+    $stmt = $conn->prepare("
+        SELECT d.document_id, d.document_type, d.expiration_date, d.file_name,
+               u.user_id, u.firstname, u.lastname, u.email,
+               bp.business_name
+        FROM bidder_documents d
+        JOIN users u ON d.user_id = u.user_id
+        LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id
+        WHERE d.document_id = ?
+        LIMIT 1
+    ");
+    if (!$stmt) return false;
+    $stmt->bind_param("i", $docId);
+    $stmt->execute();
+    $doc = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$doc || empty($doc['email']) || empty($doc['expiration_date'])) return false;
+
+    $isUrgent = ($daysLeft <= 7);
+    $template = $isUrgent ? 'doc_expiring_7' : 'doc_expiring_30';
+    $email    = trim($doc['email']);
+
+    // Prevent duplicate for this document and this expiration date event
+    if (is_doc_notification_queued($conn, $template, $email, $docId, $doc['expiration_date'])) {
+        return true;
+    }
+
+    $docLabels = defined('REQUIRED_BIDDER_DOCS') ? REQUIRED_BIDDER_DOCS : [];
+    $docLabel  = $docLabels[$doc['document_type']] ?? ucwords(str_replace('_', ' ', $doc['document_type']));
+    $recipientName = trim($doc['firstname'] . ' ' . $doc['lastname']);
+    $businessName  = $doc['business_name'] ?: $recipientName;
+    $expFormatted  = date('F j, Y', strtotime($doc['expiration_date']));
+
+    $subject = $isUrgent
+        ? "URGENT Compliance Notice: {$docLabel} Expires in {$daysLeft} Days"
+        : "Reminder: {$docLabel} Expiring in {$daysLeft} Days";
+
+    $payload = [
+        'document_id'    => $docId,
+        'user_id'        => (int)$doc['user_id'],
+        'document_type'  => $doc['document_type'],
+        'document_label' => $docLabel,
+        'expiration_date'=> $doc['expiration_date'],
+        'date_formatted' => $expFormatted,
+        'days_left'      => $daysLeft,
+        'recipient_name' => $recipientName,
+        'business_name'  => $businessName,
+        'settings_url'   => mailer_get_app_url() . '/bidder/settings.php?tab=documents',
+    ];
+
+    $queueId = queue_email($conn, $email, $recipientName, $subject, $template, $payload);
+    return dispatch_queued_email_safe($conn, $queueId);
+}
+
+/**
+ * 9. Notify Bidder: Document Expired (Bidding Locked)
+ */
+function notify_bidder_document_expired(mysqli $conn, int $docId): bool
+{
+    if ($docId <= 0) return false;
+
+    require_once __DIR__ . '/bidder_document_helper.php';
+
+    $stmt = $conn->prepare("
+        SELECT d.document_id, d.document_type, d.expiration_date, d.file_name,
+               u.user_id, u.firstname, u.lastname, u.email,
+               bp.business_name
+        FROM bidder_documents d
+        JOIN users u ON d.user_id = u.user_id
+        LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id
+        WHERE d.document_id = ?
+        LIMIT 1
+    ");
+    if (!$stmt) return false;
+    $stmt->bind_param("i", $docId);
+    $stmt->execute();
+    $doc = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$doc || empty($doc['email']) || empty($doc['expiration_date'])) return false;
+
+    $template = 'doc_expired';
+    $email    = trim($doc['email']);
+
+    // Prevent duplicate for this document and this expiration date event
+    if (is_doc_notification_queued($conn, $template, $email, $docId, $doc['expiration_date'])) {
+        return true;
+    }
+
+    $docLabels = defined('REQUIRED_BIDDER_DOCS') ? REQUIRED_BIDDER_DOCS : [];
+    $docLabel  = $docLabels[$doc['document_type']] ?? ucwords(str_replace('_', ' ', $doc['document_type']));
+    $recipientName = trim($doc['firstname'] . ' ' . $doc['lastname']);
+    $businessName  = $doc['business_name'] ?: $recipientName;
+    $expFormatted  = date('F j, Y', strtotime($doc['expiration_date']));
+
+    $subject = "IMPORTANT: {$docLabel} Has Expired — Bid Proposal Submissions Locked";
+
+    $payload = [
+        'document_id'    => $docId,
+        'user_id'        => (int)$doc['user_id'],
+        'document_type'  => $doc['document_type'],
+        'document_label' => $docLabel,
+        'expiration_date'=> $doc['expiration_date'],
+        'date_formatted' => $expFormatted,
+        'recipient_name' => $recipientName,
+        'business_name'  => $businessName,
+        'settings_url'   => mailer_get_app_url() . '/bidder/settings.php?tab=documents',
+    ];
+
+    $queueId = queue_email($conn, $email, $recipientName, $subject, $template, $payload);
+    return dispatch_queued_email_safe($conn, $queueId);
+}
+
+/**
+ * 10. Notify Secretariat: Bidder Re-uploaded Document
+ */
+function notify_secretariat_document_reuploaded(mysqli $conn, int $userId, int $docId, string $docType): int
+{
+    if ($userId <= 0 || $docId <= 0) return 0;
+
+    require_once __DIR__ . '/bidder_document_helper.php';
+
+    // Fetch bidder details
+    $bStmt = $conn->prepare("
+        SELECT u.firstname, u.lastname, bp.business_name
+        FROM users u
+        LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id
+        WHERE u.user_id = ?
+        LIMIT 1
+    ");
+    if (!$bStmt) return 0;
+    $bStmt->bind_param("i", $userId);
+    $bStmt->execute();
+    $bidder = $bStmt->get_result()->fetch_assoc();
+    $bStmt->close();
+
+    $bidderName   = trim(($bidder['firstname'] ?? '') . ' ' . ($bidder['lastname'] ?? '')) ?: "Bidder #{$userId}";
+    $businessName = $bidder['business_name'] ?? $bidderName;
+    $docLabels    = defined('REQUIRED_BIDDER_DOCS') ? REQUIRED_BIDDER_DOCS : [];
+    $docLabel     = $docLabels[$docType] ?? ucwords(str_replace('_', ' ', $docType));
+
+    // Fetch active Secretariat members
+    $secStmt = $conn->prepare("
+        SELECT u.user_id, u.firstname, u.lastname, u.email
+        FROM users u
+        JOIN admin_roles ar ON u.user_id = ar.user_id
+        WHERE ar.admin_type = 'SECRETARIAT' AND u.status = 'active'
+    ");
+    $recipients = [];
+    if ($secStmt) {
+        $secStmt->execute();
+        $recipients = $secStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $secStmt->close();
+    }
+
+    // Fallback: If no Secretariat configured, notify active superadmins
+    if (empty($recipients)) {
+        $saRes = $conn->query("SELECT user_id, firstname, lastname, email FROM users WHERE role = 'superadmin' AND status = 'active'");
+        if ($saRes) {
+            $recipients = $saRes->fetch_all(MYSQLI_ASSOC);
+        }
+    }
+
+    $subject = "Document Re-uploaded: {$docLabel} for {$businessName}";
+    $reviewUrl = mailer_get_app_url() . '/admin/bidder-profile.php?id=' . $userId;
+
+    $queuedCount = 0;
+    foreach ($recipients as $sec) {
+        $email = trim($sec['email'] ?? '');
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;
+
+        $secName = trim(($sec['firstname'] ?? '') . ' ' . ($sec['lastname'] ?? '')) ?: 'BAC Secretariat';
+        $payload = [
+            'recipient_name' => $secName,
+            'bidder_id'      => $userId,
+            'document_id'    => $docId,
+            'document_type'  => $docType,
+            'document_label' => $docLabel,
+            'bidder_name'    => $bidderName,
+            'business_name'  => $businessName,
+            'review_url'     => $reviewUrl,
+        ];
+
+        $qid = queue_email($conn, $email, $secName, $subject, 'secretariat_doc_reuploaded', $payload);
+        if ($qid) {
+            dispatch_queued_email_safe($conn, $qid);
+            $queuedCount++;
+        }
+    }
+
+    return $queuedCount;
+}
+

@@ -40,6 +40,7 @@ CREATE TABLE bidder_documents (
     file_name VARCHAR(255) NOT NULL,
     file_path VARCHAR(500) NOT NULL,
     upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expiration_date DATE NULL,
 
     FOREIGN KEY (user_id)
     REFERENCES users(user_id)
@@ -52,6 +53,10 @@ ADD application_status ENUM(
     'approved',
     'rejected'
 ) DEFAULT 'pending';
+
+-- ALTER TABLE bidder_documents
+-- ADD COLUMN expiration_date DATE NULL
+-- AFTER upload_date;
 
 -- =================== Procurement table =======================
 CREATE TABLE procurements (

@@ -1,9 +1,11 @@
 <?php
 include("utils/protect-page.php");
 require_once(__DIR__ . "/../utils/procurement_mode_helper.php");
+require_once(__DIR__ . "/../utils/bidder_document_helper.php");
 
 $procurement_id = isset($_GET['id']) ? intval($_GET['id']) : (isset($_GET['procurement_id']) ? intval($_GET['procurement_id']) : 0);
 $bidder_id      = intval($_SESSION['user_id']);
+$bidder_doc_status = check_bidder_documents_status($conn, $bidder_id);
 
 if ($procurement_id === 0) {
     header("Location: procurement.php");
@@ -1018,14 +1020,25 @@ include("components/topbar.php");
                         <i class="bi bi-inbox-fill"></i> View in My Submitted Bids
                     </a>
                 <?php elseif ($is_open): ?>
-                    <div class="cta-icon-wrap"><i class="bi bi-send-check-fill"></i></div>
-                    <div class="cta-title"><?= htmlspecialchars($cta_title) ?></div>
-                    <div class="cta-desc">
-                        <?= htmlspecialchars($cta_desc) ?>
-                    </div>
-                    <a href="<?= htmlspecialchars($submit_url) ?>" class="btn-submit-proposal">
-                        <i class="bi <?= $submit_icon ?>"></i> <?= htmlspecialchars($submit_label) ?> Now
-                    </a>
+                    <?php if ($bidder_doc_status['is_valid']): ?>
+                        <div class="cta-icon-wrap"><i class="bi bi-send-check-fill"></i></div>
+                        <div class="cta-title"><?= htmlspecialchars($cta_title) ?></div>
+                        <div class="cta-desc">
+                            <?= htmlspecialchars($cta_desc) ?>
+                        </div>
+                        <a href="<?= htmlspecialchars($submit_url) ?>" class="btn-submit-proposal">
+                            <i class="bi <?= $submit_icon ?>"></i> <?= htmlspecialchars($submit_label) ?> Now
+                        </a>
+                    <?php else: ?>
+                        <div class="cta-icon-wrap" style="background:#fee2e2; color:#dc2626;"><i class="bi bi-exclamation-octagon-fill"></i></div>
+                        <div class="cta-title" style="color:#991b1b;">Proposal Submission Locked</div>
+                        <div class="cta-desc" style="color:#b91c1c;">
+                            <?= htmlspecialchars($bidder_doc_status['summary_error']) ?> You cannot submit a bid proposal until your eligibility documents are updated.
+                        </div>
+                        <a href="settings.php?tab=documents" class="btn-submit-proposal" style="background:#dc2626; color:#ffffff;">
+                            <i class="bi bi-file-earmark-arrow-up"></i> Update Documents in Settings
+                        </a>
+                    <?php endif; ?>
                 <?php else: ?>
                     <div class="cta-icon-wrap" style="background:#ffebee; color:#c23b3b;"><i class="bi bi-lock-fill"></i></div>
                     <div class="cta-title">Bidding Closed</div>

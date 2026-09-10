@@ -1,49 +1,7 @@
 <?php
 include("utils/protect-page.php");
 include("utils/protect-secretariat.php");
-
-// ── Handle demote bidder back to user ─────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['demote_bidder'])) {
-    $target_id = intval($_POST['user_id']);
-    $conn->begin_transaction();
-    try {
-        // Snapshot before change
-        $u_snap = $conn->prepare("SELECT u.username, u.role, u.status, bp.business_name, bp.application_status FROM users u LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id WHERE u.user_id = ?");
-        $u_snap->bind_param("i", $target_id);
-        $u_snap->execute();
-        $old_data = $u_snap->get_result()->fetch_assoc();
-        $u_snap->close();
-
-        $s1 = $conn->prepare("UPDATE users SET role = 'user' WHERE user_id = ? AND role = 'bidder'");
-        $s1->bind_param("i", $target_id);
-        $s1->execute();
-        $s1->close();
-
-        $s2 = $conn->prepare("UPDATE bidder_profiles SET application_status = 'rejected' WHERE user_id = ?");
-        $s2->bind_param("i", $target_id);
-        $s2->execute();
-        $s2->close();
-
-        $uname = $old_data['username'] ?? "User #$target_id";
-        audit_log(
-            $conn,
-            'USER_ROLE_CHANGED',
-            'users',
-            $target_id,
-            "Demoted bidder @{$uname} back to regular user",
-            ['role' => $old_data['role'] ?? 'bidder', 'application_status' => $old_data['application_status'] ?? 'approved'],
-            ['role' => 'user', 'application_status' => 'rejected']
-        );
-
-        $conn->commit();
-        $_SESSION['alert_success'] = "Bidder has been demoted back to user.";
-    } catch (Exception $e) {
-        $conn->rollback();
-        $_SESSION['alert_error'] = "Failed to demote bidder.";
-    }
-    header("Location: account-management.php");
-    exit();
-}
+require_once(__DIR__ . "/../utils/bidder_document_helper.php");
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 $stat_total    = $conn->query("SELECT COUNT(*) FROM bidder_profiles")->fetch_row()[0];
@@ -263,16 +221,9 @@ $result = $stmt->get_result();
                             <i class="bi bi-hourglass-split"></i> Pending
                         </span>
                     <?php endif; ?>
-                    <?php if ($appSt === 'approved'): ?>
-                        <button type="button" class="ap2-action-btn ap2-demote"
-                                onclick="openDemoteConfirm(<?= $row['user_id'] ?>, '<?= $safeFullName ?>', '<?= $safeUsername ?>')">
-                            <i class="bi bi-person-down"></i> Demote
-                        </button>
-                    <?php endif; ?>
-                    <button type="button" class="ap2-action-btn ap2-promote"
-                            onclick="loadBidder(<?= $row['user_id'] ?>)">
-                        <i class="bi bi-eye"></i> View
-                    </button>
+                    <a href="bidder-profile.php?id=<?= $row['user_id'] ?>" class="proc-action-btn btn-view" style="text-decoration:none;">
+                        <i class="bi bi-eye"></i> View Profile
+                    </a>
                 </div>
 
             </div>
@@ -304,58 +255,6 @@ $result = $stmt->get_result();
 </div>
 </main>
 
-<!-- SIDE DRAWER -->
-<div id="drawerOverlay" onclick="closeModal()"></div>
-<div id="sideModal">
-    <div class="smd-header">
-        <div class="smd-header-left">
-            <div class="smd-header-icon"><i class="bi bi-person-lines-fill"></i></div>
-            <div>
-                <div class="smd-header-title">Bidder Details</div>
-                <div class="smd-header-sub">Application & registration info</div>
-            </div>
-        </div>
-        <button class="smd-close" onclick="closeModal()" aria-label="Close">
-            <i class="bi bi-x-lg"></i>
-        </button>
-    </div>
-    <div id="modalContent" class="smd-body">
-        <div class="smd-placeholder">
-            <div class="smd-placeholder-icon"><i class="bi bi-person-circle"></i></div>
-            <p>Select a bidder from the list<br>to view their full details.</p>
-        </div>
-    </div>
-</div>
-
-<!-- DEMOTE CONFIRMATION MODAL -->
-<div id="confirmModal" class="modal-backdrop">
-    <div class="urm-modal">
-        <button class="urm-modal-close" onclick="closeConfirm()" aria-label="Close">
-            <i class="bi bi-x-lg"></i>
-        </button>
-        <div class="urm-modal-icon-wrap">
-            <div class="urm-modal-icon" style="background:#fff3e0; color:#e67e22;">
-                <i class="bi bi-person-down"></i>
-            </div>
-        </div>
-        <div class="urm-modal-text">
-            <h3>Demote to User</h3>
-            <p>This bidder will lose their bidder role and will need to re-apply.</p>
-            <div class="urm-modal-user-pill" id="modalUserPill"></div>
-        </div>
-        <div class="urm-modal-actions">
-            <button type="button" onclick="closeConfirm()" class="urm-btn-cancel">Cancel</button>
-            <button type="button" id="modalConfirmBtn" class="urm-btn-confirm"
-                    style="background:#e67e22;">Yes, Demote</button>
-        </div>
-    </div>
-</div>
-
-<form id="demoteForm" method="POST" action="" style="display:none;">
-    <input type="hidden" id="demoteUserId" name="user_id">
-    <input type="hidden" name="demote_bidder" value="1">
-</form>
-
 <!-- Toasts -->
 <?php if (isset($_SESSION['alert_success'])): ?>
     <div class="toast-alert success" id="toastAlert">
@@ -376,43 +275,6 @@ $result = $stmt->get_result();
     function closeSidebar() {
         sidebar.classList.remove('mobile-open');
         overlay.classList.remove('active');
-    }
-
-    function openDemoteConfirm(userId, fullName, username) {
-        document.getElementById('demoteUserId').value = userId;
-        document.getElementById('modalUserPill').textContent = fullName + '  ·  @' + username;
-        document.getElementById('confirmModal').classList.add('open');
-    }
-
-    function closeConfirm() {
-        document.getElementById('confirmModal').classList.remove('open');
-    }
-
-    document.getElementById('modalConfirmBtn').addEventListener('click', () => {
-        document.getElementById('demoteForm').submit();
-    });
-
-    document.getElementById('confirmModal').addEventListener('click', function(e) {
-        if (e.target === this) closeConfirm();
-    });
-
-    function loadBidder(userId) {
-        const content = document.getElementById('modalContent');
-        content.innerHTML = '<div class="smd-loading"><i class="bi bi-arrow-repeat spin"></i> Loading...</div>';
-        document.getElementById('sideModal').classList.add('active');
-        document.getElementById('drawerOverlay').classList.add('active');
-
-        fetch("get_bidder.php?id=" + userId)
-            .then(r => r.text())
-            .then(data => { content.innerHTML = '<div class="drawer-fetched-content">' + data + '</div>'; })
-            .catch(() => {
-                content.innerHTML = '<div class="smd-placeholder"><div class="smd-placeholder-icon"><i class="bi bi-exclamation-circle"></i></div><p>Failed to load details.</p></div>';
-            });
-    }
-
-    function closeModal() {
-        document.getElementById('sideModal').classList.remove('active');
-        document.getElementById('drawerOverlay').classList.remove('active');
     }
 
     const toast = document.getElementById('toastAlert');

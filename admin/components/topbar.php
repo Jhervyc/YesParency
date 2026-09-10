@@ -20,6 +20,7 @@ if (!isset($topbar_title) || empty($topbar_title)) {
         'manage_lots.php'           => 'Manage Lots',
         'procurement-view.php'      => 'Procurement',
         'bid-submission-view.php'   => 'Bid Submissions',
+        'bidder-profile.php'        => 'Bidder Profile',
     ];
     $topbar_title = $titles_map[$script_name] ?? 'YesParency';
 }

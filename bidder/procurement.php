@@ -1,7 +1,9 @@
 <?php
 include("utils/protect-page.php");
+require_once(__DIR__ . "/../utils/bidder_document_helper.php");
 
 $bidder_id = (int)$_SESSION['user_id'];
+$bidder_doc_status = check_bidder_documents_status($conn, $bidder_id);
 
 // ── Filters, Search, Sort & Pagination ────────────────────────────────────────
 $search         = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -976,6 +978,26 @@ include("components/topbar.php");
         <p>Explore municipal procurement projects, evaluate lot specifications, and submit competitive electronic proposals.</p>
     </div>
 
+    <!-- ── Document Compliance Warning Banner if Invalid ── -->
+    <?php if (!$bidder_doc_status['is_valid']): ?>
+        <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:14px; padding:16px 20px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:40px; height:40px; border-radius:10px; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+                    <i class="bi bi-exclamation-octagon-fill"></i>
+                </div>
+                <div>
+                    <div style="font-size:14px; font-weight:800; color:#991b1b; margin-bottom:2px;">Bidding Proposal Submissions Locked</div>
+                    <div style="font-size:12.5px; color:#b91c1c; line-height:1.4;">
+                        <?= htmlspecialchars($bidder_doc_status['summary_error']) ?> Electronic proposal submissions are locked until your documents are updated.
+                    </div>
+                </div>
+            </div>
+            <a href="settings.php?tab=documents" style="background:#dc2626; color:#fff; text-decoration:none; padding:8px 16px; border-radius:8px; font-size:12.5px; font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:6px;">
+                <i class="bi bi-file-earmark-arrow-up"></i> Update in Settings
+            </a>
+        </div>
+    <?php endif; ?>
+
     <!-- ══════════════════════════════════════════════════════════
          TOP SECTION (100% WIDTH): Summary Stat Cards
          ══════════════════════════════════════════════════════════ -->
@@ -1301,9 +1323,15 @@ include("components/topbar.php");
                             <td style="text-align:right;">
                                 <div style="display:flex; align-items:center; gap:6px; justify-content:flex-end;">
                                     <?php if (!$hasBid && $row['status'] === 'open'): ?>
-                                        <a href="submit_bid.php?procurement_id=<?= $row['id'] ?>" class="proc-action-btn" style="background:#ffc107; color:#06251b;">
-                                            <i class="bi bi-send-fill"></i> Bid
-                                        </a>
+                                        <?php if ($bidder_doc_status['is_valid']): ?>
+                                            <a href="submit_bid.php?procurement_id=<?= $row['id'] ?>" class="proc-action-btn" style="background:#ffc107; color:#06251b;">
+                                                <i class="bi bi-send-fill"></i> Bid
+                                            </a>
+                                        <?php else: ?>
+                                            <a href="settings.php?tab=documents" class="proc-action-btn" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca;" title="Bidding locked: Document(s) expired or missing. Click to update in Settings.">
+                                                <i class="bi bi-lock-fill"></i> Bid
+                                            </a>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                     <a href="view_procurement.php?id=<?= $row['id'] ?>" class="proc-action-btn secondary">
                                         <i class="bi bi-eye"></i> View

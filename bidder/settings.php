@@ -1,6 +1,8 @@
 <?php
 include("utils/protect-page.php");
 require_once(__DIR__ . "/../admin/utils/audit_helper.php");
+require_once(__DIR__ . "/../utils/bidder_document_helper.php");
+require_once(__DIR__ . "/../utils/mailer.php");
 
 $user_id     = (int)$_SESSION['user_id'];
 $bidder_role = $_SESSION['role'] ?? 'bidder';
@@ -156,7 +158,115 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     $_SESSION['pw_error']   = $pw_error;
     $_SESSION['pw_success'] = $pw_success;
-    header("Location: settings.php#password-card");
+    header("Location: settings.php?tab=profile#password-card");
+    exit();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. HANDLE RE-UPLOAD BIDDER DOCUMENT
+// ─────────────────────────────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'reupload_document') {
+    $doc_type = trim($_POST['document_type'] ?? '');
+    $validTypes = array_keys(REQUIRED_BIDDER_DOCS);
+
+    if (!in_array($doc_type, $validTypes)) {
+        $_SESSION['doc_error'] = "Invalid document category selected.";
+        header("Location: settings.php?tab=documents");
+        exit();
+    }
+
+    $docLabel = REQUIRED_BIDDER_DOCS[$doc_type];
+
+    if (!isset($_FILES['doc_file']) || $_FILES['doc_file']['error'] !== UPLOAD_ERR_OK) {
+        $_SESSION['doc_error'] = "Please select a valid file to upload for {$docLabel}.";
+        header("Location: settings.php?tab=documents");
+        exit();
+    }
+
+    $fileTmp  = $_FILES['doc_file']['tmp_name'];
+    $fileName = $_FILES['doc_file']['name'];
+    $fileSize = $_FILES['doc_file']['size'];
+    $ext      = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+    $allowedExts = ['pdf', 'jpg', 'jpeg', 'png'];
+    $maxSize     = 20 * 1024 * 1024; // 20 MB
+
+    if (!in_array($ext, $allowedExts)) {
+        $_SESSION['doc_error'] = "Invalid file type for {$docLabel}. Allowed: PDF, JPG, JPEG, PNG.";
+        header("Location: settings.php?tab=documents");
+        exit();
+    }
+
+    if ($fileSize > $maxSize) {
+        $_SESSION['doc_error'] = "File size exceeds the 20 MB limit. Please upload a smaller file.";
+        header("Location: settings.php?tab=documents");
+        exit();
+    }
+
+    // Target upload folder: uploads/bidders/{user_id}/
+    $uploadDir = realpath(__DIR__ . '/..') . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'bidders' . DIRECTORY_SEPARATOR . $user_id;
+    if (!is_dir($uploadDir)) {
+        @mkdir($uploadDir, 0777, true);
+    }
+
+    $cleanOrigName = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', basename($fileName));
+    $newFileName   = $doc_type . '_' . uniqid() . '_' . $cleanOrigName;
+    $targetPath    = $uploadDir . DIRECTORY_SEPARATOR . $newFileName;
+    $dbRelPath     = '../uploads/bidders/' . $user_id . '/' . $newFileName;
+
+    if (move_uploaded_file($fileTmp, $targetPath)) {
+        // Fetch existing document to delete old physical file if present
+        $oldStmt = $conn->prepare("SELECT document_id, file_path FROM bidder_documents WHERE user_id = ? AND document_type = ?");
+        $oldStmt->bind_param("is", $user_id, $doc_type);
+        $oldStmt->execute();
+        $oldDoc = $oldStmt->get_result()->fetch_assoc();
+        $oldStmt->close();
+
+        if ($oldDoc) {
+            // Delete previous physical file to save storage
+            delete_bidder_physical_file($oldDoc['file_path']);
+
+            // Update database record and reset expiration_date to NULL for Secretariat review
+            $updStmt = $conn->prepare("
+                UPDATE bidder_documents
+                SET file_name = ?, file_path = ?, upload_date = NOW(), expiration_date = NULL
+                WHERE document_id = ? AND user_id = ?
+            ");
+            $updStmt->bind_param("ssii", $newFileName, $dbRelPath, $oldDoc['document_id'], $user_id);
+            $updStmt->execute();
+            $updStmt->close();
+            $targetDocId = (int)$oldDoc['document_id'];
+        } else {
+            // Insert new document record with NULL expiration_date
+            $insStmt = $conn->prepare("
+                INSERT INTO bidder_documents (user_id, document_type, file_name, file_path, upload_date, expiration_date)
+                VALUES (?, ?, ?, ?, NOW(), NULL)
+            ");
+            $insStmt->bind_param("isss", $user_id, $doc_type, $newFileName, $dbRelPath);
+            $insStmt->execute();
+            $targetDocId = (int)$conn->insert_id;
+            $insStmt->close();
+        }
+
+        audit_log(
+            $conn,
+            'DOCUMENT_REUPLOADED',
+            'bidder_documents',
+            $targetDocId,
+            "Bidder #{$user_id} uploaded replacement for {$docLabel}",
+            $oldDoc ?? null,
+            ['file_name' => $newFileName, 'file_path' => $dbRelPath]
+        );
+
+        // Notify Secretariat via email
+        notify_secretariat_document_reuploaded($conn, $user_id, $targetDocId, $doc_type);
+
+        $_SESSION['doc_success'] = "{$docLabel} uploaded successfully. The BAC Secretariat has been notified to verify your renewal.";
+    } else {
+        $_SESSION['doc_error'] = "Failed to save file to server storage. Please check directory permissions.";
+    }
+
+    header("Location: settings.php?tab=documents");
     exit();
 }
 
@@ -165,6 +275,8 @@ $avatar_error   = $_SESSION['avatar_error']   ?? ''; unset($_SESSION['avatar_err
 $avatar_success = $_SESSION['avatar_success'] ?? ''; unset($_SESSION['avatar_success']);
 $pw_error       = $_SESSION['pw_error']       ?? ''; unset($_SESSION['pw_error']);
 $pw_success     = $_SESSION['pw_success']     ?? ''; unset($_SESSION['pw_success']);
+$doc_error      = $_SESSION['doc_error']      ?? ''; unset($_SESSION['doc_error']);
+$doc_success    = $_SESSION['doc_success']    ?? ''; unset($_SESSION['doc_success']);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. FETCH CURRENT USER AND BIDDER PROFILE INFORMATION (READ-ONLY)
@@ -219,6 +331,13 @@ $app_status      = strtolower($data['application_status'] ?? 'approved');
 
 $initials = strtoupper(substr($data['firstname'] ?? 'B', 0, 1) . substr($data['lastname'] ?? 'P', 0, 1));
 if (trim($initials) === '') $initials = 'BP';
+
+// Document compliance status
+$doc_status = check_bidder_documents_status($conn, $user_id);
+$uploaded_docs = $doc_status['all_docs'];
+
+// Active tab (default to profile or documents)
+$active_tab = in_array($_GET['tab'] ?? '', ['profile', 'documents']) ? $_GET['tab'] : 'profile';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -241,6 +360,298 @@ if (trim($initials) === '') $initials = 'BP';
         .dash-content {
             max-width: 100%;
             overflow-x: hidden;
+        }
+
+        /* ── Settings Tabs Navigation (matching admin settings) ── */
+        .settings-tabs-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #eef2f0;
+            padding-bottom: 2px;
+        }
+
+        .stab-btn {
+            background: transparent;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px 12px 0 0;
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #63736a;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all .15s ease;
+            text-decoration: none;
+        }
+
+        .stab-btn:hover {
+            background: #f0f4f2;
+            color: #06251b;
+        }
+
+        .stab-btn.active {
+            background: #06251b;
+            color: #ffc107;
+            box-shadow: 0 2px 10px rgba(6,37,27,.18);
+        }
+
+        .stab-btn i { font-size: 15px; }
+
+        .stab-badge-warn {
+            background: #ef4444;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 999px;
+            margin-left: 2px;
+        }
+
+        .stab-panel { display: none; }
+        .stab-panel.active { display: block; }
+
+        /* ── Document Management UI Styles ── */
+        .doc-comp-banner {
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .doc-comp-banner.valid {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+        }
+
+        .doc-comp-banner.invalid {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .doc-comp-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .doc-comp-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .doc-comp-banner.valid .doc-comp-icon {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .doc-comp-banner.invalid .doc-comp-icon {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .doc-comp-title {
+            font-size: 15px;
+            font-weight: 800;
+            margin-bottom: 2px;
+        }
+
+        .doc-comp-desc {
+            font-size: 12.5px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .doc-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .doc-cards-grid { grid-template-columns: 1fr; }
+        }
+
+        .doc-item-card {
+            background: #ffffff;
+            border: 1px solid #eaeeec;
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 8px 20px -10px rgba(16,36,26,.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 16px;
+            transition: all .15s ease;
+        }
+
+        .doc-item-card:hover {
+            border-color: #d8e2dc;
+            box-shadow: 0 4px 16px rgba(16,36,26,.08);
+        }
+
+        .doc-item-card.is-expired {
+            border-color: #fecaca;
+            background: #fffafa;
+        }
+
+        .doc-item-card.is-missing {
+            border: 1.5px dashed #f87171;
+            background: #fff8f8;
+        }
+
+        .doc-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .doc-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .doc-type-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            background: #f0f4f2;
+            color: #06251b;
+        }
+
+        .doc-item-card.is-expired .doc-type-icon,
+        .doc-item-card.is-missing .doc-type-icon {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .doc-title-text {
+            font-size: 14px;
+            font-weight: 800;
+            color: #06251b;
+            line-height: 1.3;
+        }
+
+        .doc-badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .doc-details-box {
+            background: #f8faf9;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 12px;
+            color: #4b5563;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .doc-details-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .doc-details-lbl {
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .doc-details-val {
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .doc-file-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 700;
+            color: #1f7a3d;
+            text-decoration: none;
+            background: #dcfce7;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11.5px;
+        }
+
+        .doc-file-link:hover {
+            background: #1f7a3d;
+            color: #ffffff;
+        }
+
+        .doc-upload-form {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .doc-file-input {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 8px;
+            font-size: 11.5px;
+            background: #ffffff;
+            cursor: pointer;
+        }
+
+        .doc-file-input:focus {
+            outline: none;
+            border-color: #1f7a3d;
+        }
+
+        .doc-upload-btn {
+            background: #06251b;
+            color: #ffc107;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all .15s ease;
+        }
+
+        .doc-upload-btn:hover {
+            background: #0a3a2a;
+            color: #ffffff;
         }
 
         .settings-grid {
@@ -701,10 +1112,32 @@ include("components/topbar.php");
 <div class="dash-content">
 
     <!-- Page Header -->
-    <div class="page-header" style="margin-bottom:24px;">
+    <div class="page-header" style="margin-bottom:20px;">
         <h2>Account Settings</h2>
-        <p>Manage your bidder portal avatar, view verified credentials, and secure your login password.</p>
+        <p>Manage your bidder portal avatar, view verified credentials, manage compliance documents, and secure your login password.</p>
     </div>
+
+    <!-- ── Settings Tabs Navigation ── -->
+    <div class="settings-tabs-bar" role="tablist">
+        <button class="stab-btn <?= $active_tab === 'profile' ? 'active' : '' ?>"
+                role="tab" aria-selected="<?= $active_tab === 'profile' ? 'true' : 'false' ?>"
+                onclick="switchSettingsTab('profile')">
+            <i class="bi bi-person-circle"></i> Profile &amp; Security
+        </button>
+        <button class="stab-btn <?= $active_tab === 'documents' ? 'active' : '' ?>"
+                role="tab" aria-selected="<?= $active_tab === 'documents' ? 'true' : 'false' ?>"
+                onclick="switchSettingsTab('documents')">
+            <i class="bi bi-file-earmark-check"></i> Legal Documents
+            <?php if (!$doc_status['is_valid']): ?>
+                <span class="stab-badge-warn">Action Required</span>
+            <?php endif; ?>
+        </button>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         TAB 1: PROFILE & SECURITY
+         ══════════════════════════════════════════════════════════ -->
+    <div id="stab-profile" class="stab-panel <?= $active_tab === 'profile' ? 'active' : '' ?>" role="tabpanel">
 
     <!-- 2-Column Settings Layout -->
     <div class="settings-grid">
@@ -1005,6 +1438,153 @@ include("components/topbar.php");
 
     </div>
 
+    </div><!-- /#stab-profile -->
+
+    <!-- ══════════════════════════════════════════════════════════
+         TAB 2: LEGAL DOCUMENTS MANAGEMENT
+         ══════════════════════════════════════════════════════════ -->
+    <div id="stab-documents" class="stab-panel <?= $active_tab === 'documents' ? 'active' : '' ?>" role="tabpanel">
+
+        <!-- Flash messages for document uploads -->
+        <?php if (!empty($doc_success)): ?>
+            <div class="flash-alert success" style="margin-bottom:20px;">
+                <i class="bi bi-check-circle-fill"></i> <?= htmlspecialchars($doc_success) ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($doc_error)): ?>
+            <div class="flash-alert error" style="margin-bottom:20px;">
+                <i class="bi bi-exclamation-circle-fill"></i> <?= htmlspecialchars($doc_error) ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- Compliance Banner -->
+        <?php if ($doc_status['is_valid']): ?>
+            <div class="doc-comp-banner valid">
+                <div class="doc-comp-left">
+                    <div class="doc-comp-icon"><i class="bi bi-patch-check-fill"></i></div>
+                    <div>
+                        <div class="doc-comp-title">Compliance Verified — Electronic Bidding Active</div>
+                        <div class="doc-comp-desc">All required legal eligibility documents are currently on file and valid. You are eligible to submit bid proposals across all open municipal opportunities.</div>
+                    </div>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="doc-comp-banner invalid">
+                <div class="doc-comp-left">
+                    <div class="doc-comp-icon"><i class="bi bi-exclamation-octagon-fill"></i></div>
+                    <div>
+                        <div class="doc-comp-title">Action Required: Compliance Incomplete or Expired</div>
+                        <div class="doc-comp-desc">
+                            <?= htmlspecialchars($doc_status['summary_error']) ?><br>
+                            <strong>Bid proposal submissions are locked</strong> until replacement documents are uploaded and verified by the Secretariat.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- Documents Grid -->
+        <div class="doc-cards-grid">
+            <?php foreach (REQUIRED_BIDDER_DOCS as $docType => $docLabel):
+                $hasDoc = isset($uploaded_docs[$docType]);
+                $doc = $hasDoc ? $uploaded_docs[$docType] : null;
+                $valInfo = $hasDoc ? get_document_validity_info($doc['expiration_date'] ?? null) : null;
+                $filePath = $hasDoc ? $doc['file_path'] : '';
+                if ($hasDoc && !str_starts_with($filePath, '../') && !str_starts_with($filePath, 'http')) {
+                    $fileHref = '../' . ltrim($filePath, '/');
+                } else {
+                    $fileHref = $filePath;
+                }
+                $isExpired = $hasDoc && $valInfo['is_expired'];
+                $isMissing = !$hasDoc;
+            ?>
+            <div class="doc-item-card <?= $isExpired ? 'is-expired' : ($isMissing ? 'is-missing' : '') ?>">
+
+                <div>
+                    <!-- Top header -->
+                    <div class="doc-card-top">
+                        <div class="doc-title-row">
+                            <div class="doc-type-icon">
+                                <i class="bi <?= $isMissing ? 'bi-file-earmark-x' : ($isExpired ? 'bi-file-earmark-break' : 'bi-file-earmark-check-fill') ?>"></i>
+                            </div>
+                            <div>
+                                <div class="doc-title-text"><?= htmlspecialchars($docLabel) ?></div>
+                                <span style="font-size:11px; color:#88968d; font-weight:600;">Standard Required File</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <?php if ($hasDoc): ?>
+                                <span class="doc-badge-pill" style="<?= $valInfo['badge_style'] ?>">
+                                    <i class="bi <?= $valInfo['is_expired'] ? 'bi-x-circle-fill' : 'bi-check-circle-fill' ?>"></i>
+                                    <?= htmlspecialchars($valInfo['label']) ?>
+                                </span>
+                            <?php else: ?>
+                                <span class="doc-badge-pill" style="background:#FBE1E1; color:#c23b3b; border:1px solid #f5b7b7;">
+                                    Missing File
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Details Box -->
+                    <div class="doc-details-box" style="margin-top:14px;">
+                        <div class="doc-details-row">
+                            <span class="doc-details-lbl">Uploaded File:</span>
+                            <span class="doc-details-val">
+                                <?php if ($hasDoc): ?>
+                                    <a href="<?= htmlspecialchars($fileHref) ?>" target="_blank" class="doc-file-link" title="Open file">
+                                        <i class="bi bi-box-arrow-up-right"></i> View File
+                                    </a>
+                                <?php else: ?>
+                                    <em style="color:#9ca3af; font-weight:normal;">None uploaded</em>
+                                <?php endif; ?>
+                            </span>
+                        </div>
+                        <div class="doc-details-row">
+                            <span class="doc-details-lbl">Upload Date:</span>
+                            <span class="doc-details-val"><?= $hasDoc ? date('M j, Y · g:i A', strtotime($doc['upload_date'])) : '—' ?></span>
+                        </div>
+                        <div class="doc-details-row">
+                            <span class="doc-details-lbl">Official Expiration:</span>
+                            <span class="doc-details-val" style="<?= $isExpired ? 'color:#dc2626;' : '' ?>">
+                                <?= $hasDoc ? $valInfo['date_formatted'] : '—' ?>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div style="font-size:11.5px; color:#6b7280; margin-top:8px; display:flex; align-items:center; gap:5px;">
+                        <i class="bi bi-shield-lock"></i> Expiration dates are set and managed by the BAC Secretariat.
+                    </div>
+                </div>
+
+                <!-- Re-upload Form -->
+                <div style="border-top:1px solid #edf1ee; padding-top:14px; margin-top:10px;">
+                    <form method="POST" action="settings.php?tab=documents" enctype="multipart/form-data" class="doc-upload-form">
+                        <input type="hidden" name="action" value="reupload_document">
+                        <input type="hidden" name="document_type" value="<?= htmlspecialchars($docType) ?>">
+
+                        <label style="font-size:11.5px; font-weight:700; color:#374151;">
+                            <?= $hasDoc ? 'Replace / Re-upload Document' : 'Upload Required Document' ?>:
+                        </label>
+                        <input type="file" name="doc_file" class="doc-file-input" accept=".pdf,.jpg,.jpeg,.png" required>
+                        <span style="font-size:10.5px; color:#88968d;">
+                            Accepted: PDF, JPG, PNG (Max: 20MB). Re-uploading replaces previous copy to save storage.
+                        </span>
+
+                        <button type="submit" class="doc-upload-btn" style="margin-top:4px;">
+                            <i class="bi bi-cloud-arrow-up-fill"></i> <?= $hasDoc ? 'Upload Replacement' : 'Submit Document' ?>
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+            <?php endforeach; ?>
+        </div>
+
+    </div><!-- /#stab-documents -->
+
 </div>
 </main>
 
@@ -1126,6 +1706,32 @@ function validatePasswordForm(e) {
         return false;
     }
     return true;
+}
+
+// ── Tab Switching Function ──
+function switchSettingsTab(tabName) {
+    document.querySelectorAll('.settings-tabs-bar .stab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-selected', 'false');
+    });
+    document.querySelectorAll('.stab-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
+
+    const targetPanel = document.getElementById('stab-' + tabName);
+    if (targetPanel) {
+        targetPanel.classList.add('active');
+    }
+
+    const clickedBtn = event ? event.currentTarget : null;
+    if (clickedBtn) {
+        clickedBtn.classList.add('active');
+        clickedBtn.setAttribute('aria-selected', 'true');
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tabName);
+    window.history.replaceState({}, '', url.toString());
 }
 </script>
 

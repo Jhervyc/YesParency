@@ -3,12 +3,21 @@ include("utils/protect-page.php");
 require_once("../utils/crypto.php");
 require_once(__DIR__ . "/../admin/utils/audit_helper.php");
 require_once(__DIR__ . "/../utils/procurement_mode_helper.php");
+require_once(__DIR__ . "/../utils/bidder_document_helper.php");
 
 $procurement_id = isset($_GET['id']) ? intval($_GET['id']) : (isset($_GET['procurement_id']) ? intval($_GET['procurement_id']) : 0);
 $bidder_id      = intval($_SESSION['user_id']);
 
 if ($procurement_id === 0) {
     header("Location: procurement.php");
+    exit();
+}
+
+// ── SERVER-SIDE BIDDER DOCUMENT COMPLIANCE GUARD ────────────────────────────
+$doc_status = check_bidder_documents_status($conn, $bidder_id);
+if (!$doc_status['is_valid']) {
+    $_SESSION['alert_error'] = "Bid submission blocked: " . $doc_status['summary_error'] . " Please update your documents in Settings.";
+    header("Location: view_procurement.php?id=" . $procurement_id);
     exit();
 }
 
@@ -76,7 +85,10 @@ if (!empty($procurement['closing_date'])) {
 $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_bid'])) {
     $selected_lots = $_POST['selected_lots'] ?? [];
-    $uploaded_file_paths = [];
+    $post_doc_check = check_bidder_documents_status($conn, $bidder_id);
+    if (!$post_doc_check['is_valid']) {
+        $errors[] = "Bid submission blocked: " . $post_doc_check['summary_error'];
+    }
 
     if (empty($selected_lots)) {
         $errors[] = "Please select at least one lot you wish to bid on.";
