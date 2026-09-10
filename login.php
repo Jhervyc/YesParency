@@ -1,45 +1,75 @@
 <?php
-    include "config/db_connect.php";
-    session_start();
+    // 1. Secure session cookie attributes (Must be set BEFORE session_start)
+    if (session_status() === PHP_SESSION_NONE) {
+        ini_set('session.use_only_cookies', 1);
+        ini_set('session.use_strict_mode', 1);
 
-    if (isset($_SESSION['user_id'])) {
-        switch($_SESSION["role"]){
-            case "user":      header("Location: user/dashboard.php");      exit();
-            case "bidder":    header("Location: bidder/dashboard.php");    exit();
-            case "admin":     header("Location: admin/dashboard.php");     exit();
-            case "superadmin":header("Location: superadmin/dashboard.php");exit();
+        session_set_cookie_params([
+            'lifetime' => 0,                  // Cookie expires when the browser closes
+            'path'     => '/',
+            'secure'   => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on', // Enforce HTTPS if active
+            'httponly' => true,               // Prevent JavaScript access (XSS defense)
+            'samesite' => 'Lax'              // CSRF mitigation
+        ]);
+
+        session_start();
+    }
+
+    include "config/db_connect.php";
+
+    // 2. Redirect authenticated users directly to their respective dashboard
+    if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
+        switch ($_SESSION["role"]) {
+            case "user":       header("Location: user/dashboard.php");       exit();
+            case "bidder":     header("Location: bidder/dashboard.php");     exit();
+            case "admin":      header("Location: admin/dashboard.php");      exit();
+            case "superadmin": header("Location: superadmin/dashboard.php"); exit();
         }
     }
 
     $error = "";
 
-    // Flash messages from accept_invitation.php and register.php
+    // 3. Session Timeout & Flash Message Handling
+    if (isset($_GET['error']) && $_GET['error'] === 'session_timeout') {
+        $error = "Your session expired due to inactivity. Please log in again.";
+    }
+
     $flash_success = $_SESSION['inv_success'] ?? '';
     unset($_SESSION['inv_success']);
 
-    if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        $username = trim($_POST['username']);
-        $password = $_POST['password'];
+    // 4. Authenticate Submission
+    if ($_SERVER["REQUEST_METHOD"] === "POST") {
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
 
-        $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        if (!empty($username) && !empty($password)) {
+            $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
+            if ($stmt) {
+                $stmt->bind_param("s", $username);
+                $stmt->execute();
+                $result = $stmt->get_result();
 
-        if ($result->num_rows == 1) {
-            $user = $result->fetch_assoc();
+                if ($result->num_rows === 1) {
+                    $user = $result->fetch_assoc();
 
-            if (password_verify($password, $user['password'])) {
-                $_SESSION['user_id'] = $user['user_id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['role'] = $user['role'];
+                    if (password_verify($password, $user['password'])) {
+                        // Regenerate Session ID to mitigate Session Fixation attacks
+                        session_regenerate_id(true);
 
-                switch($_SESSION["role"]){
-                    case "user":      header("Location: user/dashboard.php");      exit();
-                    case "bidder":    header("Location: bidder/dashboard.php");    exit();
-                    case "admin":     header("Location: admin/dashboard.php");     exit();
-                    case "superadmin":header("Location: superadmin/dashboard.php");exit();
+                        $_SESSION['user_id']       = $user['user_id'];
+                        $_SESSION['username']      = $user['username'];
+                        $_SESSION['role']          = $user['role'];
+                        $_SESSION['last_activity'] = time(); // Set initial activity timestamp
+
+                        switch ($_SESSION["role"]) {
+                            case "user":       header("Location: user/dashboard.php");       exit();
+                            case "bidder":     header("Location: bidder/dashboard.php");     exit();
+                            case "admin":      header("Location: admin/dashboard.php");      exit();
+                            case "superadmin": header("Location: superadmin/dashboard.php"); exit();
+                        }
+                    }
                 }
+                $stmt->close();
             }
         }
 
@@ -213,4 +243,3 @@ function togglePassword() {
 </script>
 </body>
 </html>
-
