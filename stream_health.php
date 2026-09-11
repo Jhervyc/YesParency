@@ -28,14 +28,21 @@ echo json_encode(['online' => stream_health_check(mediamtx_url($path))]);
 exit;
 
 /**
- * HEAD-check a URL with a short timeout. Never throws — any failure/timeout
+ * GET-check a URL with a short timeout. Never throws — any failure/timeout
  * is reported as offline.
+ *
+ * NOTE: MediaMTX's HLS manifest endpoint does a session-cookie handshake
+ * (first request 302s to itself with ?cookieCheck=1 and sets a cookie, the
+ * follow-up request returns 200 + the manifest). It only does this dance for
+ * GET — a bare HEAD gets a flat 404 even while the stream is live. So this
+ * must use GET (PHP's http wrapper follows the redirect and carries the
+ * Set-Cookie automatically); HEAD would report every live stream as offline.
  */
 function stream_health_check(string $url, int $timeoutSec = 3): bool
 {
     $context = stream_context_create([
         'http' => [
-            'method'        => 'HEAD',
+            'method'        => 'GET',
             'timeout'       => $timeoutSec,
             'ignore_errors' => true,
         ],
@@ -46,6 +53,14 @@ function stream_health_check(string $url, int $timeoutSec = 3): bool
         return false;
     }
 
-    $statusLine = is_array($headers) ? ($headers[0] ?? '') : $headers;
+    // get_headers() with follow_location adds one numeric key per response in
+    // the redirect chain (0 => first status line, 1 => second, ...) — take
+    // the last one, which is the final response after following redirects.
+    $statusLine = '';
+    foreach ($headers as $key => $value) {
+        if (is_int($key) && is_string($value) && str_starts_with($value, 'HTTP/')) {
+            $statusLine = $value;
+        }
+    }
     return (bool) preg_match('#^HTTP/\S+\s+2\d\d#', $statusLine);
 }

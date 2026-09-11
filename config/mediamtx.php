@@ -48,8 +48,9 @@ function _mediamtx_load_config(): array
 
     // Re-read from DB
     $defaults = [
-        'mediamtx_host'         => $_ENV['MEDIAMTX_HOST']         ?? 'localhost',
-        'mediamtx_hls_port'     => $_ENV['MEDIAMTX_HLS_PORT']     ?? '8888',
+        'mediamtx_scheme'       => $_ENV['MEDIAMTX_SCHEME']       ?? 'https',
+        'mediamtx_host'         => $_ENV['MEDIAMTX_HOST']         ?? 'stream.yesparency.site',
+        'mediamtx_hls_port'     => $_ENV['MEDIAMTX_HLS_PORT']     ?? '',
         'mediamtx_rtmp_port'    => $_ENV['MEDIAMTX_RTMP_PORT']    ?? '1935',
         'mediamtx_default_path' => $_ENV['MEDIAMTX_DEFAULT_PATH'] ?? 'live',
         'mediamtx_manifest'     => $_ENV['MEDIAMTX_MANIFEST']     ?? 'index.m3u8',
@@ -91,16 +92,22 @@ function _mediamtx_load_config(): array
  * Build the HLS playback URL for a given stream path.
  *
  * @param  string $streamPath  Value from bid_opening_sessions.stream_path (e.g. "live", "bid-opening-001")
- * @return string              Full URL for iframe src, e.g. "http://stream.example.com:8888/live/index.m3u8"
+ * @return string              Full URL for iframe src, e.g. "https://stream.yesparency.site/live/index.m3u8"
  */
 function mediamtx_url(string $streamPath): string
 {
-    $cfg      = _mediamtx_load_config();
-    $host     = rtrim($cfg['mediamtx_host'], '/');
-    $port     = (int)($cfg['mediamtx_hls_port'] ?: 8888);
+    $cfg    = _mediamtx_load_config();
+    $scheme = $cfg['mediamtx_scheme'] ?: 'https';
+    $host   = rtrim($cfg['mediamtx_host'], '/');
+
+    // Blank/zero HLS port means "no port in the URL" — the standard scheme
+    // port (443 for https, 80 for http) applies, as with a DNS + TLS setup.
+    $rawPort    = trim((string)($cfg['mediamtx_hls_port'] ?? ''));
+    $portSuffix = ($rawPort !== '' && (int)$rawPort > 0) ? ':' . (int)$rawPort : '';
+
     $path     = ltrim($streamPath, '/');
     $manifest = ltrim($cfg['mediamtx_manifest'] ?? 'index.m3u8', '/');
-    return "http://{$host}:{$port}/{$path}/{$manifest}";
+    return "{$scheme}://{$host}{$portSuffix}/{$path}/{$manifest}";
 }
 
 /**

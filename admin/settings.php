@@ -8,8 +8,9 @@ $admin_role = $_SESSION['role'] ?? 'admin';
 // LIVE CONFIG — seed defaults into system_settings if not yet present
 // ─────────────────────────────────────────────────────────────────────────────
 $live_defaults = [
-    'mediamtx_host'         => $_ENV['MEDIAMTX_HOST']         ?? 'localhost',
-    'mediamtx_hls_port'     => $_ENV['MEDIAMTX_HLS_PORT']     ?? '8888',
+    'mediamtx_scheme'       => $_ENV['MEDIAMTX_SCHEME']       ?? 'https',
+    'mediamtx_host'         => $_ENV['MEDIAMTX_HOST']         ?? 'stream.yesparency.site',
+    'mediamtx_hls_port'     => $_ENV['MEDIAMTX_HLS_PORT']     ?? '',
     'mediamtx_rtmp_port'    => $_ENV['MEDIAMTX_RTMP_PORT']    ?? '1935',
     'mediamtx_default_path' => $_ENV['MEDIAMTX_DEFAULT_PATH'] ?? 'live',
     'mediamtx_manifest'     => $_ENV['MEDIAMTX_MANIFEST']     ?? 'index.m3u8',
@@ -64,13 +65,29 @@ if (isset($_GET['live_action'])) {
             $val = trim($data[$key] ?? '');
 
             // Basic validation
-            if (in_array($key, ['mediamtx_hls_port', 'mediamtx_rtmp_port'], true)) {
+            if ($key === 'mediamtx_hls_port') {
+                // Optional — blank means "no port in the URL" (standard 443/80 applies).
+                if ($val !== '') {
+                    $port = (int)$val;
+                    if ($port < 1 || $port > 65535) {
+                        $errors[] = "$key must be a valid port (1–65535), or left blank.";
+                        continue;
+                    }
+                    $val = (string)$port;
+                }
+            } elseif ($key === 'mediamtx_rtmp_port') {
                 $port = (int)$val;
                 if ($port < 1 || $port > 65535) {
                     $errors[] = "$key must be a valid port (1–65535).";
                     continue;
                 }
                 $val = (string)$port;
+            } elseif ($key === 'mediamtx_scheme') {
+                $val = strtolower($val);
+                if (!in_array($val, ['http', 'https'], true)) {
+                    $errors[] = "mediamtx_scheme must be either 'http' or 'https'.";
+                    continue;
+                }
             } elseif ($key === 'mediamtx_default_path') {
                 $val = ltrim($val, '/');
                 if ($val === '') {
@@ -1174,6 +1191,20 @@ include("components/topbar.php");
                     </div>
 
                     <div class="live-field-group">
+                        <label class="live-field-label" for="liveScheme">
+                            <i class="bi bi-shield-lock"></i> Scheme
+                        </label>
+                        <div class="live-field-wrap">
+                            <i class="bi bi-shield-lock prefix-icon"></i>
+                            <select id="liveScheme" class="live-field-input">
+                                <option value="https">HTTPS</option>
+                                <option value="http">HTTP</option>
+                            </select>
+                        </div>
+                        <span class="live-field-hint">Use HTTPS for a DNS name with a TLS certificate.</span>
+                    </div>
+
+                    <div class="live-field-group">
                         <label class="live-field-label" for="liveDefaultPath">
                             <i class="bi bi-signpost-split"></i> Default Stream Path
                         </label>
@@ -1192,9 +1223,9 @@ include("components/topbar.php");
                         <div class="live-field-wrap">
                             <i class="bi bi-ethernet prefix-icon"></i>
                             <input type="number" id="liveHlsPort" class="live-field-input"
-                                   placeholder="8888" min="1" max="65535" autocomplete="off">
+                                   placeholder="leave blank for 443/80" min="1" max="65535" autocomplete="off">
                         </div>
-                        <span class="live-field-hint">Port for HLS playback (default: 8888).</span>
+                        <span class="live-field-hint">Port for HLS playback. Leave empty to use the standard HTTPS/HTTP port (443/80) — e.g. for a DNS name behind TLS.</span>
                     </div>
 
                     <div class="live-field-group">
@@ -2044,6 +2075,7 @@ function escHtml(str) {
 (function () {
     // ── Field refs ────────────────────────────────────────────────────────────
     const hostEl     = () => document.getElementById('liveHost');
+    const schemeEl   = () => document.getElementById('liveScheme');
     const pathEl     = () => document.getElementById('liveDefaultPath');
     const hlsPortEl  = () => document.getElementById('liveHlsPort');
     const rtmpEl     = () => document.getElementById('liveRtmpPort');
@@ -2056,11 +2088,13 @@ function escHtml(str) {
     // ── URL preview ───────────────────────────────────────────────────────────
     function updatePreview() {
         const host     = (hostEl()?.value || '').replace(/\/+$/, '');
+        const scheme   = schemeEl()?.value || 'https';
         const path     = (pathEl()?.value || '').replace(/^\/+/, '');
-        const port     = hlsPortEl()?.value || '8888';
+        const port     = (hlsPortEl()?.value || '').trim();
+        const portSuffix = port ? `:${port}` : '';
         const manifest = (manifestEl()?.value || 'index.m3u8').replace(/^\/+/, '');
         if (host && path) {
-            previewEl().textContent = `http://${host}:${port}/${path}/${manifest}`;
+            previewEl().textContent = `${scheme}://${host}${portSuffix}/${path}/${manifest}`;
         } else {
             previewEl().textContent = '—';
         }
@@ -2074,8 +2108,9 @@ function escHtml(str) {
                 if (!data.success) return;
                 const c = data.config;
                 if (hostEl())     hostEl().value     = c.mediamtx_host         ?? '';
+                if (schemeEl())   schemeEl().value    = c.mediamtx_scheme      ?? 'https';
                 if (pathEl())     pathEl().value     = c.mediamtx_default_path ?? '';
-                if (hlsPortEl())  hlsPortEl().value   = c.mediamtx_hls_port     ?? '8888';
+                if (hlsPortEl())  hlsPortEl().value   = c.mediamtx_hls_port     ?? '';
                 if (rtmpEl())     rtmpEl().value      = c.mediamtx_rtmp_port    ?? '1935';
                 if (manifestEl()) manifestEl().value  = c.mediamtx_manifest    ?? 'index.m3u8';
                 updatePreview();
@@ -2090,6 +2125,7 @@ function escHtml(str) {
 
         const payload = {
             mediamtx_host:         hostEl()?.value.trim()     ?? '',
+            mediamtx_scheme:       schemeEl()?.value.trim()   ?? 'https',
             mediamtx_default_path: pathEl()?.value.trim()     ?? '',
             mediamtx_hls_port:     hlsPortEl()?.value.trim()  ?? '',
             mediamtx_rtmp_port:    rtmpEl()?.value.trim()     ?? '',
@@ -2131,6 +2167,7 @@ function escHtml(str) {
         ['liveHost', 'liveDefaultPath', 'liveHlsPort', 'liveManifest'].forEach(id => {
             document.getElementById(id)?.addEventListener('input', updatePreview);
         });
+        document.getElementById('liveScheme')?.addEventListener('change', updatePreview);
 
         // Load config when Live tab is first opened or already active
         if (document.querySelector('#stab-live.active')) {
