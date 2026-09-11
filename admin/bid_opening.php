@@ -160,8 +160,8 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../dashboard.css">
+    <link rel="stylesheet" href="../css/dashboard-shell.css">
     <style>
         /* ── Stat Cards ── */
         .bo-stat-grid {
@@ -818,11 +818,34 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
         document.getElementById('openNowPill').textContent = procTitle + '  ·  ' + refNo;
         document.getElementById('openNowStreamPath').textContent = streamPath;
 
-        document.getElementById('openNowIframe').src = streamUrl;
-        document.getElementById('openNowStreamPreview').style.display = 'block';
-        document.getElementById('openNowNoStream').style.display = 'none';
+        const previewEl  = document.getElementById('openNowStreamPreview');
+        const noStreamEl = document.getElementById('openNowNoStream');
+        const iframeEl   = document.getElementById('openNowIframe');
+
+        iframeEl.src = '';
+        previewEl.style.display  = 'none';
+        noStreamEl.style.display = 'flex';
+        noStreamEl.querySelector('span').textContent = 'Checking stream status…';
 
         document.getElementById('openNowModal').classList.add('open');
+
+        // Server-side health check instead of assuming the stream is up.
+        fetch('../stream_health.php?path=' + encodeURIComponent(streamPath))
+            .then(r => r.json())
+            .then(data => {
+                if (_openNowSessionId !== sessionId) return; // modal moved on before response
+                if (data.online) {
+                    iframeEl.src = streamUrl;
+                    previewEl.style.display  = 'block';
+                    noStreamEl.style.display = 'none';
+                } else {
+                    noStreamEl.querySelector('span').textContent = 'Stream not live yet — start OBS before opening the session.';
+                }
+            })
+            .catch(() => {
+                if (_openNowSessionId !== sessionId) return;
+                noStreamEl.querySelector('span').textContent = 'Unable to reach stream server.';
+            });
     }
 
     function closeOpenNowModal() {

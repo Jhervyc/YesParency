@@ -105,129 +105,11 @@ $business_types = [
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-<?php require_once __DIR__ . '/includes/navbar.php'; render_public_navbar_css(); ?>
-<style>
-* { box-sizing: border-box; }
-body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
-
-.auth-page {
-    min-height: 100vh;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 100px 16px 60px;
-}
-
-.auth-card {
-    background: #fff; border: 1px solid #e2ece6;
-    border-radius: 20px; padding: 40px 36px;
-    width: 100%; max-width: 620px;
-    box-shadow: 0 4px 32px rgba(6,37,27,.08);
-}
-
-.auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
-.auth-logo img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
-.auth-logo-name { font-size: 16px; font-weight: 800; color: #06251b; font-family: 'Space Grotesk', sans-serif; }
-.auth-logo-sub  { font-size: 11px; color: #88968d; }
-
-.auth-card h3 { font-size: 22px; font-weight: 800; color: #06251b; margin: 0 0 4px; font-family: 'Space Grotesk', sans-serif; }
-.auth-card > p { font-size: 13px; color: #63736a; margin: 0 0 24px; }
-
-.alert-error {
-    background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;
-    border-radius: 10px; padding: 10px 14px; font-size: 12.5px; font-weight: 600;
-    margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
-}
-.alert-success {
-    background: #eaf7ee; color: #1f7a3d; border: 1px solid #c9e8d3;
-    border-radius: 10px; padding: 12px 16px; font-size: 13px; font-weight: 600;
-    margin-bottom: 18px; display: flex; align-items: flex-start; gap: 10px;
-    line-height: 1.6;
-}
-.alert-success i { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
-
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 520px) { .form-row { grid-template-columns: 1fr; } }
-
-.form-group { margin-bottom: 16px; }
-.form-group label { display: block; font-size: 12px; font-weight: 700; color: #06251b; margin-bottom: 6px; }
-.form-group label .opt { color: #88968d; font-weight: 400; font-size: 11px; margin-left: 3px; }
-
-.input-wrapper { position: relative; display: flex; align-items: center; }
-.input-icon-left { position: absolute; left: 13px; color: #88968d; font-size: 14px; pointer-events: none; }
-.input-wrapper input,
-.input-wrapper select,
-.input-wrapper textarea {
-    width: 100%; padding: 10px 14px 10px 38px;
-    border: 1.5px solid #d4e0d8; border-radius: 10px;
-    font-size: 13px; font-family: 'Poppins', sans-serif;
-    color: #1a1a1a; outline: none; background: #fff;
-    transition: border-color .15s, box-shadow .15s;
-}
-.input-wrapper input:focus,
-.input-wrapper select:focus,
-.input-wrapper textarea:focus {
-    border-color: #1f7a3d; box-shadow: 0 0 0 3px rgba(31,122,61,.1);
-}
-.input-wrapper.textarea-wrap { align-items: flex-start; }
-.input-wrapper.textarea-wrap i { margin-top: 12px; }
-.input-wrapper textarea { resize: vertical; min-height: 78px; padding-top: 10px; }
-.input-wrapper select { padding-left: 38px; cursor: pointer; appearance: none; }
-
-.info-note {
-    background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #ffc107;
-    border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #78350f;
-    margin-bottom: 22px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.6;
-}
-.info-note i { font-size: 15px; color: #ffc107; flex-shrink: 0; margin-top: 1px; }
-
-.btn-register {
-    width: 100%; background: #06251b; color: #ffc107; border: none;
-    padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 800;
-    font-family: 'Poppins', sans-serif; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    transition: all .2s; margin-top: 6px;
-}
-.btn-register:hover { background: #144937; color: #fff; transform: translateY(-1px); }
-
-.section-divider {
-    font-size: 10.5px; font-weight: 800; color: #88968d; text-transform: uppercase;
-    letter-spacing: .08em; margin: 6px 0 14px;
-    display: flex; align-items: center; gap: 10px;
-}
-.section-divider::before, .section-divider::after {
-    content: ''; flex: 1; height: 1px; background: #e2ece6;
-}
-
-.login-footer { text-align: center; margin-top: 20px; font-size: 13px; color: #63736a; }
-.login-footer a { color: #1f7a3d; font-weight: 700; text-decoration: none; }
-.login-footer a:hover { text-decoration: underline; }
-
-.steps-strip {
-    display: flex; align-items: center; gap: 0; margin-bottom: 28px;
-    background: #f4f8f5; border-radius: 12px; padding: 14px 16px;
-    counter-reset: step;
-}
-.step-item {
-    display: flex; align-items: center; gap: 8px; flex: 1;
-    font-size: 11.5px; font-weight: 600; color: #63736a; position: relative;
-}
-.step-item:not(:last-child)::after {
-    content: ''; position: absolute; right: 0; top: 50%; transform: translateY(-50%);
-    width: 1px; height: 24px; background: #d4e0d8;
-}
-.step-num {
-    width: 22px; height: 22px; border-radius: 50%; background: #06251b; color: #ffc107;
-    font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; font-family: 'Space Grotesk', sans-serif;
-}
-
-@media (max-width: 520px) {
-    .auth-card { padding: 28px 18px; }
-    .steps-strip { flex-direction: column; gap: 8px; }
-    .step-item:not(:last-child)::after { display: none; }
-}
-</style>
+    <!-- Custom CSS: base -> shared components -> page-specific -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/pages/register.css">
+    <?php require_once __DIR__ . '/includes/navbar.php'; ?>
 </head>
 <body>
 
@@ -278,7 +160,7 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="company_name">Company / Organization <span style="color:#e53935;">*</span></label>
+                    <label for="company_name">Company / Organization <span class="field-required">*</span></label>
                     <div class="input-wrapper">
                         <i class="bi bi-building input-icon-left"></i>
                         <input type="text" id="company_name" name="company_name"
@@ -287,7 +169,7 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="contact_person">Contact Person <span style="color:#e53935;">*</span></label>
+                    <label for="contact_person">Contact Person <span class="field-required">*</span></label>
                     <div class="input-wrapper">
                         <i class="bi bi-person input-icon-left"></i>
                         <input type="text" id="contact_person" name="contact_person"
@@ -299,7 +181,7 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="email">Email Address <span style="color:#e53935;">*</span></label>
+                    <label for="email">Email Address <span class="field-required">*</span></label>
                     <div class="input-wrapper">
                         <i class="bi bi-envelope input-icon-left"></i>
                         <input type="email" id="email" name="email"
@@ -320,7 +202,7 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="business_type">Business Type <span style="color:#e53935;">*</span></label>
+                    <label for="business_type">Business Type <span class="field-required">*</span></label>
                     <div class="input-wrapper">
                         <i class="bi bi-briefcase input-icon-left"></i>
                         <select id="business_type" name="business_type" required>
@@ -354,7 +236,7 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
                 </div>
             </div>
 
-            <button type="submit" class="btn-register">
+            <button type="submit" class="btn-auth-submit">
                 <i class="bi bi-send-fill"></i> Submit Access Request
             </button>
 

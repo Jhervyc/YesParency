@@ -1,0 +1,22 @@
+/* ==========================================================================
+   base.css — reset & foundational rules shared by every page.
+   Load order: external fonts/icons -> base.css -> components.css -> page css.
+   Keep this file minimal: no colors, no layout, nothing page-specific.
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+    min-height: 100vh;
+}

@@ -207,955 +207,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <!-- Shared Stylesheets -->
-    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../dashboard.css">
-    <style>
-        /* ── Base Container & Reset ── */
-        * {
-            box-sizing: border-box;
-        }
-
-        .dash-content {
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-
-        .vp-back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #06251b;
-            font-size: 12.5px;
-            font-weight: 700;
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            padding: 7px 14px;
-            border-radius: 10px;
-            text-decoration: none;
-            transition: all .2s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
-
-        .vp-back-link:hover {
-            background: #06251b;
-            color: #ffc107;
-            border-color: #06251b;
-        }
-
-        /* ── Hero Header Banner (Clean Gradient Hero) ── */
-        .vp-hero-card {
-            background: linear-gradient(135deg, #06251b 0%, #0c3d2c 60%, #14593f 100%);
-            border-radius: 20px;
-            padding: 28px 32px;
-            color: #ffffff;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(6, 37, 27, 0.16);
-            margin-bottom: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .vp-hero-card::after {
-            content: '';
-            position: absolute;
-            top: -50px;
-            right: -50px;
-            width: 240px;
-            height: 240px;
-            background: radial-gradient(circle, rgba(255, 193, 7, 0.14) 0%, rgba(255, 255, 255, 0) 70%);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-
-        .vp-hero-title {
-            font-size: 24px;
-            font-weight: 800;
-            color: #ffffff;
-            line-height: 1.3;
-            margin-bottom: 8px;
-            letter-spacing: -0.2px;
-        }
-
-        .vp-hero-subtitle {
-            font-size: 13.5px;
-            color: #d1e5db;
-            margin: 0;
-            max-width: 820px;
-            line-height: 1.6;
-        }
-
-        /* ── Two-Column Layout (1.7fr + 1fr) ── */
-        .vp-grid-layout {
-            display: grid;
-            grid-template-columns: 1.7fr 1fr;
-            gap: 24px;
-            align-items: start;
-            margin-bottom: 30px;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .vp-left-col {
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .vp-right-col {
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        @media (max-width: 1040px) {
-            .vp-grid-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* ── Step Cards ── */
-        .submit-step-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            margin-bottom: 22px;
-            overflow: hidden;
-            min-width: 0;
-            max-width: 100%;
-            transition: border-color .2s;
-        }
-
-        .submit-step-card:focus-within {
-            border-color: #1f7a3d;
-        }
-
-        .step-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 18px 22px;
-            border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb;
-            gap: 14px;
-            flex-wrap: wrap;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .step-header-left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            min-width: 0;
-            flex: 1 1 auto;
-        }
-
-        .step-badge {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: #06251b;
-            color: #ffc107;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-            font-weight: 800;
-            font-family: 'Space Grotesk', sans-serif;
-            flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(6, 37, 27, 0.15);
-        }
-
-        .step-title-text {
-            min-width: 0;
-            flex: 1 1 auto;
-        }
-
-        .step-title-text h4 {
-            font-size: 15px;
-            font-weight: 800;
-            color: #06251b;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .step-title-text p {
-            font-size: 12px;
-            color: #6c776e;
-            margin: 3px 0 0;
-        }
-
-        .step-card-body {
-            padding: 22px;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        /* ── Input Form Elements ── */
-        .form-grid-2col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            min-width: 0;
-        }
-
-        @media (max-width: 680px) {
-            .form-grid-2col {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .field-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-bottom: 14px;
-        }
-
-        .field-group.full-width {
-            grid-column: 1 / -1;
-            margin-bottom: 14px;
-        }
-
-        .field-label {
-            font-size: 12px;
-            font-weight: 700;
-            color: #2b3a31;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .field-label .req {
-            color: #e53935;
-        }
-
-        .input-icon-box {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .input-icon-box i.input-icon {
-            position: absolute;
-            left: 14px;
-            color: #88968d;
-            font-size: 15px;
-            pointer-events: none;
-            transition: color .15s;
-        }
-
-        .input-icon-box input,
-        .input-icon-box select,
-        .input-icon-box textarea {
-            width: 100%;
-            background: #ffffff;
-            border: 1.5px solid #dce4e0;
-            border-radius: 10px;
-            padding: 10px 14px 10px 40px;
-            font-size: 13px;
-            font-family: inherit;
-            color: #06251b;
-            font-weight: 500;
-            transition: all .2s ease;
-            outline: none;
-        }
-
-        .input-icon-box select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236c776e' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 14px center;
-            cursor: pointer;
-        }
-
-        .input-icon-box input:focus,
-        .input-icon-box select:focus,
-        .input-icon-box textarea:focus {
-            border-color: #1f7a3d;
-            box-shadow: 0 0 0 3px rgba(31, 122, 61, 0.12);
-            background: #fafcfb;
-        }
-
-        .input-icon-box input:focus + i.input-icon,
-        .input-icon-box select:focus + i.input-icon {
-            color: #1f7a3d;
-        }
-
-        /* ── Modern Document Upload Cards ── */
-        .doc-upload-card {
-            background: #ffffff;
-            border: 1.5px solid #e2e9e5;
-            border-radius: 14px;
-            padding: 16px;
-            margin-bottom: 14px;
-            transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-        }
-
-        .doc-upload-card:hover {
-            border-color: #b3cdc0;
-            box-shadow: 0 4px 12px rgba(6, 37, 27, 0.04);
-        }
-
-        .doc-upload-card.has-file {
-            background: #f7faf8;
-            border-color: #1f7a3d;
-            box-shadow: 0 2px 8px rgba(31, 122, 61, 0.08);
-        }
-
-        .doc-card-head {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 10px;
-        }
-
-        .doc-card-info {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            flex: 1 1 auto;
-            min-width: 0;
-        }
-
-        .doc-icon-wrap {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            background: #eef7f1;
-            color: #1f7a3d;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            flex-shrink: 0;
-        }
-
-        .doc-upload-card.has-file .doc-icon-wrap {
-            background: #1f7a3d;
-            color: #ffffff;
-        }
-
-        .doc-text-wrap {
-            min-width: 0;
-            flex: 1 1 auto;
-        }
-
-        .doc-title {
-            font-size: 13.5px;
-            font-weight: 700;
-            color: #06251b;
-            margin-bottom: 2px;
-        }
-
-        .doc-desc {
-            font-size: 11.5px;
-            color: #6c776e;
-            line-height: 1.4;
-        }
-
-        .doc-status-badge {
-            font-size: 10.5px;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            flex-shrink: 0;
-            background: #f0f4f2;
-            color: #63736a;
-        }
-
-        .doc-upload-card.has-file .doc-status-badge {
-            background: #e4f5ea;
-            color: #1f7a3d;
-        }
-
-        .doc-drop-trigger {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #fafcfb;
-            border: 1.5px dashed #cfdbd4;
-            border-radius: 10px;
-            padding: 10px 14px;
-            cursor: pointer;
-            transition: all .2s;
-            margin-top: 8px;
-            user-select: none;
-        }
-
-        .doc-drop-trigger:hover,
-        .doc-drop-trigger.dragover {
-            border-color: #1f7a3d;
-            background: #f0f7f2;
-        }
-
-        .doc-trigger-text {
-            font-size: 12px;
-            font-weight: 600;
-            color: #55665a;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .doc-browse-btn {
-            background: #06251b;
-            color: #ffc107;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 5px 12px;
-            border-radius: 7px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            flex-shrink: 0;
-            transition: all .15s;
-        }
-
-        .doc-drop-trigger:hover .doc-browse-btn {
-            background: #144937;
-            color: #ffffff;
-        }
-
-        /* ── File Preview Item ── */
-        .file-preview-pill {
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            background: #ffffff;
-            border: 1px solid #d7e4dc;
-            border-radius: 8px;
-            padding: 8px 12px;
-            margin-top: 8px;
-            font-size: 12px;
-            animation: fadeInFile .2s ease;
-        }
-
-        .doc-upload-card.has-file .file-preview-pill {
-            display: flex;
-        }
-
-        .doc-upload-card.has-file .doc-drop-trigger {
-            display: none;
-        }
-
-        @keyframes fadeInFile {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .file-pill-left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 0;
-            overflow: hidden;
-        }
-
-        .file-pill-left i {
-            color: #1f7a3d;
-            font-size: 15px;
-            flex-shrink: 0;
-        }
-
-        .file-pill-name {
-            font-weight: 700;
-            color: #06251b;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .file-pill-size {
-            font-size: 10.5px;
-            color: #88968d;
-            background: #f0f4f2;
-            padding: 2px 6px;
-            border-radius: 4px;
-            flex-shrink: 0;
-        }
-
-        .file-remove-btn {
-            background: none;
-            border: none;
-            color: #c23b3b;
-            cursor: pointer;
-            padding: 4px;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all .15s;
-            flex-shrink: 0;
-        }
-
-        .file-remove-btn:hover {
-            color: #d32f2f;
-            transform: scale(1.15);
-        }
-
-        /* ── STEP 3: Sworn Declarations ── */
-        .security-notice-card {
-            background: #f4faf6;
-            border: 1px solid #cde6d5;
-            border-radius: 12px;
-            padding: 14px 16px;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 18px;
-        }
-
-        .security-notice-card i {
-            font-size: 20px;
-            color: #1f7a3d;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
-
-        .security-notice-card p {
-            font-size: 12px;
-            color: #294734;
-            line-height: 1.5;
-            margin: 0;
-        }
-
-        .declaration-item-card {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            background: #fafcfb;
-            border: 1px solid #eaeeec;
-            border-radius: 12px;
-            padding: 14px 16px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all .15s ease;
-            user-select: none;
-        }
-
-        .declaration-item-card:hover {
-            border-color: #b0c9bb;
-            background: #f7fbf8;
-        }
-
-        .declaration-item-card input[type="checkbox"] {
-            margin-top: 3px;
-            width: 17px;
-            height: 17px;
-            accent-color: #1f7a3d;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-
-        .declaration-content {
-            font-size: 12.5px;
-            color: #3b4d42;
-            line-height: 1.45;
-        }
-
-        .declaration-content strong {
-            display: block;
-            color: #06251b;
-            font-size: 13px;
-            margin-bottom: 2px;
-        }
-
-        /* ── Submit Action Bar ── */
-        .form-actions-bar {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            flex-wrap: wrap;
-            margin-top: 24px;
-            padding-top: 20px;
-            border-top: 1px solid #edf1ee;
-        }
-
-        .btn-submit-proposal {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: #06251b;
-            color: #ffc107;
-            font-size: 14px;
-            font-weight: 800;
-            padding: 13px 28px;
-            border-radius: 12px;
-            border: none;
-            cursor: pointer;
-            transition: all .2s ease;
-            box-shadow: 0 4px 14px rgba(6, 37, 27, 0.18);
-        }
-
-        .btn-submit-proposal:hover {
-            background: #144937;
-            color: #ffffff;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(6, 37, 27, 0.26);
-        }
-
-        .btn-cancel-proposal {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            background: #ffffff;
-            color: #6c776e;
-            border: 1px solid #eaeeec;
-            font-size: 13px;
-            font-weight: 700;
-            padding: 12px 20px;
-            border-radius: 12px;
-            text-decoration: none;
-            transition: all .15s ease;
-        }
-
-        .btn-cancel-proposal:hover {
-            background: #f7faf8;
-            color: #c23b3b;
-            border-color: #f0cece;
-        }
-
-        /* ── Right Column Sidebar Summary Card ── */
-        .sidebar-summary-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            margin-bottom: 22px;
-            overflow: hidden;
-        }
-
-        .summary-card-head {
-            background: #06251b;
-            color: #ffffff;
-            padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .summary-card-head h4 {
-            font-size: 14px;
-            font-weight: 800;
-            color: #ffc107;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .summary-card-body {
-            padding: 20px;
-        }
-
-        /* ── Live Completion Progress ── */
-        .progress-block {
-            margin-bottom: 20px;
-        }
-
-        .progress-lbl-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 12px;
-            font-weight: 700;
-            color: #06251b;
-            margin-bottom: 6px;
-        }
-
-        .progress-track {
-            width: 100%;
-            height: 8px;
-            background: #eaeeec;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #1f7a3d 0%, #2ecc71 100%);
-            width: 0%;
-            border-radius: 10px;
-            transition: width .3s ease;
-        }
-
-        /* ── Checklist ── */
-        .checklist-group {
-            display: flex;
-            flex-direction: column;
-            gap: 9px;
-            margin-bottom: 20px;
-        }
-
-        .check-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 12px;
-            color: #63736a;
-            font-weight: 600;
-            transition: color .15s;
-        }
-
-        .check-item.done {
-            color: #06251b;
-        }
-
-        .check-dot {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #f0f4f2;
-            border: 1.5px solid #cfdbd4;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            color: transparent;
-            flex-shrink: 0;
-            transition: all .2s;
-        }
-
-        .check-item.done .check-dot {
-            background: #1f7a3d;
-            border-color: #1f7a3d;
-            color: #ffffff;
-        }
-
-        /* ── 4-Step Timeline ── */
-        .timeline-guide {
-            position: relative;
-            padding-left: 20px;
-        }
-
-        .timeline-guide::before {
-            content: '';
-            position: absolute;
-            top: 6px;
-            bottom: 6px;
-            left: 5px;
-            width: 2px;
-            background: #eaeeec;
-        }
-
-        .timeline-guide-step {
-            position: relative;
-            margin-bottom: 14px;
-        }
-
-        .timeline-guide-step:last-child {
-            margin-bottom: 0;
-        }
-
-        .timeline-guide-dot {
-            position: absolute;
-            left: -19px;
-            top: 4px;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #ffffff;
-            border: 2.5px solid #1f7a3d;
-        }
-
-        .timeline-guide-title {
-            font-size: 12px;
-            font-weight: 700;
-            color: #06251b;
-        }
-
-        .timeline-guide-sub {
-            font-size: 11px;
-            color: #88968d;
-            margin-top: 1px;
-        }
-
-        /* ── Error Banner ── */
-        .sb-error-banner {
-            background: #fdf2f2;
-            border: 1px solid #f8d7da;
-            border-left: 4px solid #dc3545;
-            border-radius: 14px;
-            padding: 16px 20px;
-            margin-bottom: 22px;
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            color: #842029;
-            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.06);
-        }
-
-        .sb-error-banner i {
-            font-size: 20px;
-            color: #dc3545;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
-
-        .sb-error-banner ul {
-            margin: 6px 0 0;
-            padding-left: 18px;
-            font-size: 12.5px;
-            line-height: 1.6;
-        }
-
-        /* ── Application Submitted / Status View Styles ── */
-        .status-hero-card {
-            background: linear-gradient(135deg, #06251b 0%, #0c3d2c 60%, #14593f 100%);
-            border-radius: 20px;
-            padding: 30px;
-            color: #ffffff;
-            margin-bottom: 24px;
-            box-shadow: 0 8px 24px rgba(6, 37, 27, 0.16);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .status-hero-card.approved {
-            background: linear-gradient(135deg, #0c4d29 0%, #146c3b 60%, #1f8a4c 100%);
-        }
-
-        .status-hero-card.rejected {
-            background: linear-gradient(135deg, #4d0c15 0%, #731722 60%, #992330 100%);
-        }
-
-        .status-tracker-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            padding: 26px;
-            margin-bottom: 24px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-        }
-
-        .tracker-steps-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            position: relative;
-            margin-top: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .tracker-steps-row {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
-        }
-
-        .t-step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            position: relative;
-        }
-
-        .t-step-circle {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            background: #f0f4f2;
-            border: 2px solid #cfdbd4;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            color: #88968d;
-            margin-bottom: 8px;
-            font-weight: 800;
-            font-family: 'Space Grotesk', sans-serif;
-            transition: all .2s;
-            z-index: 2;
-        }
-
-        .t-step.completed .t-step-circle {
-            background: #1f7a3d;
-            border-color: #1f7a3d;
-            color: #ffffff;
-        }
-
-        .t-step.active .t-step-circle {
-            background: #ffc107;
-            border-color: #e0a800;
-            color: #06251b;
-            box-shadow: 0 0 0 4px rgba(255, 193, 7, 0.25);
-        }
-
-        .t-step-title {
-            font-size: 12px;
-            font-weight: 700;
-            color: #06251b;
-        }
-
-        .t-step-desc {
-            font-size: 10.5px;
-            color: #88968d;
-            margin-top: 2px;
-        }
-
-        /* ── Info & Summary Grid in Status View ── */
-        .info-summary-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .info-summary-table td {
-            padding: 10px 14px;
-            border-bottom: 1px solid #f0f4f2;
-            font-size: 13px;
-        }
-
-        .info-summary-table td:first-child {
-            width: 35%;
-            font-weight: 700;
-            color: #63736a;
-            background: #fafcfb;
-        }
-
-        .info-summary-table td:last-child {
-            font-weight: 600;
-            color: #06251b;
-        }
-
-        /* ── Documents Review Table ── */
-        .docs-review-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 12px;
-            margin-top: 14px;
-        }
-
-        .doc-review-pill {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: #fafcfb;
-            border: 1px solid #e4eae6;
-            border-radius: 12px;
-            padding: 12px 14px;
-        }
-
-        .doc-review-pill i {
-            font-size: 20px;
-            color: #1f7a3d;
-            flex-shrink: 0;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/dashboard-shell.css">
+    <link rel="stylesheet" href="../css/pages/user-bidder-registration.css">
 </head>
 <body class="dash-body">
 
@@ -1182,7 +236,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
             <div class="sb-error-banner">
                 <i class="bi bi-exclamation-octagon-fill"></i>
                 <div>
-                    <strong style="font-size:14px;">Please correct the following errors before submitting:</strong>
+                    <strong class="fs-14">Please correct the following errors before submitting:</strong>
                     <ul>
                         <?php foreach ($errors as $err): ?>
                             <li><?= htmlspecialchars($err) ?></li>
@@ -1314,7 +368,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                                     <div class="doc-card-info">
                                         <div class="doc-icon-wrap"><i class="bi bi-file-earmark-text"></i></div>
                                         <div class="doc-text-wrap">
-                                            <div class="doc-title">DTI / SEC / CDA Registration Certificate <span style="color:#e53935;">*</span></div>
+                                            <div class="doc-title">DTI / SEC / CDA Registration Certificate <span class="req">*</span></div>
                                             <div class="doc-desc">Certificate of business name or incorporation registration</div>
                                         </div>
                                     </div>
@@ -1323,7 +377,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                                 <label class="doc-drop-trigger">
                                     <span class="doc-trigger-text"><i class="bi bi-cloud-arrow-up"></i> Click or drag file here to upload (PDF, JPG, PNG)</span>
                                     <span class="doc-browse-btn"><i class="bi bi-upload"></i> Browse File</span>
-                                    <input type="file" name="dti-sec-cda-certification" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" required onchange="handleDocChange(this, 'card_dti', 'badge_dti', 'prev_dti', 'name_dti', 'size_dti')">
+                                    <input type="file" name="dti-sec-cda-certification" accept=".pdf,.jpg,.jpeg,.png" required onchange="handleDocChange(this, 'card_dti', 'badge_dti', 'prev_dti', 'name_dti', 'size_dti')">
                                 </label>
                                 <div class="file-preview-pill" id="prev_dti">
                                     <div class="file-pill-left">
@@ -1343,7 +397,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                                     <div class="doc-card-info">
                                         <div class="doc-icon-wrap"><i class="bi bi-building"></i></div>
                                         <div class="doc-text-wrap">
-                                            <div class="doc-title">Mayor's / Business Permit (Current Year) <span style="color:#e53935;">*</span></div>
+                                            <div class="doc-title">Mayor's / Business Permit (Current Year) <span class="req">*</span></div>
                                             <div class="doc-desc">Valid local government business permit or official receipt for renewal</div>
                                         </div>
                                     </div>
@@ -1352,7 +406,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                                 <label class="doc-drop-trigger">
                                     <span class="doc-trigger-text"><i class="bi bi-cloud-arrow-up"></i> Click or drag file here to upload (PDF, JPG, PNG)</span>
                                     <span class="doc-browse-btn"><i class="bi bi-upload"></i> Browse File</span>
-                                    <input type="file" name="mayor-business-permit" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" required onchange="handleDocChange(this, 'card_mayor', 'badge_mayor', 'prev_mayor', 'name_mayor', 'size_mayor')">
+                                    <input type="file" name="mayor-business-permit" accept=".pdf,.jpg,.jpeg,.png" required onchange="handleDocChange(this, 'card_mayor', 'badge_mayor', 'prev_mayor', 'name_mayor', 'size_mayor')">
                                 </label>
                                 <div class="file-preview-pill" id="prev_mayor">
                                     <div class="file-pill-left">
@@ -1372,7 +426,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                                     <div class="doc-card-info">
                                         <div class="doc-icon-wrap"><i class="bi bi-receipt"></i></div>
                                         <div class="doc-text-wrap">
-                                            <div class="doc-title">BIR Certificate of Registration (Form 2303) <span style="color:#e53935;">*</span></div>
+                                            <div class="doc-title">BIR Certificate of Registration (Form 2303) <span class="req">*</span></div>
                                             <div class="doc-desc">Bureau of Internal Revenue taxpayer identification and registration form</div>
                                         </div>
                                     </div>
@@ -1381,7 +435,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                                 <label class="doc-drop-trigger">
                                     <span class="doc-trigger-text"><i class="bi bi-cloud-arrow-up"></i> Click or drag file here to upload (PDF, JPG, PNG)</span>
                                     <span class="doc-browse-btn"><i class="bi bi-upload"></i> Browse File</span>
-                                    <input type="file" name="bir-certificate" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" required onchange="handleDocChange(this, 'card_bir', 'badge_bir', 'prev_bir', 'name_bir', 'size_bir')">
+                                    <input type="file" name="bir-certificate" accept=".pdf,.jpg,.jpeg,.png" required onchange="handleDocChange(this, 'card_bir', 'badge_bir', 'prev_bir', 'name_bir', 'size_bir')">
                                 </label>
                                 <div class="file-preview-pill" id="prev_bir">
                                     <div class="file-pill-left">
@@ -1401,7 +455,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                                     <div class="doc-card-info">
                                         <div class="doc-icon-wrap"><i class="bi bi-patch-check"></i></div>
                                         <div class="doc-text-wrap">
-                                            <div class="doc-title">PhilGEPS Certificate of Registration <span style="color:#e53935;">*</span></div>
+                                            <div class="doc-title">PhilGEPS Certificate of Registration <span class="req">*</span></div>
                                             <div class="doc-desc">PhilGEPS Red or Platinum Certificate of Registration and Membership</div>
                                         </div>
                                     </div>
@@ -1410,7 +464,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                                 <label class="doc-drop-trigger">
                                     <span class="doc-trigger-text"><i class="bi bi-cloud-arrow-up"></i> Click or drag file here to upload (PDF, JPG, PNG)</span>
                                     <span class="doc-browse-btn"><i class="bi bi-upload"></i> Browse File</span>
-                                    <input type="file" name="philgeps-certificate" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" required onchange="handleDocChange(this, 'card_philgeps', 'badge_philgeps', 'prev_philgeps', 'name_philgeps', 'size_philgeps')">
+                                    <input type="file" name="philgeps-certificate" accept=".pdf,.jpg,.jpeg,.png" required onchange="handleDocChange(this, 'card_philgeps', 'badge_philgeps', 'prev_philgeps', 'name_philgeps', 'size_philgeps')">
                                 </label>
                                 <div class="file-preview-pill" id="prev_philgeps">
                                     <div class="file-pill-left">
@@ -1430,7 +484,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                                     <div class="doc-card-info">
                                         <div class="doc-icon-wrap"><i class="bi bi-person-badge"></i></div>
                                         <div class="doc-text-wrap">
-                                            <div class="doc-title">Valid Government-Issued ID <span style="color:#e53935;">*</span></div>
+                                            <div class="doc-title">Valid Government-Issued ID <span class="req">*</span></div>
                                             <div class="doc-desc">Current government photo ID of the authorized managing officer / signatory</div>
                                         </div>
                                     </div>
@@ -1439,7 +493,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                                 <label class="doc-drop-trigger">
                                     <span class="doc-trigger-text"><i class="bi bi-cloud-arrow-up"></i> Click or drag file here to upload (PDF, JPG, PNG)</span>
                                     <span class="doc-browse-btn"><i class="bi bi-upload"></i> Browse File</span>
-                                    <input type="file" name="goverment-id" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" required onchange="handleDocChange(this, 'card_govid', 'badge_govid', 'prev_govid', 'name_govid', 'size_govid')">
+                                    <input type="file" name="goverment-id" accept=".pdf,.jpg,.jpeg,.png" required onchange="handleDocChange(this, 'card_govid', 'badge_govid', 'prev_govid', 'name_govid', 'size_govid')">
                                 </label>
                                 <div class="file-preview-pill" id="prev_govid">
                                     <div class="file-pill-left">
@@ -1541,14 +595,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                     <div class="sidebar-summary-card">
                         <div class="summary-card-head">
                             <h4><i class="bi bi-list-check"></i> Application Checklist</h4>
-                            <span style="font-size:11px; background:rgba(255,255,255,0.15); padding:2px 8px; border-radius:10px; font-weight:700;" id="progress_pct">0%</span>
+                            <span class="progress-pct-pill" id="progress_pct">0%</span>
                         </div>
                         <div class="summary-card-body">
                             
                             <div class="progress-block">
                                 <div class="progress-lbl-row">
                                     <span>Completion Status</span>
-                                    <span id="progress_text" style="color:#1f7a3d;">Incomplete</span>
+                                    <span id="progress_text" class="progress-status-text">Incomplete</span>
                                 </div>
                                 <div class="progress-track">
                                     <div class="progress-fill" id="progress_bar"></div>
@@ -1586,9 +640,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                                 </div>
                             </div>
 
-                            <div style="font-size:11.5px; color:#6c776e; line-height:1.5; background:#fafcfb; border:1px solid #eaeeec; border-radius:10px; padding:10px 12px;">
-                                <i class="bi bi-info-circle" style="color:#1f7a3d;"></i>
-                                All sections marked with <span style="color:#e53935; font-weight:700;">*</span> must be satisfied prior to submission.
+                            <div class="checklist-footnote">
+                                <i class="bi bi-info-circle clr-green"></i>
+                                All sections marked with <span class="req">*</span> must be satisfied prior to submission.
                             </div>
 
                         </div>
@@ -1654,10 +708,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
 
             <!-- STATUS TRACKER -->
             <div class="status-tracker-card">
-                <h4 style="font-size:14px; font-weight:800; color:#06251b; margin:0 0 4px; display:flex; align-items:center; gap:8px;">
-                    <i class="bi bi-diagram-3-fill" style="color:#1f7a3d;"></i> Accreditation Evaluation Progress
+                <h4 class="status-tracker-title">
+                    <i class="bi bi-diagram-3-fill clr-green"></i> Accreditation Evaluation Progress
                 </h4>
-                <p style="font-size:12px; color:#6c776e; margin:0;">Live tracking of your accreditation review workflow.</p>
+                <p class="status-tracker-sub">Live tracking of your accreditation review workflow.</p>
 
                 <div class="tracker-steps-row">
                     
@@ -1697,11 +751,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                     Your business enterprise has been officially verified by the SLSU Bids and Awards Committee. You may now access all competitive bidding opportunities and submit electronic bid proposals directly through the portal.
                 </p>
 
-                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:20px;">
-                    <a href="procurement.php" class="btn-submit-proposal" style="background:#ffffff; color:#06251b;">
+                <div class="vp-hero-actions">
+                    <a href="procurement.php" class="btn-submit-proposal btn-submit-proposal--light">
                         <i class="bi bi-folder2-open"></i> Browse Active Procurements
                     </a>
-                    <a href="../bidder/dashboard.php" class="btn-submit-proposal" style="background:#ffc107; color:#06251b;">
+                    <a href="../bidder/dashboard.php" class="btn-submit-proposal btn-submit-proposal--gold">
                         <i class="bi bi-speedometer2"></i> Go to Bidder Dashboard
                     </a>
                 </div>
@@ -1716,8 +770,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                     Following evaluation by the BAC Secretariat, your bidder accreditation could not be approved at this time due to incomplete or non-compliant eligibility documents. Please contact the BAC Secretariat for specific guidance or clarification.
                 </p>
 
-                <div style="margin-top:20px;">
-                    <a href="dashboard.php" class="btn-submit-proposal" style="background:#ffffff; color:#06251b;">
+                <div class="vp-hero-actions">
+                    <a href="dashboard.php" class="btn-submit-proposal btn-submit-proposal--light">
                         <i class="bi bi-arrow-left"></i> Return to Dashboard
                     </a>
                 </div>
@@ -1726,8 +780,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
         <?php endif; ?>
 
         <!-- ── Details Breakdown (Submitted Profile & Documents) ── -->
-        <div style="margin-bottom:30px;">
-            
+        <div class="details-breakdown-wrap">
+
             <div class="submit-step-card">
                 <div class="step-card-header">
                     <div class="step-header-left">
@@ -1738,7 +792,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                         </div>
                     </div>
                 </div>
-                <div class="step-card-body" style="padding:0;">
+                <div class="step-card-body step-card-body--flush">
                     <table class="info-summary-table">
                         <tr>
                             <td>Business Name</td>
@@ -1802,13 +856,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
                         ?>
                             <div class="doc-review-pill">
                                 <i class="bi bi-file-earmark-check-fill"></i>
-                                <div style="min-width:0; flex:1 1 auto;">
-                                    <div style="font-size:12.5px; font-weight:700; color:#06251b;"><?= $title ?></div>
-                                    <div style="font-size:11px; color:#88968d; margin-top:2px;">
+                                <div class="doc-review-text">
+                                    <div class="doc-review-title"><?= $title ?></div>
+                                    <div class="doc-review-meta">
                                         <?= $hasDoc ? htmlspecialchars($existing_docs[$key]['file_name']) : 'Not uploaded' ?>
                                     </div>
                                 </div>
-                                <span style="font-size:10px; font-weight:700; background:#e4f5ea; color:#1f7a3d; padding:2px 6px; border-radius:4px;">
+                                <span class="doc-review-status">
                                     Uploaded
                                 </span>
                             </div>

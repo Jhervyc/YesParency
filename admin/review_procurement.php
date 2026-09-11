@@ -234,8 +234,8 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <!-- Shared Stylesheets -->
-    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../dashboard.css">
+    <link rel="stylesheet" href="../css/dashboard-shell.css">
     <style>
         /* ── Base Reset & Container ── */
         * {

@@ -159,9 +159,9 @@ $stat_urgent    = (int)($stat_urgent_res ? $stat_urgent_res->fetch_row()[0] : 0)
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <!-- Shared styles -->
-    <link rel="stylesheet" href="../style.css">
     <!-- Dashboard styles -->
     <link rel="stylesheet" href="../dashboard.css">
+    <link rel="stylesheet" href="../css/dashboard-shell.css">
     <style>
         /* ── Base Reset & Container ── */
         * {

@@ -1,0 +1,544 @@
+/* ==========================================================================
+   components.css — reusable, multi-page building blocks.
+   A rule only belongs here once it is actually shared by more than one page.
+   Anything specific to a single page belongs in css/pages/<page>.css instead.
+   ========================================================================== */
+
+/* Offset anchor scrolling so sections don't hide under the fixed navbar. */
+html {
+    scroll-padding-top: 80px;
+}
+
+/* ── Small shared utilities ────────────────────────────────────────────── */
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+.ta-right {
+    text-align: right;
+}
+
+.field-required {
+    color: #e53935;
+}
+
+/* ── Public Navbar (includes/navbar.php: render_public_navbar) ───────────── */
+/* Used on every public page: index, bid_schedule, bid_view, login, register,
+   forgot-password, reset-password, accept_invitation. */
+
+.navbar {
+    background: rgba(6, 37, 27, .97);
+    backdrop-filter: blur(10px);
+    padding: 13px 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    border-bottom: 2px solid rgba(255, 193, 7, .4);
+}
+
+.navbar.scrolled {
+    background: #06251b;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    border-bottom-color: #ffc107;
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.navbar-brand {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navbar-brand img {
+    border-radius: 50%;
+    object-fit: cover;
+    width: 42px;
+    height: 42px;
+}
+
+.brand-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: #ffc107;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+}
+
+.brand-sub {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px;
+    color: #e5ece8;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+}
+
+.nav-menu {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-link {
+    color: #e5ece8;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    position: relative;
+    padding: 6px 2px;
+    transition: color 0.2s ease;
+}
+
+.nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 0%;
+    height: 2.5px;
+    background: #ffc107;
+    border-radius: 2px;
+    transition: width 0.25s ease;
+}
+
+.nav-link:hover {
+    color: #ffc107;
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+    width: 100%;
+}
+
+.btn-warning-nav {
+    background: linear-gradient(135deg, #ffc107 0%, #f59e0b 100%);
+    border: none;
+    color: #06251b;
+    padding: 9px 22px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.28);
+    transition: all 0.2s ease;
+}
+
+.btn-warning-nav:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+    color: #06251b;
+}
+
+/* Hamburger toggle (hidden on desktop; injected by JS on public pages) */
+.nav-hamburger {
+    display: none;
+    background: none;
+    border: none;
+    color: #e5ece8;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px;
+}
+
+@media (max-width: 768px) {
+    .nav-menu {
+        display: none;
+        position: fixed;
+        top: 62px;
+        left: 0;
+        right: 0;
+        background: #06251b;
+        flex-direction: column;
+        gap: 0;
+        padding: 10px 0 16px;
+        border-bottom: 2px solid rgba(255, 193, 7, .4);
+        z-index: 999;
+    }
+
+    .nav-menu.open {
+        display: flex;
+    }
+
+    .nav-menu li {
+        width: 100%;
+    }
+
+    .nav-menu .nav-link {
+        display: block;
+        padding: 12px 24px;
+        font-size: 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, .05);
+    }
+
+    .nav-menu li:last-child {
+        padding: 12px 24px 0;
+    }
+
+    .nav-menu .btn-warning-nav {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .nav-hamburger {
+        display: block;
+    }
+}
+
+/* ── Public Footer (includes/footer.php: render_public_footer) ───────────── */
+/* Shared by every public page — same idea as the navbar above. */
+
+.footer-index {
+    background: #020c09;
+    color: #a4b8ad;
+    padding: 60px 24px 30px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.footer-index-grid {
+    max-width: 1200px;
+    margin: 0 auto 40px;
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1.2fr;
+    gap: 40px;
+}
+
+.footer-brand-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #ffc107;
+    font-family: 'Space Grotesk', sans-serif;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-brand-desc {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #8fa699;
+    max-width: 360px;
+}
+
+.footer-nav-col h5 {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.footer-nav-col ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.footer-nav-col ul a {
+    color: #8fa699;
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.15s;
+}
+
+.footer-nav-col ul a:hover {
+    color: #ffc107;
+}
+
+.footer-bottom-bar {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    flex-wrap: wrap;
+    gap: 12px;
+    color: #6c8276;
+}
+
+@media (max-width: 768px) {
+    .footer-index {
+        padding: 40px 16px 24px;
+    }
+
+    .footer-index-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .footer-bottom-bar {
+        flex-direction: column;
+        text-align: center;
+        gap: 6px;
+    }
+}
+
+/* ── Auth Card Shell ───────────────────────────────────────────────────── */
+/* Shared by login.php and register.php (and, when they're refactored next,
+   forgot-password/reset-password/accept_invitation use the same shell).
+   Page CSS only needs to set .auth-card's max-width and anything unique. */
+
+.auth-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 100px 16px 60px;
+}
+
+.auth-card {
+    background: #fff;
+    border: 1px solid #e2ece6;
+    border-radius: 20px;
+    padding: 40px 36px;
+    width: 100%;
+    box-shadow: 0 4px 32px rgba(6, 37, 27, .08);
+}
+
+.auth-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+}
+
+.auth-logo img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.auth-logo-name {
+    font-size: 16px;
+    font-weight: 800;
+    color: #06251b;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.auth-logo-sub {
+    font-size: 11px;
+    color: #88968d;
+}
+
+.auth-card h3 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #06251b;
+    margin: 0 0 4px;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.auth-card > p {
+    font-size: 13px;
+    color: #63736a;
+    margin: 0 0 24px;
+}
+
+.alert-error {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.alert-success {
+    background: #eaf7ee;
+    color: #1f7a3d;
+    border: 1px solid #c9e8d3;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.6;
+}
+
+.alert-success i {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #06251b;
+    margin-bottom: 6px;
+}
+
+.form-group label .opt {
+    color: #88968d;
+    font-weight: 400;
+    font-size: 11px;
+    margin-left: 3px;
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon-left {
+    position: absolute;
+    left: 13px;
+    color: #88968d;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.input-wrapper input,
+.input-wrapper select,
+.input-wrapper textarea {
+    width: 100%;
+    padding: 10px 14px 10px 38px;
+    border: 1.5px solid #d4e0d8;
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: 'Poppins', sans-serif;
+    color: #1a1a1a;
+    outline: none;
+    background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.input-wrapper input:focus,
+.input-wrapper select:focus,
+.input-wrapper textarea:focus {
+    border-color: #1f7a3d;
+    box-shadow: 0 0 0 3px rgba(31, 122, 61, .1);
+}
+
+.input-wrapper.textarea-wrap {
+    align-items: flex-start;
+}
+
+.input-wrapper.textarea-wrap i {
+    margin-top: 12px;
+}
+
+.input-wrapper textarea {
+    resize: vertical;
+    min-height: 78px;
+    padding-top: 10px;
+}
+
+.input-wrapper select {
+    padding-left: 38px;
+    cursor: pointer;
+    appearance: none;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #88968d;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.toggle-password:hover {
+    color: #06251b;
+}
+
+/* Pair with .toggle-password: gives the input room so text doesn't run
+   under the eye icon. */
+.input-wrapper.has-toggle input {
+    padding-right: 42px;
+}
+
+.btn-auth-submit {
+    width: 100%;
+    background: #06251b;
+    color: #ffc107;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all .2s;
+    margin-top: 6px;
+}
+
+.btn-auth-submit:hover {
+    background: #144937;
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    color: #63736a;
+}
+
+.login-footer a {
+    color: #1f7a3d;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 520px) {
+    .auth-card {
+        padding: 28px 20px;
+    }
+}

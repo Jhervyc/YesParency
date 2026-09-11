@@ -158,109 +158,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$tokenError && $resetRow) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-<?php require_once __DIR__ . '/includes/navbar.php'; render_public_navbar_css(); ?>
-<style>
-* { box-sizing: border-box; }
-body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
-
-.auth-page {
-    min-height: 100vh;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 100px 16px 60px;
-    background: #f4f8f5;
-}
-
-.auth-card {
-    background: #fff;
-    border: 1px solid #e2ece6;
-    border-radius: 20px;
-    padding: 40px 36px;
-    width: 100%; max-width: 440px;
-    box-shadow: 0 4px 32px rgba(6,37,27,.08);
-}
-
-.auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
-.auth-logo img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
-.auth-logo-name { font-size: 16px; font-weight: 800; color: #06251b; font-family: 'Space Grotesk', sans-serif; }
-.auth-logo-sub  { font-size: 11px; color: #88968d; }
-
-.auth-card h3 { font-size: 22px; font-weight: 800; color: #06251b; margin: 0 0 4px; font-family: 'Space Grotesk', sans-serif; }
-.auth-card > p { font-size: 13px; color: #63736a; margin: 0 0 24px; }
-
-.alert-error {
-    background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;
-    border-radius: 10px; padding: 10px 14px; font-size: 12.5px;
-    font-weight: 600; margin-bottom: 18px;
-    display: flex; align-items: center; gap: 8px;
-}
-
-/* Invalid token card */
-.invalid-card { text-align: center; padding: 10px 0 4px; }
-.invalid-card .inv-icon {
-    width: 64px; height: 64px; border-radius: 50%;
-    background: #fef2f2; color: #b91c1c;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 28px; margin: 0 auto 16px;
-}
-.invalid-card h4 { font-size: 18px; font-weight: 800; color: #06251b; margin: 0 0 8px; }
-.invalid-card p  { font-size: 13px; color: #63736a; line-height: 1.6; margin: 0 0 22px; }
-
-.btn-back {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: #06251b; color: #ffc107; text-decoration: none;
-    padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 700;
-    transition: all .2s;
-}
-.btn-back:hover { background: #144937; color: #fff; }
-
-/* Form */
-.form-group { margin-bottom: 16px; }
-.form-group label { display: block; font-size: 12px; font-weight: 700; color: #06251b; margin-bottom: 6px; }
-.input-wrapper { position: relative; display: flex; align-items: center; }
-.input-icon-left { position: absolute; left: 13px; color: #88968d; font-size: 14px; pointer-events: none; }
-.input-wrapper input {
-    width: 100%; padding: 10px 42px 10px 38px;
-    border: 1.5px solid #d4e0d8; border-radius: 10px;
-    font-size: 13px; font-family: 'Poppins', sans-serif;
-    color: #1a1a1a; outline: none; background: #fff;
-    transition: border-color .15s, box-shadow .15s;
-}
-.input-wrapper input:focus { border-color: #1f7a3d; box-shadow: 0 0 0 3px rgba(31,122,61,.1); }
-.toggle-password {
-    position: absolute; right: 12px; background: none; border: none;
-    color: #88968d; cursor: pointer; font-size: 14px; padding: 4px;
-    display: flex; align-items: center;
-}
-.toggle-password:hover { color: #06251b; }
-
-/* Password requirements */
-.pw-requirements {
-    background: #f4f8f5; border: 1px solid #d4e0d8; border-radius: 9px;
-    padding: 10px 14px; margin: 4px 0 12px; font-size: 11.5px;
-}
-.pw-req-title { font-weight: 700; color: #374151; margin-bottom: 6px; }
-.pw-req-list  { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
-.pw-req-item  { color: #88968d; display: flex; align-items: center; gap: 6px; transition: color .15s; }
-.pw-req-item.met { color: #1f7a3d; }
-.pw-req-item.met i::before { content: "\f26a"; } /* bi-check-circle-fill */
-
-.btn-submit {
-    width: 100%; background: #06251b; color: #ffc107; border: none;
-    padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 800;
-    font-family: 'Poppins', sans-serif; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    transition: all .2s; margin-top: 6px;
-}
-.btn-submit:hover { background: #144937; color: #fff; transform: translateY(-1px); }
-
-.login-footer { text-align: center; margin-top: 20px; font-size: 13px; color: #63736a; }
-.login-footer a { color: #1f7a3d; font-weight: 700; text-decoration: none; }
-.login-footer a:hover { text-decoration: underline; }
-
-@media (max-width: 480px) { .auth-card { padding: 28px 20px; } }
-</style>
+    <!-- Custom CSS: base -> shared components -> page-specific -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/pages/reset-password.css">
+    <?php require_once __DIR__ . '/includes/navbar.php'; ?>
 </head>
 <body>
 
@@ -287,8 +189,8 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
                 <a href="forgot-password.php" class="btn-back">
                     <i class="bi bi-arrow-repeat"></i> Request New Link
                 </a>
-                <div style="margin-top:14px;">
-                    <a href="login.php" style="font-size:12.5px; color:#1f7a3d; font-weight:700; text-decoration:none;">
+                <div class="invalid-alt-link-wrap">
+                    <a href="login.php" class="invalid-alt-link">
                         <i class="bi bi-box-arrow-in-right"></i> Back to Login
                     </a>
                 </div>
@@ -313,7 +215,7 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
                 <!-- New Password -->
                 <div class="form-group">
                     <label for="new_password">New Password</label>
-                    <div class="input-wrapper">
+                    <div class="input-wrapper has-toggle">
                         <i class="bi bi-key input-icon-left"></i>
                         <input type="password" id="new_password" name="new_password"
                                placeholder="Enter new password" required
@@ -349,7 +251,7 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
                 <!-- Confirm Password -->
                 <div class="form-group">
                     <label for="confirm_password">Confirm New Password</label>
-                    <div class="input-wrapper">
+                    <div class="input-wrapper has-toggle">
                         <i class="bi bi-check2-circle input-icon-left"></i>
                         <input type="password" id="confirm_password" name="confirm_password"
                                placeholder="Re-enter new password" required
@@ -361,10 +263,10 @@ body { background: #f4f8f5; font-family: 'Poppins', sans-serif; margin: 0; }
                             <i class="bi bi-eye" id="icon-cp"></i>
                         </button>
                     </div>
-                    <div id="match-hint" style="font-size:11.5px; margin-top:4px; display:none;"></div>
+                    <div id="match-hint" class="match-hint" hidden></div>
                 </div>
 
-                <button type="submit" class="btn-submit">
+                <button type="submit" class="btn-auth-submit">
                     <i class="bi bi-shield-check"></i> Reset Password
                 </button>
             </form>

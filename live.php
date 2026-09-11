@@ -827,7 +827,12 @@ body {
         <!-- Video -->
         <div class="video-wrap">
             <?php if ($is_live): ?>
-                <iframe src="<?= htmlspecialchars($stream_url) ?>" allow="autoplay; fullscreen" allowfullscreen></iframe>
+                <div class="video-offline" id="streamWaitingState">
+                    <i class="bi bi-broadcast"></i>
+                    <h3>Connecting to stream…</h3>
+                    <p>Waiting for the live signal. This updates automatically once the stream is online.</p>
+                </div>
+                <iframe id="liveStreamIframe" allow="autoplay; fullscreen" allowfullscreen style="display:none;"></iframe>
             <?php else: ?>
                 <div class="video-offline" id="videoOfflineState">
                     <i class="bi bi-broadcast"></i>
@@ -1001,6 +1006,42 @@ const SESSION_ID     = <?= $session_id ?>;
 const PROCUREMENT_ID = <?= $procurement_id ?>;
 const IS_LIVE        = <?= $is_live ? 'true' : 'false' ?>;
 const CAN_CHAT       = <?= $can_chat ? 'true' : 'false' ?>;
+const STREAM_PATH    = <?= json_encode($stream_path) ?>;
+const STREAM_URL     = <?= json_encode($stream_url) ?>;
+
+// ── Stream health check ────────────────────────────────────────────────────
+// Poll stream_health.php (server-side check against MediaMTX) instead of
+// pointing the iframe straight at the host:port and hoping it's up.
+if (IS_LIVE) {
+    (function () {
+        const waitingEl = document.getElementById('streamWaitingState');
+        const iframeEl  = document.getElementById('liveStreamIframe');
+        let confirmedOnline = false;
+
+        function checkStream() {
+            if (confirmedOnline) return;
+            fetch('stream_health.php?path=' + encodeURIComponent(STREAM_PATH))
+                .then(r => r.json())
+                .then(data => {
+                    if (data.online) {
+                        confirmedOnline = true;
+                        if (iframeEl) {
+                            iframeEl.src = STREAM_URL;
+                            iframeEl.style.display = '';
+                        }
+                        if (waitingEl) waitingEl.style.display = 'none';
+                    }
+                })
+                .catch(() => {}); // stay in waiting state, retry on next poll
+        }
+
+        checkStream();
+        const pollTimer = setInterval(() => {
+            if (confirmedOnline) { clearInterval(pollTimer); return; }
+            checkStream();
+        }, 5000);
+    })();
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 

@@ -9,10 +9,20 @@ $admin_role = $_SESSION['role'] ?? 'admin';
 // ─────────────────────────────────────────────────────────────────────────────
 $live_defaults = [
     'mediamtx_host'         => $_ENV['MEDIAMTX_HOST']         ?? 'localhost',
-    'mediamtx_webrtc_port'  => $_ENV['MEDIAMTX_WEBRTC_PORT']  ?? '8889',
+    'mediamtx_hls_port'     => $_ENV['MEDIAMTX_HLS_PORT']     ?? '8888',
     'mediamtx_rtmp_port'    => $_ENV['MEDIAMTX_RTMP_PORT']    ?? '1935',
     'mediamtx_default_path' => $_ENV['MEDIAMTX_DEFAULT_PATH'] ?? 'live',
+    'mediamtx_manifest'     => $_ENV['MEDIAMTX_MANIFEST']     ?? 'index.m3u8',
 ];
+
+// One-time migration: carry forward a previously-configured WebRTC port value
+// (old key) as the seed for the new HLS port key, instead of resetting to default.
+$legacy_port = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key = 'mediamtx_webrtc_port'")->fetch_assoc();
+$hls_port_exists = $conn->query("SELECT 1 FROM system_settings WHERE setting_key = 'mediamtx_hls_port'")->fetch_row();
+if ($legacy_port && !$hls_port_exists) {
+    $live_defaults['mediamtx_hls_port'] = $legacy_port['setting_value'];
+}
+
 foreach ($live_defaults as $k => $v) {
     $conn->query("INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES ('" . $conn->real_escape_string($k) . "', '" . $conn->real_escape_string($v) . "')");
 }
@@ -54,7 +64,7 @@ if (isset($_GET['live_action'])) {
             $val = trim($data[$key] ?? '');
 
             // Basic validation
-            if (in_array($key, ['mediamtx_webrtc_port', 'mediamtx_rtmp_port'], true)) {
+            if (in_array($key, ['mediamtx_hls_port', 'mediamtx_rtmp_port'], true)) {
                 $port = (int)$val;
                 if ($port < 1 || $port > 65535) {
                     $errors[] = "$key must be a valid port (1–65535).";
@@ -65,6 +75,12 @@ if (isset($_GET['live_action'])) {
                 $val = ltrim($val, '/');
                 if ($val === '') {
                     $errors[] = "mediamtx_default_path cannot be empty.";
+                    continue;
+                }
+            } elseif ($key === 'mediamtx_manifest') {
+                $val = ltrim($val, '/');
+                if ($val === '') {
+                    $errors[] = "mediamtx_manifest cannot be empty.";
                     continue;
                 }
             } elseif ($key === 'mediamtx_host') {
@@ -695,8 +711,8 @@ if (in_array($active_tab, ['system_config', 'maintenance']) && $admin_role !== '
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
-    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../dashboard.css">
+    <link rel="stylesheet" href="../css/dashboard-shell.css">
 
     <style>
         /* ─────────────────────────────────────────────────────────────────────
@@ -1864,15 +1880,15 @@ include("components/topbar.php");
                     </div>
 
                     <div class="live-field-group">
-                        <label class="live-field-label" for="liveWebrtcPort">
-                            <i class="bi bi-ethernet"></i> WebRTC Port
+                        <label class="live-field-label" for="liveHlsPort">
+                            <i class="bi bi-ethernet"></i> HLS Port
                         </label>
                         <div class="live-field-wrap">
                             <i class="bi bi-ethernet prefix-icon"></i>
-                            <input type="number" id="liveWebrtcPort" class="live-field-input"
-                                   placeholder="8889" min="1" max="65535" autocomplete="off">
+                            <input type="number" id="liveHlsPort" class="live-field-input"
+                                   placeholder="8888" min="1" max="65535" autocomplete="off">
                         </div>
-                        <span class="live-field-hint">Port for WebRTC playback (default: 8889).</span>
+                        <span class="live-field-hint">Port for HLS playback (default: 8888).</span>
                     </div>
 
                     <div class="live-field-group">
@@ -1887,11 +1903,23 @@ include("components/topbar.php");
                         <span class="live-field-hint">Port for RTMP ingest (default: 1935).</span>
                     </div>
 
+                    <div class="live-field-group">
+                        <label class="live-field-label" for="liveManifest">
+                            <i class="bi bi-file-earmark-play"></i> Manifest File
+                        </label>
+                        <div class="live-field-wrap">
+                            <i class="bi bi-file-earmark-play prefix-icon"></i>
+                            <input type="text" id="liveManifest" class="live-field-input"
+                                   placeholder="index.m3u8" autocomplete="off">
+                        </div>
+                        <span class="live-field-hint">HLS manifest filename appended to the stream path (MediaMTX default: index.m3u8).</span>
+                    </div>
+
                 </div>
 
                 <!-- Live URL preview -->
                 <div class="live-preview-box" id="livePreviewBox">
-                    <strong><i class="bi bi-eye"></i> WebRTC Playback URL Preview</strong>
+                    <strong><i class="bi bi-eye"></i> HLS Playback URL Preview</strong>
                     <span class="live-preview-url" id="livePreviewUrl">—</span>
                 </div>
 
@@ -2723,22 +2751,24 @@ function escHtml(str) {
 <script>
 (function () {
     // ── Field refs ────────────────────────────────────────────────────────────
-    const hostEl    = () => document.getElementById('liveHost');
-    const pathEl    = () => document.getElementById('liveDefaultPath');
-    const webrtcEl  = () => document.getElementById('liveWebrtcPort');
-    const rtmpEl    = () => document.getElementById('liveRtmpPort');
-    const previewEl = () => document.getElementById('livePreviewUrl');
-    const statusEl  = () => document.getElementById('liveStatusMsg');
-    const statusTxt = () => document.getElementById('liveStatusText');
-    const saveBtn   = () => document.getElementById('liveSaveBtn');
+    const hostEl     = () => document.getElementById('liveHost');
+    const pathEl     = () => document.getElementById('liveDefaultPath');
+    const hlsPortEl  = () => document.getElementById('liveHlsPort');
+    const rtmpEl     = () => document.getElementById('liveRtmpPort');
+    const manifestEl = () => document.getElementById('liveManifest');
+    const previewEl  = () => document.getElementById('livePreviewUrl');
+    const statusEl   = () => document.getElementById('liveStatusMsg');
+    const statusTxt  = () => document.getElementById('liveStatusText');
+    const saveBtn    = () => document.getElementById('liveSaveBtn');
 
     // ── URL preview ───────────────────────────────────────────────────────────
     function updatePreview() {
-        const host = (hostEl()?.value || '').replace(/\/+$/, '');
-        const path = (pathEl()?.value || '').replace(/^\/+/, '');
-        const port = webrtcEl()?.value || '8889';
+        const host     = (hostEl()?.value || '').replace(/\/+$/, '');
+        const path     = (pathEl()?.value || '').replace(/^\/+/, '');
+        const port     = hlsPortEl()?.value || '8888';
+        const manifest = (manifestEl()?.value || 'index.m3u8').replace(/^\/+/, '');
         if (host && path) {
-            previewEl().textContent = `http://${host}:${port}/${path}`;
+            previewEl().textContent = `http://${host}:${port}/${path}/${manifest}`;
         } else {
             previewEl().textContent = '—';
         }
@@ -2751,10 +2781,11 @@ function escHtml(str) {
             .then(data => {
                 if (!data.success) return;
                 const c = data.config;
-                if (hostEl())   hostEl().value   = c.mediamtx_host         ?? '';
-                if (pathEl())   pathEl().value   = c.mediamtx_default_path ?? '';
-                if (webrtcEl()) webrtcEl().value  = c.mediamtx_webrtc_port  ?? '8889';
-                if (rtmpEl())   rtmpEl().value    = c.mediamtx_rtmp_port    ?? '1935';
+                if (hostEl())     hostEl().value     = c.mediamtx_host         ?? '';
+                if (pathEl())     pathEl().value     = c.mediamtx_default_path ?? '';
+                if (hlsPortEl())  hlsPortEl().value   = c.mediamtx_hls_port     ?? '8888';
+                if (rtmpEl())     rtmpEl().value      = c.mediamtx_rtmp_port    ?? '1935';
+                if (manifestEl()) manifestEl().value  = c.mediamtx_manifest    ?? 'index.m3u8';
                 updatePreview();
             })
             .catch(() => {}); // silent — fields retain placeholder
@@ -2766,10 +2797,11 @@ function escHtml(str) {
         if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Saving…'; }
 
         const payload = {
-            mediamtx_host:         hostEl()?.value.trim()   ?? '',
-            mediamtx_default_path: pathEl()?.value.trim()   ?? '',
-            mediamtx_webrtc_port:  webrtcEl()?.value.trim() ?? '',
-            mediamtx_rtmp_port:    rtmpEl()?.value.trim()   ?? '',
+            mediamtx_host:         hostEl()?.value.trim()     ?? '',
+            mediamtx_default_path: pathEl()?.value.trim()     ?? '',
+            mediamtx_hls_port:     hlsPortEl()?.value.trim()  ?? '',
+            mediamtx_rtmp_port:    rtmpEl()?.value.trim()     ?? '',
+            mediamtx_manifest:     manifestEl()?.value.trim() ?? '',
         };
 
         fetch('settings.php?live_action=save', {
@@ -2804,7 +2836,7 @@ function escHtml(str) {
 
     // ── Live preview on input ─────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
-        ['liveHost', 'liveDefaultPath', 'liveWebrtcPort'].forEach(id => {
+        ['liveHost', 'liveDefaultPath', 'liveHlsPort', 'liveManifest'].forEach(id => {
             document.getElementById(id)?.addEventListener('input', updatePreview);
         });
 

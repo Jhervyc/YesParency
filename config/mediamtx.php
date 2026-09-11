@@ -49,9 +49,10 @@ function _mediamtx_load_config(): array
     // Re-read from DB
     $defaults = [
         'mediamtx_host'         => $_ENV['MEDIAMTX_HOST']         ?? 'localhost',
-        'mediamtx_webrtc_port'  => $_ENV['MEDIAMTX_WEBRTC_PORT']  ?? '8889',
+        'mediamtx_hls_port'     => $_ENV['MEDIAMTX_HLS_PORT']     ?? '8888',
         'mediamtx_rtmp_port'    => $_ENV['MEDIAMTX_RTMP_PORT']    ?? '1935',
         'mediamtx_default_path' => $_ENV['MEDIAMTX_DEFAULT_PATH'] ?? 'live',
+        'mediamtx_manifest'     => $_ENV['MEDIAMTX_MANIFEST']     ?? 'index.m3u8',
     ];
 
     $loaded = [];
@@ -87,18 +88,19 @@ function _mediamtx_load_config(): array
 }
 
 /**
- * Build the WebRTC playback URL for a given stream path.
+ * Build the HLS playback URL for a given stream path.
  *
  * @param  string $streamPath  Value from bid_opening_sessions.stream_path (e.g. "live", "bid-opening-001")
- * @return string              Full URL for iframe src, e.g. "http://stream.example.com:8889/live"
+ * @return string              Full URL for iframe src, e.g. "http://stream.example.com:8888/live/index.m3u8"
  */
 function mediamtx_url(string $streamPath): string
 {
-    $cfg  = _mediamtx_load_config();
-    $host = rtrim($cfg['mediamtx_host'], '/');
-    $port = (int)($cfg['mediamtx_webrtc_port'] ?: 8889);
-    $path = ltrim($streamPath, '/');
-    return "http://{$host}:{$port}/{$path}";
+    $cfg      = _mediamtx_load_config();
+    $host     = rtrim($cfg['mediamtx_host'], '/');
+    $port     = (int)($cfg['mediamtx_hls_port'] ?: 8888);
+    $path     = ltrim($streamPath, '/');
+    $manifest = ltrim($cfg['mediamtx_manifest'] ?? 'index.m3u8', '/');
+    return "http://{$host}:{$port}/{$path}/{$manifest}";
 }
 
 /**

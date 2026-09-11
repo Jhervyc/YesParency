@@ -106,167 +106,11 @@ $total_pages = $total_pages ?? 1;
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-<style>
-* { box-sizing:border-box; }
-html { scroll-behavior:smooth; scroll-padding-top:74px; }
-body.sched-page {
-    background:#f4f8f5; font-family:'Poppins',sans-serif;
-    color:#222; overflow-x:hidden; min-height:100vh;
-}
-
-/* ── Navbar ── */
-/* (see includes/navbar.php) */
-
-/* ── Page header bar ── */
-.sched-header {
-    background:linear-gradient(135deg,#06251b 0%,#0c3d2c 100%);
-    padding:92px 24px 30px; position:relative; overflow:hidden;
-}
-.sched-header::before {
-    content:''; position:absolute; inset:0;
-    background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),
-                     linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
-    background-size:40px 40px; pointer-events:none;
-}
-.sched-header-inner { max-width:1200px; margin:0 auto; position:relative; z-index:2; }
-.sched-header-inner h1 { font-size:28px; font-weight:800; color:#fff; font-family:'Space Grotesk',sans-serif; margin:0 0 6px; }
-.sched-header-inner h1 span { color:#ffc107; }
-.sched-header-inner p { font-size:13px; color:#9cb3a6; margin:0; }
-.sched-back { display:inline-flex; align-items:center; gap:6px; color:#9cb3a6; font-size:12px; font-weight:600; text-decoration:none; margin-bottom:16px; transition:color .2s; }
-.sched-back:hover { color:#ffc107; }
-
-/* ── Live Banner ── */
-.live-banner {
-    max-width:1200px; margin:0 auto; padding:0 24px;
-    position:relative; top:-18px;
-}
-.live-banner-inner {
-    background:linear-gradient(135deg,#991b1b 0%,#dc2626 100%);
-    border-radius:16px; padding:18px 24px;
-    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
-    box-shadow:0 8px 24px rgba(220,38,38,.3);
-}
-.live-banner-left { display:flex; align-items:center; gap:14px; }
-.live-pulse-dot {
-    width:12px; height:12px; border-radius:50%;
-    background:#fff; box-shadow:0 0 0 0 rgba(255,255,255,.6);
-    animation:livePulse 1.4s infinite;
-    flex-shrink:0;
-}
-@keyframes livePulse {
-    0%   { box-shadow:0 0 0 0 rgba(255,255,255,.6); }
-    70%  { box-shadow:0 0 0 10px rgba(255,255,255,0); }
-    100% { box-shadow:0 0 0 0 rgba(255,255,255,0); }
-}
-.live-banner-label { font-size:11px; font-weight:800; color:rgba(255,255,255,.8); text-transform:uppercase; letter-spacing:.6px; margin-bottom:2px; }
-.live-banner-title { font-size:14px; font-weight:800; color:#fff; }
-.live-banner-ref   { font-size:11px; color:rgba(255,255,255,.7); margin-top:2px; }
-.btn-join-live {
-    display:inline-flex; align-items:center; gap:8px;
-    background:#fff; color:#dc2626; font-size:13px; font-weight:800;
-    padding:10px 22px; border-radius:10px; text-decoration:none;
-    transition:all .15s; white-space:nowrap; flex-shrink:0;
-}
-.btn-join-live:hover { background:#fee2e2; transform:translateY(-1px); }
-
-/* ── Filter bar ── */
-.filter-bar-wrap {
-    background:#fff; border-bottom:1px solid #e2ece6;
-    padding:14px 24px; position:sticky; top:64px; z-index:90;
-    box-shadow:0 2px 10px rgba(6,37,27,.05);
-}
-.filter-bar-inner { max-width:1200px; margin:0 auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.filter-search { position:relative; flex:1; min-width:220px; }
-.filter-search i { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#88968d; font-size:13px; pointer-events:none; }
-.filter-search input {
-    width:100%; padding:9px 14px 9px 36px; border:1.5px solid #d4e0d8; border-radius:9px;
-    font-size:12.5px; font-family:'Poppins',sans-serif; color:#1a1a1a; outline:none; background:#fff;
-    transition:border-color .15s, box-shadow .15s;
-}
-.filter-search input:focus { border-color:#1f7a3d; box-shadow:0 0 0 3px rgba(31,122,61,.08); }
-.filter-btn {
-    background:#eef2f0; border:1.5px solid #e0e8e4; color:#06251b;
-    font-size:12px; font-weight:700; padding:8px 16px; border-radius:9px;
-    cursor:pointer; transition:all .15s; font-family:'Poppins',sans-serif; white-space:nowrap;
-}
-.filter-btn:hover, .filter-btn.active { background:#06251b; color:#ffc107; border-color:#06251b; }
-.filter-go {
-    display:inline-flex; align-items:center; gap:6px;
-    background:#ffc107; color:#16241d; font-family:'Poppins',sans-serif;
-    font-weight:700; font-size:12.5px; border:none; padding:8px 18px;
-    border-radius:9px; cursor:pointer; transition:all .15s;
-}
-.filter-go:hover { background:#e6ac00; }
-.filter-count { font-size:12px; font-weight:700; color:#55665a; white-space:nowrap; margin-left:auto; }
-
-/* ── Table panel ── */
-.table-panel-wrap { max-width:1200px; margin:0 auto; padding:0 24px 80px; }
-.table-panel {
-    background:#fff; border:1px solid #eaeeec; border-radius:18px;
-    box-shadow:0 1px 2px rgba(16,36,26,.03),0 10px 24px -14px rgba(16,36,26,.08);
-    overflow:hidden; margin-top:24px;
-}
-.proc-table { width:100%; border-collapse:collapse; font-size:12px; text-align:left; }
-.proc-table thead th {
-    background:#fafcfb; padding:13px 16px; font-size:11px; font-weight:700; color:#55665a;
-    text-transform:uppercase; letter-spacing:.04em; border-bottom:1.5px solid #edf1ef; white-space:nowrap;
-}
-.proc-table tbody tr { border-bottom:1px solid #f0f4f2; transition:background .12s; }
-.proc-table tbody tr:last-child { border-bottom:none; }
-.proc-table tbody tr:hover { background:#fbfdfc; }
-.proc-table td { padding:14px 16px; vertical-align:middle; }
-
-.col-ref   { font-weight:700; color:#06251b; font-size:11.5px; white-space:nowrap; }
-.col-title { font-weight:700; color:#1a2a20; font-size:13px; line-height:1.35; max-width:300px; }
-.col-title a { color:inherit; text-decoration:none; }
-.col-title a:hover { color:#1f7a3d; text-decoration:underline; }
-.col-mode { background:#f0f4f2; color:#384d40; padding:3px 8px; border-radius:6px; font-size:10.5px; font-weight:600; white-space:nowrap; }
-.col-abc  { font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:800; color:#06251b; white-space:nowrap; }
-.col-date { font-size:11.5px; color:#63736a; white-space:nowrap; line-height:1.4; }
-.col-date strong { color:#1a1a1a; display:block; }
-
-/* status pills */
-.spill { display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:20px; white-space:nowrap; }
-.spill-open    { background:#eef7f1; color:#1f7a3d; border:1px solid #c2e8ce; }
-.spill-closed  { background:#e7eefe; color:#2F6FED; border:1px solid #c5d4fb; }
-.spill-awarded { background:#fef3c7; color:#d97706; border:1px solid #fde68a; }
-.spill-other   { background:#f0f4f2; color:#55665a; border:1px solid #d6e2db; }
-
-/* action btn */
-.act-btn {
-    display:inline-flex; align-items:center; gap:5px; padding:6px 13px; border-radius:8px;
-    font-size:11.5px; font-weight:700; text-decoration:none; transition:all .15s; white-space:nowrap;
-}
-.act-btn-view  { background:#f0f4f2; color:#06251b; }
-.act-btn-view:hover { background:#06251b; color:#ffc107; }
-
-/* empty */
-.tbl-empty { padding:52px 20px; text-align:center; color:#88968d; }
-.tbl-empty i { font-size:36px; display:block; margin-bottom:10px; color:#c8d8ce; }
-.tbl-empty p { font-size:13px; font-weight:700; margin:0; }
-
-/* pagination */
-.tbl-foot {
-    padding:14px 20px; display:flex; align-items:center; justify-content:space-between;
-    gap:12px; flex-wrap:wrap; border-top:1px solid #f0f4f2;
-    font-size:12px; color:#88968d;
-}
-.pagination { display:flex; gap:5px; }
-.plink {
-    display:inline-flex; align-items:center; justify-content:center;
-    width:32px; height:32px; border-radius:8px; font-size:12px; font-weight:700;
-    text-decoration:none; color:#06251b; background:#f0f4f2; transition:all .15s;
-}
-.plink:hover, .plink.active { background:#06251b; color:#ffc107; }
-.plink.disabled { opacity:.4; pointer-events:none; }
-
-/* footer */
-.sched-footer { background:#020c09; color:#6b8077; padding:28px 24px; text-align:center; font-size:12px; border-top:1px solid rgba(255,255,255,.06); }
-.sched-footer a { color:#9cb3a6; text-decoration:none; }
-.sched-footer a:hover { color:#ffc107; }
-</style>
-<?php require_once __DIR__ . '/includes/navbar.php'; render_public_navbar_css(); ?>
+<!-- Custom CSS: base -> shared components -> page-specific -->
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/pages/bid_schedule.css">
+<?php require_once __DIR__ . '/includes/navbar.php'; ?>
 </head>
 <body class="sched-page">
 
@@ -297,7 +141,7 @@ body.sched-page {
                 </div>
             </div>
         </div>
-        <a href="live.php" class="btn-join-live">
+        <a href="live.php" class="btn-watch-live">
             <i class="bi bi-play-circle-fill"></i> Watch Live
         </a>
     </div>
@@ -315,7 +159,7 @@ body.sched-page {
         </div>
 
         <!-- Status -->
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <div class="filter-status-group">
             <?php foreach (['all'=>'All','open'=>'Open','closed'=>'Closed','awarded'=>'Awarded'] as $v => $l): ?>
             <button type="button" class="filter-btn <?= $filter === $v ? 'active' : '' ?>"
                 onclick="document.getElementById('hiddenFilter').value='<?= $v ?>'; document.getElementById('filterForm').submit();">
@@ -326,7 +170,7 @@ body.sched-page {
 
         <!-- Mode dropdown -->
         <?php if (!empty($modes)): ?>
-        <select name="mode" class="filter-btn" style="padding:8px 12px; cursor:pointer;"
+        <select name="mode" class="filter-btn filter-select"
                 onchange="document.getElementById('filterForm').submit()">
             <option value="">All Modes</option>
             <?php foreach ($modes as $m): ?>
@@ -346,7 +190,7 @@ body.sched-page {
         <button type="submit" class="filter-go"><i class="bi bi-search"></i> Search</button>
 
         <!-- Always visible clear -->
-        <a href="bid_schedule.php" style="font-size:12px; font-weight:700; color:#dc2626; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+        <a href="bid_schedule.php" class="filter-clear-link">
             <i class="bi bi-x-circle"></i> Clear
         </a>
     </form>
@@ -361,18 +205,18 @@ body.sched-page {
             <p>No procurements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</p>
         </div>
         <?php else: ?>
-        <div style="overflow-x:auto;">
+        <div class="table-scroll">
             <table class="proc-table">
                 <thead>
                     <tr>
-                        <th style="width:130px;">SLSU Ref</th>
+                        <th class="col-ref-th">SLSU Ref</th>
                         <th>Project Title</th>
                         <th>Mode</th>
                         <th>ABC</th>
                         <th>Opening Date</th>
                         <th>Submission Cutoff</th>
                         <th>Status</th>
-                        <th style="text-align:right;">Action</th>
+                        <th class="ta-right">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -392,11 +236,11 @@ body.sched-page {
                     };
                 ?>
                 <tr>
-                    <td class="col-ref"><i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i> <?= htmlspecialchars($p['slsu_ref_no'] ?: '—') ?></td>
+                    <td class="col-ref"><i class="bi bi-hash"></i> <?= htmlspecialchars($p['slsu_ref_no'] ?: '—') ?></td>
                     <td class="col-title">
                         <a href="bid_view.php?id=<?= (int)$p['id'] ?>"><?= htmlspecialchars(mb_strimwidth($p['title'], 0, 65, '…')) ?></a>
                         <?php if ((int)$p['lots_count'] > 0): ?>
-                        <div style="font-size:10.5px; color:#88968d; margin-top:2px;">
+                        <div class="col-title-sub">
                             <i class="bi bi-boxes"></i> <?= (int)$p['lots_count'] ?> lot<?= $p['lots_count'] > 1 ? 's' : '' ?>
                         </div>
                         <?php endif; ?>
@@ -417,11 +261,11 @@ body.sched-page {
                     </td>
                     <td>
                         <span class="spill <?= $pillClass ?>">
-                            <i class="bi <?= $pillIcon ?>" style="font-size:9px;"></i>
+                            <i class="bi <?= $pillIcon ?>"></i>
                             <?= ucfirst($ps) ?>
                         </span>
                     </td>
-                    <td style="text-align:right;">
+                    <td class="ta-right">
                         <a href="bid_view.php?id=<?= (int)$p['id'] ?>" class="act-btn act-btn-view">
                             <i class="bi bi-eye"></i> View
                         </a>
@@ -455,11 +299,7 @@ body.sched-page {
 </div>
 
 <!-- ── Footer ── -->
-<footer class="sched-footer">
-    <p>&copy; <?= date('Y') ?> YesParency — SLSU Procurement Transparency System —
-       <a href="index.php">Home</a> &bull; <a href="login.php">Login</a>
-    </p>
-</footer>
+<?php require_once __DIR__ . '/includes/footer.php'; render_public_footer(); ?>
 
 <script>
 document.querySelector('.filter-search input')?.addEventListener('keydown', e => {

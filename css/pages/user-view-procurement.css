@@ -1,0 +1,678 @@
+/* ==========================================================================
+   pages/user-view-procurement.css — styles specific to
+   user/view_procurement.php (single procurement detail page).
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css.
+   ========================================================================== */
+
+.dash-content {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* ── Small utilities used throughout this page ── */
+.clr-dark   { color: #06251b; }
+.clr-green  { color: #1f7a3d; }
+.clr-blue   { color: #1565c0; }
+.clr-cyan   { color: #0284c7; }
+.table-scroll { overflow-x: auto; }
+.ta-right { text-align: right; }
+
+/* ── Breadcrumb & Back Bar ── */
+.vp-nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.vp-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #88968d;
+    font-weight: 600;
+}
+
+.vp-breadcrumbs a {
+    color: #1f7a3d;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.vp-breadcrumbs a:hover {
+    text-decoration: underline;
+}
+
+.vp-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #06251b;
+    font-size: 12.5px;
+    font-weight: 700;
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    padding: 7px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all .2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    cursor: pointer;
+}
+
+.vp-back-link:hover {
+    background: #06251b;
+    color: #ffc107;
+    border-color: #06251b;
+}
+
+/* ── Project Header Hero Banner ── */
+.vp-hero-card {
+    background: linear-gradient(135deg, #06251b 0%, #0c3d2c 60%, #14593f 100%);
+    border-radius: 20px;
+    padding: 26px 30px;
+    color: #ffffff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(6, 37, 27, 0.16);
+    margin-bottom: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vp-hero-card::after {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(255, 193, 7, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.vp-hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.vp-hero-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.vp-hero-sub {
+    font-size: 12px;
+    color: #d1e5db;
+}
+
+.hero-pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: .3px;
+}
+
+.hero-pill.ref {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hero-pill.urgent {
+    background: rgba(235, 87, 87, 0.25);
+    border: 1px solid rgba(235, 87, 87, 0.5);
+    color: #ff8a80;
+}
+
+/* Status pill — replaces the old PHP $status_badge_bg/$status_badge_fg
+   inline-style pair with plain modifier classes. */
+.hero-pill.status-open      { background: #e4f5ea; color: #1f7a3d; }
+.hero-pill.status-draft     { background: #eef0ed; color: #6c776e; }
+.hero-pill.status-closed    { background: #e7eefe; color: #2F6FED; }
+.hero-pill.status-awarded   { background: #fcf1cf; color: #b78103; }
+.hero-pill.status-cancelled { background: #ffebee; color: #c23b3b; }
+
+.status-dot {
+    font-size: 7px;
+}
+
+.vp-hero-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.3;
+    margin-bottom: 20px;
+    letter-spacing: -0.3px;
+}
+
+/* Hero Key Metrics Row */
+.vp-hero-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.vp-hero-metric-item {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    padding: 12px 16px;
+}
+
+.vp-hero-metric-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    color: #d1e5db;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.vp-hero-metric-lbl i {
+    color: #ffc107;
+}
+
+.vp-hero-metric-val {
+    font-size: 17px;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: 'Space Grotesk', sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vp-hero-metric-val.gold {
+    color: #ffc107;
+}
+
+.vp-hero-metric-val--sm {
+    font-size: 15px;
+}
+
+/* ── Main Two-Column Layout (65% + 35%) ── */
+.vp-grid-layout {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr;
+    gap: 24px;
+    align-items: start;
+    margin-bottom: 30px;
+}
+
+.vp-left-col,
+.vp-right-col {
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* ── Section Cards ── */
+.vp-card {
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    border-radius: 18px;
+    box-shadow: 0 1px 2px rgba(16, 36, 26, .03), 0 10px 24px -14px rgba(16, 36, 26, .08);
+    margin-bottom: 22px;
+    overflow: hidden;
+}
+
+.vp-card--mt {
+    margin-top: 20px;
+}
+
+.vp-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f0f4f2;
+    background: #fafcfb;
+}
+
+.vp-card-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #06251b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vp-card-count {
+    background: #eef7f1;
+    color: #1f7a3d;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.vp-card-body {
+    padding: 20px;
+}
+
+.vp-card-body--flush {
+    padding: 0;
+}
+
+/* ── Key Spec Fields Grid ── */
+.spec-fields-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.spec-field-item {
+    background: #fafcfb;
+    border: 1px solid #eaeeec;
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+.spec-field-item--full {
+    grid-column: 1 / -1;
+}
+
+.spec-field-lbl {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #88968d;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 3px;
+}
+
+.spec-field-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a2a20;
+    line-height: 1.3;
+}
+
+.spec-field-val--strong {
+    font-weight: 700;
+    color: #06251b;
+}
+
+.spec-field-val--title {
+    font-weight: 700;
+    color: #06251b;
+    line-height: 1.4;
+}
+
+.spec-field-val--abc {
+    font-size: 16px;
+    font-weight: 800;
+    font-family: 'Space Grotesk', sans-serif;
+    color: #1f7a3d;
+}
+
+.desc-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #88968d;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.desc-box {
+    background: #fafcfb;
+    border: 1px solid #eaeeec;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 13px;
+    color: #2d3a32;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* ── Lots List Table ── */
+.lots-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+
+.lots-table th {
+    background: #f4f8f5;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #495b50;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    border-bottom: 1px solid #eaeeec;
+    text-align: left;
+}
+
+.lots-table th.col-lotnum-th {
+    width: 70px;
+}
+
+.lots-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f2f5f3;
+    vertical-align: middle;
+}
+
+.lots-table tr:last-child td {
+    border-bottom: none;
+}
+
+.lot-num-td {
+    font-weight: 700;
+    color: #06251b;
+}
+
+.lot-title-td {
+    font-weight: 600;
+    color: #1a2a20;
+}
+
+.lot-desc-td {
+    color: #63736a;
+    font-size: 12px;
+}
+
+.lot-abc-td {
+    text-align: right;
+    font-weight: 800;
+    font-family: 'Space Grotesk', sans-serif;
+    color: #06251b;
+}
+
+.lots-total-row {
+    background: #f9fbf9;
+    border-top: 2px solid #eaeeec;
+    font-weight: 700;
+}
+
+.lots-total-label {
+    text-align: right;
+    font-size: 12px;
+    color: #495b50;
+}
+
+.lots-total-abc {
+    text-align: right;
+    font-weight: 800;
+    font-family: 'Space Grotesk', sans-serif;
+    color: #06251b;
+}
+
+/* ── Timeline Activity List ── */
+.timeline-list {
+    position: relative;
+    padding-left: 24px;
+}
+
+.timeline-list::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    background: #e0e8e4;
+}
+
+.timeline-step {
+    position: relative;
+    margin-bottom: 18px;
+}
+
+.timeline-step:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -24px;
+    top: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #1f7a3d;
+}
+
+.timeline-step.urgent .timeline-dot {
+    border-color: #e67e22;
+}
+
+.timeline-lbl {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #1a2a20;
+    margin-bottom: 2px;
+}
+
+.timeline-date {
+    font-size: 11.5px;
+    color: #728277;
+}
+
+/* ── Documents List ── */
+.doc-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: #fafcfb;
+    border: 1px solid #eaeeec;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    gap: 12px;
+}
+
+.doc-item-row:last-child {
+    margin-bottom: 0;
+}
+
+.doc-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.doc-text-wrap {
+    min-width: 0;
+}
+
+.doc-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #eef5f1;
+    color: #1f7a3d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.doc-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #18261e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.doc-meta {
+    font-size: 11px;
+    color: #88968d;
+}
+
+.doc-dl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #06251b;
+    color: #ffc107;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all .15s;
+    flex-shrink: 0;
+}
+
+.doc-dl-btn:hover {
+    background: #0a3a2a;
+    color: #ffffff;
+}
+
+.doc-dl-btn--cyan {
+    background: #0284c7;
+    color: #ffffff;
+}
+
+.doc-empty {
+    text-align: center;
+    padding: 18px 0;
+    color: #88968d;
+    font-size: 12.5px;
+}
+
+.doc-empty-icon {
+    font-size: 24px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.badge-associated-pill {
+    display: inline-block;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* ── Action / Accreditation Sidebar Card ── */
+.accredit-cta-box {
+    background: #f7faf8;
+    border: 1.5px dashed #c0d8cb;
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+}
+
+.accredit-cta-box--approved {
+    background: #f2faf4;
+    border-color: #b7e3c4;
+}
+
+.accredit-cta-box--pending {
+    background: #fffbf0;
+    border-color: #fae099;
+}
+
+.accredit-cta-icon {
+    font-size: 28px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.accredit-cta-icon--success { color: #219653; }
+.accredit-cta-icon--warn    { color: #e67e22; }
+.accredit-cta-icon--default { color: #06251b; }
+
+.accredit-cta-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #06251b;
+    margin-bottom: 4px;
+}
+
+.accredit-cta-desc {
+    font-size: 12px;
+    color: #55665a;
+    margin-bottom: 0;
+}
+
+.accredit-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    background: #06251b;
+    color: #ffc107;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 12px 18px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all .15s ease;
+    margin-top: 12px;
+}
+
+.accredit-cta-btn:hover {
+    background: #0a3a2a;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.accredit-cta-btn--green {
+    background: #219653;
+    color: #fff;
+}
+
+/* ════════════════════════════════
+   MOBILE-FIRST RESPONSIVE
+   ════════════════════════════════ */
+
+@media (max-width: 1040px) {
+    .vp-grid-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .vp-hero-card {
+        padding: 20px 18px;
+    }
+
+    .vp-hero-title {
+        font-size: 20px;
+    }
+
+    .vp-card-body {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 600px) {
+    .spec-fields-grid {
+        grid-template-columns: 1fr;
+    }
+}

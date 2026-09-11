@@ -11,7 +11,7 @@
 function render_public_navbar(string $active = '', bool $user_logged_in = false, string $user_dashboard_link = 'login.php'): void
 {
 ?>
-<nav class="navbar">
+<nav class="navbar" id="mainNavbar">
     <div class="nav-container">
         <a class="navbar-brand" href="index.php">
             <img src="<?= strpos($_SERVER['SCRIPT_NAME'], '/bidder/') !== false || strpos($_SERVER['SCRIPT_NAME'], '/admin/') !== false || strpos($_SERVER['SCRIPT_NAME'], '/user/') !== false || strpos($_SERVER['SCRIPT_NAME'], '/superadmin/') !== false ? '../' : '' ?>images/logo.png" alt="YesParency">
@@ -38,6 +38,30 @@ function render_public_navbar(string $active = '', bool $user_logged_in = false,
         </ul>
     </div>
 </nav>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mobile hamburger toggle — shared by every page that renders this navbar.
+    const navMenu = document.querySelector('.nav-menu');
+    const navContainer = document.querySelector('.nav-container');
+    const btn = document.createElement('button');
+    btn.className = 'nav-hamburger';
+    btn.innerHTML = '<i class="bi bi-list"></i>';
+    btn.setAttribute('aria-label', 'Toggle menu');
+    navContainer.appendChild(btn);
+    btn.addEventListener('click', function() {
+        navMenu.classList.toggle('open');
+        btn.innerHTML = navMenu.classList.contains('open')
+            ? '<i class="bi bi-x-lg"></i>'
+            : '<i class="bi bi-list"></i>';
+    });
+
+    // Solid background once the page scrolls past the navbar's own height.
+    const nav = document.getElementById('mainNavbar');
+    window.addEventListener('scroll', () => {
+        nav.classList.toggle('scrolled', window.scrollY > 40);
+    });
+});
+</script>
 <?php
 }
 

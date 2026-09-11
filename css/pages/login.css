@@ -1,0 +1,13 @@
+/* ==========================================================================
+   pages/login.css — styles specific to login.php.
+   The auth card shell itself (.auth-page, .auth-card, .form-group, etc.)
+   lives in css/components.css since register.php shares it.
+   ========================================================================== */
+
+body {
+    background: #f4f8f5;
+}
+
+.auth-card {
+    max-width: 440px;
+}

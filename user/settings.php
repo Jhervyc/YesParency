@@ -139,188 +139,9 @@ $initials     = strtoupper(substr($data['firstname'] ?? 'U', 0, 1) . substr($dat
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../dashboard.css">
-    <style>
-        .dash-content { max-width:100%; overflow-x:hidden; }
-
-        .settings-grid {
-            display: grid;
-            grid-template-columns: 320px minmax(0,1fr);
-            gap: 24px;
-            align-items: start;
-        }
-        @media (max-width: 1024px) { .settings-grid { grid-template-columns: 1fr; } }
-
-        /* ── Cards ── */
-        .set-card {
-            background: #fff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.06);
-            overflow: hidden;
-            margin-bottom: 24px;
-        }
-        .set-card-head {
-            padding: 16px 22px;
-            border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-        }
-        .set-card-title {
-            font-size: 14px;
-            font-weight: 800;
-            color: #06251b;
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-        .set-card-body { padding: 22px; }
-
-        /* ── Avatar ── */
-        .avatar-preview-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            padding: 6px 0 16px;
-        }
-        .avatar-circle {
-            width: 114px;
-            height: 114px;
-            border-radius: 50%;
-            border: 3px solid #1f7a3d;
-            box-shadow: 0 4px 16px rgba(31,122,61,.15);
-            background: #f0f7f2;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 34px;
-            font-weight: 800;
-            color: #1f7a3d;
-            overflow: hidden;
-            margin-bottom: 12px;
-        }
-        .avatar-circle img { width:100%; height:100%; object-fit:cover; display:block; }
-        .avatar-meta-name  { font-size:15px; font-weight:800; color:#06251b; margin-bottom:3px; }
-        .avatar-meta-sub   { font-size:12px; color:#88968d; margin-bottom:14px; }
-        .avatar-drop-zone {
-            border: 2px dashed #d6e2db;
-            border-radius: 14px;
-            padding: 16px;
-            text-align: center;
-            background: #fafcfb;
-            cursor: pointer;
-            transition: all .2s;
-            position: relative;
-            width: 100%;
-            margin-bottom: 12px;
-        }
-        .avatar-drop-zone:hover { border-color:#1f7a3d; background:#eef7f1; }
-        .avatar-drop-zone i  { font-size:24px; color:#1f7a3d; display:block; margin-bottom:5px; }
-        .avatar-drop-zone p  { font-size:12px; font-weight:600; color:#06251b; margin:0; }
-        .avatar-drop-zone span { font-size:10.5px; color:#88968d; }
-        .file-hidden-input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
-
-        /* ── Buttons ── */
-        .btn-set-primary {
-            background: #06251b; color: #ffc107; border: none;
-            padding: 10px 18px; border-radius: 10px;
-            font-size: 12.5px; font-weight: 700; font-family: 'Poppins',sans-serif;
-            cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-            transition: all .2s; width: 100%; margin-bottom: 10px;
-        }
-        .btn-set-primary:hover { background:#144937; color:#fff; transform:translateY(-1px); }
-        .btn-set-danger {
-            background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2;
-            padding: 9px 14px; border-radius: 10px;
-            font-size: 12px; font-weight: 700; font-family: 'Poppins',sans-serif;
-            cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-            transition: all .15s; width: 100%;
-        }
-        .btn-set-danger:hover { background:#dc2626; color:#fff; }
-
-        /* ── Read-only fields ── */
-        .readonly-grid {
-            display: grid;
-            grid-template-columns: repeat(2,1fr);
-            gap: 16px;
-        }
-        @media (max-width:640px) { .readonly-grid { grid-template-columns:1fr; } }
-        .readonly-field-group { display:flex; flex-direction:column; gap:5px; }
-        .readonly-field-group.span-2 { grid-column:span 2; }
-        @media (max-width:640px) { .readonly-field-group.span-2 { grid-column:span 1; } }
-        .readonly-label {
-            font-size: 11px; font-weight: 700; text-transform: uppercase;
-            letter-spacing: .4px; color: #88968d;
-            display: flex; align-items: center; gap: 6px;
-        }
-        .readonly-value-box {
-            background: #fafcfb; border: 1.5px solid #eef2ef; border-radius: 10px;
-            padding: 10px 14px; font-size: 12.5px; font-weight: 600; color: #06251b;
-            display: flex; align-items: center; justify-content: space-between; min-height: 42px;
-        }
-        .readonly-value-box .lock-icon { color:#aab5ae; font-size:12px; }
-
-        /* ── Account summary ── */
-        .acct-summary-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f4f2;
-            font-size: 12.5px;
-            color: #55665a;
-        }
-        .acct-summary-row:last-child { border-bottom: none; }
-        .acct-summary-row strong { color:#06251b; font-weight:700; }
-
-        /* ── Password form ── */
-        .pw-form-group { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
-        .pw-label { font-size:12px; font-weight:700; color:#06251b; }
-        .pw-input-wrap { position:relative; display:flex; align-items:center; }
-        .pw-input-wrap i.prefix-icon {
-            position:absolute; left:14px; color:#88968d; font-size:14px; pointer-events:none;
-        }
-        .pw-input-field {
-            width: 100%; padding: 10px 42px 10px 38px;
-            border: 1.5px solid #d4e0d8; border-radius: 10px;
-            font-size: 12.5px; font-family: 'Poppins',sans-serif; color:#1a1a1a;
-            outline: none; background: #fff; transition: all .15s;
-        }
-        .pw-input-field:focus { border-color:#1f7a3d; box-shadow:0 0 0 3px rgba(31,122,61,.1); }
-        .pw-toggle-btn {
-            position:absolute; right:12px; background:transparent; border:none;
-            color:#88968d; cursor:pointer; font-size:14px; padding:4px;
-            display:flex; align-items:center; justify-content:center; transition:color .15s;
-        }
-        .pw-toggle-btn:hover { color:#06251b; }
-        .pw-requirements-box {
-            background:#fbfdfc; border:1px solid #edf1ee; border-radius:12px;
-            padding:14px 16px; margin-bottom:20px;
-        }
-        .pw-req-title { font-size:11px; font-weight:700; color:#55665a; text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px; }
-        .pw-req-list {
-            list-style:none; padding:0; margin:0;
-            display:grid; grid-template-columns:1fr 1fr; gap:6px 14px;
-        }
-        @media (max-width:600px) { .pw-req-list { grid-template-columns:1fr; } }
-        .pw-req-item { font-size:11.5px; color:#88968d; display:flex; align-items:center; gap:6px; transition:color .15s; }
-        .pw-req-item.valid { color:#1f7a3d; font-weight:600; }
-
-        /* ── Flash alerts ── */
-        .flash-alert {
-            padding: 12px 16px; border-radius: 12px; font-size: 12.5px; font-weight: 600;
-            margin-bottom: 18px; display: flex; align-items: center; gap: 10px;
-            animation: fadeInAlert .2s ease;
-        }
-        @keyframes fadeInAlert { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
-        .flash-alert.success { background:#eaf7ee; color:#1f7a3d; border:1px solid #c9e8d3; }
-        .flash-alert.error   { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
-    </style>
+    <link rel="stylesheet" href="../css/dashboard-shell.css">
+    <link rel="stylesheet" href="../css/pages/user-settings.css">
 </head>
 <body class="dash-body">
 
@@ -330,7 +151,7 @@ $initials     = strtoupper(substr($data['firstname'] ?? 'U', 0, 1) . substr($dat
 <main class="dash-main" id="dashMain">
 <div class="dash-content">
 
-    <div class="page-header" style="margin-bottom:24px;">
+    <div class="page-header">
         <h2>Account Settings</h2>
         <p>Manage your profile photo, view your account details, and update your password.</p>
     </div>
@@ -344,9 +165,9 @@ $initials     = strtoupper(substr($data['firstname'] ?? 'U', 0, 1) . substr($dat
             <div class="set-card">
                 <div class="set-card-head">
                     <span class="set-card-title">
-                        <i class="bi bi-person-circle" style="color:#1f7a3d;"></i> Profile Photo
+                        <i class="bi bi-person-circle clr-green"></i> Profile Photo
                     </span>
-                    <span style="font-size:11px;font-weight:700;color:#88968d;">Avatar</span>
+                    <span class="set-card-tag">Avatar</span>
                 </div>
                 <div class="set-card-body">
 
@@ -365,7 +186,7 @@ $initials     = strtoupper(substr($data['firstname'] ?? 'U', 0, 1) . substr($dat
                                     <img src="<?= htmlspecialchars($avatar_url) ?>" alt="" id="avatarImgPreview">
                                 <?php else: ?>
                                     <span id="avatarInitials"><?= $initials ?></span>
-                                    <img src="" alt="" id="avatarImgPreview" style="display:none;">
+                                    <img src="" alt="" id="avatarImgPreview" hidden>
                                 <?php endif; ?>
                             </div>
                             <div class="avatar-meta-name"><?= htmlspecialchars($fullname) ?></div>
@@ -380,7 +201,7 @@ $initials     = strtoupper(substr($data['firstname'] ?? 'U', 0, 1) . substr($dat
                                 <span>JPG, PNG, WEBP or GIF &bull; Max 5 MB</span>
                             </div>
 
-                            <button type="submit" class="btn-set-primary" id="saveAvatarBtn" style="display:none;">
+                            <button type="submit" class="btn-set-primary" id="saveAvatarBtn" hidden>
                                 <i class="bi bi-check2-circle"></i> Save Photo
                             </button>
                         </div>
@@ -402,7 +223,7 @@ $initials     = strtoupper(substr($data['firstname'] ?? 'U', 0, 1) . substr($dat
             <div class="set-card">
                 <div class="set-card-head">
                     <span class="set-card-title">
-                        <i class="bi bi-shield-check" style="color:#2F6FED;"></i> Account Summary
+                        <i class="bi bi-shield-check clr-blue"></i> Account Summary
                     </span>
                 </div>
                 <div class="set-card-body">
@@ -416,7 +237,7 @@ $initials     = strtoupper(substr($data['firstname'] ?? 'U', 0, 1) . substr($dat
                     </div>
                     <div class="acct-summary-row">
                         <span>Account Status</span>
-                        <strong style="color:#1f7a3d;"><i class="bi bi-check-circle-fill"></i> <?= ucfirst($data['status'] ?? 'Active') ?></strong>
+                        <strong class="clr-green"><i class="bi bi-check-circle-fill"></i> <?= ucfirst($data['status'] ?? 'Active') ?></strong>
                     </div>
                 </div>
             </div>
@@ -430,16 +251,16 @@ $initials     = strtoupper(substr($data['firstname'] ?? 'U', 0, 1) . substr($dat
             <div class="set-card">
                 <div class="set-card-head">
                     <span class="set-card-title">
-                        <i class="bi bi-person-lines-fill" style="color:#1f7a3d;"></i> Account Information
+                        <i class="bi bi-person-lines-fill clr-green"></i> Account Information
                     </span>
-                    <span style="font-size:11.5px;font-weight:700;color:#88968d;display:inline-flex;align-items:center;gap:4px;">
-                        <i class="bi bi-lock-fill" style="color:#aab5ae;"></i> Read-Only
+                    <span class="readonly-tag">
+                        <i class="bi bi-lock-fill clr-muted"></i> Read-Only
                     </span>
                 </div>
                 <div class="set-card-body">
-                    <div class="flash-alert" style="background:#f4f8f5;border:1px solid #dcebe1;color:#385141;margin-bottom:20px;">
-                        <i class="bi bi-info-circle-fill" style="color:#1f7a3d;flex-shrink:0;"></i>
-                        <span style="font-size:12px;">Your account details are managed by the system administrator. Contact support if any information needs to be updated.</span>
+                    <div class="flash-alert flash-alert--info">
+                        <i class="bi bi-info-circle-fill clr-green"></i>
+                        <span class="flash-note-text">Your account details are managed by the system administrator. Contact support if any information needs to be updated.</span>
                     </div>
 
                     <div class="readonly-grid">
@@ -486,7 +307,7 @@ $initials     = strtoupper(substr($data['firstname'] ?? 'U', 0, 1) . substr($dat
             <div class="set-card" id="password-card">
                 <div class="set-card-head">
                     <span class="set-card-title">
-                        <i class="bi bi-key-fill" style="color:#e67e22;"></i> Change Password
+                        <i class="bi bi-key-fill clr-orange"></i> Change Password
                     </span>
                 </div>
                 <div class="set-card-body">
@@ -511,7 +332,7 @@ $initials     = strtoupper(substr($data['firstname'] ?? 'U', 0, 1) . substr($dat
                         </div>
 
                         <div class="pw-requirements-box">
-                            <div class="pw-req-title"><i class="bi bi-shield-lock" style="margin-right:4px;"></i> Password Requirements</div>
+                            <div class="pw-req-title"><i class="bi bi-shield-lock"></i> Password Requirements</div>
                             <ul class="pw-req-list">
                                 <li class="pw-req-item" id="req-len"><i class="bi bi-circle"></i> At least 8 characters</li>
                                 <li class="pw-req-item" id="req-upper"><i class="bi bi-circle"></i> One uppercase letter</li>
@@ -538,7 +359,7 @@ $initials     = strtoupper(substr($data['firstname'] ?? 'U', 0, 1) . substr($dat
                             </div>
                         </div>
 
-                        <button type="submit" class="btn-set-primary" style="width:auto; padding:10px 28px;">
+                        <button type="submit" class="btn-set-primary btn-set-primary--auto">
                             <i class="bi bi-shield-check"></i> Update Password
                         </button>
                     </form>

@@ -14,7 +14,7 @@ echo "=== YesParency Live Debug ===\n\n";
 // 0. MediaMTX env config
 echo "=== MediaMTX Config (from .env) ===\n";
 echo "MEDIAMTX_HOST: "         . ($_ENV['MEDIAMTX_HOST']         ?? '(not set — default: localhost)') . "\n";
-echo "MEDIAMTX_WEBRTC_PORT: "  . ($_ENV['MEDIAMTX_WEBRTC_PORT']  ?? '(not set — default: 8889)') . "\n";
+echo "MEDIAMTX_HLS_PORT: "     . ($_ENV['MEDIAMTX_HLS_PORT']     ?? '(not set — default: 8888)') . "\n";
 echo "MEDIAMTX_RTMP_PORT: "    . ($_ENV['MEDIAMTX_RTMP_PORT']    ?? '(not set — default: 1935)') . "\n";
 echo "MEDIAMTX_DEFAULT_PATH: " . ($_ENV['MEDIAMTX_DEFAULT_PATH'] ?? '(not set — default: live)') . "\n";
 echo "Computed stream URL: "   . mediamtx_url('live') . "\n\n";

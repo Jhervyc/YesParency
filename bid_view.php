@@ -93,13 +93,9 @@ if (!empty($procurement['closing_date'])) {
     if ($is_open && $diff_days <= 3 && $diff_days >= 0) $is_urgent = true;
 }
 
-$status_colors = [
-    'open'      => ['bg'=>'#e4f5ea','fg'=>'#1f7a3d'],
-    'closed'    => ['bg'=>'#e7eefe','fg'=>'#2F6FED'],
-    'awarded'   => ['bg'=>'#fcf1cf','fg'=>'#b78103'],
-    'cancelled' => ['bg'=>'#ffebee','fg'=>'#c23b3b'],
-];
-$sc = $status_colors[$p_status] ?? $status_colors['open'];
+$status_pill_class = in_array($p_status, ['open','closed','awarded','cancelled'])
+    ? 'status-' . $p_status
+    : 'status-open';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -111,195 +107,11 @@ $sc = $status_colors[$p_status] ?? $status_colors['open'];
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-<style>
-* { box-sizing:border-box; }
-html { scroll-behavior:smooth; scroll-padding-top:80px; }
-body.bview-page {
-    background:#f4f8f5; font-family:'Poppins',sans-serif;
-    color:#222; overflow-x:hidden; min-height:100vh;
-}
-
-/* ── Navbar (see includes/navbar.php) ── */
-
-/* ── Breadcrumb Bar ── */
-.bview-breadcrumb-bar {
-    background:linear-gradient(135deg,#06251b 0%,#0c3d2c 100%);
-    padding:90px 24px 28px; position:relative; overflow:hidden;
-}
-.bview-breadcrumb-bar::before {
-    content:''; position:absolute; inset:0;
-    background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),
-                     linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
-    background-size:40px 40px; pointer-events:none;
-}
-.bview-breadcrumb-inner {
-    max-width:1240px; margin:0 auto; position:relative; z-index:2;
-}
-.bview-breadcrumbs {
-    display:flex; align-items:center; gap:6px;
-    font-size:12px; font-weight:600; color:#9cb3a6; margin-bottom:16px;
-}
-.bview-breadcrumbs a {
-    color:#9cb3a6; text-decoration:none;
-    display:inline-flex; align-items:center; gap:4px; transition:color .2s;
-}
-.bview-breadcrumbs a:hover { color:#ffc107; }
-
-/* ── Hero Card (inside breadcrumb bar) ── */
-.bview-hero {
-    background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);
-    border-radius:20px; padding:24px 28px;
-}
-.bview-hero-top {
-    display:flex; align-items:center; justify-content:space-between;
-    gap:12px; flex-wrap:wrap; margin-bottom:12px;
-}
-.bview-badges { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.bview-pill {
-    font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px;
-    display:inline-flex; align-items:center; gap:4px;
-}
-.bview-pill.ref { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.2); }
-.bview-pill.urgent { background:rgba(235,87,87,.25); border:1px solid rgba(235,87,87,.5); color:#ff8a80; }
-.bview-hero-title {
-    font-size:22px; font-weight:800; color:#fff;
-    line-height:1.3; margin-bottom:20px; letter-spacing:-.3px;
-}
-.bview-metrics {
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;
-}
-.bview-metric {
-    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
-    border-radius:14px; padding:12px 16px;
-}
-.bview-metric-lbl {
-    font-size:10px; font-weight:700; color:#d1e5db;
-    text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px;
-    display:flex; align-items:center; gap:5px;
-}
-.bview-metric-lbl i { color:#ffc107; }
-.bview-metric-val {
-    font-size:16px; font-weight:800; color:#fff;
-    font-family:'Space Grotesk',sans-serif;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-.bview-metric-val.gold { color:#ffc107; }
-
-/* ── Main Content ── */
-.bview-content {
-    max-width:1240px; margin:0 auto; padding:36px 24px 80px;
-    display:grid; grid-template-columns:1.7fr 1fr; gap:24px; align-items:start;
-}
-@media(max-width:1040px) { .bview-content { grid-template-columns:1fr; } }
-
-/* ── Cards ── */
-.bv-card {
-    background:#fff; border:1px solid #eaeeec; border-radius:18px;
-    box-shadow:0 1px 2px rgba(16,36,26,.03),0 10px 24px -14px rgba(16,36,26,.08);
-    margin-bottom:22px; overflow:hidden;
-}
-.bv-card-head {
-    display:flex; align-items:center; justify-content:space-between;
-    padding:14px 20px; border-bottom:1px solid #f0f4f2; background:#fafcfb;
-}
-.bv-card-title {
-    font-size:13.5px; font-weight:800; color:#06251b;
-    display:flex; align-items:center; gap:8px;
-}
-.bv-card-count {
-    background:#eef7f1; color:#1f7a3d;
-    font-size:11px; font-weight:700; padding:2px 8px; border-radius:12px;
-}
-.bv-card-body { padding:20px; }
-
-/* spec fields */
-.spec-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
-@media(max-width:600px) { .spec-grid { grid-template-columns:1fr; } }
-.spec-item { background:#fafcfb; border:1px solid #eaeeec; border-radius:12px; padding:11px 14px; }
-.spec-lbl { font-size:10.5px; font-weight:700; color:#88968d; text-transform:uppercase; letter-spacing:.4px; margin-bottom:2px; }
-.spec-val { font-size:13px; font-weight:700; color:#1a2a20; line-height:1.3; }
-
-/* lots table */
-.lots-table { width:100%; border-collapse:collapse; font-size:12.5px; }
-.lots-table th {
-    background:#f4f8f5; padding:10px 14px; font-size:11px; font-weight:700;
-    color:#495b50; text-transform:uppercase; border-bottom:1px solid #eaeeec; text-align:left;
-}
-.lots-table td { padding:12px 14px; border-bottom:1px solid #f2f5f3; vertical-align:middle; }
-.lots-table tr:last-child td { border-bottom:none; }
-
-/* documents */
-.doc-row {
-    display:flex; align-items:center; justify-content:space-between;
-    padding:12px 14px; background:#fafcfb; border:1px solid #eaeeec;
-    border-radius:12px; margin-bottom:10px; gap:12px;
-}
-.doc-row:last-child { margin-bottom:0; }
-.doc-icon {
-    width:32px; height:32px; border-radius:8px; background:#eef5f1;
-    color:#1f7a3d; display:flex; align-items:center; justify-content:center;
-    font-size:14px; flex-shrink:0;
-}
-.doc-title { font-size:12.5px; font-weight:700; color:#18261e; }
-.doc-dl-btn {
-    display:inline-flex; align-items:center; gap:5px;
-    background:#06251b; color:#ffc107; font-size:11px; font-weight:700;
-    padding:6px 12px; border-radius:8px; text-decoration:none;
-    transition:all .15s; flex-shrink:0;
-}
-.doc-dl-btn:hover { background:#0a3a2a; color:#fff; }
-.badge-associated-pill {
-    display: inline-block;
-    background: #e0f2fe;
-    color: #0369a1;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 6px;
-    margin-left: 6px;
-    vertical-align: middle;
-}
-
-/* timeline */
-.tl-list { position:relative; padding-left:24px; }
-.tl-list::before {
-    content:''; position:absolute; left:7px; top:6px; bottom:6px;
-    width:2px; background:#e0e8e4;
-}
-.tl-step { position:relative; margin-bottom:18px; }
-.tl-step:last-child { margin-bottom:0; }
-.tl-dot {
-    position:absolute; left:-24px; top:2px;
-    width:16px; height:16px; border-radius:50%;
-    background:#fff; border:3px solid #1f7a3d;
-}
-.tl-lbl { font-size:12.5px; font-weight:700; color:#1a2a20; margin-bottom:2px; }
-.tl-date { font-size:11.5px; color:#728277; }
-
-/* CTA box */
-.cta-box {
-    background:#f7faf8; border:1.5px dashed #c0d8cb;
-    border-radius:14px; padding:18px; text-align:center; margin-bottom:4px;
-}
-.cta-btn {
-    display:inline-flex; align-items:center; justify-content:center; gap:8px;
-    width:100%; background:#06251b; color:#ffc107; font-weight:700;
-    font-size:13px; padding:12px 18px; border-radius:10px;
-    text-decoration:none; transition:all .15s ease; margin-top:12px;
-}
-.cta-btn:hover { background:#0a3a2a; color:#fff; transform:translateY(-1px); }
-
-/* Footer */
-.bview-footer {
-    background:#020c09; color:#6b8077; padding:28px 24px;
-    text-align:center; font-size:12px;
-    border-top:1px solid rgba(255,255,255,.06);
-}
-.bview-footer a { color:#9cb3a6; text-decoration:none; }
-.bview-footer a:hover { color:#ffc107; }
-</style>
-<?php require_once __DIR__ . '/includes/navbar.php'; render_public_navbar_css(); ?>
+<!-- Custom CSS: base -> shared components -> page-specific -->
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/pages/bid_view.css">
+<?php require_once __DIR__ . '/includes/navbar.php'; ?>
 </head>
 <body class="bview-page">
 
@@ -322,8 +134,8 @@ body.bview-page {
                     <span class="bview-pill ref">
                         <i class="bi bi-hash"></i> <?= htmlspecialchars($procurement['slsu_ref_no'] ?: 'SLSU-BAC') ?>
                     </span>
-                    <span class="bview-pill" style="background:<?= $sc['bg'] ?>;color:<?= $sc['fg'] ?>;">
-                        <i class="bi bi-circle-fill" style="font-size:7px;"></i> <?= strtoupper($p_status) ?>
+                    <span class="bview-pill <?= $status_pill_class ?>">
+                        <i class="bi bi-circle-fill status-dot"></i> <?= strtoupper($p_status) ?>
                     </span>
                     <?php if ($is_urgent): ?>
                         <span class="bview-pill urgent">
@@ -331,7 +143,7 @@ body.bview-page {
                         </span>
                     <?php endif; ?>
                 </div>
-                <span style="font-size:12px; color:#d1e5db;">
+                <span class="bview-hero-sub">
                     <i class="bi bi-building"></i> SLSU &mdash; BAC
                 </span>
             </div>
@@ -349,11 +161,11 @@ body.bview-page {
                 </div>
                 <div class="bview-metric">
                     <div class="bview-metric-lbl"><i class="bi bi-clock-history"></i> Submission Deadline</div>
-                    <div class="bview-metric-val" style="font-size:13px;"><?= $deadline_text ?></div>
+                    <div class="bview-metric-val bview-metric-val--sm"><?= $deadline_text ?></div>
                 </div>
                 <div class="bview-metric">
                     <div class="bview-metric-lbl"><i class="bi bi-calendar-event"></i> Bid Opening Date</div>
-                    <div class="bview-metric-val" style="font-size:13px;">
+                    <div class="bview-metric-val bview-metric-val--sm">
                         <?= !empty($procurement['opening_date']) ? date('M j, Y · g:i A', strtotime($procurement['opening_date'])) : 'To Be Scheduled' ?>
                     </div>
                 </div>
@@ -373,7 +185,7 @@ body.bview-page {
         <div class="bv-card">
             <div class="bv-card-head">
                 <div class="bv-card-title">
-                    <i class="bi bi-info-circle" style="color:#06251b;"></i> Project Overview
+                    <i class="bi bi-info-circle ic-dark"></i> Project Overview
                 </div>
             </div>
             <div class="bv-card-body">
@@ -386,20 +198,20 @@ body.bview-page {
                         <div class="spec-lbl">Procurement Mode</div>
                         <div class="spec-val"><?= htmlspecialchars($procurement['procurement_mode'] ?: 'Public Bidding') ?></div>
                     </div>
-                    <div class="spec-item" style="grid-column:1/-1;">
+                    <div class="spec-item spec-item--full">
                         <div class="spec-lbl">Project Title</div>
-                        <div class="spec-val" style="font-size:14px; color:#06251b;"><?= htmlspecialchars($procurement['title']) ?></div>
+                        <div class="spec-val spec-val--title"><?= htmlspecialchars($procurement['title']) ?></div>
                     </div>
-                    <div class="spec-item" style="grid-column:1/-1;">
+                    <div class="spec-item spec-item--full">
                         <div class="spec-lbl">Approved Budget for the Contract (ABC)</div>
-                        <div class="spec-val" style="font-size:17px; font-weight:800; font-family:'Space Grotesk',sans-serif; color:#1f7a3d;">
+                        <div class="spec-val spec-val--abc">
                             ₱<?= number_format((float)$procurement['abc'], 2) ?>
                         </div>
                     </div>
                 </div>
 
-                <div style="font-size:11px; font-weight:700; color:#88968d; text-transform:uppercase; margin-bottom:6px;">Description</div>
-                <div style="background:#fafcfb; border:1px solid #eaeeec; border-radius:12px; padding:16px; font-size:13px; color:#2d3a32; line-height:1.6; white-space:pre-wrap;">
+                <div class="desc-label">Description</div>
+                <div class="desc-box">
 <?= htmlspecialchars($procurement['description'] ?: 'No detailed description specified for this procurement. Please consult the official bidding documents.') ?>
                 </div>
             </div>
@@ -410,28 +222,28 @@ body.bview-page {
         <div class="bv-card">
             <div class="bv-card-head">
                 <div class="bv-card-title">
-                    <i class="bi bi-boxes" style="color:#1f7a3d;"></i> Project Lots &amp; Components
+                    <i class="bi bi-boxes ic-green"></i> Project Lots &amp; Components
                 </div>
                 <span class="bv-card-count"><?= count($lots) ?> Lot<?= count($lots) > 1 ? 's' : '' ?></span>
             </div>
-            <div class="bv-card-body" style="padding:0;">
-                <div style="overflow-x:auto;">
+            <div class="bv-card-body bv-card-body--flush">
+                <div class="table-scroll">
                     <table class="lots-table">
                         <thead>
                             <tr>
-                                <th style="width:70px;">Lot #</th>
+                                <th class="col-lotnum-th">Lot #</th>
                                 <th>Title</th>
                                 <th>Description</th>
-                                <th style="text-align:right;">ABC</th>
+                                <th class="ta-right">ABC</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($lots as $lot): ?>
                             <tr>
-                                <td style="font-weight:700; color:#06251b;">Lot <?= htmlspecialchars($lot['lot_number']) ?></td>
-                                <td style="font-weight:600; color:#1a2a20;"><?= htmlspecialchars($lot['lot_title'] ?? $lot['title'] ?? '—') ?></td>
-                                <td style="color:#63736a; font-size:12px;"><?= htmlspecialchars($lot['description'] ?? '—') ?></td>
-                                <td style="text-align:right; font-weight:800; font-family:'Space Grotesk',sans-serif; color:#06251b;">
+                                <td class="lot-num-td">Lot <?= htmlspecialchars($lot['lot_number']) ?></td>
+                                <td class="lot-title-td"><?= htmlspecialchars($lot['lot_title'] ?? $lot['title'] ?? '—') ?></td>
+                                <td class="lot-desc-td"><?= htmlspecialchars($lot['description'] ?? '—') ?></td>
+                                <td class="lot-abc-td">
                                     ₱<?= number_format((float)$lot['abc'], 2) ?>
                                 </td>
                             </tr>
@@ -439,9 +251,9 @@ body.bview-page {
                         </tbody>
                         <?php if (count($lots) > 1): ?>
                         <tfoot>
-                            <tr style="background:#f9fbf9; border-top:2px solid #eaeeec; font-weight:700;">
-                                <td colspan="3" style="text-align:right; font-size:12px; color:#495b50; padding:12px 14px;">Total ABC:</td>
-                                <td style="text-align:right; font-weight:800; font-family:'Space Grotesk',sans-serif; color:#06251b; padding:12px 14px;">
+                            <tr class="lots-total-row">
+                                <td colspan="3" class="lots-total-label">Total ABC:</td>
+                                <td class="lots-total-abc">
                                     ₱<?= number_format($total_lots_abc, 2) ?>
                                 </td>
                             </tr>
@@ -457,21 +269,21 @@ body.bview-page {
         <div class="bv-card">
             <div class="bv-card-head">
                 <div class="bv-card-title">
-                    <i class="bi bi-file-earmark-arrow-down" style="color:#1565c0;"></i> Official Bidding Documents
+                    <i class="bi bi-file-earmark-arrow-down ic-blue"></i> Official Bidding Documents
                 </div>
                 <span class="bv-card-count"><?= count($original_documents) ?> File<?= count($original_documents) != 1 ? 's' : '' ?></span>
             </div>
             <div class="bv-card-body">
                 <?php if (!empty($original_documents)): ?>
-                    <?php foreach ($original_documents as $doc): 
+                    <?php foreach ($original_documents as $doc):
                         $dl_url = resolve_proc_doc_url($doc['file_path'], 'root');
                     ?>
                     <div class="doc-row">
-                        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                        <div class="doc-row-info">
                             <div class="doc-icon"><i class="bi bi-file-earmark-pdf"></i></div>
-                            <div style="min-width:0;">
+                            <div class="doc-row-text">
                                 <div class="doc-title" title="<?= htmlspecialchars($doc['document_name']) ?>"><?= htmlspecialchars($doc['document_name']) ?></div>
-                                <div style="font-size:11px; color:#88968d;">Uploaded: <?= date('M j, Y', strtotime($doc['uploaded_at'])) ?></div>
+                                <div class="doc-meta">Uploaded: <?= date('M j, Y', strtotime($doc['uploaded_at'])) ?></div>
                             </div>
                         </div>
                         <a href="<?= htmlspecialchars($dl_url) ?>" download class="doc-dl-btn">
@@ -480,8 +292,8 @@ body.bview-page {
                     </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <div style="text-align:center; padding:18px 0; color:#88968d; font-size:12.5px;">
-                        <i class="bi bi-folder-x" style="font-size:24px; display:block; margin-bottom:4px;"></i>
+                    <div class="doc-empty">
+                        <i class="bi bi-folder-x doc-empty-icon"></i>
                         No original bidding documents uploaded yet.
                     </div>
                 <?php endif; ?>
@@ -489,16 +301,16 @@ body.bview-page {
         </div>
 
         <!-- Associated Documents (Associated Only) -->
-        <div class="bv-card" style="margin-top:20px;">
+        <div class="bv-card bv-card--mt">
             <div class="bv-card-head">
                 <div class="bv-card-title">
-                    <i class="bi bi-paperclip" style="color:#0284c7;"></i> Associated Documents
+                    <i class="bi bi-paperclip ic-cyan"></i> Associated Documents
                 </div>
                 <span class="bv-card-count"><?= count($associated_documents) ?> File<?= count($associated_documents) != 1 ? 's' : '' ?></span>
             </div>
             <div class="bv-card-body">
                 <?php if (!empty($associated_documents)): ?>
-                    <?php foreach ($associated_documents as $adoc): 
+                    <?php foreach ($associated_documents as $adoc):
                         $adl_url = resolve_proc_doc_url($adoc['file_path'], 'root');
                         $aext    = strtolower(pathinfo($adoc['document_name'], PATHINFO_EXTENSION));
                         $aicon   = 'bi-file-earmark-pdf';
@@ -508,24 +320,24 @@ body.bview-page {
                         elseif (in_array($aext, ['jpg','jpeg','png'])) $aicon = 'bi-file-earmark-image';
                     ?>
                     <div class="doc-row">
-                        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-                            <div class="doc-icon" style="background:#e0f2fe; color:#0284c7;"><i class="bi <?= $aicon ?>"></i></div>
-                            <div style="min-width:0;">
+                        <div class="doc-row-info">
+                            <div class="doc-icon doc-icon--blue"><i class="bi <?= $aicon ?>"></i></div>
+                            <div class="doc-row-text">
                                 <div class="doc-title" title="<?= htmlspecialchars($adoc['document_name']) ?>">
                                     <?= htmlspecialchars($adoc['document_name']) ?>
                                     <span class="badge-associated-pill">Associated</span>
                                 </div>
-                                <div style="font-size:11px; color:#88968d;">Uploaded: <?= date('M j, Y · g:i A', strtotime($adoc['uploaded_at'])) ?></div>
+                                <div class="doc-meta">Uploaded: <?= date('M j, Y · g:i A', strtotime($adoc['uploaded_at'])) ?></div>
                             </div>
                         </div>
-                        <a href="<?= htmlspecialchars($adl_url) ?>" download class="doc-dl-btn" style="background:#0284c7; color:#ffffff;">
+                        <a href="<?= htmlspecialchars($adl_url) ?>" download class="doc-dl-btn doc-dl-btn--blue">
                             <i class="bi bi-download"></i> Download
                         </a>
                     </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <div style="text-align:center; padding:18px 0; color:#88968d; font-size:12.5px;">
-                        <i class="bi bi-folder-x" style="font-size:24px; display:block; margin-bottom:4px;"></i>
+                    <div class="doc-empty">
+                        <i class="bi bi-folder-x doc-empty-icon"></i>
                         No associated documents (bulletins, addenda, notices) published yet.
                     </div>
                 <?php endif; ?>
@@ -541,30 +353,30 @@ body.bview-page {
         <div class="bv-card">
             <div class="bv-card-head">
                 <div class="bv-card-title">
-                    <i class="bi bi-shield-check" style="color:#06251b;"></i> Supplier Participation
+                    <i class="bi bi-shield-check ic-dark"></i> Supplier Participation
                 </div>
             </div>
             <div class="bv-card-body">
                 <?php if ($user_logged_in): ?>
-                    <div class="cta-box" style="background:#f2faf4; border-color:#b7e3c4;">
-                        <i class="bi bi-person-check-fill" style="font-size:28px; color:#219653; display:block; margin-bottom:6px;"></i>
-                        <div style="font-size:13.5px; font-weight:800; color:#06251b; margin-bottom:4px;">You're Logged In</div>
-                        <p style="font-size:12px; color:#55665a; margin-bottom:0;">Access your bidder portal to view submission requirements and eligibility details.</p>
+                    <div class="cta-box cta-box--success">
+                        <i class="bi bi-person-check-fill cta-icon cta-icon--success"></i>
+                        <div class="cta-title">You're Logged In</div>
+                        <p class="cta-desc">Access your bidder portal to view submission requirements and eligibility details.</p>
                         <a href="<?= htmlspecialchars($user_dashboard_link) ?>" class="cta-btn">
                             <i class="bi bi-speedometer2"></i> Go to Dashboard
                         </a>
                     </div>
                 <?php else: ?>
                     <div class="cta-box">
-                        <i class="bi bi-person-badge" style="font-size:28px; color:#06251b; display:block; margin-bottom:6px;"></i>
-                        <div style="font-size:13.5px; font-weight:800; color:#06251b; margin-bottom:4px;">Interested in Bidding?</div>
-                        <p style="font-size:12px; color:#55665a; margin-bottom:0;">
+                        <i class="bi bi-person-badge cta-icon cta-icon--default"></i>
+                        <div class="cta-title">Interested in Bidding?</div>
+                        <p class="cta-desc">
                             Register as an accredited supplier to participate in electronic bidding and submit proposals.
                         </p>
                         <a href="register.php" class="cta-btn">
                             <i class="bi bi-person-plus"></i> Register as Bidder
                         </a>
-                        <a href="login.php" style="display:block; margin-top:10px; font-size:12px; color:#1f7a3d; font-weight:700; text-align:center; text-decoration:none;">
+                        <a href="login.php" class="cta-subtle-link">
                             Already registered? <u>Login here</u>
                         </a>
                     </div>
@@ -576,7 +388,7 @@ body.bview-page {
         <div class="bv-card">
             <div class="bv-card-head">
                 <div class="bv-card-title">
-                    <i class="bi bi-calendar-check" style="color:#1f7a3d;"></i> Schedule of Activities
+                    <i class="bi bi-calendar-check ic-green"></i> Schedule of Activities
                 </div>
             </div>
             <div class="bv-card-body">
@@ -598,13 +410,13 @@ body.bview-page {
                     <?php endif; ?>
 
                     <div class="tl-step">
-                        <div class="tl-dot" style="border-color:#e67e22;"></div>
-                        <div class="tl-lbl" style="color:#e67e22;">Deadline for Submission</div>
+                        <div class="tl-dot tl-dot--warn"></div>
+                        <div class="tl-lbl tl-lbl--warn">Deadline for Submission</div>
                         <div class="tl-date"><?= $deadline_text ?></div>
                     </div>
 
                     <div class="tl-step">
-                        <div class="tl-dot" style="border-color:#1565c0;"></div>
+                        <div class="tl-dot tl-dot--info"></div>
                         <div class="tl-lbl">Bid Opening</div>
                         <div class="tl-date">
                             <?= !empty($procurement['opening_date']) ? date('F j, Y · g:i A', strtotime($procurement['opening_date'])) : 'To Be Scheduled' ?>
@@ -615,11 +427,7 @@ body.bview-page {
         </div>
 
         <!-- Back link -->
-        <a href="bid_schedule.php" style="
-            display:flex; align-items:center; justify-content:center; gap:8px;
-            background:#fff; border:1.5px solid #e2ece6; color:#06251b;
-            font-size:12.5px; font-weight:700; padding:11px 18px; border-radius:12px;
-            text-decoration:none; transition:all .15s ease;">
+        <a href="bid_schedule.php" class="btn-back-outline">
             <i class="bi bi-arrow-left"></i> Back to Bid Schedule
         </a>
 
@@ -627,11 +435,7 @@ body.bview-page {
 </div>
 
 <!-- ── Footer ── -->
-<footer class="bview-footer">
-    <p>&copy; <?= date('Y') ?> YesParency &mdash; SLSU Procurement Transparency System &mdash;
-       <a href="index.php">Home</a> &bull; <a href="bid_schedule.php">Bid Schedule</a> &bull; <a href="login.php">Login</a>
-    </p>
-</footer>
+<?php require_once __DIR__ . '/includes/footer.php'; render_public_footer(); ?>
 
 </body>
 </html>

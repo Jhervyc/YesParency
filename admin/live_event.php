@@ -135,8 +135,8 @@ function timeAgo($dt) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../dashboard.css">
+    <link rel="stylesheet" href="../css/dashboard-shell.css">
 </head>
 <body class="dash-body">
 
@@ -183,12 +183,17 @@ function timeAgo($dt) {
         </div>
         <?php if ($active_event): ?>
         <div style="padding:0 20px 20px;">
-            <div style="aspect-ratio:16/9; background:#000; border-radius:12px; overflow:hidden; max-width:700px;">
+            <div style="aspect-ratio:16/9; background:#000; border-radius:12px; overflow:hidden; max-width:700px; position:relative;">
+                <div id="streamPreviewChecking" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:12.5px; text-align:center; padding:16px;">
+                    <span><i class="bi bi-broadcast"></i> Checking stream…</span>
+                </div>
                 <iframe
-                    src="<?= htmlspecialchars(mediamtx_url($active_event['stream_path'])) ?>"
+                    id="streamPreviewIframe"
+                    data-stream-path="<?= htmlspecialchars($active_event['stream_path']) ?>"
+                    data-stream-url="<?= htmlspecialchars(mediamtx_url($active_event['stream_path'])) ?>"
                     allow="autoplay; fullscreen"
                     allowfullscreen
-                    style="width:100%; height:100%; border:none;">
+                    style="width:100%; height:100%; border:none; display:none;">
                 </iframe>
             </div>
         </div>
@@ -341,6 +346,29 @@ function timeAgo($dt) {
 <script>
     const toast = document.getElementById('toastAlert');
     if (toast) setTimeout(() => toast.classList.add('hide'), 4000);
+
+    // ── Stream health check before showing the preview iframe ──────────────
+    (function () {
+        const iframeEl   = document.getElementById('streamPreviewIframe');
+        const checkingEl = document.getElementById('streamPreviewChecking');
+        if (!iframeEl) return;
+
+        const streamPath = iframeEl.dataset.streamPath;
+        fetch('../stream_health.php?path=' + encodeURIComponent(streamPath))
+            .then(r => r.json())
+            .then(data => {
+                if (data.online) {
+                    iframeEl.src = iframeEl.dataset.streamUrl;
+                    iframeEl.style.display = '';
+                    if (checkingEl) checkingEl.style.display = 'none';
+                } else if (checkingEl) {
+                    checkingEl.innerHTML = '<span><i class="bi bi-broadcast"></i> Stream not confirmed online yet.</span>';
+                }
+            })
+            .catch(() => {
+                if (checkingEl) checkingEl.innerHTML = '<span><i class="bi bi-broadcast"></i> Unable to reach stream server.</span>';
+            });
+    })();
 </script>
 
 </body>
