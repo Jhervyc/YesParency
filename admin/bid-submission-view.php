@@ -220,1023 +220,8 @@ if ($_bsv_is_quotation) {
     <!-- Shared Stylesheets -->
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        /* ── Base Layout & Utility ── */
-        * {
-            box-sizing: border-box;
-        }
-
-        .dash-content {
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-
-        /* ── Breadcrumb & Top Bar ── */
-        .vp-nav-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 18px;
-        }
-
-        .vp-breadcrumbs {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            color: #88968d;
-            font-weight: 600;
-        }
-
-        .vp-breadcrumbs a {
-            color: #1f7a3d;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            transition: color .15s;
-        }
-
-        .vp-breadcrumbs a:hover {
-            text-decoration: underline;
-            color: #06251b;
-        }
-
-        .vp-back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #06251b;
-            font-size: 12.5px;
-            font-weight: 700;
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            padding: 7px 14px;
-            border-radius: 10px;
-            text-decoration: none;
-            transition: all .2s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
-
-        .vp-back-link:hover {
-            background: #06251b;
-            color: #ffc107;
-            border-color: #06251b;
-        }
-
-        /* ── Hero Banner ── */
-        .vp-hero-card {
-            background: linear-gradient(135deg, #06251b 0%, #0c3d2c 60%, #14593f 100%);
-            border-radius: 20px;
-            padding: 26px 30px;
-            color: #ffffff;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(6, 37, 27, 0.16);
-            margin-bottom: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .vp-hero-card::after {
-            content: '';
-            position: absolute;
-            top: -50px;
-            right: -50px;
-            width: 220px;
-            height: 220px;
-            background: radial-gradient(circle, rgba(255, 193, 7, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-
-        .vp-hero-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 12px;
-        }
-
-        .vp-hero-badges {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .hero-pill {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            letter-spacing: .3px;
-        }
-
-        .hero-pill.ref {
-            background: rgba(255, 255, 255, 0.12);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            cursor: pointer;
-            transition: all .15s;
-        }
-
-        .hero-pill.ref:hover {
-            background: rgba(255, 255, 255, 0.22);
-        }
-
-        .hero-pill.mode {
-            background: rgba(255, 193, 7, 0.2);
-            border: 1px solid rgba(255, 193, 7, 0.4);
-            color: #ffc107;
-        }
-
-        .hero-pill.status {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: #ffffff;
-        }
-
-        .vp-hero-title {
-            font-size: 23px;
-            font-weight: 800;
-            color: #ffffff;
-            line-height: 1.35;
-            margin-bottom: 20px;
-            letter-spacing: -0.3px;
-        }
-
-        /* Hero Key Metrics */
-        .vp-hero-metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-        }
-
-        .vp-hero-metric-item {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 14px;
-            padding: 12px 16px;
-        }
-
-        .vp-hero-metric-lbl {
-            font-size: 10px;
-            font-weight: 700;
-            color: #d1e5db;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .vp-hero-metric-lbl i {
-            color: #ffc107;
-        }
-
-        .vp-hero-metric-val {
-            font-size: 16.5px;
-            font-weight: 800;
-            color: #ffffff;
-            font-family: 'Space Grotesk', sans-serif;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .vp-hero-metric-val.gold {
-            color: #ffc107;
-        }
-
-        /* ── Modern Stat Ring Cards ── */
-        .stats-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-            gap: 14px;
-            margin-bottom: 24px;
-        }
-
-        .stat-ring-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 16px;
-            padding: 16px 18px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            box-shadow: 0 1px 3px rgba(16,36,26,.02);
-            transition: all .2s ease;
-        }
-
-        .stat-ring-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(16,36,26,.06);
-            border-color: #d2ded7;
-        }
-
-        .stat-ring-wrap {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            position: relative;
-        }
-
-        .stat-ring-inner {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-        }
-
-        .stat-ring-info {
-            min-width: 0;
-        }
-
-        .stat-ring-num {
-            font-size: 20px;
-            font-weight: 800;
-            color: #06251b;
-            font-family: 'Space Grotesk', sans-serif;
-            line-height: 1.1;
-        }
-
-        .stat-ring-lbl {
-            font-size: 11.5px;
-            font-weight: 600;
-            color: #718278;
-            margin-top: 3px;
-        }
-
-        /* ── Two-Column Layout (1.7fr + 1fr) ── */
-        .vp-grid-layout {
-            display: grid;
-            grid-template-columns: 1.7fr 1fr;
-            gap: 24px;
-            align-items: start;
-            margin-bottom: 30px;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .vp-left-col,
-        .vp-right-col {
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        @media (max-width: 1040px) {
-            .vp-grid-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* ── Card Containers ── */
-        .vp-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            margin-bottom: 22px;
-            overflow: hidden;
-        }
-
-        .vp-card-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px;
-            border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .vp-card-title {
-            font-size: 14px;
-            font-weight: 800;
-            color: #06251b;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .vp-card-count {
-            background: #eef7f1;
-            color: #1f7a3d;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 12px;
-        }
-
-        .vp-card-body {
-            padding: 20px;
-        }
-
-        /* ── Filter Tabs Bar ── */
-        .bids-filter-bar {
-            padding: 14px 20px 0;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            border-bottom: 1px solid #eaeeec;
-            background: #ffffff;
-        }
-
-        .bid-filter-tab {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 14px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #63736a;
-            text-decoration: none;
-            border-bottom: 2.5px solid transparent;
-            margin-bottom: -1px;
-            transition: all .15s ease;
-        }
-
-        .bid-filter-tab:hover {
-            color: #06251b;
-        }
-
-        .bid-filter-tab.active {
-            color: #1f7a3d;
-            border-bottom-color: #1f7a3d;
-        }
-
-        .bid-tab-count {
-            font-size: 10.5px;
-            padding: 1px 7px;
-            border-radius: 10px;
-            background: #f0f4f2;
-            color: #63736a;
-        }
-
-        .bid-filter-tab.active .bid-tab-count {
-            background: #eef7f1;
-            color: #1f7a3d;
-            font-weight: 800;
-        }
-
-        /* ── Bid Submissions List Items ── */
-        .bids-container {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .bid-item-card {
-            border-bottom: 1px solid #f0f4f2;
-            transition: background .15s ease;
-        }
-
-        .bid-item-card:last-child {
-            border-bottom: none;
-        }
-
-        .bid-item-header {
-            padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 14px;
-            cursor: pointer;
-            user-select: none;
-            transition: background .15s ease;
-        }
-
-        .bid-item-header:hover {
-            background: #f7faf8;
-        }
-
-        .bidder-avatar-wrap {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
-            background: #eef7f1;
-            color: #1f7a3d;
-            font-weight: 800;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            overflow: hidden;
-            border: 1px solid #dce8e0;
-        }
-
-        .bidder-avatar-wrap img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .bidder-profile-info {
-            flex: 1 1 auto;
-            min-width: 0;
-        }
-
-        .bidder-name {
-            font-size: 13.5px;
-            font-weight: 700;
-            color: #06251b;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .bidder-email {
-            font-size: 11.5px;
-            color: #88968d;
-            margin-top: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .bid-header-meta {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-shrink: 0;
-        }
-
-        .bid-status-pill {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            letter-spacing: .3px;
-        }
-
-        .bid-status-pill.pending {
-            background: #fff4d9;
-            color: #97710a;
-            border: 1px solid #fae1a0;
-        }
-
-        .bid-status-pill.submitted {
-            background: #e4f5ea;
-            color: #1f7a3d;
-            border: 1px solid #c2e8ce;
-        }
-
-        .bid-status-pill.rejected {
-            background: #ffebee;
-            color: #c23b3b;
-            border: 1px solid #f8c9c9;
-        }
-
-        .bid-timestamp {
-            font-size: 11.5px;
-            color: #63736a;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .btn-view-submission-modal {
-            background: #f7faf8;
-            color: #06251b;
-            border: 1px solid #dce4e0;
-            border-radius: 9px;
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            cursor: pointer;
-            transition: all .15s ease;
-        }
-
-        .btn-view-submission-modal:hover {
-            background: #06251b;
-            color: #ffc107;
-            border-color: #06251b;
-        }
-
-        /* ── Modals & Details ── */
-        .modal-backdrop {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(6, 37, 27, 0.55);
-            backdrop-filter: blur(4px);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            opacity: 0;
-            transition: opacity .2s ease;
-        }
-
-        .modal-backdrop.open {
-            display: flex;
-            opacity: 1;
-        }
-
-        .modal-dialog-box {
-            background: #ffffff;
-            border-radius: 20px;
-            width: 100%;
-            max-width: 440px;
-            text-align: center;
-            padding: 28px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            animation: modalPopIn .2s ease;
-        }
-
-        .modal-dialog-large {
-            background: #ffffff;
-            border-radius: 20px;
-            width: 100%;
-            max-width: 720px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            display: flex;
-            flex-direction: column;
-            animation: modalPopIn .2s ease;
-            padding: 0;
-            text-align: left;
-        }
-
-        @keyframes modalPopIn {
-            from { transform: scale(0.96) translateY(8px); opacity: 0; }
-            to { transform: scale(1) translateY(0); opacity: 1; }
-        }
-
-        .modal-head {
-            padding: 20px 24px;
-            background: #06251b;
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .modal-head h3 {
-            font-size: 16px;
-            font-weight: 800;
-            color: #ffc107;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .modal-close-btn {
-            background: none;
-            border: none;
-            color: #d1e5db;
-            font-size: 18px;
-            cursor: pointer;
-            transition: color .15s;
-        }
-
-        .modal-close-btn:hover {
-            color: #ffffff;
-        }
-
-        .modal-body-content {
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-
-        .modal-bidder-card {
-            background: #f7faf8;
-            border: 1px solid #eaeeec;
-            border-radius: 14px;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 14px;
-            flex-wrap: wrap;
-        }
-
-        .modal-bid-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        @media (max-width: 650px) {
-            .modal-bid-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .modal-section-card {
-            background: #fbfdfc;
-            border: 1px solid #edf1ee;
-            border-radius: 14px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .modal-section-title {
-            font-size: 11px;
-            font-weight: 700;
-            color: #88968d;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .modal-section-title i {
-            color: #1f7a3d;
-            font-size: 13px;
-        }
-
-        .lot-chip-list {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .lot-chip-item {
-            background: #ffffff;
-            border: 1px solid #e2ece6;
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #06251b;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .doc-sealed-pill {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 8px;
-            padding: 9px 12px;
-            font-size: 12px;
-            color: #4a5e54;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-weight: 600;
-        }
-
-        .doc-sealed-badge {
-            background: #eef7f1;
-            color: #1f7a3d;
-            font-size: 10px;
-            font-weight: 800;
-            padding: 2px 6px;
-            border-radius: 4px;
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-        }
-
-        .btn-receipt-view {
-            background: #06251b;
-            color: #ffc107;
-            font-size: 12px;
-            font-weight: 700;
-            padding: 9px 14px;
-            border-radius: 8px;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: all .15s ease;
-        }
-
-        .btn-receipt-view:hover {
-            background: #144937;
-            color: #ffffff;
-        }
-
-        .btn-action-verify {
-            width: 100%;
-            padding: 10px 14px;
-            font-size: 12.5px;
-            font-weight: 700;
-            border-radius: 9px;
-            border: none;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: all .15s ease;
-        }
-
-        .btn-action-verify.approve {
-            background: #1f7a3d;
-            color: #ffffff;
-        }
-
-        .btn-action-verify.approve:hover {
-            background: #16602f;
-            box-shadow: 0 4px 10px rgba(31, 122, 61, 0.2);
-        }
-
-        .btn-action-verify.reject {
-            background: #fff0f0;
-            color: #c23b3b;
-            border: 1px solid #f5c6c6;
-        }
-
-        .btn-action-verify.reject:hover {
-            background: #fde2e2;
-        }
-
-        .verify-done-tag {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 10px;
-            padding: 12px 14px;
-            font-size: 12.5px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .verify-done-tag.submitted {
-            color: #1f7a3d;
-            background: #eef7f1;
-            border-color: #d1ead8;
-        }
-
-        .verify-done-tag.rejected {
-            color: #c23b3b;
-            background: #fff2f2;
-            border-color: #f7caca;
-        }
-
-        .modal-foot {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 10px;
-            padding: 16px 24px;
-            background: #fafcfb;
-            border-top: 1px solid #eaeeec;
-        }
-
-        /* ── Spec Fields Grid ── */
-        .spec-fields-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            margin-bottom: 18px;
-        }
-
-        @media (max-width: 600px) {
-            .spec-fields-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .spec-field-box {
-            background: #f7faf8;
-            border: 1px solid #edf1ee;
-            border-radius: 12px;
-            padding: 11px 14px;
-        }
-
-        .spec-field-lbl {
-            font-size: 10px;
-            font-weight: 700;
-            color: #88968d;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            margin-bottom: 4px;
-        }
-
-        .spec-field-val {
-            font-size: 13px;
-            font-weight: 700;
-            color: #1a1a1a;
-        }
-
-        .desc-text-box {
-            background: #fbfdfc;
-            border: 1px solid #edf1ee;
-            border-radius: 12px;
-            padding: 16px;
-            font-size: 12.5px;
-            color: #3b4d42;
-            line-height: 1.65;
-            white-space: pre-line;
-        }
-
-        /* ── Lots Table ── */
-        .lots-data-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12.5px;
-            text-align: left;
-        }
-
-        .lots-data-table thead th {
-            background: #fafcfb;
-            padding: 12px 16px;
-            font-size: 11px;
-            font-weight: 700;
-            color: #55665a;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            border-bottom: 1px solid #edf1ee;
-        }
-
-        .lots-data-table tbody td {
-            padding: 12px 16px;
-            border-bottom: 1px solid #f4f7f5;
-            vertical-align: middle;
-        }
-
-        .lots-data-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .lots-data-table tfoot td {
-            background: #f7faf8;
-            padding: 12px 16px;
-            border-top: 2px solid #eaeeec;
-            font-weight: 800;
-            color: #06251b;
-        }
-
-        .lot-badge {
-            background: #eef7f1;
-            color: #1f7a3d;
-            font-weight: 800;
-            font-size: 11px;
-            padding: 3px 8px;
-            border-radius: 6px;
-            display: inline-block;
-        }
-
-        /* ── Right Column: Milestones Timeline ── */
-        .vp-timeline {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            position: relative;
-            padding-left: 28px;
-        }
-
-        .vp-timeline::before {
-            content: '';
-            position: absolute;
-            top: 6px;
-            bottom: 6px;
-            left: 10px;
-            width: 2px;
-            background: #eaeeec;
-        }
-
-        .timeline-item {
-            position: relative;
-        }
-
-        .timeline-dot {
-            position: absolute;
-            left: -28px;
-            top: 3px;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: #ffffff;
-            border: 2.5px solid #d0dcd5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            color: #88968d;
-        }
-
-        .timeline-item.active .timeline-dot {
-            background: #ffc107;
-            border-color: #e0a800;
-            color: #06251b;
-            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.25);
-        }
-
-        .timeline-item.passed .timeline-dot {
-            background: #1f7a3d;
-            border-color: #1f7a3d;
-            color: #ffffff;
-        }
-
-        .timeline-content-box {
-            background: #f7faf8;
-            border: 1px solid #edf1ee;
-            border-radius: 12px;
-            padding: 10px 14px;
-        }
-
-        .timeline-title-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 2px;
-        }
-
-        .timeline-title {
-            font-size: 12px;
-            font-weight: 700;
-            color: #06251b;
-        }
-
-        .timeline-badge {
-            font-size: 9.5px;
-            font-weight: 700;
-            padding: 2px 6px;
-            border-radius: 4px;
-            text-transform: uppercase;
-        }
-
-        .timeline-badge.past {
-            background: #eaeeec;
-            color: #63736a;
-        }
-
-        .timeline-badge.current {
-            background: #fff4d9;
-            color: #b78103;
-        }
-
-        .timeline-badge.future {
-            background: #eef7f1;
-            color: #1f7a3d;
-        }
-
-        .timeline-date {
-            font-size: 11.5px;
-            color: #55665a;
-            font-weight: 600;
-        }
-
-        .toast-alert {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            z-index: 10000;
-            background: #06251b;
-            color: #ffffff;
-            padding: 14px 20px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            animation: slideInToast .3s ease;
-        }
-
-        .toast-alert.success {
-            border-left: 4px solid #2ecc71;
-        }
-
-        .toast-alert.error {
-            border-left: 4px solid #e74c3c;
-        }
-
-        @keyframes slideInToast {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-bid-submission-view.css">
 </head>
 <body class="dash-body">
 
@@ -1254,7 +239,7 @@ if ($_bsv_is_quotation) {
         <div class="vp-breadcrumbs">
             <a href="bid_submissions.php"><i class="bi bi-inbox"></i> Bid Submissions</a>
             <span>/</span>
-            <span style="color:#06251b;">Review Submissions</span>
+            <span class="clr-dark">Review Submissions</span>
         </div>
         <a href="bid_submissions.php" class="vp-back-link">
             <i class="bi bi-arrow-left"></i> Back to Bid Submissions
@@ -1268,20 +253,20 @@ if ($_bsv_is_quotation) {
                 <?php if (!empty($proc['slsu_ref_no'])): ?>
                     <span class="hero-pill ref" onclick="copyPhilgeps('<?= htmlspecialchars($proc['slsu_ref_no']) ?>')" title="Click to copy Reference No.">
                         <i class="bi bi-hash"></i> REF: <?= htmlspecialchars($proc['slsu_ref_no']) ?>
-                        <i class="bi bi-copy" style="font-size:10px; opacity:0.8;"></i>
+                        <i class="bi bi-copy icon-dim"></i>
                     </span>
                 <?php endif; ?>
-                
+
                 <span class="hero-pill mode">
                     <i class="bi bi-sliders"></i> <?= htmlspecialchars($proc['procurement_mode'] ?: 'Public Bidding') ?>
                 </span>
 
-                <span class="hero-pill status" style="background:rgba(255,255,255,0.18);">
-                    <i class="bi bi-circle-fill" style="font-size:7px;"></i> <?= strtoupper($p_status) ?>
+                <span class="hero-pill status hero-pill--bright">
+                    <i class="bi bi-circle-fill status-dot-tiny"></i> <?= strtoupper($p_status) ?>
                 </span>
             </div>
 
-            <span style="font-size:12px; color:#d1e5db;">
+            <span class="hero-status-note">
                 <i class="bi bi-building"></i> Southern Luzon State University
             </span>
         </div>
@@ -1306,7 +291,7 @@ if ($_bsv_is_quotation) {
 
             <div class="vp-hero-metric-item">
                 <div class="vp-hero-metric-lbl"><i class="bi bi-clock-history"></i> Submission Deadline</div>
-                <div class="vp-hero-metric-val" style="font-size:13px; font-weight:700;">
+                <div class="vp-hero-metric-val hero-metric-val--sm">
                     <?= !empty($proc['closing_date']) ? date('M j, Y · g:i A', strtotime($proc['closing_date'])) : 'Not Set' ?>
                 </div>
             </div>
@@ -1315,10 +300,10 @@ if ($_bsv_is_quotation) {
 
     <!-- ── Stat cards ── -->
     <div class="sad-section-label">Summary</div>
-    <div class="ap2-stats ap2-stats-4" style="margin-bottom:20px;">
+    <div class="ap2-stats ap2-stats-4">
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#06251b 0% 100%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-inbox-fill" style="color:#06251b;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#06251b; --pct:100%;">
+                <div class="ap2-ring-inner"><i class="bi bi-inbox-fill clr-dark"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= $total_bids ?></div>
@@ -1326,17 +311,17 @@ if ($_bsv_is_quotation) {
             </div>
         </div>
         <div class="ap2-stat <?= $pending_bids > 0 ? 'bsv-stat-warn' : '' ?>">
-            <div class="ap2-ring" style="background:conic-gradient(<?= $pending_bids > 0 ? '#e67e22' : '#8B958E' ?> 0% <?= $total_bids > 0 ? round($pending_bids/$total_bids*100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-hourglass-split" style="color:<?= $pending_bids > 0 ? '#e67e22' : '#8B958E' ?>;"></i></div>
+            <div class="ap2-ring" style="--ring-color:<?= $pending_bids > 0 ? '#e67e22' : '#8B958E' ?>; --pct:<?= $total_bids > 0 ? round($pending_bids/$total_bids*100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-hourglass-split <?= $pending_bids > 0 ? 'clr-amber' : 'clr-idle' ?>"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:<?= $pending_bids > 0 ? '#e67e22' : 'inherit' ?>"><?= $pending_bids ?></div>
+                <div class="ap2-stat-num <?= $pending_bids > 0 ? 'stat-num--warn' : '' ?>"><?= $pending_bids ?></div>
                 <div class="ap2-stat-lbl">Pending Review</div>
             </div>
         </div>
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#219653 0% <?= $total_bids > 0 ? round($verified_bids/$total_bids*100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-shield-check" style="color:#219653;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#219653; --pct:<?= $total_bids > 0 ? round($verified_bids/$total_bids*100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-shield-check clr-green"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= $verified_bids ?></div>
@@ -1344,8 +329,8 @@ if ($_bsv_is_quotation) {
             </div>
         </div>
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#c23b3b 0% <?= $total_bids > 0 ? round($rejected_bids/$total_bids*100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-x-circle" style="color:#c23b3b;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#c23b3b; --pct:<?= $total_bids > 0 ? round($rejected_bids/$total_bids*100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-x-circle clr-red"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= $rejected_bids ?></div>
@@ -1365,7 +350,7 @@ if ($_bsv_is_quotation) {
             <div class="vp-card">
                 <div class="vp-card-head">
                     <div class="vp-card-title">
-                        <i class="bi bi-people" style="color:#06251b;"></i>
+                        <i class="bi bi-people clr-dark"></i>
                         <span>Bidder Proposal Submissions</span>
                     </div>
                     <span class="vp-card-count"><?= count($bids) ?> Showing</span>
@@ -1393,10 +378,10 @@ if ($_bsv_is_quotation) {
 
                 <!-- Submissions List -->
                 <?php if (empty($bids)): ?>
-                    <div style="padding:40px 20px; text-align:center; color:#88968d;">
-                        <i class="bi bi-inbox" style="font-size:36px; display:block; margin-bottom:8px; opacity:0.6;"></i>
-                        <div style="font-size:14px; font-weight:700; color:#06251b;">No Bids Found</div>
-                        <div style="font-size:12px; margin-top:2px;">There are no proposals matching the current filter selection.</div>
+                    <div class="results-empty">
+                        <i class="bi bi-inbox results-empty-icon"></i>
+                        <div class="results-empty-title">No Bids Found</div>
+                        <div class="results-empty-sub">There are no proposals matching the current filter selection.</div>
                     </div>
                 <?php else: ?>
                     <div class="bids-container">
@@ -1430,7 +415,7 @@ if ($_bsv_is_quotation) {
 
                                     <div class="bid-header-meta">
                                         <span class="bid-status-pill <?= $bs ?>">
-                                            <i class="bi bi-circle-fill" style="font-size:6px;"></i> <?= strtoupper($bs === 'submitted' ? 'VERIFIED' : $bs) ?>
+                                            <i class="bi bi-circle-fill status-dot-xtiny"></i> <?= strtoupper($bs === 'submitted' ? 'VERIFIED' : $bs) ?>
                                         </span>
                                         <div class="bid-timestamp">
                                             <i class="bi bi-clock"></i> <?= date('M j, Y · g:i A', strtotime($bid['submission_date'])) ?>
@@ -1450,49 +435,46 @@ if ($_bsv_is_quotation) {
 
             <?php else: ?>
             <!-- ── Quotation Rankings (SVP / Shopping) ── -->
-            <div class="vp-card" style="margin-bottom:22px;">
+            <div class="vp-card qr-card">
                 <div class="vp-card-head">
                     <div class="vp-card-title">
-                        <i class="bi bi-list-ol" style="color:#b78103;"></i>
+                        <i class="bi bi-list-ol clr-gold-dark"></i>
                         <span>Quotation Rankings</span>
                     </div>
-                    <a href="quotation_management.php?id=<?= $procurement_id ?>"
-                       style="display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; color:#1f7a3d; text-decoration:none; background:#eef7f1; border:1px solid #c8e6c9; border-radius:8px; padding:4px 10px; transition:all .15s;"
-                       onmouseover="this.style.background='#1f7a3d'; this.style.color='#fff';"
-                       onmouseout="this.style.background='#eef7f1'; this.style.color='#1f7a3d';">
+                    <a href="quotation_management.php?id=<?= $procurement_id ?>" class="qr-manage-link">
                         <i class="bi bi-arrow-up-right-square"></i> Full Management
                     </a>
                 </div>
                 <div>
                 <?php if (empty($lots)): ?>
-                    <div style="padding:30px 20px; text-align:center; color:#88968d; font-size:13px;">No lots defined yet.</div>
+                    <div class="qr-empty">No lots defined yet.</div>
                 <?php else:
                     foreach ($lots as $_bsvlot):
                         $_bsv_quotes  = $bsv_quotations[$_bsvlot['id']] ?? [];
                         $_bsv_award   = $bsv_awards_map[$_bsvlot['id']] ?? null;
                         $_bsv_lot_status = strtolower($_bsvlot['status'] ?? 'pending');
                 ?>
-                    <div style="border-bottom:1px solid #f0f4f2; padding:14px 20px;">
-                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                            <span style="background:#06251b; color:#ffc107; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; font-family:'Space Grotesk',sans-serif;">Lot <?= $_bsvlot['lot_number'] ?></span>
-                            <span style="font-size:13px; font-weight:700; color:#06251b;"><?= htmlspecialchars($_bsvlot['lot_title']) ?></span>
+                    <div class="qr-lot-block">
+                        <div class="qr-lot-label-row">
+                            <span class="qr-lot-num-badge">Lot <?= $_bsvlot['lot_number'] ?></span>
+                            <span class="qr-lot-title"><?= htmlspecialchars($_bsvlot['lot_title']) ?></span>
                             <?php if ($_bsv_lot_status === 'awarded'): ?>
-                                <span style="margin-left:auto; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:12px; background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7;"><i class="bi bi-trophy-fill"></i> Awarded</span>
+                                <span class="qr-lot-status-badge qr-lot-status-badge--awarded"><i class="bi bi-trophy-fill"></i> Awarded</span>
                             <?php elseif ($_bsv_lot_status === 'failed'): ?>
-                                <span style="margin-left:auto; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:12px; background:#ffebee; color:#b71c1c; border:1px solid #ef9a9a;"><i class="bi bi-x-circle-fill"></i> Failed</span>
+                                <span class="qr-lot-status-badge qr-lot-status-badge--failed"><i class="bi bi-x-circle-fill"></i> Failed</span>
                             <?php endif; ?>
                         </div>
                         <?php if (empty($_bsv_quotes)): ?>
-                            <div style="font-size:12px; color:#88968d; font-style:italic; padding:8px 0;">No quotations submitted yet.</div>
+                            <div class="qr-no-quotes">No quotations submitted yet.</div>
                         <?php else: ?>
-                            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                            <table class="qr-table">
                                 <thead>
-                                    <tr style="background:#fafcfb; border-bottom:1px solid #eaeeec;">
-                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Rank</th>
-                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Bidder</th>
-                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Offered Price</th>
-                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Status</th>
-                                        <th style="padding:6px 10px; text-align:left; font-size:10px; font-weight:800; color:#88968d; text-transform:uppercase;">Doc</th>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Bidder</th>
+                                        <th>Offered Price</th>
+                                        <th>Status</th>
+                                        <th>Doc</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1502,33 +484,33 @@ if ($_bsv_is_quotation) {
                                     $_bwinner = $_bsv_award && $_bsv_award['bid_lot_id'] == $_bq['bid_lot_id'];
                                     $_bbs   = $_bq['bid_status'];
                                     $_bbs_label = match($_bbs) { 'confirmed'=>'Confirmed','awarded'=>'Awarded','rejected'=>'Rejected','submitted'=>'Verified',default=>ucfirst($_bbs) };
-                                    $_bbs_color = match($_bbs) { 'confirmed'=>'#1b5e20','awarded'=>'#0d47a1','rejected'=>'#991b1b',default=>'#92400e' };
-                                    $_bbs_bg    = match($_bbs) { 'confirmed'=>'#e8f5e9','awarded'=>'#e3f2fd','rejected'=>'#fee2e2',default=>'#fef3c7' };
+                                    $_bbs_class = match($_bbs) { 'confirmed'=>'qr-status-badge--confirmed','awarded'=>'qr-status-badge--awarded','rejected'=>'qr-status-badge--rejected',default=>'qr-status-badge--default' };
+                                    $_rank_class = $_br===1?'qr-rank--gold':($_br===2?'qr-rank--silver':($_br===3?'qr-rank--bronze':'qr-rank--default'));
                                 ?>
-                                <tr style="border-bottom:1px solid #f4f6f5; <?= $_bwinner ? 'background:#f0fdf4;' : '' ?>">
-                                    <td style="padding:8px 10px;">
-                                        <span style="font-family:'Space Grotesk',sans-serif; font-weight:800; font-size:12px; color:<?= $_br===1?'#b78103':($_br===2?'#45655a':($_br===3?'#a0522d':'#6c776e')) ?>;">
+                                <tr class="qr-row <?= $_bwinner ? 'qr-row--winner' : '' ?>">
+                                    <td>
+                                        <span class="qr-rank <?= $_rank_class ?>">
                                             <?= $_br ? '#'.$_br : '—' ?>
                                         </span>
                                     </td>
-                                    <td style="padding:8px 10px; font-weight:700; color:#06251b;">
+                                    <td class="qr-bidder-name">
                                         <?= htmlspecialchars($_bbiz) ?>
-                                        <?php if ($_bwinner): ?><span style="font-size:9.5px; background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7; border-radius:5px; padding:1px 5px; margin-left:4px; font-weight:800;">WINNER</span><?php endif; ?>
+                                        <?php if ($_bwinner): ?><span class="qr-winner-badge">WINNER</span><?php endif; ?>
                                     </td>
-                                    <td style="padding:8px 10px; font-family:'Space Grotesk',sans-serif; font-weight:800; color:#1f7a3d;">
-                                        <?= $_bq['total_offered_bid'] !== null ? '₱'.number_format((float)$_bq['total_offered_bid'],2) : '<span style="color:#88968d;font-style:italic;font-size:11px;">Pending</span>' ?>
+                                    <td class="qr-price">
+                                        <?= $_bq['total_offered_bid'] !== null ? '₱'.number_format((float)$_bq['total_offered_bid'],2) : '<span class="qr-price-pending">Pending</span>' ?>
                                     </td>
-                                    <td style="padding:8px 10px;">
-                                        <span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; background:<?= $_bbs_bg ?>; color:<?= $_bbs_color ?>;"><?= $_bbs_label ?></span>
+                                    <td>
+                                        <span class="qr-status-badge <?= $_bbs_class ?>"><?= $_bbs_label ?></span>
                                     </td>
-                                    <td style="padding:8px 10px;">
+                                    <td>
                                         <?php if ($_bq['doc_id']): ?>
                                             <a href="quotation_management.php?id=<?= $procurement_id ?>&action=view_doc&doc_id=<?= $_bq['doc_id'] ?>"
                                                target="_blank"
-                                               style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; color:#1f7a3d; text-decoration:none;">
+                                               class="qr-doc-link">
                                                 <i class="bi bi-file-earmark-text-fill"></i> View
                                             </a>
-                                        <?php else: ?><span style="color:#b0bec5; font-size:11px;">—</span><?php endif; ?>
+                                        <?php else: ?><span class="qr-doc-none">—</span><?php endif; ?>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -1545,7 +527,7 @@ if ($_bsv_is_quotation) {
             <div class="vp-card">
                 <div class="vp-card-head">
                     <div class="vp-card-title">
-                        <i class="bi bi-info-circle" style="color:#06251b;"></i>
+                        <i class="bi bi-info-circle clr-dark"></i>
                         <span>Procurement Specifications &amp; Overview</span>
                     </div>
                 </div>
@@ -1559,18 +541,18 @@ if ($_bsv_is_quotation) {
                             <div class="spec-field-lbl">Procurement Mode</div>
                             <div class="spec-field-val"><?= htmlspecialchars($proc['procurement_mode'] ?: 'Public Bidding') ?></div>
                         </div>
-                        <div class="spec-field-box" style="grid-column: 1 / -1;">
+                        <div class="spec-field-box field-span-2">
                             <div class="spec-field-lbl">Project Title</div>
-                            <div class="spec-field-val" style="font-weight:700; color:#06251b; line-height:1.4;"><?= htmlspecialchars($proc['title']) ?></div>
+                            <div class="spec-field-val field-strong-lg"><?= htmlspecialchars($proc['title']) ?></div>
                         </div>
-                        <div class="spec-field-box" style="grid-column: 1 / -1;">
+                        <div class="spec-field-box field-span-2">
                             <div class="spec-field-lbl">Approved Budget for the Contract (ABC)</div>
-                            <div class="spec-field-val" style="font-size:16px; font-weight:800; font-family:'Space Grotesk',sans-serif; color:#1f7a3d;">₱<?= number_format((float)$proc['abc'], 2) ?></div>
+                            <div class="spec-field-val field-abc">₱<?= number_format((float)$proc['abc'], 2) ?></div>
                         </div>
                     </div>
 
                     <?php if (!empty($proc['description'])): ?>
-                        <div style="font-size:11px; font-weight:700; color:#88968d; text-transform:uppercase; margin-bottom:6px;">Description / Technical Scope</div>
+                        <div class="desc-label">Description / Technical Scope</div>
                         <div class="desc-text-box">
 <?= htmlspecialchars($proc['description']) ?>
                         </div>
@@ -1582,30 +564,30 @@ if ($_bsv_is_quotation) {
             <div class="vp-card">
                 <div class="vp-card-head">
                     <div class="vp-card-title">
-                        <i class="bi bi-boxes" style="color:#1f7a3d;"></i>
+                        <i class="bi bi-boxes clr-forest"></i>
                         <span>Project Lots Breakdown</span>
                     </div>
                     <span class="vp-card-count"><?= count($lots) ?> Lot<?= count($lots) !== 1 ? 's' : '' ?></span>
                 </div>
-                <div class="vp-card-body" style="padding:0;">
+                <div class="vp-card-body p-0">
                     <?php if (!empty($lots)): ?>
-                        <div style="overflow-x:auto;">
+                        <div class="table-scroll-x">
                             <table class="lots-data-table">
                                 <thead>
                                     <tr>
-                                        <th style="width:90px;">Lot No.</th>
+                                        <th class="col-lot-narrow">Lot No.</th>
                                         <th>Lot Title</th>
                                         <th>Description</th>
-                                        <th style="text-align:right; width:160px;">ABC</th>
+                                        <th class="col-abc-narrow">ABC</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($lots as $lot): ?>
                                         <tr>
                                             <td><span class="lot-badge">Lot <?= htmlspecialchars($lot['lot_number']) ?></span></td>
-                                            <td style="font-weight:700; color:#06251b;"><?= htmlspecialchars($lot['lot_title']) ?></td>
-                                            <td style="color:#6c776e; font-size:12px;"><?= htmlspecialchars($lot['description'] ?: '—') ?></td>
-                                            <td style="text-align:right; font-weight:700; font-family:'Space Grotesk',sans-serif; color:#06251b;">
+                                            <td class="field-strong-lg"><?= htmlspecialchars($lot['lot_title']) ?></td>
+                                            <td class="lots-desc-cell"><?= htmlspecialchars($lot['description'] ?: '—') ?></td>
+                                            <td class="lots-abc-cell">
                                                 ₱<?= number_format((float)$lot['abc'], 2) ?>
                                             </td>
                                         </tr>
@@ -1614,8 +596,8 @@ if ($_bsv_is_quotation) {
                                 <?php if (count($lots) > 1): ?>
                                     <tfoot>
                                         <tr>
-                                            <td colspan="3" style="text-align:right;">Total Lots Approved Budget (ABC)</td>
-                                            <td style="text-align:right; font-family:'Space Grotesk',sans-serif; font-size:14px; color:#1f7a3d;">
+                                            <td colspan="3" class="lots-total-label-cell">Total Lots Approved Budget (ABC)</td>
+                                            <td class="lots-total-abc-cell">
                                                 ₱<?= number_format($total_lots_abc, 2) ?>
                                             </td>
                                         </tr>
@@ -1624,7 +606,7 @@ if ($_bsv_is_quotation) {
                             </table>
                         </div>
                     <?php else: ?>
-                        <div style="padding:24px; text-align:center; color:#88968d; font-size:12px;">No lots configured for this procurement.</div>
+                        <div class="results-empty--sm">No lots configured for this procurement.</div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -1638,7 +620,7 @@ if ($_bsv_is_quotation) {
             <div class="vp-card">
                 <div class="vp-card-head">
                     <div class="vp-card-title">
-                        <i class="bi bi-calendar-event" style="color:#1f7a3d;"></i>
+                        <i class="bi bi-calendar-event clr-forest"></i>
                         <span>Procurement Milestones</span>
                     </div>
                 </div>
@@ -1734,16 +716,16 @@ if ($_bsv_is_quotation) {
             
             <!-- Bidder Summary Header Card -->
             <div class="modal-bidder-card">
-                <div style="display:flex; align-items:center; gap:12px;">
-                    <div id="modalAvatar" class="bidder-avatar-wrap" style="width:48px; height:48px; font-size:16px;"></div>
+                <div class="modal-bidder-summary-left">
+                    <div id="modalAvatar" class="bidder-avatar-wrap modal-avatar--lg"></div>
                     <div>
-                        <div id="modalBidderNameDisplay" style="font-size:15px; font-weight:800; color:#06251b;"></div>
-                        <div id="modalBidderEmailDisplay" style="font-size:12px; color:#88968d; margin-top:2px;"></div>
+                        <div id="modalBidderNameDisplay" class="modal-bidder-name"></div>
+                        <div id="modalBidderEmailDisplay" class="modal-bidder-email"></div>
                     </div>
                 </div>
-                <div style="text-align:right;">
+                <div class="modal-bidder-summary-right">
                     <div id="modalStatusBadge"></div>
-                    <div id="modalTimestamp" style="font-size:11.5px; color:#63736a; margin-top:4px; font-weight:600;"></div>
+                    <div id="modalTimestamp" class="modal-timestamp-text"></div>
                 </div>
             </div>
 
@@ -1763,7 +745,7 @@ if ($_bsv_is_quotation) {
                     <div class="modal-section-title">
                         <i class="bi bi-receipt"></i> Official Payment Receipt
                     </div>
-                    <div id="modalReceiptBox" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    <div id="modalReceiptBox" class="modal-receipt-box"></div>
                 </div>
 
                 <!-- Encrypted Envelopes (Two-Envelope Security) -->
@@ -1779,7 +761,7 @@ if ($_bsv_is_quotation) {
                         <span><i class="bi bi-cash-stack"></i> Financial Proposal</span>
                         <span class="doc-sealed-badge"><i class="bi bi-lock-fill"></i> Sealed</span>
                     </div>
-                    <div style="font-size:11px; color:#88968d; line-height:1.4; margin-top:2px;">
+                    <div class="modal-envelope-note">
                         <i class="bi bi-info-circle"></i> Unlocks automatically upon the declared Bid Opening schedule.
                     </div>
                 </div>
@@ -1789,7 +771,7 @@ if ($_bsv_is_quotation) {
                     <div class="modal-section-title">
                         <i class="bi bi-check2-circle"></i> BAC Clearance &amp; Verification
                     </div>
-                    <div id="modalVerificationActionBox" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    <div id="modalVerificationActionBox" class="modal-verify-box"></div>
                 </div>
 
             </div>
@@ -1798,7 +780,7 @@ if ($_bsv_is_quotation) {
 
         <!-- Modal Footer -->
         <div class="modal-foot">
-            <button type="button" onclick="closeBidDetailModal()" class="vp-back-link" style="border:1px solid #eaeeec; cursor:pointer;">
+            <button type="button" onclick="closeBidDetailModal()" class="vp-back-link modal-back-btn">
                 Close
             </button>
         </div>
@@ -1811,27 +793,27 @@ if ($_bsv_is_quotation) {
 <!-- ============================================== -->
 <div id="verifyModal" class="modal-backdrop" onclick="if(event.target===this)closeVerifyModal()">
     <div class="modal-dialog-box">
-        <div id="modalIconWrap" style="width:54px; height:54px; border-radius:50%; background:#e8f5e9; color:#1f7a3d; font-size:24px; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+        <div id="modalIconWrap" class="verify-icon-circle verify-icon-circle--approve">
             <i class="bi bi-check-circle-fill" id="modalIcon"></i>
         </div>
 
-        <h3 id="modalTitle" style="font-size:18px; font-weight:800; color:#06251b; margin:0 0 6px;">Approve Bid Proposal</h3>
-        <p id="modalDesc" style="font-size:12.5px; color:#6c776e; line-height:1.5; margin:0 0 16px;">
+        <h3 id="modalTitle" class="verify-modal-title">Approve Bid Proposal</h3>
+        <p id="modalDesc" class="verify-modal-desc">
             Are you sure you want to verify and approve the bid submission from this bidder?
         </p>
 
-        <div id="modalBidderName" style="background:#fafcfb; border:1px solid #eaeeec; border-radius:10px; padding:10px 14px; font-size:12px; font-weight:700; color:#06251b; margin-bottom:20px;"></div>
+        <div id="modalBidderName" class="verify-modal-bidder-name"></div>
 
         <form method="POST" action="" id="verifyForm">
             <input type="hidden" name="action_verify_bid" value="1">
             <input type="hidden" name="bid_id" id="modalBidId" value="">
             <input type="hidden" name="status_action" id="modalStatusAction" value="approve">
-            
-            <div style="display:flex; gap:10px; justify-content:center;">
-                <button type="button" onclick="closeVerifyModal()" class="vp-back-link" style="padding:10px 20px; cursor:pointer;">
+
+            <div class="modal-actions-row">
+                <button type="button" onclick="closeVerifyModal()" class="vp-back-link modal-back-btn--padded">
                     Cancel
                 </button>
-                <button type="submit" id="modalSubmitBtn" class="btn-action-verify approve" style="width:auto; padding:10px 24px; font-size:13px;">
+                <button type="submit" id="modalSubmitBtn" class="btn-action-verify approve btn-action-verify--wide">
                     <i class="bi bi-check-circle-fill"></i> Confirm Approval
                 </button>
             </div>
@@ -1842,7 +824,7 @@ if ($_bsv_is_quotation) {
 <!-- Toast alert notifications -->
 <?php if (isset($_SESSION['alert_success'])): ?>
     <div class="toast-alert success" id="toastAlert">
-        <i class="bi bi-check-circle-fill" style="color:#2ecc71; font-size:16px;"></i>
+        <i class="bi bi-check-circle-fill toast-icon--success"></i>
         <?= htmlspecialchars($_SESSION['alert_success']) ?>
     </div>
     <?php unset($_SESSION['alert_success']); ?>
@@ -1850,7 +832,7 @@ if ($_bsv_is_quotation) {
 
 <?php if (isset($_SESSION['alert_error'])): ?>
     <div class="toast-alert error" id="toastAlert">
-        <i class="bi bi-x-circle-fill" style="color:#e74c3c; font-size:16px;"></i>
+        <i class="bi bi-x-circle-fill toast-icon--error"></i>
         <?= htmlspecialchars($_SESSION['alert_error']) ?>
     </div>
     <?php unset($_SESSION['alert_error']); ?>
@@ -1859,14 +841,7 @@ if ($_bsv_is_quotation) {
 <script>
     // Toast Alert auto-hide
     const toast = document.getElementById('toastAlert');
-    if (toast) {
-        setTimeout(() => {
-            toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateY(20px)';
-            setTimeout(() => toast.remove(), 400);
-        }, 4000);
-    }
+    if (toast) setTimeout(() => toast.classList.add('hide'), 4000);
 
     // Open Bid Detail Modal with Dynamic Data
     function openBidDetailModal(bid) {
@@ -1877,7 +852,7 @@ if ($_bsv_is_quotation) {
         const avatarEl = document.getElementById('modalAvatar');
         if (bid.profile_picture_url) {
             const pic = '../' + bid.profile_picture_url.replace(/^\/+/, '');
-            avatarEl.innerHTML = '<img src="' + escapeHtml(pic) + '" alt="' + escapeHtml(fullName) + '" style="width:100%;height:100%;object-fit:cover;">';
+            avatarEl.innerHTML = '<img src="' + escapeHtml(pic) + '" alt="' + escapeHtml(fullName) + '">';
         } else {
             avatarEl.textContent = initials;
         }
@@ -1890,7 +865,7 @@ if ($_bsv_is_quotation) {
         const statusEl = document.getElementById('modalStatusBadge');
         let statusClass = bid.bid_status || 'pending';
         let statusLabel = statusClass === 'submitted' ? 'VERIFIED' : statusClass.toUpperCase();
-        statusEl.innerHTML = '<span class="bid-status-pill ' + escapeHtml(statusClass) + '"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ' + escapeHtml(statusLabel) + '</span>';
+        statusEl.innerHTML = '<span class="bid-status-pill ' + escapeHtml(statusClass) + '"><i class="bi bi-circle-fill status-dot-xtiny"></i> ' + escapeHtml(statusLabel) + '</span>';
 
         // Timestamp
         const dateObj = new Date(bid.submission_date);
@@ -1904,11 +879,11 @@ if ($_bsv_is_quotation) {
                 const item = document.createElement('div');
                 item.className = 'lot-chip-item';
                 item.innerHTML = '<span><strong>Lot #' + escapeHtml(lot.lot_number) + '</strong> — ' + escapeHtml(lot.lot_title) + '</span>'
-                               + '<span style="font-family:\'Space Grotesk\',sans-serif; color:#1f7a3d; font-weight:700;">₱' + Number(lot.abc).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + '</span>';
+                               + '<span class="lot-chip-amount">₱' + Number(lot.abc).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + '</span>';
                 lotsContainer.appendChild(item);
             });
         } else {
-            lotsContainer.innerHTML = '<span style="font-size:12px; color:#aaa;">No specific lots recorded</span>';
+            lotsContainer.innerHTML = '<span class="muted-note-sm">No specific lots recorded</span>';
         }
 
         // Receipt
@@ -1918,12 +893,12 @@ if ($_bsv_is_quotation) {
         if (receipt) {
             const rawName = receipt.document_name || 'Official_Receipt.pdf';
             const shortName = truncateFileName(rawName, 26);
-            receiptBox.innerHTML = '<div style="font-size:12px; color:#06251b; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;" title="' + escapeHtml(rawName) + '">'
+            receiptBox.innerHTML = '<div class="receipt-name-text" title="' + escapeHtml(rawName) + '">'
                                  + '<i class="bi bi-file-earmark-check"></i> ' + escapeHtml(shortName) + '</div>'
                                  + '<a href="' + escapeHtml(receipt.file_path) + '" target="_blank" class="btn-receipt-view">'
                                  + '<i class="bi bi-eye"></i> View Official Receipt</a>';
         } else {
-            receiptBox.innerHTML = '<span style="font-size:12px; color:#aaa;">No receipt uploaded</span>';
+            receiptBox.innerHTML = '<span class="muted-note-sm">No receipt uploaded</span>';
         }
 
         // Verification Actions
@@ -1949,11 +924,11 @@ if ($_bsv_is_quotation) {
             verifyBox.appendChild(approveBtn);
             verifyBox.appendChild(rejectBtn);
         } else if (bid.bid_status === 'submitted') {
-            verifyBox.innerHTML = '<div class="verify-done-tag submitted"><i class="bi bi-shield-check-fill" style="font-size:18px;"></i>'
-                                + '<div><div>Verified &amp; Sealed</div><small style="font-weight:400; font-size:10.5px; opacity:0.8;">Cleared for bid opening</small></div></div>';
+            verifyBox.innerHTML = '<div class="verify-done-tag submitted"><i class="bi bi-shield-check-fill verify-tag-icon"></i>'
+                                + '<div><div>Verified &amp; Sealed</div><small class="verify-tag-sub">Cleared for bid opening</small></div></div>';
         } else {
-            verifyBox.innerHTML = '<div class="verify-done-tag rejected"><i class="bi bi-x-circle-fill" style="font-size:18px;"></i>'
-                                + '<div><div>Submission Rejected</div><small style="font-weight:400; font-size:10.5px; opacity:0.8;">Disqualified by BAC</small></div></div>';
+            verifyBox.innerHTML = '<div class="verify-done-tag rejected"><i class="bi bi-x-circle-fill verify-tag-icon"></i>'
+                                + '<div><div>Submission Rejected</div><small class="verify-tag-sub">Disqualified by BAC</small></div></div>';
         }
 
         document.getElementById('bidDetailModal').classList.add('open');
@@ -1976,20 +951,18 @@ if ($_bsv_is_quotation) {
         const btn = document.getElementById('modalSubmitBtn');
 
         if (action === 'approve') {
-            iconWrap.style.background = '#e8f5e9';
-            iconWrap.style.color = '#1f7a3d';
+            iconWrap.className = 'verify-icon-circle verify-icon-circle--approve';
             icon.className = 'bi bi-check-circle-fill';
             title.textContent = 'Approve Bid Proposal';
             desc.textContent = 'Are you sure you want to verify and approve this bid proposal? It will be cleared for the opening schedule.';
-            btn.className = 'btn-action-verify approve';
+            btn.className = 'btn-action-verify approve btn-action-verify--wide';
             btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Confirm Approval';
         } else {
-            iconWrap.style.background = '#ffebee';
-            iconWrap.style.color = '#c23b3b';
+            iconWrap.className = 'verify-icon-circle verify-icon-circle--reject';
             icon.className = 'bi bi-x-circle-fill';
             title.textContent = 'Reject Bid Proposal';
             desc.textContent = 'Are you sure you want to reject this bid proposal? The bidder will be notified of disqualification.';
-            btn.className = 'btn-action-verify reject';
+            btn.className = 'btn-action-verify reject btn-action-verify--wide';
             btn.innerHTML = '<i class="bi bi-x-circle-fill"></i> Confirm Rejection';
         }
 
@@ -2032,10 +1005,10 @@ if ($_bsv_is_quotation) {
         navigator.clipboard.writeText(text).then(() => {
             const toast = document.createElement('div');
             toast.className = 'toast-alert success';
-            toast.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#2ecc71;"></i> SLSU Reference No. copied to clipboard!';
+            toast.innerHTML = '<i class="bi bi-check-circle-fill toast-icon--success"></i> SLSU Reference No. copied to clipboard!';
             document.body.appendChild(toast);
             setTimeout(() => {
-                toast.style.opacity = '0';
+                toast.classList.add('hide');
                 setTimeout(() => toast.remove(), 400);
             }, 2500);
         });

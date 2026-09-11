@@ -1,0 +1,212 @@
+/* ==========================================================================
+   pages/bidder-notification.css — styles specific to bidder/notification.php.
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css. Standard mobile breakpoints/utilities live in
+   ../responsive.css (loaded before this file).
+
+   Duplicate-but-different note: .vp-back-link ALSO already exists in
+   dashboard.css with different values (plain text link vs this page's pill
+   button). Kept as this page's own copy, same reasoning as other bidder
+   page CSS files — this file loads after dashboard.css so it wins on equal
+   specificity.
+   ========================================================================== */
+
+.mb-20 { margin-bottom: 20px; }
+.mb-24 { margin-bottom: 24px; }
+.form-contents { display: contents; }
+
+.btn-mark-read-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #eef2f0;
+    color: #06251b;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 9px;
+    border: none;
+    cursor: pointer;
+    transition: all .15s ease;
+    font-family: 'Poppins', sans-serif;
+    white-space: nowrap;
+}
+
+.btn-mark-read-all:hover {
+    background: #06251b;
+    color: #ffc107;
+}
+
+.vp-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #06251b;
+    font-size: 12.5px;
+    font-weight: 700;
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    padding: 7px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all .2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    white-space: nowrap;
+}
+
+.vp-back-link:hover {
+    background: #06251b;
+    color: #ffc107;
+    border-color: #06251b;
+}
+
+/* ── Stat ring donuts — dashboard.css's shared .ap2-ring/.ap2-ring-inner
+   ship with no background/icon-color of their own; this page supplies
+   --ring-color/--pct custom properties and the gradient shape here,
+   purely additive to the shared rules. ── */
+.ap2-ring {
+    background: conic-gradient(var(--ring-color, #06251b) 0% var(--pct, 100%), #e7ece9 0%);
+}
+
+.ap2-ring-inner i {
+    color: var(--ring-color, #06251b);
+}
+
+.ap2-stat-num--warn { color: #e67e22; }
+.ap2-stat-num--broadcast { color: #219653; }
+.ap2-stat-num--direct { color: #2F6FED; }
+
+/* ── Filter bar row ── */
+.filter-status-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* ── Empty state ── */
+.notif-empty-state {
+    padding: 52px 20px;
+    text-align: center;
+    color: #88968d;
+}
+
+.notif-empty-icon {
+    font-size: 32px;
+    color: #c7d2cb;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.notif-empty-title {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* ── Table ── */
+.table-scroll-x {
+    overflow-x: auto;
+}
+
+.col-actions-right {
+    text-align: right;
+    min-width: 170px;
+}
+
+.notif-row--unread {
+    background: #fdfaf3;
+}
+
+.notif-title-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-weight: 700;
+    color: #06251b;
+    margin-bottom: 3px;
+}
+
+.notif-unread-badge {
+    background: #fff3e0;
+    color: #e67e22;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 9.5px;
+    flex-shrink: 0;
+}
+
+.notif-message-clamp {
+    font-size: 11px;
+    color: #63736a;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Target/role pill — fixed enumerated set instead of PHP-built inline
+   background/color strings */
+.notif-pill {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.notif-pill--broadcast { background: #E7EEFE; color: #1565c0; }
+.notif-pill--bidder    { background: #FCF1CF; color: #C99A1D; }
+.notif-pill--admin     { background: #E4F5EA; color: #219653; }
+.notif-pill--role-other{ background: #F3E5F5; color: #7b1fa2; }
+.notif-pill--direct    { background: #EDE7F6; color: #512da8; }
+
+.notif-pill-icon {
+    font-size: 9px;
+}
+
+.notif-date-cell {
+    white-space: nowrap;
+}
+
+.notif-time-ago {
+    color: #88968d;
+    font-size: 10.5px;
+}
+
+.notif-actions-cell {
+    text-align: right;
+}
+
+.notif-actions-wrap {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.proc-action-btn--mark-read {
+    background: #e4f5ea;
+    color: #1f7a3d;
+    border: none;
+    cursor: pointer;
+}
+
+/* ════════════════════════════════
+   MOBILE-FIRST RESPONSIVE
+   (see ../responsive.css for the shared breakpoint set + utilities)
+   ════════════════════════════════ */
+
+@media (max-width: 640px) {
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .col-actions-right {
+        min-width: 130px;
+    }
+}

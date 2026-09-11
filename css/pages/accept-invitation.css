@@ -1,0 +1,175 @@
+/* ==========================================================================
+   pages/accept-invitation.css — styles specific to accept_invitation.php.
+   The auth card shell itself (.auth-page, .auth-card, .form-group,
+   .input-wrapper, .toggle-password, .btn-auth-submit, .alert-error,
+   .alert-success, .login-footer) lives in css/components.css, shared with
+   login.php and register.php.
+   ========================================================================== */
+
+body {
+    background: #f4f8f5;
+}
+
+.auth-card {
+    max-width: 560px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.input-wrapper input:disabled {
+    background: #f4f8f5;
+    color: #6c776e;
+    cursor: not-allowed;
+}
+
+.required-mark {
+    color: #e53935;
+}
+
+/* ── Invalid / expired token state ── */
+.invalid-card {
+    text-align: center;
+    padding: 10px 0 4px;
+}
+
+.invalid-card .inv-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #fef2f2;
+    color: #b91c1c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 16px;
+}
+
+.invalid-card h4 {
+    font-size: 18px;
+    font-weight: 800;
+    color: #06251b;
+    margin: 0 0 8px;
+}
+
+.invalid-card p {
+    font-size: 13px;
+    color: #63736a;
+    line-height: 1.6;
+    margin: 0 0 22px;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #06251b;
+    color: #ffc107;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all .2s;
+    margin-top: 4px;
+}
+
+.btn-back:hover {
+    background: #144937;
+    color: #fff;
+}
+
+.secondary-link-wrap {
+    margin-top: 14px;
+}
+
+.secondary-link {
+    font-size: 12.5px;
+    color: #1f7a3d;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.secondary-link:hover {
+    text-decoration: underline;
+}
+
+/* ── Locked email strip ── */
+.invite-info-strip {
+    background: #f4f8f5;
+    border: 1px solid #d4e0d8;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.invite-info-strip i {
+    font-size: 20px;
+    color: #1f7a3d;
+    flex-shrink: 0;
+}
+
+.invite-info-email {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #06251b;
+}
+
+.invite-info-note {
+    font-size: 11.5px;
+    color: #6c776e;
+    margin-top: 1px;
+}
+
+/* ── Password strength meter ── */
+.strength-bar {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.strength-bar span {
+    flex: 1;
+    height: 3px;
+    border-radius: 4px;
+    background: #e2ece6;
+    transition: background .2s;
+}
+
+.strength-bar span.weak   { background: #ef4444; }
+.strength-bar span.fair   { background: #f97316; }
+.strength-bar span.good   { background: #eab308; }
+.strength-bar span.strong { background: #22c55e; }
+
+.strength-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #63736a;
+    margin-top: 3px;
+}
+
+/* ── Confirm-password mismatch indicator (JS-toggled) ── */
+.input-mismatch input {
+    border-color: #ef4444;
+}
+
+/* ════════════════════════════════
+   MOBILE-FIRST RESPONSIVE
+   ════════════════════════════════ */
+
+@media (max-width: 480px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-card {
+        padding: 28px 20px;
+    }
+}

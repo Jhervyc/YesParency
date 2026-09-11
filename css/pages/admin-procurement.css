@@ -1,0 +1,77 @@
+/* ==========================================================================
+   pages/admin-procurement.css — styles specific to admin/procurement.php.
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css. Standard mobile breakpoints/utilities live in
+   ../responsive.css (loaded before this file). This page has no embedded
+   <style> block of its own — it relies entirely on dashboard.css's shared
+   .sp-panel/.proc-table-panel/.urm-modal system; this file only carries
+   small utilities + additive/override rules for what used to be inline.
+   ========================================================================== */
+
+.mb-20 { margin-bottom: 20px; }
+.mb-24 { margin-bottom: 24px; }
+.form-contents { display: contents; }
+.form-inline { display: inline; }
+.text-right { text-align: right; }
+.filter-status-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.actions-wrap-end { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.table-scroll { overflow-x: auto; }
+
+.col-ref-narrow { width: 130px; }
+.col-actions-right { text-align: right; min-width: 180px; }
+.proc-ref-icon { color: #88968d; font-size: 10px; }
+.proc-title-sub { font-size: 10.5px; color: #88968d; margin-top: 2px; }
+.status-dot-icon { font-size: 7px; }
+
+.proc-empty-state { padding: 52px 20px; text-align: center; color: #88968d; }
+.proc-empty-icon { font-size: 32px; color: #c7d2cb; display: block; margin-bottom: 8px; }
+.proc-empty-title { font-size: 13px; font-weight: 700; }
+
+/* Donut gradient — dashboard.css's shared .sp-donut ships with no
+   background of its own (only size/radius); the gradient stop-list is
+   built dynamically in PHP from live status counts, so it stays a real
+   custom property rather than an enumerable class. */
+.sp-donut {
+    background: var(--donut-grad, #e5eae4);
+}
+
+/* Legend dot/pct colors — the 4 status keys are a fixed enumerated set
+   (draft/open/closed/awarded), so PHP supplies a modifier class instead
+   of building inline background/color strings per row. */
+.sp-legend-dot--draft   { background: #8B958E; }
+.sp-legend-dot--open    { background: #219653; }
+.sp-legend-dot--closed  { background: #2F6FED; }
+.sp-legend-dot--awarded { background: #C99A1D; }
+.sp-legend-dot--total   { background: #F0B92E; }
+
+.sp-legend-pct--draft   { color: #8B958E; background: #EEF0ED; }
+.sp-legend-pct--open    { color: #219653; background: #E4F5EA; }
+.sp-legend-pct--closed  { color: #2F6FED; background: #E7EEFE; }
+.sp-legend-pct--awarded { color: #C99A1D; background: #FCF1CF; }
+
+.sp-legend-value--total { color: #F0B92E; }
+
+/* This page's "New Procurement" button intentionally overrides
+   dashboard.css's shared gold-gradient .sp-new-btn with a dark/gold pair */
+.sp-new-btn--dark {
+    background: #06251b;
+    color: #ffc107;
+    box-shadow: 0 6px 16px -6px rgba(6,37,27,.35);
+}
+
+.proc-action-btn--review-alt { background: #e7eefe; color: #2F6FED; }
+.proc-action-btn--delete { background: #fef2f2; color: #dc2626; border: none; }
+
+.urm-modal-icon--red { background: #ffebee; color: #e53935; }
+.urm-btn-confirm--red { background: #e53935; }
+
+/* ════════════════════════════════
+   MOBILE-FIRST RESPONSIVE
+   (see ../responsive.css for the shared breakpoint set + utilities)
+   ════════════════════════════════ */
+@media (max-width: 640px) {
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

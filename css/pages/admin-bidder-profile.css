@@ -1,0 +1,590 @@
+/* ==========================================================================
+   pages/admin-bidder-profile.css — styles specific to
+   admin/bidder-profile.php.
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css.
+
+   Duplicate-but-different note: .modal-backdrop also exists in the
+   shared dashboard.css (used as-is here, not overridden) — only this
+   page's own .bp-* / .modal-icon--* / .toast-alert--solid-red classes are
+   page-specific, same reasoning as other admin page CSS files.
+   ========================================================================== */
+
+.dash-content {
+    max-width: 1300px;
+    margin: 0 auto;
+    overflow-x: hidden;
+}
+
+/* ── Breadcrumb Bar ── */
+.bp-breadcrumb-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.bp-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #63736a;
+}
+
+.bp-breadcrumbs a {
+    color: #06251b;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.bp-breadcrumbs a:hover {
+    color: #1f7a3d;
+}
+
+.bp-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+    color: #06251b;
+    border: 1px solid #d8e2dc;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all .15s ease;
+}
+
+.bp-back-link:hover {
+    background: #06251b;
+    color: #ffc107;
+    border-color: #06251b;
+}
+
+/* ── Hero Profile Header Card ── */
+.bp-hero-card {
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 1px 3px rgba(16,36,26,.04), 0 12px 28px -10px rgba(16,36,26,.06);
+    margin-bottom: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.bp-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1 1 400px;
+    min-width: 0;
+}
+
+.bp-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    background: #06251b;
+    color: #ffc107;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 800;
+    font-family: 'Space Grotesk', sans-serif;
+    flex-shrink: 0;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(6,37,27,.15);
+}
+
+.bp-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.bp-hero-info {
+    min-width: 0;
+}
+
+.bp-hero-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: #06251b;
+    line-height: 1.25;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bp-hero-sub {
+    font-size: 13px;
+    color: #63736a;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.bp-badges-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.bp-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 8px;
+    letter-spacing: .2px;
+}
+
+.bp-hero-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.bp-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: all .15s ease;
+}
+
+.bp-btn-approve {
+    background: #1f7a3d;
+    color: #ffffff;
+}
+.bp-btn-approve:hover {
+    background: #165b2d;
+    box-shadow: 0 4px 12px rgba(31,122,61,.25);
+}
+
+.bp-btn-reject {
+    background: #fdf2f2;
+    color: #c23b3b;
+    border: 1px solid #f5b7b7;
+}
+.bp-btn-reject:hover {
+    background: #c23b3b;
+    color: #ffffff;
+}
+
+.bp-btn-demote {
+    background: #fff8e6;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+.bp-btn-demote:hover {
+    background: #b45309;
+    color: #ffffff;
+}
+
+/* ── Grid Layout ── */
+.bp-grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+@media (max-width: 1024px) {
+    .bp-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Profile Section Cards ── */
+.bp-card {
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    border-radius: 18px;
+    box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.06);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.bp-card-head {
+    padding: 16px 22px;
+    border-bottom: 1px solid #f0f4f2;
+    background: #fafcfb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.bp-card-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #06251b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bp-card-body {
+    padding: 22px;
+}
+
+/* ── Business Info Fields List ── */
+.bp-fields-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.bp-field-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-bottom: 1px solid #f4f6f5;
+    padding-bottom: 12px;
+}
+
+.bp-field-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.bp-field-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: #88968d;
+}
+
+.bp-field-val {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #06251b;
+    word-break: break-word;
+}
+
+/* ── Documents Review Items ── */
+.bp-doc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.bp-doc-card {
+    border: 1px solid #eaeeec;
+    border-radius: 14px;
+    padding: 18px;
+    background: #fafcfb;
+    transition: border-color .15s ease;
+}
+
+.bp-doc-card:hover {
+    border-color: #d1dcda;
+}
+
+.bp-doc-card.missing {
+    background: #fffafa;
+    border: 1px dashed #f5b7b7;
+}
+
+.bp-doc-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.bp-doc-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.bp-doc-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.bp-doc-icon.pdf {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+.bp-doc-icon.img {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+.bp-doc-icon.missing {
+    background: #f3f4f6;
+    color: #9ca3af;
+}
+
+.bp-doc-title-box {
+    min-width: 0;
+}
+
+.bp-doc-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #06251b;
+    margin-bottom: 2px;
+}
+
+.bp-doc-meta {
+    font-size: 11.5px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bp-doc-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #1f7a3d;
+    text-decoration: none;
+    background: #D9F2DF;
+    padding: 4px 10px;
+    border-radius: 6px;
+    transition: all .15s ease;
+}
+
+.bp-doc-link:hover {
+    background: #1f7a3d;
+    color: #ffffff;
+}
+
+.bp-doc-form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-top: 14px;
+    border-top: 1px solid #edf1ee;
+}
+
+.bp-exp-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.bp-date-input {
+    padding: 7px 12px;
+    border: 1.5px solid #d8e2dc;
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: #06251b;
+    background: #ffffff;
+    font-family: inherit;
+}
+
+.bp-date-input:focus {
+    outline: none;
+    border-color: #1f7a3d;
+    box-shadow: 0 0 0 3px rgba(31,122,61,.12);
+}
+
+.bp-save-btn {
+    background: #06251b;
+    color: #ffc107;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.bp-save-btn:hover {
+    background: #0d4432;
+    color: #ffffff;
+}
+
+.bp-reject-doc-btn {
+    background: #fdf2f2;
+    color: #c23b3b;
+    border: 1px solid #f5b7b7;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.bp-reject-doc-btn:hover {
+    background: #c23b3b;
+    color: #ffffff;
+}
+
+/* ── Modal Dialogs ── */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 37, 27, 0.45);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+    padding: 16px;
+}
+
+.modal-backdrop.open {
+    display: flex;
+}
+
+.bp-modal-box {
+    background: #ffffff;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+    overflow: hidden;
+    animation: popIn .2s cubic-bezier(.34,1.56,.64,1);
+}
+
+@keyframes popIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.bp-modal-body {
+    padding: 28px;
+    text-align: center;
+}
+
+.bp-modal-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    margin: 0 auto 16px;
+}
+
+.bp-modal-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #06251b;
+    margin-bottom: 8px;
+}
+
+.bp-modal-desc {
+    font-size: 13px;
+    color: #63736a;
+    line-height: 1.5;
+    margin-bottom: 22px;
+}
+
+.bp-modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+}
+
+.bp-btn-modal-cancel {
+    background: #f0f4f2;
+    color: #06251b;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+}
+
+.bp-btn-modal-cancel:hover {
+    background: #e2e8e5;
+}
+
+/* ==========================================================================
+   UTILITY + SEMANTIC-CLASS LAYER
+   Replaces the inline style="..." attributes formerly scattered through
+   this page's PHP markup. The 4 hero status badges (role/account/
+   application/compliance) and the per-document validity badge now select
+   one of these modifier classes in PHP instead of building an inline
+   `style="background:...;color:...;border:..."` string — the same
+   PHP-computed-class-name pattern used elsewhere in this project (e.g.
+   bidder/settings.php's $docBadgeClass for the identical validity-badge
+   case).
+   ========================================================================== */
+
+.clr-dark { color: #06251b; }
+.clr-forest { color: #1f7a3d; }
+.clr-blue { color: #2563eb; }
+.meta-label-sm { font-size: 11px; font-weight: 700; color: #88968d; }
+.field-val--mono { font-family: 'Space Grotesk', sans-serif; }
+.card-desc-text { font-size: 12.5px; color: #63736a; margin-bottom: 20px; line-height: 1.5; }
+.doc-missing-note { color: #c23b3b; font-weight: 700; }
+.doc-missing-hint { font-size: 12px; color: #9ca3af; padding-top: 10px; border-top: 1px dashed #f5b7b7; }
+.exp-label { font-size: 11.5px; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 5px; }
+.modal-warn-text { color: #b45309; font-weight: 700; }
+.form-left-block { text-align: left; margin-bottom: 18px; }
+.form-label-block { font-size: 12px; font-weight: 700; color: #06251b; display: block; margin-bottom: 6px; }
+.textarea-full { width: 100%; height: 70px; resize: vertical; }
+
+.modal-icon--red   { background: #fee2e2; color: #dc2626; }
+.modal-icon--amber { background: #fff8e6; color: #b45309; }
+.modal-icon--green { background: #e8f5e9; color: #1f7a3d; }
+
+.btn-danger-solid { background: #dc2626; color: #ffffff; }
+.btn-warn-solid   { background: #b45309; color: #ffffff; }
+
+.toast-alert--solid-red { background: #c23b3b; color: #fff; }
+
+/* ── Status pill color modifiers (role/account/application/compliance/doc-validity badges) ── */
+.bp-status-pill--green      { background: #D9F2DF; color: #1f7a3d; border: 1px solid #b7e4c2; }
+.bp-status-pill--gray       { background: #f0f4f2; color: #384d40; border: 1px solid #d8e2dc; }
+.bp-status-pill--gray-muted { background: #f0f4f2; color: #88968d; border: 1px solid #d8e2dc; }
+.bp-status-pill--indigo     { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
+.bp-status-pill--red        { background: #FBE1E1; color: #c23b3b; border: 1px solid #f5b7b7; }
+.bp-status-pill--amber      { background: #FDF0CF; color: #97710a; border: 1px solid #f6deb3; }

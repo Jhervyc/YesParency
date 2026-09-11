@@ -1,0 +1,826 @@
+/* ==========================================================================
+   pages/bidder-dashboard.css — styles specific to bidder/dashboard.php.
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css. .sad-section-label / .sad-actions /
+   .sad-action-card / .proc-action-btn come from dashboard.css's still-shared
+   sections — not redefined here. .dash-col-60/.dash-col-40 need no rules of
+   their own; sizing comes from the parent .dash-layout-60-40 grid.
+   ========================================================================== */
+
+/* ── Small utilities used throughout this page ── */
+.clr-green  { color: #1f7a3d; }
+.clr-blue   { color: #2F6FED; }
+.clr-orange { color: #e67e22; }
+
+/* ── 60% + 40% Layout ── */
+.dash-layout-60-40 {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap: 22px;
+    align-items: start;
+    margin-bottom: 24px;
+}
+
+/* ── Green Greetings Card ── */
+.dash-greeting-card {
+    background: linear-gradient(135deg, #06251b 0%, #0b3829 55%, #14593f 100%);
+    border-radius: 20px;
+    padding: 26px 28px;
+    color: #ffffff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(6, 37, 27, 0.16);
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dash-greeting-card::after {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 180px;
+    height: 180px;
+    background: radial-gradient(circle, rgba(255, 193, 7, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.greeting-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.greeting-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.2;
+    letter-spacing: -0.3px;
+}
+
+.greeting-badge {
+    background: rgba(255, 193, 7, 0.18);
+    border: 1px solid rgba(255, 193, 7, 0.4);
+    color: #ffc107;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.greeting-sub {
+    font-size: 13px;
+    color: #d1e5db;
+    line-height: 1.5;
+    max-width: 580px;
+    margin-bottom: 18px;
+}
+
+.greeting-pills {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.greeting-pill {
+    background: rgba(255, 255, 255, 0.09);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 7px 14px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.greeting-pill i {
+    color: #ffc107;
+}
+
+/* ── 4 Donut Stat Cards (Inside 60% Column) ── */
+.ap2-stats-4-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.stat-donut-card {
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    border-radius: 16px;
+    padding: 14px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 1px 2px rgba(16, 36, 26, .03), 0 10px 24px -14px rgba(16, 36, 26, .08);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.stat-donut-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 36, 26, .09);
+}
+
+.stat-donut-ring {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    /* --pct (and --ring-color where it varies) set inline per card — the
+       only genuinely dynamic values; the gradient shape lives here. */
+    background: conic-gradient(var(--ring-color, #43a047) 0% var(--pct, 0%), #e7ece9 0%);
+}
+
+.stat-donut-inner {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+}
+
+.stat-donut-inner i {
+    color: var(--ring-color, #06251b);
+}
+
+.stat-donut-info {
+    line-height: 1.2;
+    min-width: 0;
+}
+
+.stat-donut-num {
+    font-size: 20px;
+    font-weight: 800;
+    color: #06251b;
+    line-height: 1.1;
+}
+
+.stat-donut-num--warn {
+    color: #e67e22;
+}
+
+.stat-donut-lbl {
+    font-size: 11px;
+    font-weight: 600;
+    color: #88968d;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Side-by-Side Open Procurements & My Bids ── */
+.dash-side-by-side {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.sub-card {
+    background: #fff;
+    border: 1px solid #eaeeec;
+    border-radius: 18px;
+    box-shadow: 0 1px 2px rgba(16, 36, 26, .03), 0 10px 24px -14px rgba(16, 36, 26, .08);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.sub-card--mt {
+    margin-top: 16px;
+}
+
+.sub-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid #f0f4f2;
+    background: #fafcfb;
+}
+
+.sub-card-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #06251b;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.sub-card-link,
+.side-panel-link {
+    font-size: 11px;
+    font-weight: 700;
+    color: #1f7a3d;
+    background: #eef7f1;
+    padding: 4px 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all .15s ease;
+    line-height: 1.2;
+}
+
+.sub-card-link:hover,
+.side-panel-link:hover {
+    background: #06251b;
+    color: #ffc107;
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(6, 37, 27, 0.12);
+}
+
+.sub-card-list {
+    padding: 2px 0;
+    flex: 1;
+}
+
+.sub-item-row {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f4f7f5;
+    transition: background .15s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.sub-item-row:last-child {
+    border-bottom: none;
+}
+
+.sub-item-row:hover {
+    background: #f9fbf9;
+}
+
+.sub-item-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.sub-item-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+
+.sub-item-title a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.sub-item-title a:hover {
+    color: #1f7a3d;
+}
+
+.sub-item-meta {
+    font-size: 10.5px;
+    color: #88968d;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sub-item-meta-abc {
+    font-weight: 700;
+    color: #06251b;
+}
+
+.sub-item-action {
+    flex-shrink: 0;
+}
+
+.sub-item-action--gap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Page-scoped action-button color variants — dashboard.css's own
+   .proc-action-btn.review/.manage use different (Material-style) colors
+   than this page's brand blue/green, so these are separate modifiers
+   rather than reusing those two names. */
+.proc-action-btn--view {
+    background: #E7EEFE;
+    color: #2F6FED;
+    font-size: 11.5px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.proc-action-btn--manage {
+    background: #E4F5EA;
+    color: #1f7a3d;
+    font-size: 11.5px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.proc-action-btn--sm {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 7px;
+}
+
+/* ── Empty-state blocks (open procs / my bids / announcements) ── */
+.sub-empty {
+    padding: 32px 16px;
+    text-align: center;
+    color: #88968d;
+    font-size: 12px;
+}
+
+.sub-empty--sm {
+    padding: 28px 16px;
+}
+
+.sub-empty-icon {
+    font-size: 24px;
+    color: #c7d2cb;
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* ── Profile Card (40% Column) ── */
+.profile-card {
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 1px 2px rgba(16, 36, 26, .03), 0 10px 24px -14px rgba(16, 36, 26, .08);
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.profile-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #f0f4f2;
+}
+
+.profile-avatar-box {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #06251b 0%, #1f7a3d 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 800;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(6, 37, 27, 0.15);
+}
+
+.profile-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-biz-name {
+    font-size: 15px;
+    font-weight: 800;
+    color: #06251b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.profile-rep-name {
+    font-size: 12px;
+    color: #6C776E;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.profile-status-badge {
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-top: 5px;
+}
+
+.profile-status-badge.approved { background: #e4f5ea; color: #1f7a3d; }
+.profile-status-badge.pending  { background: #fff3e0; color: #e67e22; }
+
+.profile-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.profile-detail-item {
+    background: #f7faf8;
+    border: 1px solid #edf1ee;
+    border-radius: 10px;
+    padding: 8px 10px;
+}
+
+.profile-detail-lbl {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #88968d;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    margin-bottom: 2px;
+}
+
+.profile-detail-val {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Compact Calendar & Notifications (40% Column) ── */
+.side-panel-card {
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    border-radius: 18px;
+    box-shadow: 0 1px 2px rgba(16, 36, 26, .03), 0 10px 24px -14px rgba(16, 36, 26, .08);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.side-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid #f0f4f2;
+    background: #fafcfb;
+}
+
+.side-panel-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #06251b;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+/* Calendar grid */
+.mini-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    padding: 14px 16px 12px;
+}
+
+.mini-cal-dow {
+    text-align: center;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #aaa;
+    padding: 2px 0 4px;
+    text-transform: uppercase;
+}
+
+.mini-cal-day {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 3px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #555;
+    cursor: default;
+    position: relative;
+}
+
+.mini-cal-day.empty { background: transparent; }
+.mini-cal-day.today {
+    background: #06251b;
+    color: #ffc107;
+    font-weight: 800;
+}
+.mini-cal-day.has-event { background: #e8f5e9; color: #1f7a3d; }
+.mini-cal-day.has-event.today { background: #06251b; color: #ffc107; }
+
+.mini-cal-dots {
+    display: flex;
+    gap: 2px;
+    margin-top: 1px;
+    justify-content: center;
+}
+
+.mini-cal-dot {
+    width: 3.5px;
+    height: 3.5px;
+    border-radius: 50%;
+}
+.mini-cal-dot.opening { background: #1f7a3d; }
+.mini-cal-dot.closing { background: #c23b3b; }
+
+/* Calendar legend */
+.cal-legend {
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 14px 12px;
+    font-size: 10.5px;
+    color: #777;
+    border-top: 1px solid #f4f7f5;
+}
+
+.cal-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.cal-legend-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.cal-legend-dot--opening { background: #1f7a3d; }
+.cal-legend-dot--closing { background: #c23b3b; }
+
+.side-events-list {
+    padding: 6px 14px 12px;
+    border-top: 1px solid #f4f7f5;
+}
+
+.side-events-empty {
+    text-align: center;
+    padding: 10px 0;
+    color: #aaa;
+    font-size: 11px;
+}
+
+.side-event-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid #f9fbf9;
+    font-size: 11px;
+    transition: all .15s ease;
+    text-decoration: none;
+    color: inherit;
+}
+
+.side-event-item:last-child { border-bottom: none; }
+.side-event-item:hover .side-event-title { color: #1f7a3d; }
+
+.side-event-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.side-event-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.side-event-dot--opening { background: #1f7a3d; }
+.side-event-dot--closing { background: #c23b3b; }
+
+.side-event-title {
+    font-weight: 700;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 170px;
+}
+
+.side-event-date {
+    font-size: 10px;
+    color: #88968d;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Notification item in 40% column */
+.side-notif-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 16px;
+    border-bottom: 1px solid #f4f7f5;
+    transition: background .15s;
+}
+
+.side-notif-row:last-child { border-bottom: none; }
+.side-notif-row:hover { background: #f9fbf9; }
+
+.side-notif-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #e8f5e9;
+    color: #1f7a3d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.side-notif-body { flex: 1; min-width: 0; }
+
+.side-notif-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.side-notif-time {
+    font-size: 10px;
+    color: #88968d;
+    white-space: nowrap;
+}
+
+.side-notif-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #182019;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.side-notif-snippet {
+    font-size: 11px;
+    color: #6C776E;
+    margin-top: 2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.side-notif-foot-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+    gap: 8px;
+}
+
+.side-notif-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 0;
+    font-size: 10px;
+    color: #9aa8a1;
+}
+
+.side-notif-target-badge {
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 9.5px;
+}
+
+.side-notif-target-badge--role {
+    background: #e8f5e9;
+    color: #1f7a3d;
+}
+
+.side-notif-target-badge--all {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+/* Buttons & Badges */
+.btn-mini-bid {
+    background: #06251b;
+    color: #ffc107;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all .15s ease;
+}
+
+.btn-mini-bid:hover {
+    background: #124032;
+}
+
+.status-pill-mini {
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.status-pill-mini.pending   { background: #fff3e0; color: #e67e22; }
+.status-pill-mini.submitted { background: #e4f5ea; color: #1f7a3d; }
+.status-pill-mini.opened    { background: #e7eefe; color: #2F6FED; }
+.status-pill-mini.awarded   { background: #fff8e1; color: #f9a825; }
+.status-pill-mini.rejected  { background: #fbe1e1; color: #c23b3b; }
+
+/* Quick action icon colors (this page's own 6 icons — .sad-action-icon
+   itself comes from dashboard.css) */
+.sad-action-icon--green  { background: #e8f5e9; color: #43a047; }
+.sad-action-icon--blue   { background: #e3f2fd; color: #1565c0; }
+.sad-action-icon--amber  { background: #fff8e1; color: #f9a825; }
+.sad-action-icon--purple { background: #f3e5f5; color: #7b1fa2; }
+.sad-action-icon--teal   { background: #e0f2f1; color: #00796b; }
+.sad-action-icon--red    { background: #fce4ec; color: #c62828; }
+
+/* ════════════════════════════════
+   MOBILE-FIRST RESPONSIVE
+   ════════════════════════════════ */
+
+@media (max-width: 1120px) {
+    .dash-layout-60-40 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .ap2-stats-4-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dash-side-by-side {
+        grid-template-columns: 1fr;
+    }
+
+    .dash-greeting-card {
+        padding: 20px 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ap2-stats-4-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-details-grid {
+        grid-template-columns: 1fr;
+    }
+}

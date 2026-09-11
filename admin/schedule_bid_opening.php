@@ -209,270 +209,8 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        * { box-sizing: border-box; }
-
-        /* ── Nav bar ── */
-        .vp-nav-bar {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
-        }
-        .vp-breadcrumbs {
-            display: flex; align-items: center; gap: 6px;
-            font-size: 12px; color: #88968d; font-weight: 600;
-        }
-        .vp-breadcrumbs a {
-            color: #1f7a3d; text-decoration: none;
-            display: inline-flex; align-items: center; gap: 4px; transition: color .15s;
-        }
-        .vp-breadcrumbs a:hover { text-decoration: underline; color: #06251b; }
-        .vp-back-link {
-            display: inline-flex; align-items: center; gap: 6px;
-            color: #06251b; font-size: 12.5px; font-weight: 700;
-            background: #fff; border: 1px solid #eaeeec;
-            padding: 7px 14px; border-radius: 10px;
-            text-decoration: none; transition: all .2s;
-            box-shadow: 0 1px 3px rgba(0,0,0,.02);
-        }
-        .vp-back-link:hover { background: #06251b; color: #ffc107; border-color: #06251b; }
-
-        /* ── Hero card ── */
-        .vp-hero-card {
-            background: linear-gradient(135deg, #06251b 0%, #0c3d2c 60%, #14593f 100%);
-            border-radius: 20px; padding: 26px 30px; color: #fff;
-            position: relative; overflow: hidden;
-            box-shadow: 0 8px 24px rgba(6,37,27,.16);
-            margin-bottom: 24px; border: 1px solid rgba(255,255,255,.08);
-        }
-        .vp-hero-card::after {
-            content: ''; position: absolute; top: -50px; right: -50px;
-            width: 240px; height: 240px;
-            background: radial-gradient(circle, rgba(255,193,7,.14) 0%, rgba(255,255,255,0) 70%);
-            border-radius: 50%; pointer-events: none;
-        }
-        .vp-hero-top {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
-        }
-        .vp-hero-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .hero-pill {
-            font-size: 11px; font-weight: 700; padding: 4px 10px;
-            border-radius: 20px; display: inline-flex; align-items: center; gap: 5px; letter-spacing: .3px;
-        }
-        .hero-pill.ref {
-            background: rgba(255,255,255,.12); color: #fff;
-            border: 1px solid rgba(255,255,255,.2);
-        }
-        .hero-pill.mode {
-            background: rgba(255,193,7,.2); border: 1px solid rgba(255,193,7,.4); color: #ffc107;
-        }
-        .hero-pill.open {
-            background: rgba(33,150,83,.25); border: 1px solid rgba(33,150,83,.5); color: #81c784;
-        }
-        .hero-pill.locked {
-            background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); color: #d1e5db;
-            font-size: 10.5px;
-        }
-        .vp-hero-title {
-            font-size: 22px; font-weight: 800; color: #fff;
-            line-height: 1.35; margin-bottom: 18px; letter-spacing: -.2px;
-        }
-        .vp-hero-metrics {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px;
-        }
-        .vp-hero-metric-item {
-            background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
-            border-radius: 14px; padding: 12px 16px;
-        }
-        .vp-hero-metric-lbl {
-            font-size: 10px; font-weight: 700; color: #d1e5db;
-            text-transform: uppercase; letter-spacing: .4px;
-            margin-bottom: 4px; display: flex; align-items: center; gap: 5px;
-        }
-        .vp-hero-metric-lbl i { color: #ffc107; }
-        .vp-hero-metric-val {
-            font-size: 16px; font-weight: 800; color: #fff;
-            font-family: 'Space Grotesk', sans-serif;
-        }
-        .vp-hero-metric-val.gold { color: #ffc107; }
-
-        /* ── Layout ── */
-        .sbo-layout {
-            display: grid;
-            grid-template-columns: 1.6fr 1fr;
-            gap: 24px; align-items: start;
-        }
-        @media(max-width:1040px){ .sbo-layout{ grid-template-columns:1fr; } }
-
-        /* ── Step cards ── */
-        .submit-step-card {
-            background: #fff; border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            margin-bottom: 22px; overflow: hidden;
-            transition: border-color .2s;
-        }
-        .submit-step-card:focus-within { border-color: #1f7a3d; }
-        .step-card-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 18px 22px; border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb; gap: 14px; flex-wrap: wrap;
-        }
-        .step-header-left { display: flex; align-items: center; gap: 14px; flex: 1; }
-        .step-badge {
-            width: 36px; height: 36px; border-radius: 10px;
-            background: #06251b; color: #ffc107;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 15px; font-weight: 800; font-family: 'Space Grotesk', sans-serif;
-            flex-shrink: 0; box-shadow: 0 2px 6px rgba(6,37,27,.15);
-        }
-        .step-title-text h4 {
-            font-size: 15px; font-weight: 800; color: #06251b; margin: 0;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .step-title-text p { font-size: 12px; color: #6c776e; margin: 3px 0 0; }
-        .step-card-body { padding: 22px; }
-
-        /* ── Form fields ── */
-        .sbo-field { margin-bottom: 18px; }
-        .sbo-label {
-            font-size: 12px; font-weight: 700; color: #06251b;
-            display: block; margin-bottom: 5px;
-        }
-        .sbo-label .sbo-required { color: #dc2626; margin-left: 3px; }
-        .sbo-input {
-            width: 100%; padding: 10px 13px;
-            border: 1.5px solid #e0e8e4; border-radius: 10px;
-            font-size: 13px; font-family: 'Poppins', sans-serif;
-            color: #1a1a1a; background: #fafcfb; outline: none;
-            transition: border-color .15s, box-shadow .15s;
-        }
-        .sbo-input:focus {
-            border-color: #1f7a3d; background: #fff;
-            box-shadow: 0 0 0 3px rgba(31,122,61,.08);
-        }
-        .sbo-input[readonly] {
-            background: #f4f7f5; color: #55665a; cursor: not-allowed;
-        }
-        .sbo-hint { font-size: 11px; color: #88968d; margin-top: 4px; }
-
-        /* ── Error banner ── */
-        .sb-error-banner {
-            background: #fdf2f2; border: 1px solid #f8d7da;
-            border-left: 4px solid #dc3545; border-radius: 14px;
-            padding: 16px 20px; margin-bottom: 22px;
-            display: flex; align-items: flex-start; gap: 14px; color: #842029;
-        }
-        .sb-error-banner i { font-size: 20px; color: #dc3545; flex-shrink: 0; margin-top: 1px; }
-        .sb-error-banner ul { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; line-height: 1.6; }
-
-        /* ── Admin invite cards ── */
-        .admin-invite-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 12px;
-        }
-        .admin-invite-card {
-            background: #fafcfb; border: 2px solid #e4eae6;
-            border-radius: 14px; padding: 14px 16px;
-            cursor: pointer; transition: all .2s; position: relative;
-            display: flex; align-items: center; gap: 12px;
-            user-select: none;
-        }
-        .admin-invite-card:hover { border-color: #b0c9bb; background: #f4faf6; }
-        .admin-invite-card.selected {
-            background: #f2f9f4; border-color: #1f7a3d;
-            box-shadow: 0 4px 14px rgba(31,122,61,.12);
-        }
-        .admin-invite-card input[type="checkbox"] {
-            position: absolute; opacity: 0; pointer-events: none;
-        }
-        .admin-invite-avatar {
-            width: 38px; height: 38px; border-radius: 10px;
-            background: #e0ece4; color: #06251b;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; font-weight: 800; flex-shrink: 0;
-            overflow: hidden;
-        }
-        .admin-invite-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .admin-invite-info { flex: 1; min-width: 0; }
-        .admin-invite-name {
-            font-size: 13px; font-weight: 700; color: #06251b;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .admin-invite-role {
-            font-size: 10.5px; font-weight: 700;
-            padding: 2px 7px; border-radius: 5px; display: inline-block; margin-top: 3px;
-        }
-        .role-bac { background: #e4f5ea; color: #1f7a3d; }
-        .role-twg { background: #fef8e7; color: #c98800; }
-        .admin-invite-check {
-            width: 20px; height: 20px; border-radius: 6px;
-            border: 2px solid #cfd8d3; background: #fff;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 12px; color: #fff; transition: all .15s; flex-shrink: 0;
-        }
-        .admin-invite-card.selected .admin-invite-check {
-            background: #1f7a3d; border-color: #1f7a3d;
-        }
-        .no-admins-msg {
-            background: #fafcfb; border: 2px dashed #dae3de;
-            border-radius: 14px; padding: 28px 20px;
-            text-align: center; color: #6c776e; font-size: 12.5px;
-        }
-
-        /* ── Quick toggle buttons ── */
-        .btn-quick-toggle {
-            background: #f0f4f2; border: 1.5px solid #dbe2df; color: #06251b;
-            font-size: 11px; font-weight: 700; padding: 5px 12px;
-            border-radius: 8px; cursor: pointer; transition: all .15s;
-            font-family: 'Poppins', sans-serif;
-        }
-        .btn-quick-toggle:hover { background: #06251b; color: #ffc107; border-color: #06251b; }
-
-        /* ── Side summary card ── */
-        .sbo-summary-card {
-            background: #fff; border: 1px solid #eaeeec;
-            border-radius: 18px; overflow: hidden;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            position: sticky; top: 90px;
-        }
-        .sbo-summary-head {
-            padding: 16px 20px; background: #fafcfb;
-            border-bottom: 1px solid #f0f4f2;
-            font-size: 14px; font-weight: 800; color: #06251b;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .sbo-summary-body { padding: 18px 20px; }
-        .sbo-summary-row {
-            display: flex; justify-content: space-between; align-items: flex-start;
-            gap: 8px; margin-bottom: 14px; font-size: 12.5px;
-        }
-        .sbo-summary-row:last-child { margin-bottom: 0; }
-        .sbo-summary-lbl { color: #88968d; font-weight: 600; }
-        .sbo-summary-val { color: #06251b; font-weight: 700; text-align: right; }
-        .sbo-summary-divider { border: none; border-top: 1px solid #f0f4f2; margin: 14px 0; }
-
-        /* ── Submit button ── */
-        .sbo-submit-btn {
-            width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
-            background: #06251b; color: #ffc107;
-            font-size: 14px; font-weight: 800;
-            padding: 14px 20px; border-radius: 12px;
-            border: none; cursor: pointer; transition: all .15s;
-            font-family: 'Poppins', sans-serif;
-            margin-top: 4px;
-        }
-        .sbo-submit-btn:hover { background: #0c3d2c; }
-
-        /* ── Invited counter pill ── */
-        .invited-count-pill {
-            background: #06251b; color: #ffc107;
-            font-size: 10.5px; font-weight: 800;
-            padding: 1px 8px; border-radius: 10px;
-            display: inline-block; margin-left: 6px;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-schedule-bid-opening.css">
 </head>
 <body class="dash-body">
 
@@ -486,7 +224,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
     <div class="vp-nav-bar">
         <div class="vp-breadcrumbs">
             <a href="bid_opening.php"><i class="bi bi-envelope-open"></i> Bid Opening</a>
-            <i class="bi bi-chevron-right" style="font-size:10px;"></i>
+            <i class="bi bi-chevron-right fz-10"></i>
             <span>Schedule Session</span>
         </div>
         <a href="bid_opening.php" class="vp-back-link">
@@ -499,7 +237,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
     <div class="sb-error-banner">
         <i class="bi bi-exclamation-triangle-fill"></i>
         <div>
-            <strong style="font-size:13px;">Please fix the following errors:</strong>
+            <strong class="error-text-strong">Please fix the following errors:</strong>
             <ul>
                 <?php foreach ($errors as $e): ?>
                 <li><?= htmlspecialchars($e) ?></li>
@@ -522,7 +260,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
                 </span>
                 <?php endif; ?>
                 <span class="hero-pill open">
-                    <i class="bi bi-circle-fill" style="font-size:7px;"></i> Open
+                    <i class="bi bi-circle-fill status-dot-tiny"></i> Open
                 </span>
                 <span class="hero-pill locked">
                     <i class="bi bi-lock-fill"></i> Procurement Locked
@@ -545,7 +283,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
             </div>
             <div class="vp-hero-metric-item">
                 <div class="vp-hero-metric-lbl"><i class="bi bi-calendar3"></i> Opening Date</div>
-                <div class="vp-hero-metric-val" style="font-size:13px;">
+                <div class="vp-hero-metric-val vp-hero-metric-val--sm">
                     <?= !empty($procurement['opening_date']) ? date('M j, Y', strtotime($procurement['opening_date'])) : 'TBA' ?>
                 </div>
             </div>
@@ -566,7 +304,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
                         <div class="step-header-left">
                             <div class="step-badge">1</div>
                             <div class="step-title-text">
-                                <h4><i class="bi bi-broadcast" style="color:#dc2626;"></i> Live Stream Setup</h4>
+                                <h4><i class="bi bi-broadcast clr-red"></i> Live Stream Setup</h4>
                                 <p>Configure the MediaMTX stream path for this bid opening session.</p>
                             </div>
                         </div>
@@ -590,7 +328,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
                                 placeholder="e.g. live" required>
                             <p class="sbo-hint">Must match your OBS stream key / MediaMTX path. Use only letters, numbers, hyphens, and underscores.</p>
                         </div>
-                        <div class="sbo-field" style="margin-bottom:0;">
+                        <div class="sbo-field field-mb-0">
                             <label class="sbo-label">Display Title (optional)</label>
                             <input type="text" name="event_title" class="sbo-input"
                                 placeholder="Leave blank to use procurement title">
@@ -606,14 +344,14 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
                             <div class="step-badge">2</div>
                             <div class="step-title-text">
                                 <h4>
-                                    <i class="bi bi-people-fill" style="color:#1f7a3d;"></i>
+                                    <i class="bi bi-people-fill clr-forest"></i>
                                     Invite BAC / TWG Members
                                     <span class="invited-count-pill" id="invitedCountPill">0</span>
                                 </h4>
                                 <p>Select which BAC and TWG admins to invite to this bid opening session.</p>
                             </div>
                         </div>
-                        <div style="display:flex; gap:8px;">
+                        <div class="step-header-actions">
                             <button type="button" class="btn-quick-toggle" onclick="toggleAllAdmins(true)">Select All</button>
                             <button type="button" class="btn-quick-toggle" onclick="toggleAllAdmins(false)">Clear</button>
                         </div>
@@ -621,7 +359,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
                     <div class="step-card-body">
                         <?php if (empty($admin_list)): ?>
                         <div class="no-admins-msg">
-                            <i class="bi bi-person-x" style="font-size:28px; color:#88968d; display:block; margin-bottom:8px;"></i>
+                            <i class="bi bi-person-x no-admins-icon"></i>
                             No active BAC or TWG admins found. Assign admin roles first via Account Management.
                         </div>
                         <?php else: ?>
@@ -653,8 +391,8 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
                         </div>
                         <?php endif; ?>
                         <!-- Inline invite validation message -->
-                        <div id="inviteError" style="display:none; margin-top:12px; background:#fdf2f2; border:1px solid #f8d7da; border-left:4px solid #dc3545; border-radius:10px; padding:10px 14px; font-size:12px; color:#842029; display:none; align-items:center; gap:8px;">
-                            <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0;"></i>
+                        <div id="inviteError" class="invite-error-inline">
+                            <i class="bi bi-exclamation-triangle-fill icon-shrink-0"></i>
                             Please invite at least one BAC or TWG member before scheduling.
                         </div>
                     </div>
@@ -666,12 +404,12 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
             <div>
                 <div class="sbo-summary-card">
                     <div class="sbo-summary-head">
-                        <i class="bi bi-calendar-check" style="color:#1f7a3d;"></i> Session Summary
+                        <i class="bi bi-calendar-check clr-forest"></i> Session Summary
                     </div>
                     <div class="sbo-summary-body">
                         <div class="sbo-summary-row">
                             <span class="sbo-summary-lbl">Procurement</span>
-                            <span class="sbo-summary-val" style="font-size:11.5px; max-width:160px;">
+                            <span class="sbo-summary-val summary-val--narrow">
                                 <?= htmlspecialchars(mb_strimwidth($procurement['title'], 0, 50, '…')) ?>
                             </span>
                         </div>
@@ -690,7 +428,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
                         <hr class="sbo-summary-divider">
                         <div class="sbo-summary-row">
                             <span class="sbo-summary-lbl">Stream Status</span>
-                            <span class="sbo-summary-val" style="color:#d97706;">
+                            <span class="sbo-summary-val summary-val--amber">
                                 <i class="bi bi-calendar3"></i> Scheduled
                             </span>
                         </div>
@@ -706,7 +444,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
                         <button type="button" onclick="openScheduleModal()" class="sbo-submit-btn">
                             <i class="bi bi-calendar-plus"></i> Schedule Bid Opening
                         </button>
-                        <a href="bid_opening.php" style="display:block; text-align:center; margin-top:12px; font-size:12px; color:#88968d; font-weight:600; text-decoration:none;">
+                        <a href="bid_opening.php" class="cancel-link">
                             Cancel
                         </a>
                     </div>
@@ -718,12 +456,12 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
 
 <!-- ── Schedule Confirmation Modal ───────────────────────────────────────── -->
 <div id="scheduleModal" class="modal-backdrop" onclick="if(event.target===this)closeScheduleModal()">
-    <div class="urm-modal" style="max-width:460px; width:100%;">
+    <div class="urm-modal modal-wide">
         <button class="urm-modal-close" onclick="closeScheduleModal()">
             <i class="bi bi-x-lg"></i>
         </button>
         <div class="urm-modal-icon-wrap">
-            <div class="urm-modal-icon" style="background:#e8f5e9; color:#1f7a3d;">
+            <div class="urm-modal-icon urm-modal-icon--green">
                 <i class="bi bi-calendar-plus"></i>
             </div>
         </div>
@@ -734,7 +472,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
         </div>
         <div class="urm-modal-actions">
             <button type="button" onclick="closeScheduleModal()" class="urm-btn-cancel">Cancel</button>
-            <button type="button" id="scheduleConfirmBtn" class="urm-btn-confirm" style="background:#1f7a3d;">
+            <button type="button" id="scheduleConfirmBtn" class="urm-btn-confirm urm-btn-confirm--green">
                 <i class="bi bi-calendar-check"></i> Confirm Schedule
             </button>
         </div>
@@ -770,7 +508,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
         const summary = document.getElementById('summaryInviteCount');
         if (pill)    pill.textContent    = count;
         if (summary) summary.textContent = count;
-        if (count > 0) document.getElementById('inviteError').style.display = 'none';
+        if (count > 0) document.getElementById('inviteError').classList.remove('show');
     }
 </script>
 
@@ -779,11 +517,11 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
         const count = document.querySelectorAll('#adminInviteGrid input[type="checkbox"]:checked').length;
         if (count === 0) {
             const err = document.getElementById('inviteError');
-            err.style.display = 'flex';
+            err.classList.add('show');
             err.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             return;
         }
-        document.getElementById('inviteError').style.display = 'none';
+        document.getElementById('inviteError').classList.remove('show');
         document.getElementById('scheduleModal').classList.add('open');
     }
 

@@ -1,0 +1,218 @@
+/* ==========================================================================
+   pages/bidder-bid-session-list.css — styles specific to
+   bidder/bid-session-list.php. The dashboard shell (sidebar, topbar,
+   box-sizing reset) lives in ../dashboard-shell.css. Standard mobile
+   breakpoints/utilities live in ../responsive.css (loaded before this file).
+
+   Extensive duplicate-but-different note: this page's original inline
+   <style> block redefined almost the entire proc-table system
+   (.proc-table-panel, .proc-table, .proc-ref-cell, .proc-title-cell,
+   .proc-mode-tag, .proc-abc-cell, .proc-deadline-cell, .proc-action-btn,
+   .btn-view/.btn-open/.btn-schedule, .ap2-search-field, .ap2-filter-btn,
+   .ap2-go-btn, .table-foot, .pagination, .page-link, .vp-back-link) that
+   ALSO already exists in dashboard.css — some rules byte-identical
+   (.proc-table-panel), others with slightly different values
+   (.proc-action-btn padding/radius/font-size). Kept as this page's own
+   copy rather than reconciled: dashboard.css is shared by many
+   not-yet-reviewed admin pages, and this file loads after it so it wins
+   on equal specificity, matching prior behavior. .session-pill/.pill-*
+   and .vp-nav-bar/.vp-breadcrumbs are genuinely page-specific (not in
+   dashboard.css at all).
+   ========================================================================== */
+
+/* ── Breadcrumb & Top Bar ── */
+.vp-nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+.vp-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #88968d;
+    font-weight: 600;
+}
+.vp-breadcrumbs a {
+    color: #1f7a3d;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color .15s;
+}
+.vp-breadcrumbs a:hover { text-decoration: underline; color: #06251b; }
+.vp-breadcrumbs-current { color: #06251b; }
+.vp-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #06251b;
+    font-size: 12.5px;
+    font-weight: 700;
+    background: #fff;
+    border: 1px solid #eaeeec;
+    padding: 7px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all .2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,.02);
+}
+.vp-back-link:hover { background: #06251b; color: #ffc107; border-color: #06251b; }
+
+/* ── Table panel ── */
+.proc-table-panel {
+    background: #fff;
+    border: 1px solid #eaeeec;
+    border-radius: 18px;
+    box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.proc-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+.proc-table thead th {
+    background: #fafcfb; padding: 13px 16px;
+    font-size: 11px; font-weight: 700; color: #55665a;
+    text-transform: uppercase; letter-spacing: .04em;
+    border-bottom: 1.5px solid #edf1ef; white-space: nowrap;
+}
+.proc-table tbody tr { border-bottom: 1px solid #f0f4f2; transition: background .12s; }
+.proc-table tbody tr:last-child { border-bottom: none; }
+.proc-table tbody tr:hover { background: #fbfdfc; }
+.proc-table td { padding: 14px 16px; vertical-align: middle; }
+
+.proc-ref-cell  { font-weight: 700; color: #06251b; font-size: 11.5px; white-space: nowrap; }
+.proc-title-cell { font-weight: 700; color: #1a2a20; font-size: 13px; line-height: 1.35; max-width: 280px; }
+.proc-title-cell a { color: inherit; text-decoration: none; }
+.proc-title-cell a:hover { color: #1f7a3d; text-decoration: underline; }
+.proc-mode-tag {
+    background: #f0f4f2; color: #384d40;
+    padding: 3px 8px; border-radius: 6px;
+    font-size: 10.5px; font-weight: 600; white-space: nowrap;
+}
+.proc-abc-cell {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; font-weight: 800; color: #06251b; white-space: nowrap;
+}
+.proc-deadline-cell { font-size: 11.5px; color: #63736a; white-space: nowrap; line-height: 1.3; }
+.proc-deadline-cell strong { color: #1a1a1a; display: block; }
+
+/* ── Status pills (page-specific, not in dashboard.css) ── */
+.session-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px; font-weight: 700;
+    padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+.pill-live      { background: #fee2e2; color: #dc2626; }
+.pill-scheduled { background: #fef3c7; color: #d97706; }
+.pill-ended     { background: #e0f2f1; color: #00796b; }
+.pill-live { animation: pulseLive 1.8s infinite; }
+@keyframes pulseLive { 0%,100%{opacity:1;} 50%{opacity:.65;} }
+.session-pill-icon { font-size: 9px; }
+
+/* ── Action buttons ── */
+.proc-action-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 13px; border-radius: 8px;
+    font-size: 11.5px; font-weight: 700;
+    text-decoration: none; transition: all .15s;
+    white-space: nowrap; cursor: pointer; border: none;
+}
+.btn-view       { background: #f0f4f2; color: #06251b; }
+.btn-view:hover { background: #06251b; color: #ffc107; }
+.btn-open       { background: #1f7a3d; color: #fff; }
+.btn-open:hover { background: #14592d; }
+.btn-schedule   { background: #ffc107; color: #06251b; }
+.btn-schedule:hover { background: #e6ac00; }
+.proc-action-btn--upcoming { background: #fef3c7; color: #d97706; cursor: default; opacity: .8; }
+
+/* ── Search bar ── */
+.ap2-search-field {
+    flex: 1; min-width: 200px; position: relative;
+    display: flex; align-items: center;
+}
+.ap2-search-field i {
+    position: absolute; left: 11px; color: #88968d;
+    font-size: 13px; pointer-events: none;
+}
+.ap2-search-field input {
+    width: 100%; padding: 9px 12px 9px 33px;
+    border: 1.5px solid #e0e8e4; border-radius: 9px;
+    font-size: 12px; font-family: 'Poppins', sans-serif;
+    color: #1a1a1a; background: #fafcfb; outline: none;
+    transition: border-color .15s, box-shadow .15s;
+}
+.ap2-search-field input:focus {
+    border-color: #1f7a3d; background: #fff;
+    box-shadow: 0 0 0 3px rgba(31,122,61,.08);
+}
+.ap2-filter-btn {
+    background: #eef2f0; border: 1.5px solid #e0e8e4; color: #06251b;
+    font-size: 12px; font-weight: 700; padding: 8px 14px;
+    border-radius: 9px; cursor: pointer; transition: all .15s;
+    font-family: 'Poppins', sans-serif; white-space: nowrap;
+}
+.ap2-filter-btn:hover, .ap2-filter-btn.active {
+    background: #06251b; color: #ffc107; border-color: #06251b;
+}
+.ap2-go-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: #ffc107; color: #16241d;
+    font-family: 'Poppins', sans-serif; font-weight: 700;
+    font-size: 12.5px; border: none; padding: 8px 18px;
+    border-radius: 9px; cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.ap2-go-btn:hover { background: #e6ac00; }
+
+/* ── Pagination ── */
+.table-foot {
+    padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+    border-top: 1px solid #f0f4f2;
+    font-size: 12px; color: #88968d;
+}
+.pagination { display: flex; gap: 5px; flex-wrap: wrap; }
+.page-link {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 8px;
+    font-size: 12px; font-weight: 700; text-decoration: none;
+    color: #06251b; background: #f0f4f2; transition: all .15s;
+}
+.page-link:hover, .page-link.active { background: #06251b; color: #ffc107; }
+.page-link.disabled { opacity: .4; pointer-events: none; }
+
+/* ── Small utilities ── */
+.session-filter-bar-wrap { padding: 16px 20px; border-bottom: 1px solid #f0f4f2; background: #fafcfb; }
+.session-filter-form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filter-status-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.table-scroll-x { overflow-x: auto; }
+.text-right { text-align: right; }
+.clr-placeholder { color: #c7d2cb; }
+.col-ref-narrow { width: 130px; }
+.col-actions-right { text-align: right; min-width: 100px; }
+.proc-ref-icon { color: #88968d; font-size: 10px; }
+.proc-title-sub { font-size: 10.5px; color: #88968d; margin-top: 2px; }
+.stream-icon { font-size: 9px; }
+.invited-cell { font-size: 12px; color: #55665a; font-weight: 600; }
+.invited-icon { color: #88968d; }
+
+.proc-empty-state { padding: 48px 20px; text-align: center; color: #88968d; }
+.proc-empty-icon { font-size: 32px; color: #c7d2cb; display: block; margin-bottom: 8px; }
+.proc-empty-title { font-size: 13px; font-weight: 700; }
+
+/* ════════════════════════════════
+   MOBILE-FIRST RESPONSIVE
+   (see ../responsive.css for the shared breakpoint set + utilities)
+   ════════════════════════════════ */
+@media (max-width: 640px) {
+    .session-filter-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

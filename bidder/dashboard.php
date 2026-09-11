@@ -155,635 +155,8 @@ function pct($part, $total) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        /* ── 60% + 40% Layout ── */
-        .dash-layout-60-40 {
-            display: grid;
-            grid-template-columns: 1.55fr 1fr;
-            gap: 22px;
-            align-items: start;
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 1120px) {
-            .dash-layout-60-40 {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* ── Green Greetings Card ── */
-        .dash-greeting-card {
-            background: linear-gradient(135deg, #06251b 0%, #0b3829 55%, #14593f 100%);
-            border-radius: 20px;
-            padding: 26px 28px;
-            color: #ffffff;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(6, 37, 27, 0.16);
-            margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .dash-greeting-card::after {
-            content: '';
-            position: absolute;
-            top: -40px;
-            right: -40px;
-            width: 180px;
-            height: 180px;
-            background: radial-gradient(circle, rgba(255, 193, 7, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-
-        .greeting-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            flex-wrap: wrap;
-            margin-bottom: 12px;
-        }
-
-        .greeting-title {
-            font-size: 22px;
-            font-weight: 800;
-            color: #ffffff;
-            line-height: 1.2;
-            letter-spacing: -0.3px;
-        }
-
-        .greeting-badge {
-            background: rgba(255, 193, 7, 0.18);
-            border: 1px solid rgba(255, 193, 7, 0.4);
-            color: #ffc107;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px 12px;
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }
-
-        .greeting-sub {
-            font-size: 13px;
-            color: #d1e5db;
-            line-height: 1.5;
-            max-width: 580px;
-            margin-bottom: 18px;
-        }
-
-        .greeting-pills {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .greeting-pill {
-            background: rgba(255, 255, 255, 0.09);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            padding: 7px 14px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #ffffff;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .greeting-pill i {
-            color: #ffc107;
-        }
-
-        /* ── 4 Donut Stat Cards (Inside 60% Column) ── */
-        .ap2-stats-4-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .ap2-stats-4-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .ap2-stats-4-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .stat-donut-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 16px;
-            padding: 14px 14px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            transition: transform .15s ease, box-shadow .15s ease;
-        }
-
-        .stat-donut-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(16,36,26,.09);
-        }
-
-        .stat-donut-ring {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            position: relative;
-        }
-
-        .stat-donut-inner {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-        }
-
-        .stat-donut-info {
-            line-height: 1.2;
-            min-width: 0;
-        }
-
-        .stat-donut-num {
-            font-size: 20px;
-            font-weight: 800;
-            color: #06251b;
-            line-height: 1.1;
-        }
-
-        .stat-donut-lbl {
-            font-size: 11px;
-            font-weight: 600;
-            color: #88968d;
-            margin-top: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* ── Side-by-Side Open Procurements & My Bids ── */
-        .dash-side-by-side {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        @media (max-width: 768px) {
-            .dash-side-by-side {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .sub-card {
-            background: #fff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sub-card-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 16px 12px;
-            border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb;
-        }
-
-        .sub-card-title {
-            font-size: 13.5px;
-            font-weight: 800;
-            color: #06251b;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .sub-card-link,
-        .side-panel-link {
-            font-size: 11px;
-            font-weight: 700;
-            color: #1f7a3d;
-            background: #eef7f1;
-            padding: 4px 10px;
-            border-radius: 8px;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            transition: all .15s ease;
-            line-height: 1.2;
-        }
-
-        .sub-card-link:hover,
-        .side-panel-link:hover {
-            background: #06251b;
-            color: #ffc107;
-            text-decoration: none;
-            transform: translateY(-1px);
-            box-shadow: 0 3px 8px rgba(6, 37, 27, 0.12);
-        }
-
-        .sub-card-list {
-            padding: 2px 0;
-            flex: 1;
-        }
-
-        .sub-item-row {
-            padding: 10px 14px;
-            border-bottom: 1px solid #f4f7f5;
-            transition: background .15s;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .sub-item-row:last-child {
-            border-bottom: none;
-        }
-
-        .sub-item-row:hover {
-            background: #f9fbf9;
-        }
-
-        .sub-item-main {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .sub-item-title {
-            font-size: 12px;
-            font-weight: 700;
-            color: #1a1a1a;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.3;
-        }
-
-        .sub-item-title a {
-            color: inherit;
-            text-decoration: none;
-        }
-        .sub-item-title a:hover {
-            color: #1f7a3d;
-        }
-
-        .sub-item-meta {
-            font-size: 10.5px;
-            color: #88968d;
-            margin-top: 2px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .sub-item-action {
-            flex-shrink: 0;
-        }
-
-        /* ── Profile Card (40% Column) ── */
-        .profile-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            padding: 20px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            margin-bottom: 20px;
-            position: relative;
-        }
-
-        .profile-top {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 16px;
-            padding-bottom: 14px;
-            border-bottom: 1px solid #f0f4f2;
-        }
-
-        .profile-avatar-box {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #06251b 0%, #1f7a3d 100%);
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            font-weight: 800;
-            flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(6, 37, 27, 0.15);
-        }
-
-        .profile-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .profile-biz-name {
-            font-size: 15px;
-            font-weight: 800;
-            color: #06251b;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.2;
-        }
-
-        .profile-rep-name {
-            font-size: 12px;
-            color: #6C776E;
-            margin-top: 2px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .profile-status-badge {
-            font-size: 9.5px;
-            font-weight: 800;
-            padding: 3px 8px;
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            margin-top: 5px;
-        }
-
-        .profile-status-badge.approved { background: #e4f5ea; color: #1f7a3d; }
-        .profile-status-badge.pending  { background: #fff3e0; color: #e67e22; }
-
-        .profile-details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .profile-detail-item {
-            background: #f7faf8;
-            border: 1px solid #edf1ee;
-            border-radius: 10px;
-            padding: 8px 10px;
-        }
-
-        .profile-detail-lbl {
-            font-size: 9.5px;
-            font-weight: 700;
-            color: #88968d;
-            text-transform: uppercase;
-            letter-spacing: .3px;
-            margin-bottom: 2px;
-        }
-
-        .profile-detail-val {
-            font-size: 11.5px;
-            font-weight: 700;
-            color: #1a1a1a;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* ── Compact Calendar & Notifications (40% Column) ── */
-        .side-panel-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
-
-        .side-panel-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 18px 12px;
-            border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb;
-        }
-
-        .side-panel-title {
-            font-size: 13.5px;
-            font-weight: 800;
-            color: #06251b;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-
-        /* Calendar grid */
-        .mini-cal-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 3px;
-            padding: 14px 16px 12px;
-        }
-
-        .mini-cal-dow {
-            text-align: center;
-            font-size: 9.5px;
-            font-weight: 700;
-            color: #aaa;
-            padding: 2px 0 4px;
-            text-transform: uppercase;
-        }
-
-        .mini-cal-day {
-            aspect-ratio: 1;
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding-top: 3px;
-            font-size: 10.5px;
-            font-weight: 600;
-            color: #555;
-            cursor: default;
-            position: relative;
-        }
-
-        .mini-cal-day.empty { background: transparent; }
-        .mini-cal-day.today {
-            background: #06251b;
-            color: #ffc107;
-            font-weight: 800;
-        }
-        .mini-cal-day.has-event { background: #e8f5e9; color: #1f7a3d; }
-        .mini-cal-day.has-event.today { background: #06251b; color: #ffc107; }
-
-        .mini-cal-dots {
-            display: flex;
-            gap: 2px;
-            margin-top: 1px;
-            justify-content: center;
-        }
-
-        .mini-cal-dot {
-            width: 3.5px;
-            height: 3.5px;
-            border-radius: 50%;
-        }
-        .mini-cal-dot.opening { background: #1f7a3d; }
-        .mini-cal-dot.closing { background: #c23b3b; }
-
-        .side-events-list {
-            padding: 6px 14px 12px;
-            border-top: 1px solid #f4f7f5;
-        }
-
-        .side-event-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 7px 0;
-            border-bottom: 1px solid #f9fbf9;
-            font-size: 11px;
-            transition: all .15s ease;
-        }
-
-        .side-event-item:last-child { border-bottom: none; }
-        .side-event-item:hover .side-event-title { color: #1f7a3d; }
-
-        .side-event-title {
-            font-weight: 700;
-            color: #1a1a1a;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 170px;
-        }
-
-        .side-event-date {
-            font-size: 10px;
-            color: #88968d;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        /* Notification item in 40% column */
-        .side-notif-row {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            padding: 11px 16px;
-            border-bottom: 1px solid #f4f7f5;
-            transition: background .15s;
-        }
-
-        .side-notif-row:last-child { border-bottom: none; }
-        .side-notif-row:hover { background: #f9fbf9; }
-
-        .side-notif-icon {
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            background: #e8f5e9;
-            color: #1f7a3d;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-
-        .side-notif-body { flex: 1; min-width: 0; }
-        .side-notif-title {
-            font-size: 12px;
-            font-weight: 700;
-            color: #182019;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.2;
-        }
-
-        .side-notif-snippet {
-            font-size: 11px;
-            color: #6C776E;
-            margin-top: 2px;
-            display: -webkit-box;
-            -webkit-line-clamp: 1;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .side-notif-meta {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 3px;
-            font-size: 10px;
-            color: #9aa8a1;
-        }
-
-        /* Buttons & Badges */
-        .btn-mini-bid {
-            background: #06251b;
-            color: #ffc107;
-            font-size: 10.5px;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 6px;
-            text-decoration: none;
-            white-space: nowrap;
-            transition: all .15s ease;
-        }
-
-        .btn-mini-bid:hover {
-            background: #124032;
-        }
-
-        .status-pill-mini {
-            font-size: 9.5px;
-            font-weight: 800;
-            padding: 2px 7px;
-            border-radius: 12px;
-            text-transform: uppercase;
-            white-space: nowrap;
-        }
-
-        .status-pill-mini.pending   { background: #fff3e0; color: #e67e22; }
-        .status-pill-mini.submitted { background: #e4f5ea; color: #1f7a3d; }
-        .status-pill-mini.opened    { background: #e7eefe; color: #2F6FED; }
-        .status-pill-mini.awarded   { background: #fff8e1; color: #f9a825; }
-        .status-pill-mini.rejected  { background: #fbe1e1; color: #c23b3b; }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/bidder-dashboard.css">
 </head>
 <body class="dash-body">
 
@@ -837,11 +210,13 @@ include("components/topbar.php");
             <!-- 2. Statistics (4 Donut Stat Cards) -->
             <div class="ap2-stats-4-grid">
                 
+                <?php $pending_active = $pending_verification > 0; ?>
+
                 <!-- Open Procurements -->
                 <div class="stat-donut-card">
-                    <div class="stat-donut-ring" style="background:conic-gradient(#43a047 0% <?= pct($open_procs, max($total_procs, 1)) ?>%, #e7ece9 0%);">
+                    <div class="stat-donut-ring" style="--ring-color:#43a047; --pct:<?= pct($open_procs, max($total_procs, 1)) ?>%">
                         <div class="stat-donut-inner">
-                            <i class="bi bi-folder2-open" style="color:#43a047;"></i>
+                            <i class="bi bi-folder2-open"></i>
                         </div>
                     </div>
                     <div class="stat-donut-info">
@@ -852,9 +227,9 @@ include("components/topbar.php");
 
                 <!-- My Active Bids -->
                 <div class="stat-donut-card">
-                    <div class="stat-donut-ring" style="background:conic-gradient(#2F6FED 0% <?= pct($my_active_bids, max($my_total_bids, 1)) ?>%, #e7ece9 0%);">
+                    <div class="stat-donut-ring" style="--ring-color:#2F6FED; --pct:<?= pct($my_active_bids, max($my_total_bids, 1)) ?>%">
                         <div class="stat-donut-inner">
-                            <i class="bi bi-inbox" style="color:#2F6FED;"></i>
+                            <i class="bi bi-inbox"></i>
                         </div>
                     </div>
                     <div class="stat-donut-info">
@@ -865,22 +240,22 @@ include("components/topbar.php");
 
                 <!-- Pending Verification -->
                 <div class="stat-donut-card">
-                    <div class="stat-donut-ring" style="background:conic-gradient(<?= $pending_verification > 0 ? '#e67e22' : '#8B958E' ?> 0% <?= pct($pending_verification, max($my_total_bids, 1)) ?>%, #e7ece9 0%);">
+                    <div class="stat-donut-ring" style="--ring-color:<?= $pending_active ? '#e67e22' : '#8B958E' ?>; --pct:<?= pct($pending_verification, max($my_total_bids, 1)) ?>%">
                         <div class="stat-donut-inner">
-                            <i class="bi bi-hourglass-split" style="color:<?= $pending_verification > 0 ? '#e67e22' : '#8B958E' ?>;"></i>
+                            <i class="bi bi-hourglass-split"></i>
                         </div>
                     </div>
                     <div class="stat-donut-info">
-                        <div class="stat-donut-num" style="color:<?= $pending_verification > 0 ? '#e67e22' : 'inherit' ?>"><?= $pending_verification ?></div>
+                        <div class="stat-donut-num <?= $pending_active ? 'stat-donut-num--warn' : '' ?>"><?= $pending_verification ?></div>
                         <div class="stat-donut-lbl">Pending Review</div>
                     </div>
                 </div>
 
                 <!-- Upcoming Openings -->
                 <div class="stat-donut-card">
-                    <div class="stat-donut-ring" style="background:conic-gradient(#8e44ad 0% <?= pct($upcoming_openings, max($total_procs, 1)) ?>%, #e7ece9 0%);">
+                    <div class="stat-donut-ring" style="--ring-color:#8e44ad; --pct:<?= pct($upcoming_openings, max($total_procs, 1)) ?>%">
                         <div class="stat-donut-inner">
-                            <i class="bi bi-calendar-event" style="color:#8e44ad;"></i>
+                            <i class="bi bi-calendar-event"></i>
                         </div>
                     </div>
                     <div class="stat-donut-info">
@@ -898,14 +273,14 @@ include("components/topbar.php");
                 <div class="sub-card">
                     <div class="sub-card-head">
                         <div class="sub-card-title">
-                            <i class="bi bi-folder2-open" style="color:#1f7a3d;"></i> Open Procurements
+                            <i class="bi bi-folder2-open clr-green"></i> Open Procurements
                         </div>
                         <a href="procurement.php" class="sub-card-link">View all <i class="bi bi-arrow-right"></i></a>
                     </div>
                     <div class="sub-card-list">
                         <?php if (!$open_procs_result || $open_procs_result->num_rows === 0): ?>
-                            <div style="padding:32px 16px; text-align:center; color:#88968d; font-size:12px;">
-                                <i class="bi bi-folder-x" style="font-size:24px; color:#c7d2cb; display:block; margin-bottom:6px;"></i>
+                            <div class="sub-empty">
+                                <i class="bi bi-folder-x sub-empty-icon"></i>
                                 No active procurements open.
                             </div>
                         <?php else: while ($op = $open_procs_result->fetch_assoc()):
@@ -919,18 +294,18 @@ include("components/topbar.php");
                                         </a>
                                     </div>
                                     <div class="sub-item-meta">
-                                        <span style="font-weight:700; color:#06251b;">₱<?= number_format($op['abc'], 2) ?></span>
+                                        <span class="sub-item-meta-abc">₱<?= number_format($op['abc'], 2) ?></span>
                                         <span>·</span>
                                         <span><?= $op['closing_date'] ? date('M j', strtotime($op['closing_date'])) : 'TBD' ?></span>
                                     </div>
                                 </div>
                                 <div class="sub-item-action">
                                     <?php if ($alreadyBid): ?>
-                                        <a href="view_procurement.php?id=<?= $op['id'] ?>" class="proc-action-btn manage" style="background:#E4F5EA; color:#1f7a3d; font-size:11.5px; padding:5px 12px; border-radius:8px; font-weight:700; text-decoration:none;">
+                                        <a href="view_procurement.php?id=<?= $op['id'] ?>" class="proc-action-btn--manage">
                                             <i class="bi bi-eye"></i> View
                                         </a>
                                     <?php else: ?>
-                                        <a href="view_procurement.php?id=<?= $op['id'] ?>" class="proc-action-btn review" style="background:#E7EEFE; color:#2F6FED; font-size:11.5px; padding:5px 12px; border-radius:8px; font-weight:700; text-decoration:none;">
+                                        <a href="view_procurement.php?id=<?= $op['id'] ?>" class="proc-action-btn--view">
                                             <i class="bi bi-eye"></i> View
                                         </a>
                                     <?php endif; ?>
@@ -944,14 +319,14 @@ include("components/topbar.php");
                 <div class="sub-card">
                     <div class="sub-card-head">
                         <div class="sub-card-title">
-                            <i class="bi bi-inbox" style="color:#2F6FED;"></i> My Recent Bids
+                            <i class="bi bi-inbox clr-blue"></i> My Recent Bids
                         </div>
                         <a href="my_bids.php" class="sub-card-link">View all <i class="bi bi-arrow-right"></i></a>
                     </div>
                     <div class="sub-card-list">
                         <?php if (!$recent_bids_result || $recent_bids_result->num_rows === 0): ?>
-                            <div style="padding:32px 16px; text-align:center; color:#88968d; font-size:12px;">
-                                <i class="bi bi-inbox" style="font-size:24px; color:#c7d2cb; display:block; margin-bottom:6px;"></i>
+                            <div class="sub-empty">
+                                <i class="bi bi-inbox sub-empty-icon"></i>
                                 No bids submitted yet.
                             </div>
                         <?php else: while ($mb = $recent_bids_result->fetch_assoc()):
@@ -968,11 +343,11 @@ include("components/topbar.php");
                                         <span><?= date('M j, Y', strtotime($mb['submission_date'])) ?></span>
                                     </div>
                                 </div>
-                                <div class="sub-item-action" style="display:flex; align-items:center; gap:8px;">
+                                <div class="sub-item-action sub-item-action--gap">
                                     <span class="status-pill-mini <?= $bstat ?>">
                                         <?= ucfirst($bstat) ?>
                                     </span>
-                                    <a href="my_bids.php" class="proc-action-btn review" style="background:#E7EEFE; color:#2F6FED; font-size:11.5px; padding:5px 12px; border-radius:8px; font-weight:700; text-decoration:none;">
+                                    <a href="my_bids.php" class="proc-action-btn--view">
                                         <i class="bi bi-eye"></i> View
                                     </a>
                                 </div>
@@ -984,27 +359,25 @@ include("components/topbar.php");
             </div>
 
             <!-- 4. Announcements / Notifications Card -->
-            <div class="sub-card" style="margin-top:16px;">
+            <div class="sub-card sub-card--mt">
                 <div class="sub-card-head">
                     <div class="sub-card-title">
-                        <i class="bi bi-megaphone" style="color:#e67e22;"></i> System Announcements &amp; Notices
+                        <i class="bi bi-megaphone clr-orange"></i> System Announcements &amp; Notices
                     </div>
                     <a href="notification.php" class="sub-card-link">View all <i class="bi bi-arrow-right"></i></a>
                 </div>
                 <div>
                     <?php if (!$notifs_result || $notifs_result->num_rows === 0): ?>
-                        <div style="padding:28px 16px; text-align:center; color:#88968d; font-size:12px;">
-                            <i class="bi bi-bell-slash" style="font-size:24px; color:#c7d2cb; display:block; margin-bottom:6px;"></i>
+                        <div class="sub-empty sub-empty--sm">
+                            <i class="bi bi-bell-slash sub-empty-icon"></i>
                             No recent announcements.
                         </div>
                     <?php else: while ($nt = $notifs_result->fetch_assoc()):
                         $targetBadge = strtoupper($nt['target_type']);
-                        $targetColor = '#e3f2fd';
-                        $targetFg    = '#1565c0';
+                        $targetBadgeClass = 'side-notif-target-badge--all';
                         if ($nt['target_type'] === 'role') {
                             $targetBadge = strtoupper($nt['target_role'] ?? 'BIDDER');
-                            $targetColor = '#e8f5e9';
-                            $targetFg    = '#1f7a3d';
+                            $targetBadgeClass = 'side-notif-target-badge--role';
                         }
                     ?>
                         <div class="side-notif-row">
@@ -1012,25 +385,25 @@ include("components/topbar.php");
                                 <i class="bi bi-bell-fill"></i>
                             </div>
                             <div class="side-notif-body">
-                                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                                <div class="side-notif-top-row">
                                     <div class="side-notif-title" title="<?= htmlspecialchars($nt['title']) ?>">
                                         <?= htmlspecialchars($nt['title']) ?>
                                     </div>
-                                    <span style="font-size:10px; color:#88968d; white-space:nowrap;">
+                                    <span class="side-notif-time">
                                         <i class="bi bi-clock"></i> <?= timeAgo($nt['created_at']) ?>
                                     </span>
                                 </div>
                                 <div class="side-notif-snippet">
                                     <?= htmlspecialchars($nt['message']) ?>
                                 </div>
-                                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px; gap:8px;">
-                                    <div class="side-notif-meta" style="margin-top:0;">
-                                        <span style="background:<?= $targetColor ?>; color:<?= $targetFg ?>; padding:1px 6px; border-radius:4px; font-weight:700; font-size:9.5px;">
+                                <div class="side-notif-foot-row">
+                                    <div class="side-notif-meta">
+                                        <span class="side-notif-target-badge <?= $targetBadgeClass ?>">
                                             <?= htmlspecialchars($targetBadge) ?>
                                         </span>
                                         <span>From: <?= htmlspecialchars(trim(($nt['firstname'] ?? '') . ' ' . ($nt['lastname'] ?? '')) ?: 'BAC Secretariat') ?></span>
                                     </div>
-                                    <a href="notification.php" class="proc-action-btn review" style="background:#E7EEFE; color:#2F6FED; font-size:11px; padding:4px 10px; border-radius:7px; font-weight:700; text-decoration:none;">
+                                    <a href="notification.php" class="proc-action-btn--view proc-action-btn--sm">
                                         <i class="bi bi-eye"></i> View
                                     </a>
                                 </div>
@@ -1091,7 +464,7 @@ include("components/topbar.php");
             <div class="side-panel-card">
                 <div class="side-panel-head">
                     <div class="side-panel-title">
-                        <i class="bi bi-calendar3" style="color:#2F6FED;"></i> Bid Calendar &amp; Schedule
+                        <i class="bi bi-calendar3 clr-blue"></i> Bid Calendar &amp; Schedule
                     </div>
                     <a href="procurement.php" class="side-panel-link">View all <i class="bi bi-arrow-right"></i></a>
                 </div>
@@ -1155,12 +528,12 @@ include("components/topbar.php");
                         <?php endfor; ?>
                     </div>
 
-                    <div style="display:flex; justify-content:space-around; padding:8px 14px 12px; font-size:10.5px; color:#777; border-top:1px solid #f4f7f5;">
-                        <span style="display:flex; align-items:center; gap:5px;">
-                            <span style="width:7px; height:7px; border-radius:50%; background:#1f7a3d; display:inline-block;"></span> Bid Opening
+                    <div class="cal-legend">
+                        <span class="cal-legend-item">
+                            <span class="cal-legend-dot cal-legend-dot--opening"></span> Bid Opening
                         </span>
-                        <span style="display:flex; align-items:center; gap:5px;">
-                            <span style="width:7px; height:7px; border-radius:50%; background:#c23b3b; display:inline-block;"></span> Deadline
+                        <span class="cal-legend-item">
+                            <span class="cal-legend-dot cal-legend-dot--closing"></span> Deadline
                         </span>
                     </div>
 
@@ -1173,14 +546,15 @@ include("components/topbar.php");
                         });
                         $upcoming = array_slice($upcoming, 0, 3);
                         if (empty($upcoming)): ?>
-                            <div style="text-align:center; padding:10px 0; color:#aaa; font-size:11px;">No upcoming milestones this month.</div>
+                            <div class="side-events-empty">No upcoming milestones this month.</div>
                         <?php else: foreach ($upcoming as $uev):
                             $isOpening = !empty($uev['opening_date']);
                             $eventDate = $isOpening ? $uev['opening_date'] : $uev['closing_date'];
+                            $dotClass  = $isOpening ? 'side-event-dot--opening' : 'side-event-dot--closing';
                         ?>
-                            <a href="view_procurement.php?id=<?= $uev['id'] ?>" class="side-event-item" style="text-decoration:none; color:inherit;">
-                                <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-                                    <span style="width:6px; height:6px; border-radius:50%; background:<?= $isOpening ? '#1f7a3d' : '#c23b3b' ?>; flex-shrink:0;"></span>
+                            <a href="view_procurement.php?id=<?= $uev['id'] ?>" class="side-event-item">
+                                <div class="side-event-left">
+                                    <span class="side-event-dot <?= $dotClass ?>"></span>
                                     <span class="side-event-title" title="<?= htmlspecialchars($uev['title']) ?>"><?= htmlspecialchars($uev['title']) ?></span>
                                 </div>
                                 <span class="side-event-date"><?= date('M j', strtotime($eventDate)) ?></span>
@@ -1200,27 +574,27 @@ include("components/topbar.php");
     <div class="sad-section-label">Quick Actions</div>
     <div class="sad-actions">
         <a href="procurement.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#e8f5e9; color:#43a047;"><i class="bi bi-folder2-open"></i></div>
+            <div class="sad-action-icon sad-action-icon--green"><i class="bi bi-folder2-open"></i></div>
             <span>Browse Procurements</span>
         </a>
         <a href="my_bids.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#e3f2fd; color:#1565c0;"><i class="bi bi-inbox"></i></div>
+            <div class="sad-action-icon sad-action-icon--blue"><i class="bi bi-inbox"></i></div>
             <span>My Submissions</span>
         </a>
         <a href="notification.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#fff8e1; color:#f9a825;"><i class="bi bi-bell"></i></div>
+            <div class="sad-action-icon sad-action-icon--amber"><i class="bi bi-bell"></i></div>
             <span>Notifications</span>
         </a>
         <a href="procurement.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#f3e5f5; color:#7b1fa2;"><i class="bi bi-calendar3"></i></div>
+            <div class="sad-action-icon sad-action-icon--purple"><i class="bi bi-calendar3"></i></div>
             <span>Bid Calendar</span>
         </a>
         <a href="my_bids.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#e0f2f1; color:#00796b;"><i class="bi bi-file-earmark-check"></i></div>
+            <div class="sad-action-icon sad-action-icon--teal"><i class="bi bi-file-earmark-check"></i></div>
             <span>Verify Bids</span>
         </a>
         <a href="../logout.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#fce4ec; color:#c62828;"><i class="bi bi-box-arrow-left"></i></div>
+            <div class="sad-action-icon sad-action-icon--red"><i class="bi bi-box-arrow-left"></i></div>
             <span>Logout</span>
         </a>
     </div>

@@ -293,7 +293,7 @@ $query = "
         u.profile_picture_url,
         u.created_at AS registered_at,
         bp.business_name,
-        bp.slsu_number,
+        bp.philgeps_number,
         bp.tin_number,
         bp.business_type,
         bp.year_established,
@@ -354,747 +354,9 @@ $active_tab = in_array($_GET['tab'] ?? '', ['profile', 'documents']) ? $_GET['ta
     
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
+    <link rel="stylesheet" href="../css/responsive.css">
     
-    <style>
-        /* ── Base Container ── */
-        .dash-content {
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-
-        /* ── Settings Tabs Navigation (matching admin settings) ── */
-        .settings-tabs-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 24px;
-            border-bottom: 2px solid #eef2f0;
-            padding-bottom: 2px;
-        }
-
-        .stab-btn {
-            background: transparent;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 12px 12px 0 0;
-            font-size: 13.5px;
-            font-weight: 700;
-            color: #63736a;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all .15s ease;
-            text-decoration: none;
-        }
-
-        .stab-btn:hover {
-            background: #f0f4f2;
-            color: #06251b;
-        }
-
-        .stab-btn.active {
-            background: #06251b;
-            color: #ffc107;
-            box-shadow: 0 2px 10px rgba(6,37,27,.18);
-        }
-
-        .stab-btn i { font-size: 15px; }
-
-        .stab-badge-warn {
-            background: #ef4444;
-            color: #fff;
-            font-size: 10px;
-            font-weight: 800;
-            padding: 1px 6px;
-            border-radius: 999px;
-            margin-left: 2px;
-        }
-
-        .stab-panel { display: none; }
-        .stab-panel.active { display: block; }
-
-        /* ── Document Management UI Styles ── */
-        .doc-comp-banner {
-            border-radius: 16px;
-            padding: 20px 24px;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 18px;
-            flex-wrap: wrap;
-        }
-
-        .doc-comp-banner.valid {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            color: #166534;
-        }
-
-        .doc-comp-banner.invalid {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #991b1b;
-        }
-
-        .doc-comp-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .doc-comp-icon {
-            width: 46px;
-            height: 46px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            flex-shrink: 0;
-        }
-
-        .doc-comp-banner.valid .doc-comp-icon {
-            background: #dcfce7;
-            color: #16a34a;
-        }
-
-        .doc-comp-banner.invalid .doc-comp-icon {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .doc-comp-title {
-            font-size: 15px;
-            font-weight: 800;
-            margin-bottom: 2px;
-        }
-
-        .doc-comp-desc {
-            font-size: 12.5px;
-            opacity: 0.9;
-            line-height: 1.4;
-        }
-
-        .doc-cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-            gap: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .doc-cards-grid { grid-template-columns: 1fr; }
-        }
-
-        .doc-item-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 16px;
-            padding: 22px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 8px 20px -10px rgba(16,36,26,.05);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            gap: 16px;
-            transition: all .15s ease;
-        }
-
-        .doc-item-card:hover {
-            border-color: #d8e2dc;
-            box-shadow: 0 4px 16px rgba(16,36,26,.08);
-        }
-
-        .doc-item-card.is-expired {
-            border-color: #fecaca;
-            background: #fffafa;
-        }
-
-        .doc-item-card.is-missing {
-            border: 1.5px dashed #f87171;
-            background: #fff8f8;
-        }
-
-        .doc-card-top {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
-        .doc-title-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .doc-type-icon {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            flex-shrink: 0;
-            background: #f0f4f2;
-            color: #06251b;
-        }
-
-        .doc-item-card.is-expired .doc-type-icon,
-        .doc-item-card.is-missing .doc-type-icon {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .doc-title-text {
-            font-size: 14px;
-            font-weight: 800;
-            color: #06251b;
-            line-height: 1.3;
-        }
-
-        .doc-badge-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 3px 9px;
-            border-radius: 6px;
-            white-space: nowrap;
-        }
-
-        .doc-details-box {
-            background: #f8faf9;
-            border-radius: 10px;
-            padding: 12px 14px;
-            font-size: 12px;
-            color: #4b5563;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .doc-details-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-        }
-
-        .doc-details-lbl {
-            color: #6b7280;
-            font-weight: 600;
-        }
-
-        .doc-details-val {
-            font-weight: 700;
-            color: #111827;
-        }
-
-        .doc-file-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-weight: 700;
-            color: #1f7a3d;
-            text-decoration: none;
-            background: #dcfce7;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-size: 11.5px;
-        }
-
-        .doc-file-link:hover {
-            background: #1f7a3d;
-            color: #ffffff;
-        }
-
-        .doc-upload-form {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-top: 4px;
-        }
-
-        .doc-file-input {
-            width: 100%;
-            padding: 7px 10px;
-            border: 1.5px dashed #cbd5e1;
-            border-radius: 8px;
-            font-size: 11.5px;
-            background: #ffffff;
-            cursor: pointer;
-        }
-
-        .doc-file-input:focus {
-            outline: none;
-            border-color: #1f7a3d;
-        }
-
-        .doc-upload-btn {
-            background: #06251b;
-            color: #ffc107;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: all .15s ease;
-        }
-
-        .doc-upload-btn:hover {
-            background: #0a3a2a;
-            color: #ffffff;
-        }
-
-        .settings-grid {
-            display: grid;
-            grid-template-columns: 340px 1fr;
-            gap: 24px;
-            align-items: start;
-        }
-
-        @media (max-width: 1024px) {
-            .settings-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* ── Setting Cards ── */
-        .set-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.06);
-            overflow: hidden;
-            margin-bottom: 24px;
-        }
-
-        .set-card-head {
-            padding: 16px 22px;
-            border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
-        .set-card-title {
-            font-size: 14px;
-            font-weight: 800;
-            color: #06251b;
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-
-        .set-card-body {
-            padding: 22px;
-        }
-
-        /* ── Avatar Upload Section ── */
-        .avatar-preview-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            padding: 10px 0 20px;
-        }
-
-        .avatar-circle {
-            width: 124px;
-            height: 124px;
-            border-radius: 50%;
-            border: 3px solid #1f7a3d;
-            box-shadow: 0 4px 16px rgba(31, 122, 61, 0.15);
-            background: #f0f7f2;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 38px;
-            font-weight: 800;
-            color: #1f7a3d;
-            overflow: hidden;
-            position: relative;
-            margin-bottom: 14px;
-        }
-
-        .avatar-circle img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-
-        .avatar-meta-name {
-            font-size: 16px;
-            font-weight: 800;
-            color: #06251b;
-            margin-bottom: 3px;
-        }
-
-        .avatar-meta-sub {
-            font-size: 12px;
-            color: #88968d;
-            margin-bottom: 14px;
-        }
-
-        .avatar-drop-zone {
-            border: 2px dashed #d6e2db;
-            border-radius: 14px;
-            padding: 18px;
-            text-align: center;
-            background: #fafcfb;
-            cursor: pointer;
-            transition: all .2s ease;
-            position: relative;
-            width: 100%;
-            margin-bottom: 14px;
-        }
-
-        .avatar-drop-zone:hover, .avatar-drop-zone.dragover {
-            border-color: #1f7a3d;
-            background: #eef7f1;
-        }
-
-        .avatar-drop-zone i {
-            font-size: 26px;
-            color: #1f7a3d;
-            display: block;
-            margin-bottom: 6px;
-        }
-
-        .avatar-drop-zone p {
-            font-size: 12px;
-            font-weight: 600;
-            color: #06251b;
-            margin: 0;
-        }
-
-        .avatar-drop-zone span {
-            font-size: 10.5px;
-            color: #88968d;
-        }
-
-        .file-hidden-input {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
-        }
-
-        .avatar-action-btns {
-            display: flex;
-            gap: 10px;
-            width: 100%;
-        }
-
-        .btn-set-primary {
-            background: #06251b;
-            color: #ffc107;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 10px;
-            font-size: 12.5px;
-            font-weight: 700;
-            font-family: 'Poppins', sans-serif;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 7px;
-            transition: all .2s ease;
-            width: 100%;
-        }
-
-        .btn-set-primary:hover {
-            background: #144937;
-            color: #ffffff;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(6, 37, 27, 0.15);
-        }
-
-        .btn-set-danger {
-            background: #fef2f2;
-            color: #dc2626;
-            border: 1px solid #fee2e2;
-            padding: 9px 14px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-weight: 700;
-            font-family: 'Poppins', sans-serif;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: all .15s ease;
-            width: 100%;
-        }
-
-        .btn-set-danger:hover {
-            background: #dc2626;
-            color: #ffffff;
-        }
-
-        /* ── Profile Information (Read-Only) ── */
-        .info-alert-box {
-            background: #f4f8f5;
-            border: 1px solid #dcebe1;
-            border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-        }
-
-        .info-alert-box i {
-            font-size: 18px;
-            color: #1f7a3d;
-            margin-top: 1px;
-            flex-shrink: 0;
-        }
-
-        .info-alert-text {
-            font-size: 12px;
-            color: #385141;
-            line-height: 1.45;
-        }
-
-        .info-alert-text strong {
-            color: #06251b;
-        }
-
-        .readonly-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-        }
-
-        @media (max-width: 640px) {
-            .readonly-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .readonly-field-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .readonly-field-group.span-2 {
-            grid-column: span 2;
-        }
-
-        @media (max-width: 640px) {
-            .readonly-field-group.span-2 {
-                grid-column: span 1;
-            }
-        }
-
-        .readonly-label {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            color: #88968d;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .readonly-value-box {
-            background: #fafcfb;
-            border: 1.5px solid #eef2ef;
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-size: 12.5px;
-            font-weight: 600;
-            color: #06251b;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            min-height: 42px;
-        }
-
-        .readonly-value-box i.lock-icon {
-            color: #aab5ae;
-            font-size: 12px;
-        }
-
-        .status-pill-badge {
-            font-size: 11px;
-            font-weight: 800;
-            padding: 3px 9px;
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-family: 'Space Grotesk', sans-serif;
-            text-transform: uppercase;
-        }
-
-        .status-pill-badge.approved { background: #e4f5ea; color: #1f7a3d; }
-        .status-pill-badge.pending  { background: #fef3c7; color: #d97706; }
-        .status-pill-badge.rejected { background: #fee2e2; color: #dc2626; }
-
-        /* ── Change Password Form ── */
-        .pw-form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-bottom: 16px;
-        }
-
-        .pw-label {
-            font-size: 12px;
-            font-weight: 700;
-            color: #06251b;
-        }
-
-        .pw-input-wrap {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .pw-input-wrap i.prefix-icon {
-            position: absolute;
-            left: 14px;
-            color: #88968d;
-            font-size: 14px;
-            pointer-events: none;
-        }
-
-        .pw-input-field {
-            width: 100%;
-            padding: 10px 42px 10px 38px;
-            border: 1.5px solid #d4e0d8;
-            border-radius: 10px;
-            font-size: 12.5px;
-            font-family: 'Poppins', sans-serif;
-            color: #1a1a1a;
-            outline: none;
-            background: #ffffff;
-            transition: all .15s ease;
-        }
-
-        .pw-input-field:focus {
-            border-color: #1f7a3d;
-            box-shadow: 0 0 0 3px rgba(31,122,61,0.1);
-        }
-
-        .pw-toggle-btn {
-            position: absolute;
-            right: 12px;
-            background: transparent;
-            border: none;
-            color: #88968d;
-            cursor: pointer;
-            font-size: 14px;
-            padding: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: color .15s;
-        }
-
-        .pw-toggle-btn:hover {
-            color: #06251b;
-        }
-
-        .pw-requirements-box {
-            background: #fbfdfc;
-            border: 1px solid #edf1ee;
-            border-radius: 12px;
-            padding: 14px 16px;
-            margin-bottom: 20px;
-        }
-
-        .pw-req-title {
-            font-size: 11px;
-            font-weight: 700;
-            color: #55665a;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            margin-bottom: 8px;
-        }
-
-        .pw-req-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px 14px;
-        }
-
-        @media (max-width: 600px) {
-            .pw-req-list {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .pw-req-item {
-            font-size: 11.5px;
-            color: #88968d;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: color .15s;
-        }
-
-        .pw-req-item.valid {
-            color: #1f7a3d;
-            font-weight: 600;
-        }
-
-        .pw-req-item i {
-            font-size: 13px;
-        }
-
-        /* ── Alert Flash Messages ── */
-        .flash-alert {
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-size: 12.5px;
-            font-weight: 600;
-            margin-bottom: 18px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            animation: fadeInAlert .2s ease;
-        }
-
-        @keyframes fadeInAlert {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .flash-alert.success {
-            background: #eaf7ee;
-            color: #1f7a3d;
-            border: 1px solid #c9e8d3;
-        }
-
-        .flash-alert.error {
-            background: #fef2f2;
-            color: #b91c1c;
-            border: 1px solid #fecaca;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/pages/bidder-settings.css">
 </head>
 <body class="dash-body">
 
@@ -1112,7 +374,7 @@ include("components/topbar.php");
 <div class="dash-content">
 
     <!-- Page Header -->
-    <div class="page-header" style="margin-bottom:20px;">
+    <div class="page-header page-header--tight">
         <h2>Account Settings</h2>
         <p>Manage your bidder portal avatar, view verified credentials, manage compliance documents, and secure your login password.</p>
     </div>
@@ -1149,9 +411,9 @@ include("components/topbar.php");
             <div class="set-card" id="avatar-card">
                 <div class="set-card-head">
                     <span class="set-card-title">
-                        <i class="bi bi-person-badge-fill" style="color:#1f7a3d;"></i> Profile Photo
+                        <i class="bi bi-person-badge-fill clr-green"></i> Profile Photo
                     </span>
-                    <span style="font-size:11px; font-weight:700; color:#88968d;">Avatar</span>
+                    <span class="set-card-tag">Avatar</span>
                 </div>
                 
                 <div class="set-card-body">
@@ -1176,7 +438,7 @@ include("components/topbar.php");
                                     <img src="<?= htmlspecialchars($avatar_url) ?>" alt="<?= htmlspecialchars($fullname) ?>" id="avatarImgPreview">
                                 <?php else: ?>
                                     <span id="avatarInitials"><?= $initials ?></span>
-                                    <img src="" alt="Preview" id="avatarImgPreview" style="display:none;">
+                                    <img src="" alt="Preview" id="avatarImgPreview" hidden>
                                 <?php endif; ?>
                             </div>
 
@@ -1191,7 +453,7 @@ include("components/topbar.php");
                                 <span>JPG, PNG, WEBP or GIF (Max 5MB)</span>
                             </div>
 
-                            <button type="submit" class="btn-set-primary" id="saveAvatarBtn" style="display:none; margin-bottom:10px;">
+                            <button type="submit" class="btn-set-primary btn-set-primary--saveavatar" id="saveAvatarBtn" hidden>
                                 <i class="bi bi-check2-circle"></i> Save Photo
                             </button>
                         </div>
@@ -1212,22 +474,22 @@ include("components/topbar.php");
             <div class="set-card">
                 <div class="set-card-head">
                     <span class="set-card-title">
-                        <i class="bi bi-shield-check" style="color:#2F6FED;"></i> Account Security
+                        <i class="bi bi-shield-check clr-blue"></i> Account Security
                     </span>
                     <span class="status-pill-badge <?= $app_status ?>"><?= htmlspecialchars($data['application_status'] ?? 'Verified') ?></span>
                 </div>
-                <div class="set-card-body" style="font-size:12px; color:#55665a; line-height:1.6;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid #f0f4f2; padding-bottom:6px;">
+                <div class="set-card-body set-card-body--security">
+                    <div class="security-row">
                         <span>Member Since:</span>
-                        <strong style="color:#06251b;"><?= $member_since ?></strong>
+                        <strong class="security-row-val"><?= $member_since ?></strong>
                     </div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid #f0f4f2; padding-bottom:6px;">
+                    <div class="security-row">
                         <span>Portal Role:</span>
-                        <strong style="color:#06251b;">Registered Bidder</strong>
+                        <strong class="security-row-val">Registered Bidder</strong>
                     </div>
-                    <div style="display:flex; justify-content:space-between;">
+                    <div class="security-row">
                         <span>2FA Protection:</span>
-                        <span style="color:#1f7a3d; font-weight:700;"><i class="bi bi-shield-lock-fill"></i> Active</span>
+                        <span class="security-2fa-val"><i class="bi bi-shield-lock-fill"></i> Active</span>
                     </div>
                 </div>
             </div>
@@ -1241,10 +503,10 @@ include("components/topbar.php");
             <div class="set-card">
                 <div class="set-card-head">
                     <span class="set-card-title">
-                        <i class="bi bi-building-fill-check" style="color:#1f7a3d;"></i> Bidder &amp; Business Profile
+                        <i class="bi bi-building-fill-check clr-green"></i> Bidder &amp; Business Profile
                     </span>
-                    <span style="font-size:11.5px; font-weight:700; color:#88968d; display:inline-flex; align-items:center; gap:4px;">
-                        <i class="bi bi-lock-fill" style="color:#aab5ae;"></i> Read-Only
+                    <span class="readonly-tag">
+                        <i class="bi bi-lock-fill clr-muted"></i> Read-Only
                     </span>
                 </div>
 
@@ -1298,7 +560,7 @@ include("components/topbar.php");
                         <div class="readonly-field-group span-2">
                             <span class="readonly-label"><i class="bi bi-building"></i> Registered Business / Entity Name</span>
                             <div class="readonly-value-box">
-                                <span style="font-weight:700;"><?= htmlspecialchars($business_name) ?></span>
+                                <span class="fw-700"><?= htmlspecialchars($business_name) ?></span>
                                 <i class="bi bi-lock-fill lock-icon"></i>
                             </div>
                         </div>
@@ -1307,7 +569,7 @@ include("components/topbar.php");
                         <div class="readonly-field-group">
                             <span class="readonly-label"><i class="bi bi-hash"></i> PhilGEPS Certificate #</span>
                             <div class="readonly-value-box">
-                                <span style="font-family:'Space Grotesk',sans-serif; font-weight:700; color:#1f7a3d;"><?= htmlspecialchars($slsu_number) ?></span>
+                                <span class="font-mono fw-700 clr-green"><?= htmlspecialchars($slsu_number) ?></span>
                                 <i class="bi bi-lock-fill lock-icon"></i>
                             </div>
                         </div>
@@ -1316,7 +578,7 @@ include("components/topbar.php");
                         <div class="readonly-field-group">
                             <span class="readonly-label"><i class="bi bi-receipt"></i> Tax ID (TIN)</span>
                             <div class="readonly-value-box">
-                                <span style="font-family:'Space Grotesk',sans-serif;"><?= htmlspecialchars($tin_number) ?></span>
+                                <span class="font-mono"><?= htmlspecialchars($tin_number) ?></span>
                                 <i class="bi bi-lock-fill lock-icon"></i>
                             </div>
                         </div>
@@ -1356,9 +618,9 @@ include("components/topbar.php");
             <div class="set-card" id="password-card">
                 <div class="set-card-head">
                     <span class="set-card-title">
-                        <i class="bi bi-key-fill" style="color:#d97706;"></i> Change Password
+                        <i class="bi bi-key-fill clr-amber"></i> Change Password
                     </span>
-                    <span style="font-size:11px; font-weight:700; color:#88968d;">Security</span>
+                    <span class="set-card-tag">Security</span>
                 </div>
 
                 <div class="set-card-body">
@@ -1422,11 +684,11 @@ include("components/topbar.php");
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </div>
-                            <div id="match-hint" style="font-size:11.5px; margin-top:4px; display:none;"></div>
+                            <div id="match-hint" class="match-hint" hidden></div>
                         </div>
 
-                        <div style="display:flex; justify-content:flex-end; margin-top:20px;">
-                            <button type="submit" class="btn-set-primary" style="width:auto; padding:10px 24px;">
+                        <div class="pw-submit-row">
+                            <button type="submit" class="btn-set-primary btn-set-primary--auto">
                                 <i class="bi bi-shield-check"></i> Update Password
                             </button>
                         </div>
@@ -1447,13 +709,13 @@ include("components/topbar.php");
 
         <!-- Flash messages for document uploads -->
         <?php if (!empty($doc_success)): ?>
-            <div class="flash-alert success" style="margin-bottom:20px;">
+            <div class="flash-alert success mb-20">
                 <i class="bi bi-check-circle-fill"></i> <?= htmlspecialchars($doc_success) ?>
             </div>
         <?php endif; ?>
 
         <?php if (!empty($doc_error)): ?>
-            <div class="flash-alert error" style="margin-bottom:20px;">
+            <div class="flash-alert error mb-20">
                 <i class="bi bi-exclamation-circle-fill"></i> <?= htmlspecialchars($doc_error) ?>
             </div>
         <?php endif; ?>
@@ -1498,6 +760,21 @@ include("components/topbar.php");
                 }
                 $isExpired = $hasDoc && $valInfo['is_expired'];
                 $isMissing = !$hasDoc;
+
+                $docBadgeClass = 'doc-badge-pill--missing';
+                if ($hasDoc) {
+                    if ($valInfo['is_expired']) {
+                        $docBadgeClass = 'doc-badge-pill--expired';
+                    } elseif (($valInfo['urgency'] ?? '') === 'urgent') {
+                        $docBadgeClass = 'doc-badge-pill--urgent';
+                    } elseif (($valInfo['urgency'] ?? '') === 'warning') {
+                        $docBadgeClass = 'doc-badge-pill--warning';
+                    } elseif ($valInfo['status'] === 'no_expiration') {
+                        $docBadgeClass = 'doc-badge-pill--neutral';
+                    } else {
+                        $docBadgeClass = 'doc-badge-pill--valid';
+                    }
+                }
             ?>
             <div class="doc-item-card <?= $isExpired ? 'is-expired' : ($isMissing ? 'is-missing' : '') ?>">
 
@@ -1510,18 +787,18 @@ include("components/topbar.php");
                             </div>
                             <div>
                                 <div class="doc-title-text"><?= htmlspecialchars($docLabel) ?></div>
-                                <span style="font-size:11px; color:#88968d; font-weight:600;">Standard Required File</span>
+                                <span class="doc-title-sub">Standard Required File</span>
                             </div>
                         </div>
 
                         <div>
                             <?php if ($hasDoc): ?>
-                                <span class="doc-badge-pill" style="<?= $valInfo['badge_style'] ?>">
+                                <span class="doc-badge-pill <?= $docBadgeClass ?>">
                                     <i class="bi <?= $valInfo['is_expired'] ? 'bi-x-circle-fill' : 'bi-check-circle-fill' ?>"></i>
                                     <?= htmlspecialchars($valInfo['label']) ?>
                                 </span>
                             <?php else: ?>
-                                <span class="doc-badge-pill" style="background:#FBE1E1; color:#c23b3b; border:1px solid #f5b7b7;">
+                                <span class="doc-badge-pill doc-badge-pill--missing">
                                     Missing File
                                 </span>
                             <?php endif; ?>
@@ -1529,7 +806,7 @@ include("components/topbar.php");
                     </div>
 
                     <!-- Details Box -->
-                    <div class="doc-details-box" style="margin-top:14px;">
+                    <div class="doc-details-box">
                         <div class="doc-details-row">
                             <span class="doc-details-lbl">Uploaded File:</span>
                             <span class="doc-details-val">
@@ -1538,7 +815,7 @@ include("components/topbar.php");
                                         <i class="bi bi-box-arrow-up-right"></i> View File
                                     </a>
                                 <?php else: ?>
-                                    <em style="color:#9ca3af; font-weight:normal;">None uploaded</em>
+                                    <em class="doc-details-empty">None uploaded</em>
                                 <?php endif; ?>
                             </span>
                         </div>
@@ -1548,32 +825,32 @@ include("components/topbar.php");
                         </div>
                         <div class="doc-details-row">
                             <span class="doc-details-lbl">Official Expiration:</span>
-                            <span class="doc-details-val" style="<?= $isExpired ? 'color:#dc2626;' : '' ?>">
+                            <span class="doc-details-val <?= $isExpired ? 'doc-details-val--expired' : '' ?>">
                                 <?= $hasDoc ? $valInfo['date_formatted'] : '—' ?>
                             </span>
                         </div>
                     </div>
 
-                    <div style="font-size:11.5px; color:#6b7280; margin-top:8px; display:flex; align-items:center; gap:5px;">
+                    <div class="doc-expiration-note">
                         <i class="bi bi-shield-lock"></i> Expiration dates are set and managed by the BAC Secretariat.
                     </div>
                 </div>
 
                 <!-- Re-upload Form -->
-                <div style="border-top:1px solid #edf1ee; padding-top:14px; margin-top:10px;">
+                <div class="doc-upload-section">
                     <form method="POST" action="settings.php?tab=documents" enctype="multipart/form-data" class="doc-upload-form">
                         <input type="hidden" name="action" value="reupload_document">
                         <input type="hidden" name="document_type" value="<?= htmlspecialchars($docType) ?>">
 
-                        <label style="font-size:11.5px; font-weight:700; color:#374151;">
+                        <label class="doc-upload-label">
                             <?= $hasDoc ? 'Replace / Re-upload Document' : 'Upload Required Document' ?>:
                         </label>
                         <input type="file" name="doc_file" class="doc-file-input" accept=".pdf,.jpg,.jpeg,.png" required>
-                        <span style="font-size:10.5px; color:#88968d;">
+                        <span class="doc-upload-hint">
                             Accepted: PDF, JPG, PNG (Max: 20MB). Re-uploading replaces previous copy to save storage.
                         </span>
 
-                        <button type="submit" class="doc-upload-btn" style="margin-top:4px;">
+                        <button type="submit" class="doc-upload-btn">
                             <i class="bi bi-cloud-arrow-up-fill"></i> <?= $hasDoc ? 'Upload Replacement' : 'Submit Document' ?>
                         </button>
                     </form>
@@ -1684,9 +961,9 @@ function checkPasswordMatch() {
 
     matchHint.style.display = 'block';
     if (newPw === confirmPw) {
-        matchHint.innerHTML = '<span style="color:#1f7a3d; font-weight:600;"><i class="bi bi-check-circle-fill"></i> Passwords match</span>';
+        matchHint.innerHTML = '<span class="match-hint-ok"><i class="bi bi-check-circle-fill"></i> Passwords match</span>';
     } else {
-        matchHint.innerHTML = '<span style="color:#dc2626; font-weight:600;"><i class="bi bi-x-circle-fill"></i> Passwords do not match</span>';
+        matchHint.innerHTML = '<span class="match-hint-bad"><i class="bi bi-x-circle-fill"></i> Passwords do not match</span>';
     }
 }
 

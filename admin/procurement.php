@@ -139,6 +139,8 @@ $result = mysqli_stmt_get_result($stmt);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-procurement.css">
 </head>
 <body class="dash-body">
 
@@ -155,7 +157,7 @@ $result = mysqli_stmt_get_result($stmt);
     </div>
 
     <!-- ════ STATISTICS PANEL ════ -->
-    <div class="sp-panel" style="margin-bottom:20px;">
+    <div class="sp-panel mb-20">
         <div class="sp-panel-head">
             <div class="sp-panel-title">
                 <div class="sp-title-icon"><i class="bi bi-pie-chart"></i></div>
@@ -167,7 +169,7 @@ $result = mysqli_stmt_get_result($stmt);
         <div class="sp-stats-body">
             <!-- Donut -->
             <div class="sp-donut-wrap">
-                <div class="sp-donut" style="background:conic-gradient(<?= $grad ?>);"></div>
+                <div class="sp-donut" style="--donut-grad:conic-gradient(<?= $grad ?>);"></div>
                 <div class="sp-donut-hole">
                     <div class="sp-donut-num"><?= $total_proc ?></div>
                     <div class="sp-donut-lbl">Total<br>Procurements</div>
@@ -178,26 +180,26 @@ $result = mysqli_stmt_get_result($stmt);
             <div class="sp-legend">
                 <?php
                 $legend = [
-                    'draft'   => ['label' => 'Draft',   'color' => '#8B958E', 'soft' => '#EEF0ED'],
-                    'open'    => ['label' => 'Open',    'color' => '#219653', 'soft' => '#E4F5EA'],
-                    'closed'  => ['label' => 'Closed',  'color' => '#2F6FED', 'soft' => '#E7EEFE'],
-                    'awarded' => ['label' => 'Awarded', 'color' => '#C99A1D', 'soft' => '#FCF1CF'],
+                    'draft'   => 'Draft',
+                    'open'    => 'Open',
+                    'closed'  => 'Closed',
+                    'awarded' => 'Awarded',
                 ];
-                foreach ($legend as $key => $l):
+                foreach ($legend as $key => $label):
                     $cnt = $counts[$key];
                     $p   = pct2($cnt, $total_proc);
                 ?>
                 <div class="sp-legend-row">
-                    <span class="sp-legend-dot" style="background:<?= $l['color'] ?>"></span>
-                    <span class="sp-legend-label"><?= $l['label'] ?></span>
+                    <span class="sp-legend-dot sp-legend-dot--<?= $key ?>"></span>
+                    <span class="sp-legend-label"><?= $label ?></span>
                     <span class="sp-legend-value"><?= $cnt ?></span>
-                    <span class="sp-legend-pct" style="color:<?= $l['color'] ?>; background:<?= $l['soft'] ?>"><?= $p ?>%</span>
+                    <span class="sp-legend-pct sp-legend-pct--<?= $key ?>"><?= $p ?>%</span>
                 </div>
                 <?php endforeach; ?>
                 <div class="sp-legend-row sp-legend-total">
-                    <span class="sp-legend-dot" style="background:#F0B92E"></span>
+                    <span class="sp-legend-dot sp-legend-dot--total"></span>
                     <span class="sp-legend-label">All Procurements</span>
-                    <span class="sp-legend-value" style="color:#F0B92E"><?= $total_proc ?></span>
+                    <span class="sp-legend-value sp-legend-value--total"><?= $total_proc ?></span>
                 </div>
             </div>
         </div>
@@ -205,21 +207,21 @@ $result = mysqli_stmt_get_result($stmt);
 
     <!-- ════ PROCUREMENT LIST ════ -->
     <!-- New procurement button -->
-    <a href="create_procurement.php" class="sp-new-btn" style="background:#06251b; color:#ffc107; box-shadow:0 6px 16px -6px rgba(6,37,27,.35);">
+    <a href="create_procurement.php" class="sp-new-btn sp-new-btn--dark">
         <i class="bi bi-plus-circle"></i> New Procurement
     </a>
 
     <!-- List -->
-    <div class="proc-table-panel" style="margin-bottom:24px;">
+    <div class="proc-table-panel mb-24">
         <div class="filter-bar">
-            <form method="GET" action="" id="procFilterForm" style="display:contents;">
+            <form method="GET" action="" id="procFilterForm" class="form-contents">
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
                     <input type="text" name="search"
                         placeholder="Search by title or SLSU ref..."
                         value="<?= htmlspecialchars($search) ?>">
                 </div>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <div class="filter-status-group">
                     <?php
                     $tabs = ['all'=>'All','draft'=>'Draft','open'=>'Open','closed'=>'Closed','awarded'=>'Awarded'];
                     foreach ($tabs as $val => $label):
@@ -237,16 +239,16 @@ $result = mysqli_stmt_get_result($stmt);
         </div>
 
         <?php if (mysqli_num_rows($result) > 0): ?>
-        <div style="overflow-x:auto;">
+        <div class="table-scroll">
             <table class="proc-table">
                 <thead>
                     <tr>
-                        <th style="width:130px;">SLSU Ref</th>
+                        <th class="col-ref-narrow">SLSU Ref</th>
                         <th>Title</th>
                         <th class="col-mode">Mode</th>
                         <th class="col-abc">ABC</th>
                         <th class="col-status">Status</th>
-                        <th style="text-align:right; min-width:180px;">Actions</th>
+                        <th class="col-actions-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -256,7 +258,7 @@ $result = mysqli_stmt_get_result($stmt);
                 ?>
                 <tr>
                     <td class="proc-ref-cell">
-                        <i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i>
+                        <i class="bi bi-hash proc-ref-icon"></i>
                         <?= htmlspecialchars($row['slsu_ref_no'] ?? '—') ?>
                     </td>
                     <td class="proc-title-cell">
@@ -265,7 +267,7 @@ $result = mysqli_stmt_get_result($stmt);
                         <?php else: ?>
                             <?= htmlspecialchars(mb_strimwidth($row['title'], 0, 65, '…')) ?>
                         <?php endif; ?>
-                        <div style="font-size:10.5px; color:#88968d; margin-top:2px;">
+                        <div class="proc-title-sub">
                             <i class="bi bi-briefcase"></i> <?= htmlspecialchars($row['procurement_mode'] ?? '—') ?>
                         </div>
                     </td>
@@ -275,28 +277,27 @@ $result = mysqli_stmt_get_result($stmt);
                     <td class="proc-abc-cell col-abc">₱<?= number_format($row['abc'], 2) ?></td>
                     <td class="col-status">
                         <span class="proc-status-pill <?= $stClass ?>">
-                            <i class="bi bi-circle-fill" style="font-size:7px;"></i> <?= ucfirst($cs) ?>
+                            <i class="bi bi-circle-fill status-dot-icon"></i> <?= ucfirst($cs) ?>
                         </span>
                     </td>
-                    <td style="text-align:right;">
-                        <div style="display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
+                    <td class="text-right">
+                        <div class="actions-wrap-end">
                             <?php if ($cs !== 'draft'): ?>
                                 <a href="procurement-view.php?id=<?= $row['id'] ?>" class="proc-action-btn btn-view">
                                     <i class="bi bi-eye"></i> View
                                 </a>
                             <?php endif; ?>
                             <?php if ($cs === 'draft'): ?>
-                                <a href="review_procurement.php?id=<?= $row['id'] ?>" class="proc-action-btn" style="background:#e7eefe; color:#2F6FED;">
+                                <a href="review_procurement.php?id=<?= $row['id'] ?>" class="proc-action-btn proc-action-btn--review-alt">
                                     <i class="bi bi-eye"></i> Review
                                 </a>
                                 <a href="manage_lots.php?id=<?= $row['id'] ?>" class="proc-action-btn btn-open">
                                     <i class="bi bi-sliders"></i> Manage
                                 </a>
                             <?php endif; ?>
-                            <form method="POST" action="procurement.php?status=<?= urlencode($status_filter) ?><?= $search ? '&search='.urlencode($search) : '' ?>" style="display:inline;">
+                            <form method="POST" action="procurement.php?status=<?= urlencode($status_filter) ?><?= $search ? '&search='.urlencode($search) : '' ?>" class="form-inline">
                                 <input type="hidden" name="procurement_id" value="<?= $row['id'] ?>">
-                                <button type="button" class="proc-action-btn"
-                                        style="background:#fef2f2; color:#dc2626; border:none;"
+                                <button type="button" class="proc-action-btn proc-action-btn--delete"
                                         onclick="openDeleteModal(<?= $row['id'] ?>, '<?= htmlspecialchars(addslashes($row['title'])) ?>')">
                                     <i class="bi bi-trash3"></i>
                                 </button>
@@ -330,9 +331,9 @@ $result = mysqli_stmt_get_result($stmt);
         </div>
 
         <?php else: ?>
-        <div style="padding:52px 20px; text-align:center; color:#88968d;">
-            <i class="bi bi-folder2-open" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
-            <div style="font-size:13px; font-weight:700;">No procurements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</div>
+        <div class="proc-empty-state">
+            <i class="bi bi-folder2-open proc-empty-icon"></i>
+            <div class="proc-empty-title">No procurements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</div>
         </div>
         <?php endif; ?>
 
@@ -364,7 +365,7 @@ $result = mysqli_stmt_get_result($stmt);
         </button>
 
         <div class="urm-modal-icon-wrap">
-            <div class="urm-modal-icon" style="background:#ffebee; color:#e53935;">
+            <div class="urm-modal-icon urm-modal-icon--red">
                 <i class="bi bi-trash3"></i>
             </div>
         </div>
@@ -377,7 +378,7 @@ $result = mysqli_stmt_get_result($stmt);
 
         <div class="urm-modal-actions">
             <button type="button" onclick="closeDeleteModal()" class="urm-btn-cancel">Cancel</button>
-            <button type="button" id="deleteConfirmBtn" class="urm-btn-confirm" style="background:#e53935;">
+            <button type="button" id="deleteConfirmBtn" class="urm-btn-confirm urm-btn-confirm--red">
                 Yes, Delete
             </button>
         </div>
@@ -385,7 +386,7 @@ $result = mysqli_stmt_get_result($stmt);
 </div>
 
 <!-- Hidden form submitted by modal -->
-<form id="deleteForm" method="POST" action="procurement.php?status=<?= urlencode($status_filter) ?><?= $search ? '&search='.urlencode($search) : '' ?>" style="display:none;">
+<form id="deleteForm" method="POST" action="procurement.php?status=<?= urlencode($status_filter) ?><?= $search ? '&search='.urlencode($search) : '' ?>" hidden>
     <input type="hidden" id="deleteId" name="procurement_id">
     <input type="hidden" name="delete_procurement" value="1">
 </form>

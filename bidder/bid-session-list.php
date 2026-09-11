@@ -88,173 +88,8 @@ $sessions = $list->get_result();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        /* ── Breadcrumb & Top Bar ── */
-        .vp-nav-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 18px;
-        }
-        .vp-breadcrumbs {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            color: #88968d;
-            font-weight: 600;
-        }
-        .vp-breadcrumbs a {
-            color: #1f7a3d;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            transition: color .15s;
-        }
-        .vp-breadcrumbs a:hover { text-decoration: underline; color: #06251b; }
-        .vp-back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #06251b;
-            font-size: 12.5px;
-            font-weight: 700;
-            background: #fff;
-            border: 1px solid #eaeeec;
-            padding: 7px 14px;
-            border-radius: 10px;
-            text-decoration: none;
-            transition: all .2s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,.02);
-        }
-        .vp-back-link:hover { background: #06251b; color: #ffc107; border-color: #06251b; }
-
-        /* ── Table panel ── */
-        .proc-table-panel {
-            background: #fff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            overflow: hidden;
-            margin-bottom: 24px;
-        }
-
-        .proc-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
-        .proc-table thead th {
-            background: #fafcfb; padding: 13px 16px;
-            font-size: 11px; font-weight: 700; color: #55665a;
-            text-transform: uppercase; letter-spacing: .04em;
-            border-bottom: 1.5px solid #edf1ef; white-space: nowrap;
-        }
-        .proc-table tbody tr { border-bottom: 1px solid #f0f4f2; transition: background .12s; }
-        .proc-table tbody tr:last-child { border-bottom: none; }
-        .proc-table tbody tr:hover { background: #fbfdfc; }
-        .proc-table td { padding: 14px 16px; vertical-align: middle; }
-
-        .proc-ref-cell  { font-weight: 700; color: #06251b; font-size: 11.5px; white-space: nowrap; }
-        .proc-title-cell { font-weight: 700; color: #1a2a20; font-size: 13px; line-height: 1.35; max-width: 280px; }
-        .proc-title-cell a { color: inherit; text-decoration: none; }
-        .proc-title-cell a:hover { color: #1f7a3d; text-decoration: underline; }
-        .proc-mode-tag {
-            background: #f0f4f2; color: #384d40;
-            padding: 3px 8px; border-radius: 6px;
-            font-size: 10.5px; font-weight: 600; white-space: nowrap;
-        }
-        .proc-abc-cell {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 13px; font-weight: 800; color: #06251b; white-space: nowrap;
-        }
-        .proc-deadline-cell { font-size: 11.5px; color: #63736a; white-space: nowrap; line-height: 1.3; }
-        .proc-deadline-cell strong { color: #1a1a1a; display: block; }
-
-        /* ── Status pills ── */
-        .session-pill {
-            display: inline-flex; align-items: center; gap: 4px;
-            font-size: 10.5px; font-weight: 700;
-            padding: 3px 9px; border-radius: 20px; white-space: nowrap;
-        }
-        .pill-live      { background: #fee2e2; color: #dc2626; }
-        .pill-scheduled { background: #fef3c7; color: #d97706; }
-        .pill-ended     { background: #e0f2f1; color: #00796b; }
-
-        /* ── Live pulse ── */
-        .pill-live { animation: pulseLive 1.8s infinite; }
-        @keyframes pulseLive { 0%,100%{opacity:1;} 50%{opacity:.65;} }
-
-        /* ── Action buttons ── */
-        .proc-action-btn {
-            display: inline-flex; align-items: center; gap: 5px;
-            padding: 6px 13px; border-radius: 8px;
-            font-size: 11.5px; font-weight: 700;
-            text-decoration: none; transition: all .15s;
-            white-space: nowrap; cursor: pointer; border: none;
-        }
-        .btn-view       { background: #f0f4f2; color: #06251b; }
-        .btn-view:hover { background: #06251b; color: #ffc107; }
-        .btn-open       { background: #1f7a3d; color: #fff; }
-        .btn-open:hover { background: #14592d; }
-        .btn-schedule   { background: #ffc107; color: #06251b; }
-        .btn-schedule:hover { background: #e6ac00; }
-
-        /* ── Search bar ── */
-        .ap2-search-field {
-            flex: 1; min-width: 200px; position: relative;
-            display: flex; align-items: center;
-        }
-        .ap2-search-field i {
-            position: absolute; left: 11px; color: #88968d;
-            font-size: 13px; pointer-events: none;
-        }
-        .ap2-search-field input {
-            width: 100%; padding: 9px 12px 9px 33px;
-            border: 1.5px solid #e0e8e4; border-radius: 9px;
-            font-size: 12px; font-family: 'Poppins', sans-serif;
-            color: #1a1a1a; background: #fafcfb; outline: none;
-            transition: border-color .15s, box-shadow .15s;
-        }
-        .ap2-search-field input:focus {
-            border-color: #1f7a3d; background: #fff;
-            box-shadow: 0 0 0 3px rgba(31,122,61,.08);
-        }
-        .ap2-filter-btn {
-            background: #eef2f0; border: 1.5px solid #e0e8e4; color: #06251b;
-            font-size: 12px; font-weight: 700; padding: 8px 14px;
-            border-radius: 9px; cursor: pointer; transition: all .15s;
-            font-family: 'Poppins', sans-serif; white-space: nowrap;
-        }
-        .ap2-filter-btn:hover, .ap2-filter-btn.active {
-            background: #06251b; color: #ffc107; border-color: #06251b;
-        }
-        .ap2-go-btn {
-            display: inline-flex; align-items: center; gap: 7px;
-            background: #ffc107; color: #16241d;
-            font-family: 'Poppins', sans-serif; font-weight: 700;
-            font-size: 12.5px; border: none; padding: 8px 18px;
-            border-radius: 9px; cursor: pointer; transition: all .15s; white-space: nowrap;
-        }
-        .ap2-go-btn:hover { background: #e6ac00; }
-
-        /* ── Pagination ── */
-        .table-foot {
-            padding: 14px 20px;
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 12px; flex-wrap: wrap;
-            border-top: 1px solid #f0f4f2;
-            font-size: 12px; color: #88968d;
-        }
-        .pagination { display: flex; gap: 5px; flex-wrap: wrap; }
-        .page-link {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 32px; height: 32px; border-radius: 8px;
-            font-size: 12px; font-weight: 700; text-decoration: none;
-            color: #06251b; background: #f0f4f2; transition: all .15s;
-        }
-        .page-link:hover, .page-link.active { background: #06251b; color: #ffc107; }
-        .page-link.disabled { opacity: .4; pointer-events: none; }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/bidder-bid-session-list.css">
 </head>
 <body class="dash-body">
 
@@ -269,7 +104,7 @@ $sessions = $list->get_result();
         <div class="vp-breadcrumbs">
             <a href="bid_opening.php"><i class="bi bi-envelope-open-fill"></i> Bid Opening</a>
             <span>/</span>
-            <span style="color:#06251b;">Bid Sessions</span>
+            <span class="vp-breadcrumbs-current">Bid Sessions</span>
         </div>
         <a href="bid_opening.php" class="vp-back-link">
             <i class="bi bi-arrow-left"></i> Back to Bid Opening
@@ -281,15 +116,15 @@ $sessions = $list->get_result();
     <div class="proc-table-panel">
 
         <!-- Search + Filter bar -->
-        <div style="padding:16px 20px; border-bottom:1px solid #f0f4f2; background:#fafcfb;">
-            <form method="GET" id="filterForm" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div class="session-filter-bar-wrap">
+            <form method="GET" id="filterForm" class="session-filter-form">
                 <input type="hidden" name="filter" id="hiddenFilter" value="<?= htmlspecialchars($filter) ?>">
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
                     <input type="text" name="search" placeholder="Search by title or reference number…" value="<?= htmlspecialchars($search) ?>">
                 </div>
                 <!-- Status filter pills -->
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <div class="filter-status-group">
                     <?php foreach (['all'=>'All','live'=>'Live','scheduled'=>'Scheduled','ended'=>'Ended'] as $val => $lbl): ?>
                     <button type="button"
                         class="ap2-filter-btn <?= $filter === $val ? 'active' : '' ?>"
@@ -303,23 +138,23 @@ $sessions = $list->get_result();
         </div>
 
         <?php if ($total_shown === 0): ?>
-        <div style="padding:48px 20px; text-align:center; color:#88968d;">
-            <i class="bi bi-collection" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
-            <div style="font-size:13px; font-weight:700;">No sessions found<?= $search ? ' for "' . htmlspecialchars($search) . '"' : '' ?>.</div>
+        <div class="proc-empty-state">
+            <i class="bi bi-collection proc-empty-icon"></i>
+            <div class="proc-empty-title">No sessions found<?= $search ? ' for "' . htmlspecialchars($search) . '"' : '' ?>.</div>
         </div>
         <?php else: ?>
-        <div style="overflow-x:auto;">
+        <div class="table-scroll-x">
             <table class="proc-table">
                 <thead>
                     <tr>
-                        <th style="width:130px;">SLSU Ref</th>
+                        <th class="col-ref-narrow">SLSU Ref</th>
                         <th>Procurement</th>
                         <th>Mode</th>
                         <th>ABC</th>
                         <th>Started</th>
                         <th>Invited</th>
                         <th>Status</th>
-                        <th style="text-align:right; min-width:100px;">Actions</th>
+                        <th class="col-actions-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -343,17 +178,17 @@ $sessions = $list->get_result();
                 ?>
                 <tr>
                     <td class="proc-ref-cell">
-                        <i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i>
+                        <i class="bi bi-hash proc-ref-icon"></i>
                         <?= htmlspecialchars($row['slsu_ref_no']) ?>
                     </td>
                     <td class="proc-title-cell">
                         <a href="view_procurement.php?id=<?= $row['proc_id'] ?>">
                             <?= htmlspecialchars(mb_strimwidth($row['proc_title'], 0, 60, '…')) ?>
                         </a>
-                        <div style="font-size:10.5px; color:#88968d; margin-top:2px;">
+                        <div class="proc-title-sub">
                             <i class="bi bi-inbox"></i> <?= (int)$row['bid_count'] ?> bid<?= $row['bid_count'] != 1 ? 's' : '' ?>
                             &nbsp;·&nbsp;
-                            <i class="bi bi-broadcast" style="font-size:9px;"></i>
+                            <i class="bi bi-broadcast stream-icon"></i>
                             <?= htmlspecialchars($row['stream_path']) ?>
                         </div>
                     </td>
@@ -366,22 +201,22 @@ $sessions = $list->get_result();
                             <strong><?= date('M j, Y', strtotime($row['started_at'])) ?></strong>
                             <?= date('g:i A', strtotime($row['started_at'])) ?>
                         <?php else: ?>
-                            <span style="color:#c7d2cb;">—</span>
+                            <span class="clr-placeholder">—</span>
                         <?php endif; ?>
                     </td>
-                    <td style="font-size:12px; color:#55665a; font-weight:600;">
-                        <i class="bi bi-people" style="color:#88968d;"></i>
+                    <td class="invited-cell">
+                        <i class="bi bi-people invited-icon"></i>
                         <?= (int)$row['invited_count'] ?>
                     </td>
                     <td>
                         <span class="session-pill <?= $pill_class ?>">
-                            <i class="bi <?= $pill_icon ?>" style="font-size:9px;"></i>
+                            <i class="bi <?= $pill_icon ?> session-pill-icon"></i>
                             <?= $pill_label ?>
                         </span>
                     </td>
-                    <td style="text-align:right;">
+                    <td class="text-right">
                         <?php if ($st === 'scheduled'): ?>
-                            <span class="proc-action-btn" style="background:#fef3c7; color:#d97706; cursor:default; opacity:.8;">
+                            <span class="proc-action-btn proc-action-btn--upcoming">
                                 <i class="bi bi-clock"></i> Upcoming
                             </span>
                         <?php elseif ($is_live_status): ?>

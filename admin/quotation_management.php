@@ -348,172 +348,8 @@ $p_status   = strtolower($proc['status'] ?? 'open');
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        * { box-sizing: border-box; }
-        .dash-content { max-width: 100%; overflow-x: hidden; }
-
-        .qm-nav-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
-        .qm-breadcrumbs { display:flex; align-items:center; gap:6px; font-size:12px; color:#88968d; font-weight:600; }
-        .qm-breadcrumbs a { color:#1f7a3d; text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
-        .qm-breadcrumbs a:hover { text-decoration:underline; color:#06251b; }
-        .qm-back-link { display:inline-flex; align-items:center; gap:6px; color:#06251b; font-size:12.5px; font-weight:700; background:#fff; border:1px solid #eaeeec; padding:7px 14px; border-radius:10px; text-decoration:none; transition:all .2s; }
-        .qm-back-link:hover { background:#06251b; color:#ffc107; border-color:#06251b; }
-
-        .qm-hero { background:linear-gradient(135deg,#06251b 0%,#0c3d2c 60%,#14593f 100%); border-radius:20px; padding:26px 30px; color:#fff; position:relative; overflow:hidden; box-shadow:0 8px 24px rgba(6,37,27,.16); margin-bottom:24px; border:1px solid rgba(255,255,255,.08); }
-        .qm-hero::after { content:''; position:absolute; top:-50px; right:-50px; width:240px; height:240px; background:radial-gradient(circle,rgba(255,193,7,.14) 0%,transparent 70%); border-radius:50%; pointer-events:none; }
-        .qm-hero-top { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
-        .qm-hero-badges { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-        .hero-pill { font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; display:inline-flex; align-items:center; gap:5px; }
-        .hero-pill.ref { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.2); }
-        .hero-pill.mode { background:rgba(255,193,7,.2); border:1px solid rgba(255,193,7,.4); color:#ffc107; }
-        .hero-pill.status-open { background:rgba(33,150,83,.25); border:1px solid rgba(33,150,83,.5); color:#81c784; }
-        .hero-pill.status-closed, .hero-pill.status-awarded { background:rgba(47,111,237,.2); border:1px solid rgba(47,111,237,.4); color:#90caf9; }
-        .qm-hero-title { font-size:22px; font-weight:800; color:#fff; line-height:1.35; margin-bottom:18px; }
-        .qm-hero-metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
-        .qm-hero-metric { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:12px 16px; }
-        .qm-metric-lbl { font-size:10px; font-weight:700; color:#d1e5db; text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; display:flex; align-items:center; gap:5px; }
-        .qm-metric-lbl i { color:#ffc107; }
-        .qm-metric-val { font-size:18px; font-weight:800; color:#fff; font-family:'Space Grotesk',sans-serif; }
-        .qm-metric-val.gold { color:#ffc107; }
-        .qm-metric-val.warn { color:#ffb74d; }
-
-        .qm-stats-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:26px; }
-        .qm-stat-card { background:#fff; border:1px solid #eaeeec; border-radius:14px; padding:16px 20px; display:flex; align-items:center; gap:14px; box-shadow:0 1px 4px rgba(0,0,0,.03); }
-        .qm-stat-icon { width:42px; height:42px; border-radius:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:18px; }
-        .qm-stat-icon.green { background:#eef7f1; color:#1f7a3d; }
-        .qm-stat-icon.yellow { background:#fffbeb; color:#b78103; }
-        .qm-stat-icon.blue { background:#eff6ff; color:#2563eb; }
-        .qm-stat-icon.red { background:#fef2f2; color:#dc2626; }
-        .qm-stat-label { font-size:11px; font-weight:700; color:#6c776e; margin-bottom:2px; }
-        .qm-stat-value { font-size:22px; font-weight:800; color:#06251b; font-family:'Space Grotesk',sans-serif; line-height:1; }
-
-        .qm-lot-section { margin-bottom:32px; }
-        .qm-lot-header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
-        .qm-lot-title-wrap { display:flex; align-items:center; gap:10px; }
-        .qm-lot-num-badge { background:#06251b; color:#ffc107; font-size:11px; font-weight:800; padding:4px 10px; border-radius:8px; font-family:'Space Grotesk',sans-serif; }
-        .qm-lot-title { font-size:16px; font-weight:800; color:#06251b; }
-        .qm-lot-abc { font-size:12px; color:#6c776e; font-weight:600; }
-        .qm-lot-status-badge { font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; display:inline-flex; align-items:center; gap:5px; }
-        .qm-lot-status-badge.pending  { background:#fff8e1; border:1px solid #ffe082; color:#b78103; }
-        .qm-lot-status-badge.done     { background:#e4f5ea; border:1px solid #a5d6a7; color:#1f7a3d; }
-        .qm-lot-status-badge.awarded  { background:#e8f5e9; border:1px solid #81c784; color:#1b5e20; }
-        .qm-lot-status-badge.failed   { background:#ffebee; border:1px solid #ef9a9a; color:#b71c1c; }
-
-        .qm-table-wrap { background:#fff; border:1px solid #eaeeec; border-radius:16px; overflow:hidden; box-shadow:0 2px 10px rgba(6,37,27,.04); }
-        .qm-table { width:100%; border-collapse:collapse; font-size:13px; }
-        .qm-table thead tr { background:#fafcfb; border-bottom:2px solid #eaeeec; }
-        .qm-table thead th { padding:12px 16px; text-align:left; font-size:10.5px; font-weight:800; color:#88968d; text-transform:uppercase; letter-spacing:.4px; white-space:nowrap; }
-        .qm-table tbody tr { border-bottom:1px solid #f4f6f5; transition:background .12s; }
-        .qm-table tbody tr:last-child { border-bottom:none; }
-        .qm-table tbody tr:hover { background:#fafcfb; }
-        .qm-table td { padding:13px 16px; vertical-align:middle; }
-
-        .qm-rank-badge { width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; font-family:'Space Grotesk',sans-serif; }
-        .qm-rank-badge.rank-1 { background:#fff8e1; color:#b78103; border:1px solid #ffe082; }
-        .qm-rank-badge.rank-2 { background:#f0f4f2; color:#45655a; border:1px solid #c8d8d0; }
-        .qm-rank-badge.rank-3 { background:#fdf0e7; color:#a0522d; border:1px solid #f8cba8; }
-        .qm-rank-badge.rank-other { background:#f4f6f5; color:#6c776e; border:1px solid #e0e6e3; }
-        .qm-rank-badge.rank-none { background:#f9fafb; color:#b0bec5; border:1px dashed #cfd8d3; }
-
-        .qm-bidder-cell { display:flex; align-items:center; gap:10px; }
-        .qm-bidder-avatar { width:36px; height:36px; border-radius:10px; flex-shrink:0; background:#e0ece4; color:#06251b; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; overflow:hidden; }
-        .qm-bidder-avatar img { width:100%; height:100%; object-fit:cover; border-radius:10px; }
-        .qm-bidder-name { font-size:13px; font-weight:700; color:#06251b; }
-        .qm-bidder-biz { font-size:11px; color:#6c776e; }
-
-        .qm-price-confirmed { font-size:14px; font-weight:800; color:#1f7a3d; font-family:'Space Grotesk',sans-serif; }
-        .qm-price-pending { font-size:12px; color:#88968d; font-style:italic; }
-
-        .qm-doc-link { display:inline-flex; align-items:center; gap:5px; color:#1f7a3d; font-size:12px; font-weight:700; background:#eef7f1; border:1px solid #c8e6c9; border-radius:8px; padding:5px 10px; text-decoration:none; transition:all .15s; }
-        .qm-doc-link:hover { background:#1f7a3d; color:#fff; border-color:#1f7a3d; }
-        .qm-no-doc { font-size:12px; color:#b0bec5; font-style:italic; }
-
-        .qm-price-form { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-        .qm-price-input { border:1.5px solid #cfd8d3; border-radius:8px; padding:6px 10px; font-family:'Poppins',sans-serif; font-size:13px; font-weight:600; color:#06251b; width:130px; outline:none; transition:border-color .15s; background:#fafcfb; }
-        .qm-price-input:focus { border-color:#1f7a3d; background:#fff; }
-        .qm-price-btn { background:#06251b; color:#ffc107; border:none; border-radius:8px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:all .15s; white-space:nowrap; }
-        .qm-price-btn:hover { background:#144937; color:#fff; }
-        .qm-price-edit-btn { background:#f0f4f2; color:#06251b; border:1px solid #dbe2df; border-radius:7px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all .15s; }
-        .qm-price-edit-btn:hover { background:#06251b; color:#ffc107; border-color:#06251b; }
-
-        .qm-empty-state { padding:36px 20px; text-align:center; color:#88968d; }
-        .qm-empty-state i { font-size:40px; display:block; margin-bottom:10px; opacity:.5; }
-        .qm-empty-state strong { display:block; font-size:14px; color:#06251b; margin-bottom:4px; }
-
-        /* Status pills */
-        .bid-status-pill { font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:20px; display:inline-flex; align-items:center; gap:4px; text-transform:uppercase; }
-        .bid-status-pill.pending   { background:#fef3c7; color:#92400e; }
-        .bid-status-pill.submitted { background:#d1fae5; color:#065f46; }
-        .bid-status-pill.confirmed { background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7; }
-        .bid-status-pill.awarded   { background:#e3f2fd; color:#0d47a1; border:1px solid #90caf9; }
-        .bid-status-pill.rejected  { background:#fee2e2; color:#991b1b; }
-
-        /* ── Award Panel ── */
-        .qm-award-panel {
-            background:#fff; border:1px solid #eaeeec; border-radius:18px;
-            overflow:hidden; margin-top:14px;
-            box-shadow:0 2px 10px rgba(6,37,27,.04);
-        }
-        .qm-award-panel-head {
-            background:#fafcfb; border-bottom:1px solid #eaeeec;
-            padding:14px 20px; display:flex; align-items:center;
-            justify-content:space-between; gap:10px; flex-wrap:wrap;
-        }
-        .qm-award-panel-title {
-            font-size:14px; font-weight:800; color:#06251b;
-            display:flex; align-items:center; gap:8px;
-        }
-        .qm-award-panel-body { padding:18px 20px; }
-        .qm-award-locked {
-            display:flex; align-items:center; gap:12px; padding:14px 16px;
-            background:#f7faf8; border:1px solid #e2e9e5; border-radius:12px;
-            font-size:13px; color:#6c776e;
-        }
-        .qm-award-locked i { font-size:20px; color:#88968d; }
-
-        /* Radio option rows */
-        .qm-winner-option {
-            display:flex; align-items:center; gap:14px; padding:12px 16px;
-            border:2px solid #eaeeec; border-radius:12px; margin-bottom:8px;
-            cursor:pointer; transition:all .15s; background:#fafcfb;
-        }
-        .qm-winner-option:hover { border-color:#b0c9bb; background:#f4faf6; }
-        .qm-winner-option.selected { border-color:#1f7a3d; background:#f2f9f4; }
-        .qm-winner-option input[type="radio"] { width:18px; height:18px; accent-color:#1f7a3d; cursor:pointer; flex-shrink:0; }
-        .qm-winner-rank { font-family:'Space Grotesk',sans-serif; font-weight:800; font-size:12px; }
-        .qm-winner-biz { font-size:13px; font-weight:700; color:#06251b; }
-        .qm-winner-price { font-size:13px; font-weight:800; color:#1f7a3d; font-family:'Space Grotesk',sans-serif; margin-left:auto; white-space:nowrap; }
-
-        /* Award result display */
-        .qm-awarded-result {
-            display:flex; align-items:center; gap:14px; padding:14px 18px;
-            background:#e8f5e9; border:1px solid #a5d6a7; border-radius:12px;
-        }
-        .qm-awarded-result i { font-size:22px; color:#1f7a3d; }
-        .qm-awarded-result-biz { font-size:14px; font-weight:800; color:#1b5e20; }
-        .qm-awarded-result-price { font-size:12px; color:#388e3c; font-weight:600; }
-        .qm-failed-result {
-            display:flex; align-items:center; gap:14px; padding:14px 18px;
-            background:#ffebee; border:1px solid #ef9a9a; border-radius:12px;
-        }
-        .qm-failed-result i { font-size:22px; color:#b71c1c; }
-        .qm-failed-result-text { font-size:14px; font-weight:800; color:#b71c1c; }
-
-        .btn-award-lot {
-            background:#1f7a3d; color:#fff; border:none; border-radius:10px;
-            padding:9px 18px; font-size:13px; font-weight:700; cursor:pointer;
-            display:inline-flex; align-items:center; gap:6px; transition:all .15s;
-        }
-        .btn-award-lot:hover { background:#16602f; }
-        .btn-award-lot:disabled { opacity:.45; cursor:not-allowed; }
-        .btn-fail-lot {
-            background:#fff; color:#b71c1c; border:1.5px solid #ef9a9a; border-radius:10px;
-            padding:8px 16px; font-size:12px; font-weight:700; cursor:pointer;
-            display:inline-flex; align-items:center; gap:6px; transition:all .15s;
-        }
-        .btn-fail-lot:hover { background:#ffebee; border-color:#b71c1c; }
-        .qm-award-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:16px; padding-top:14px; border-top:1px solid #f0f4f2; }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-quotation-management.css">
 </head>
 <body class="dash-body">
 
@@ -528,7 +364,7 @@ $p_status   = strtolower($proc['status'] ?? 'open');
         <div class="qm-breadcrumbs">
             <a href="bid_submissions.php"><i class="bi bi-inbox"></i> Bid Submissions</a>
             <span>/</span>
-            <span style="color:#06251b;">Quotation Management</span>
+            <span class="clr-dark">Quotation Management</span>
         </div>
         <a href="bid_submissions.php" class="qm-back-link">
             <i class="bi bi-arrow-left"></i> Back to Submissions
@@ -546,11 +382,11 @@ $p_status   = strtolower($proc['status'] ?? 'open');
                     <i class="bi bi-tag-fill"></i> <?= htmlspecialchars($mode_label) ?>
                 </span>
                 <span class="hero-pill status-<?= in_array($p_status,['open','awarded']) ? $p_status : 'closed' ?>">
-                    <i class="bi bi-circle-fill" style="font-size:7px;"></i> <?= strtoupper($p_status) ?>
+                    <i class="bi bi-circle-fill status-dot-tiny"></i> <?= strtoupper($p_status) ?>
                 </span>
             </div>
-            <span style="font-size:11px; color:#d1e5db; font-weight:600;">
-                <i class="bi bi-list-ol" style="color:#ffc107;"></i> Quotation Ranking
+            <span class="qm-ranking-label">
+                <i class="bi bi-list-ol clr-gold"></i> Quotation Ranking
             </span>
         </div>
         <h1 class="qm-hero-title"><?= htmlspecialchars($proc['title']) ?></h1>
@@ -659,7 +495,7 @@ $p_status   = strtolower($proc['status'] ?? 'open');
                     <table class="qm-table">
                         <thead>
                             <tr>
-                                <th style="width:44px;">Rank</th>
+                                <th class="col-rank-th">Rank</th>
                                 <th>Bidder</th>
                                 <th>Submitted</th>
                                 <th>Status</th>
@@ -682,9 +518,8 @@ $p_status   = strtolower($proc['status'] ?? 'open');
                                 $rank_display = '#' . $rank;
                                 $rank_class = match(true) { $rank===1=>'rank-1', $rank===2=>'rank-2', $rank===3=>'rank-3', default=>'rank-other' };
                             }
-                            $row_bg = $is_winner ? 'background:#f0fdf4;' : '';
                         ?>
-                        <tr id="row-<?= $q['bid_lot_id'] ?>" style="<?= $row_bg ?>">
+                        <tr id="row-<?= $q['bid_lot_id'] ?>" class="<?= $is_winner ? 'winner-row-bg' : '' ?>">
                             <td>
                                 <div class="qm-rank-badge <?= $rank_class ?>"><?= htmlspecialchars($rank_display) ?></div>
                             </td>
@@ -696,13 +531,13 @@ $p_status   = strtolower($proc['status'] ?? 'open');
                                     <div>
                                         <div class="qm-bidder-name">
                                             <?= htmlspecialchars($biz_name) ?>
-                                            <?php if ($is_winner): ?><span style="font-size:10px; background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7; border-radius:6px; padding:1px 6px; margin-left:4px; font-weight:800;">AWARDED</span><?php endif; ?>
+                                            <?php if ($is_winner): ?><span class="awarded-badge-sm">AWARDED</span><?php endif; ?>
                                         </div>
                                         <div class="qm-bidder-biz"><?= htmlspecialchars($q['email']) ?></div>
                                     </div>
                                 </div>
                             </td>
-                            <td style="white-space:nowrap; font-size:12px; color:#55665a;">
+                            <td class="submitted-date-cell">
                                 <?= date('M j, Y · g:i A', strtotime($q['submission_date'])) ?>
                             </td>
                             <td>
@@ -711,7 +546,7 @@ $p_status   = strtolower($proc['status'] ?? 'open');
                                     $bs_label = match($bs) { 'submitted'=>'VERIFIED', 'confirmed'=>'CONFIRMED', 'awarded'=>'AWARDED', 'rejected'=>'REJECTED', default=>strtoupper($bs) };
                                 ?>
                                 <span class="bid-status-pill <?= htmlspecialchars($bs) ?>">
-                                    <i class="bi bi-circle-fill" style="font-size:5px;"></i> <?= $bs_label ?>
+                                    <i class="bi bi-circle-fill status-dot-xxtiny"></i> <?= $bs_label ?>
                                 </span>
                             </td>
                             <td>
@@ -733,7 +568,7 @@ $p_status   = strtolower($proc['status'] ?? 'open');
                             </td>
                             <td id="action-cell-<?= $q['bid_lot_id'] ?>">
                                 <?php if ($lot_status === 'awarded' || $lot_status === 'failed'): ?>
-                                    <span style="font-size:11px; color:#88968d; font-style:italic;">Concluded</span>
+                                    <span class="concluded-text">Concluded</span>
                                 <?php elseif ($has_price): ?>
                                     <button type="button" class="qm-price-edit-btn"
                                             onclick="showPriceForm(<?= $q['bid_lot_id'] ?>, <?= htmlspecialchars((string)$q['total_offered_bid'], ENT_QUOTES) ?>)">
@@ -748,13 +583,13 @@ $p_status   = strtolower($proc['status'] ?? 'open');
                             </td>
                         </tr>
                         <!-- Inline price form row -->
-                        <tr id="form-row-<?= $q['bid_lot_id'] ?>" style="display:none; background:#f7faf8;">
-                            <td colspan="7" style="padding:14px 16px;">
+                        <tr id="form-row-<?= $q['bid_lot_id'] ?>" class="price-form-row">
+                            <td colspan="7" class="price-form-cell">
                                 <form method="POST" action="quotation_management.php?id=<?= $procurement_id ?>" class="qm-price-form">
                                     <input type="hidden" name="action" value="confirm_price">
                                     <input type="hidden" name="bid_lot_id" value="<?= $q['bid_lot_id'] ?>">
-                                    <span style="font-size:13px; font-weight:700; color:#06251b; flex-shrink:0;"><i class="bi bi-currency-exchange" style="color:#1f7a3d;"></i> Enter Offered Price:</span>
-                                    <span style="font-size:14px; font-weight:800; color:#1f7a3d; flex-shrink:0;">₱</span>
+                                    <span class="price-form-label"><i class="bi bi-currency-exchange clr-forest"></i> Enter Offered Price:</span>
+                                    <span class="price-form-currency">₱</span>
                                     <input type="number" name="offered_price" step="0.01" min="0"
                                            id="price-input-<?= $q['bid_lot_id'] ?>"
                                            class="qm-price-input" placeholder="0.00"
@@ -774,7 +609,7 @@ $p_status   = strtolower($proc['status'] ?? 'open');
             <div class="qm-award-panel">
                 <div class="qm-award-panel-head">
                     <div class="qm-award-panel-title">
-                        <i class="bi bi-trophy-fill" style="color:#1f7a3d;"></i>
+                        <i class="bi bi-trophy-fill clr-forest"></i>
                         Lot <?= $lot['lot_number'] ?> — Award Decision
                     </div>
                     <?php if ($lot_status === 'awarded'): ?>
@@ -812,7 +647,7 @@ $p_status   = strtolower($proc['status'] ?? 'open');
 
                     <?php else: ?>
                         <!-- Ready to award — radio selection -->
-                        <p style="font-size:12.5px; color:#6c776e; margin:0 0 14px; line-height:1.6;">
+                        <p class="award-instructions">
                             Select the winning bidder for this lot. The ranking is for reference — you can choose any bidder.
                         </p>
                         <form method="POST" action="quotation_management.php?id=<?= $procurement_id ?>" id="award-form-<?= $lot['id'] ?>">
@@ -829,7 +664,7 @@ $p_status   = strtolower($proc['status'] ?? 'open');
                                 <span class="qm-winner-rank qm-rank-badge <?= $r ? ($r===1?'rank-1':($r===2?'rank-2':($r===3?'rank-3':'rank-other'))) : 'rank-none' ?>"><?= htmlspecialchars($rank_label) ?></span>
                                 <div>
                                     <div class="qm-winner-biz"><?= htmlspecialchars($biz) ?></div>
-                                    <div style="font-size:11px; color:#6c776e;"><?= htmlspecialchars($q['email']) ?></div>
+                                    <div class="winner-email-text"><?= htmlspecialchars($q['email']) ?></div>
                                 </div>
                                 <div class="qm-winner-price">₱<?= number_format((float)$q['total_offered_bid'], 2) ?></div>
                             </label>
@@ -844,7 +679,7 @@ $p_status   = strtolower($proc['status'] ?? 'open');
 
                         <!-- Fail Lot — separate form -->
                         <form method="POST" action="quotation_management.php?id=<?= $procurement_id ?>"
-                              style="margin-top:10px;"
+                              class="mt-10"
                               onsubmit="return confirm('Mark Lot <?= $lot['lot_number'] ?> as failed? This cannot be undone.');">
                             <input type="hidden" name="action" value="fail_lot">
                             <input type="hidden" name="lot_id" value="<?= $lot['id'] ?>">
@@ -880,7 +715,7 @@ if (toast) setTimeout(() => toast.classList.add('hide'), 4000);
 
 function showPriceForm(bidLotId, currentPrice) {
     const formRow = document.getElementById('form-row-' + bidLotId);
-    if (formRow) formRow.style.display = '';
+    if (formRow) formRow.classList.add('show');
     const inp = document.getElementById('price-input-' + bidLotId);
     if (inp) {
         if (currentPrice !== null) inp.value = parseFloat(currentPrice).toFixed(2);
@@ -889,7 +724,7 @@ function showPriceForm(bidLotId, currentPrice) {
 }
 function hidePriceForm(bidLotId) {
     const formRow = document.getElementById('form-row-' + bidLotId);
-    if (formRow) formRow.style.display = 'none';
+    if (formRow) formRow.classList.remove('show');
 }
 </script>
 </body>

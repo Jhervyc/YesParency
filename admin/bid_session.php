@@ -146,240 +146,10 @@ $inv_res->close();
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <link rel="stylesheet" href="../dashboard.css">
 <link rel="stylesheet" href="../css/dashboard-shell.css">
+<link rel="stylesheet" href="../css/responsive.css">
+<link rel="stylesheet" href="../css/pages/admin-bid-session.css">
 <!-- Pusher JS SDK -->
 <script src="https://js.pusher.com/8.4/pusher.min.js"></script>
-<style>
-.bs-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
-@media(min-width:1100px){.bs-layout{grid-template-columns:minmax(0,1fr) 310px}}
-
-/* nav */
-.vp-nav-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-.vp-breadcrumbs{display:flex;align-items:center;gap:6px;font-size:12px;color:#88968d;font-weight:600}
-.vp-breadcrumbs a{color:#1f7a3d;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
-.vp-breadcrumbs a:hover{text-decoration:underline;color:#06251b}
-.vp-back-link{display:inline-flex;align-items:center;gap:6px;color:#06251b;font-size:12.5px;font-weight:700;background:#fff;border:1px solid #eaeeec;padding:7px 14px;border-radius:10px;text-decoration:none;transition:all .2s}
-.vp-back-link:hover{background:#06251b;color:#ffc107;border-color:#06251b}
-
-/* proc hero */
-.proc-hero{background:linear-gradient(135deg,#06251b 0%,#0c3d2c 60%,#14593f 100%);border-radius:16px;padding:20px 22px;color:#fff;position:relative;overflow:hidden;margin-bottom:18px;border:1px solid rgba(255,255,255,.08)}
-.proc-hero::after{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(255,193,7,.14) 0%,transparent 70%);border-radius:50%;pointer-events:none}
-.proc-badges{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.ipill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
-.ipill.ref{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2)}
-.ipill.mode{background:rgba(255,193,7,.2);color:#ffc107;border:1px solid rgba(255,193,7,.35)}
-.ipill.live{background:rgba(220,38,38,.25);color:#f87171;border:1px solid rgba(220,38,38,.4)}
-.ipill.sched{background:rgba(217,119,6,.2);color:#fbbf24;border:1px solid rgba(217,119,6,.35)}
-.status-pill{font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;border:1px solid transparent}
-.status-pill.sp-active{background:#e0f2f1;color:#00796b;border-color:#b2dfdb}
-.status-pill.sp-failed{background:#fef2f2;color:#dc2626;border-color:#fecaca}
-.activity-bar{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 13px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:12px;color:#e2ece4}
-.activity-bar i{color:#ffc107;flex-shrink:0}
-.proc-title{font-size:18px;font-weight:800;color:#fff;line-height:1.3;margin-bottom:14px}
-.proc-metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-@media(min-width:640px){.proc-metrics{grid-template-columns:repeat(4,1fr)}}
-.met{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px}
-.met-lbl{font-size:9.5px;font-weight:700;color:#d1e5db;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;display:flex;align-items:center;gap:4px}
-.met-lbl i{color:#ffc107}
-.met-val{font-size:14px;font-weight:800;color:#fff;font-family:'Space Grotesk',sans-serif}
-.met-val.gold{color:#ffc107}
-
-/* MASTER TAB BAR (Lots -> Awarding) */
-.master-tabs-wrap{background:#fff;border:1px solid #eaeeec;border-radius:14px;padding:8px 10px;margin-bottom:18px;box-shadow:0 1px 3px rgba(16,36,26,.03);display:flex;align-items:center;gap:8px;overflow-x:auto}
-.master-tab{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:10px;font-size:12.5px;font-weight:700;color:#55665a;background:#f8faf9;border:1.5px solid #eaeeec;cursor:pointer;transition:all .18s;white-space:nowrap;user-select:none}
-.master-tab:hover{background:#f0f5f2;color:#06251b;border-color:#d0dcd5}
-.master-tab.active{background:#06251b;color:#fff;border-color:#06251b;box-shadow:0 3px 10px rgba(6,37,27,.18)}
-.master-tab.active .mtab-num{background:#ffc107;color:#06251b}
-.master-tab.done{background:#f0fdf4;color:#166534;border-color:#bbf7d0}
-.master-tab.done .mtab-num{background:#16a34a;color:#fff}
-.master-tab.locked{opacity:.5;cursor:not-allowed}
-.master-tab.locked:hover{background:#f8faf9;color:#55665a;border-color:#eaeeec}
-.mtab-num{width:22px;height:22px;border-radius:50%;background:#e5e7eb;color:#4b5563;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.mtab-badge{font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;display:inline-flex;align-items:center;gap:3px}
-.mtab-badge.done{background:#dcfce7;color:#15803d}
-.mtab-badge.live{background:#fee2e2;color:#dc2626;animation:pulse 1.8s infinite}
-
-/* LOT SESSION PANEL */
-.lot-panel{background:#fff;border:1px solid #eaeeec;border-radius:16px;overflow:hidden;margin-bottom:18px;box-shadow:0 1px 2px rgba(16,36,26,.03),0 8px 20px -12px rgba(16,36,26,.08);min-width:0}
-.lot-head{padding:16px 20px;background:#fafcfb;border-bottom:1px solid #f0f4f2;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.lot-head-title{font-size:15px;font-weight:800;color:#06251b;display:flex;align-items:center;gap:8px}
-.lot-head-abc{font-size:12px;color:#55665a;font-weight:600}
-.lot-head-abc strong{color:#1f7a3d;font-family:'Space Grotesk',sans-serif}
-
-/* STAGE BAR (Stage 1: Eligibility -> Stage 2: Financial) */
-.stage-bar{display:flex;align-items:center;background:#f4f7f5;border-bottom:1px solid #eaeeec;padding:8px 16px;gap:8px;overflow-x:auto}
-.stage-step{display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;color:#6b7280;background:transparent;cursor:pointer;transition:all .15s;border:none}
-.stage-step.active{background:#fff;color:#06251b;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.stage-step.done{color:#15803d}
-.stage-sep{color:#cbd5e1;font-size:12px}
-
-/* BIDDER TABS */
-.bidder-tabs{display:flex;gap:6px;padding:12px 16px;overflow-x:auto;border-bottom:1px solid #f0f4f2;flex-wrap:wrap;background:#fafcfb}
-.bidder-tab{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:20px;font-size:11.5px;font-weight:700;color:#55665a;background:#f0f4f2;border:1.5px solid transparent;user-select:none;cursor:pointer;transition:all .15s}
-.bidder-tab:hover:not(.disqualified){background:#e6ebe8}
-.bidder-tab.active{background:#e4f5ea;color:#1f7a3d;border-color:#1f7a3d;opacity:1}
-.bidder-tab.done{background:#e0f2f1;color:#00796b;border-color:#b2dfdb;opacity:1}
-.bidder-tab.disqualified{background:#f3f4f6!important;color:#9ca3af!important;border-color:#e5e7eb!important;opacity:.65!important;cursor:not-allowed!important}
-.bidder-tab.disqualified .bt-avatar{background:#d1d5db!important;color:#6b7280!important}
-.disq-badge{font-size:9.5px;font-weight:700;color:#ef4444;background:#fee2e2;padding:1px 6px;border-radius:10px;margin-left:5px;display:inline-flex;align-items:center;gap:3px}
-.bt-avatar{width:22px;height:22px;border-radius:50%;background:#06251b;color:#ffc107;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
-.bt-avatar img{width:100%;height:100%;object-fit:cover}
-
-/* ACTION BAR ABOVE FILES */
-.action-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #f0f4f2;background:#fafcfb;gap:10px;flex-wrap:wrap;min-width:0}
-.action-bar-name{font-size:12.5px;font-weight:700;color:#06251b;display:flex;align-items:center;gap:7px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
-.action-bar-btns{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.btn-open-files{display:inline-flex;align-items:center;gap:6px;background:#06251b;color:#ffc107;font-size:12px;font-weight:700;padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:'Poppins',sans-serif;transition:all .15s}
-.btn-open-files:hover:not(:disabled){background:#0c3d2c}
-.btn-open-files:disabled{opacity:.4;cursor:not-allowed}
-.btn-signal-open{display:inline-flex;align-items:center;gap:6px;background:#1f7a3d;color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:'Poppins',sans-serif;transition:all .15s}
-.btn-signal-open:hover:not(:disabled){background:#166534}
-.btn-signal-open:disabled{opacity:.5;cursor:not-allowed}
-.btn-sign{display:inline-flex;align-items:center;gap:6px;background:#1d4ed8;color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:'Poppins',sans-serif;transition:all .15s}
-.btn-sign:hover:not(:disabled){background:#1e40af}
-.btn-sign:disabled{opacity:.5;cursor:not-allowed}
-.btn-checklist{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:7px 16px;border-radius:9px;border:none;cursor:not-allowed;font-family:'Poppins',sans-serif;background:#f0f4f2;color:#88968d;transition:all .15s}
-.btn-checklist.ready{background:#e4f5ea;color:#1f7a3d;cursor:pointer}
-.btn-checklist.ready:hover{background:#1f7a3d;color:#fff}
-
-/* FILE ROWS */
-.files-pane{padding:0;overflow:hidden;min-width:0;max-width:100%}
-.file-row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid #f7faf8;transition:background .12s;min-width:0;max-width:100%;overflow:hidden;box-sizing:border-box}
-.file-row:last-child{border-bottom:none}
-.file-row:hover{background:#fbfdfc}
-.f-icon{width:32px;height:32px;border-radius:8px;background:#f0f4f2;color:#55665a;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.f-info{flex:1 1 0%;min-width:0;overflow:hidden;display:flex;flex-direction:column}
-.f-name{font-size:12.5px;font-weight:700;color:#06251b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:100%}
-.f-meta{font-size:10.5px;color:#88968d;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:100%}
-.btn-view{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:5px 12px;border-radius:7px;border:none;font-family:'Poppins',sans-serif;transition:all .15s;background:#f0f4f2;color:#88968d;cursor:not-allowed;opacity:.5;flex-shrink:0;white-space:nowrap}
-.btn-view.active{background:#06251b;color:#ffc107;cursor:pointer;opacity:1}
-.btn-view.active:hover{background:#0c3d2c}
-
-/* LOT FOOTER BAR (Done opening Lot #[N]) */
-.lot-footer-bar{padding:14px 20px;background:#fafcfb;border-top:1px solid #f0f4f2;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.lot-footer-info{font-size:12px;color:#55665a;display:flex;align-items:center;gap:8px}
-.btn-confirm-lot{display:inline-flex;align-items:center;gap:7px;background:#1f7a3d;color:#fff;font-size:13px;font-weight:800;padding:9px 22px;border-radius:10px;border:none;cursor:pointer;font-family:'Poppins',sans-serif;transition:all .15s;box-shadow:0 2px 8px rgba(31,122,61,.25)}
-.btn-confirm-lot:hover{background:#176030;transform:translateY(-1px)}
-
-/* EMPTY STATE */
-.p-empty{padding:36px;text-align:center;color:#88968d;font-size:12.5px}
-.p-empty i{font-size:32px;color:#c7d2cb;display:block;margin-bottom:8px}
-
-/* AWARDING VIEW */
-.award-panel{background:#fff;border:1px solid #eaeeec;border-radius:16px;overflow:hidden;margin-bottom:18px;box-shadow:0 1px 2px rgba(16,36,26,.03),0 8px 20px -12px rgba(16,36,26,.08)}
-.award-head{padding:16px 20px;background:#fafcfb;border-bottom:1px solid #f0f4f2;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.award-lot-card{border:1px solid #eaeeec;border-radius:14px;overflow:hidden;margin:16px 20px}
-.award-lot-head{padding:12px 18px;background:#f8faf9;border-bottom:1px solid #eaeeec;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.award-lot-title{font-size:13.5px;font-weight:800;color:#06251b}
-.award-bidders-list{padding:14px 18px;display:flex;flex-direction:column;gap:10px}
-.award-bidder-card{border:1.5px solid #eaeeec;border-radius:12px;padding:12px 16px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;transition:all .15s}
-.award-bidder-card:hover:not(.disqualified){border-color:#b2dfdb;background:#fbfdfc}
-.award-bidder-card.disqualified{opacity:.55;background:#fafafa;border-color:#eee;cursor:not-allowed}
-.award-bidder-info{display:flex;align-items:center;gap:10px}
-.award-bidder-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.award-amount-wrap{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#06251b}
-.award-amount-input{width:140px;padding:6px 10px;border:1.5px solid #e0e8e4;border-radius:8px;font-size:12px;font-family:'Space Grotesk',sans-serif;font-weight:700;outline:none}
-.award-amount-input:focus{border-color:#00796b;box-shadow:0 0 0 2px rgba(0,121,107,.1)}
-.btn-select-winner{background:#00796b;color:#fff;border:none;padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
-.btn-select-winner:hover{background:#004d40}
-.btn-fail-lot{background:#fff;color:#dc2626;border:1.5px solid #fecaca;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
-.btn-fail-lot:hover{background:#fef2f2;border-color:#f87171}
-.award-winner-badge{background:#e0f2f1;color:#00796b;border:1px solid #b2dfdb;font-size:11.5px;font-weight:800;padding:4px 12px;border-radius:20px;display:inline-flex;align-items:center;gap:5px}
-.awarded-box{background:#f0fdfa;border:1.5px solid #b2dfdb;border-radius:12px;padding:14px 18px;margin:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.awarded-box-left{display:flex;align-items:center;gap:12px}
-.awarded-box-icon{width:38px;height:38px;border-radius:10px;background:#00796b;color:#ffc107;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.awarded-box-winner{font-size:13px;font-weight:800;color:#06251b}
-.awarded-box-amount{font-size:11.5px;color:#00796b;font-weight:700;font-family:'Space Grotesk',sans-serif;margin-top:2px}
-.failed-box{background:#fef2f2;border:1.5px solid #fecaca;border-radius:12px;padding:14px 18px;margin:12px 18px;display:flex;align-items:center;gap:12px}
-.failed-box-icon{width:38px;height:38px;border-radius:10px;background:#dc2626;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.failed-box-label{font-size:13px;font-weight:800;color:#991b1b}
-.failed-box-sub{font-size:11.5px;color:#ef4444;font-weight:600;margin-top:2px}
-.btn-end-session{display:inline-flex;align-items:center;gap:7px;background:#06251b;color:#ffc107;font-size:13px;font-weight:800;padding:9px 20px;border-radius:10px;border:none;cursor:pointer;font-family:'Poppins',sans-serif;transition:all .15s}
-.btn-end-session:hover{background:#0c3d2c}
-
-/* SIDEBAR */
-.sb-panel{background:#fff;border:1px solid #eaeeec;border-radius:16px;overflow:hidden;margin-bottom:20px;box-shadow:0 1px 2px rgba(16,36,26,.03),0 8px 20px -12px rgba(16,36,26,.08)}
-.sb-head{padding:13px 16px;background:#fafcfb;border-bottom:1px solid #f0f4f2;font-size:13px;font-weight:800;color:#06251b;display:flex;align-items:center;gap:8px}
-.sb-body{padding:16px}
-.chat-ph{height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#c7d2cb;font-size:12.5px}
-.chat-ph i{font-size:32px}
-
-/* MILESTONE */
-.ms-list{display:flex;flex-direction:column;gap:0}
-.ms-item{display:flex;align-items:flex-start;gap:12px;padding:8px 0;position:relative;min-height:44px}
-.ms-connector{width:2px;background:#f0f4f2;flex-shrink:0;margin-left:12px;min-height:16px;align-self:stretch}
-.ms-dot{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px}
-.ms-done{background:#e4f5ea;color:#1f7a3d}
-.ms-active{background:#06251b;color:#ffc107}
-.ms-pending{background:#f3f4f6;color:#9ca3af}
-.ms-text{flex:1;padding-top:3px}
-.ms-label{font-size:12.5px;font-weight:700;color:#06251b}
-.ms-desc{font-size:11px;color:#88968d;margin-top:1px}
-
-/* SKELETON */
-.skel{background:linear-gradient(90deg,#f0f4f2 25%,#e4eae6 50%,#f0f4f2 75%);background-size:200% 100%;animation:sk 1.4s infinite;border-radius:6px}
-@keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
-
-/* CHECKLIST */
-.cl-list{display:flex;flex-direction:column;gap:0;margin-top:12px}
-.cl-item{border-bottom:1px solid #f0f4f2;padding:10px 8px;border-radius:8px;margin-bottom:2px;transition:background .18s ease}
-.cl-item:last-child{border-bottom:none;margin-bottom:0}
-/* Row background states — subtle, result-driven */
-.cl-item.cl-row-pending       {background:#ffffff}
-.cl-item.cl-row-present       {background:#f0fdf4}
-.cl-item.cl-row-missing       {background:#fef2f2}
-.cl-item.cl-row-not_applicable{background:#f9fafb}
-/* Pending hint bar */
-.cl-pending-hint{display:flex;align-items:center;gap:7px;margin-top:10px;padding:9px 12px;background:#fff8e7;border:1px solid #fde68a;border-radius:9px;font-size:11.5px;font-weight:600;color:#92400e}
-.cl-pending-hint i{color:#d97706;font-size:13px;flex-shrink:0}
-.cl-item-name{font-size:12.5px;font-weight:700;color:#06251b;margin-bottom:6px;display:flex;align-items:center;gap:5px}
-.cl-required{font-size:9.5px;font-weight:700;color:#dc2626;background:#fee2e2;padding:1px 5px;border-radius:8px}
-.cl-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.cl-select{font-size:11.5px;font-weight:600;padding:4px 8px;border:1.5px solid #e0e8e4;border-radius:7px;background:#fff;color:#06251b;cursor:pointer;outline:none;font-family:'Poppins',sans-serif}
-.cl-select:focus{border-color:#1f7a3d}
-.cl-select.present{border-color:#16a34a;background:#f0fdf4;color:#15803d}
-.cl-select.missing{border-color:#dc2626;background:#fef2f2;color:#dc2626}
-.cl-select.not_applicable{border-color:#9ca3af;background:#f9fafb;color:#6b7280}
-.cl-remarks{flex:1;min-width:120px;font-size:11.5px;padding:4px 8px;border:1.5px solid #e0e8e4;border-radius:7px;outline:none;font-family:'Poppins',sans-serif;color:#06251b;resize:none}
-.cl-remarks:focus{border-color:#1f7a3d}
-.cl-save-btn{font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;border:none;background:#06251b;color:#ffc107;cursor:pointer;font-family:'Poppins',sans-serif;white-space:nowrap;transition:all .15s}
-.cl-save-btn:hover{background:#0c3d2c}
-.cl-save-btn:disabled{opacity:.5;cursor:not-allowed}
-.cl-checked-by{font-size:10px;color:#88968d;margin-top:3px}
-.bsm.bsm-wide{max-width:600px}
-
-/* MODALS */
-.bsm-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1050;display:none;align-items:center;justify-content:center;padding:16px}
-.bsm-bg.open{display:flex}
-.bsm{background:#fff;border-radius:20px;width:100%;max-width:440px;box-shadow:0 16px 40px rgba(0,0,0,.18);animation:popIn .2s cubic-bezier(.34,1.56,.64,1);overflow:hidden}
-@keyframes popIn{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
-.bsm-head{padding:16px 20px;background:#fafcfb;border-bottom:1px solid #f0f4f2;display:flex;align-items:center;justify-content:space-between}
-.bsm-head h4{font-size:14px;font-weight:800;color:#06251b;margin:0;display:flex;align-items:center;gap:8px}
-.bsm-x{background:none;border:none;color:#88968d;font-size:16px;cursor:pointer;padding:4px;border-radius:6px}
-.bsm-x:hover{background:#eef2f0;color:#06251b}
-.bsm-body{padding:20px}
-.bsm-foot{padding:14px 20px;background:#fafcfb;border-top:1px solid #f0f4f2;display:flex;justify-content:flex-end;gap:10px}
-.bsm-input{width:100%;padding:10px 12px;border:1.5px solid #e0e8e4;border-radius:9px;font-size:13px;font-family:'Poppins',sans-serif;color:#1a1a1a;outline:none;transition:border-color .15s;box-sizing:border-box}
-.bsm-input:focus{border-color:#1f7a3d;box-shadow:0 0 0 3px rgba(31,122,61,.08)}
-.bsm-err{font-size:12px;color:#dc2626;margin-top:6px;display:none}
-.btn-cancel{background:#f0f4f2;color:#06251b;border:none;padding:8px 18px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif}
-.btn-confirm{background:#06251b;color:#ffc107;border:none;padding:8px 18px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif}
-.btn-eligible{background:#e4f5ea;color:#1f7a3d;border:none;padding:8px 18px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;flex:1}
-.btn-ineligible{background:#fee2e2;color:#dc2626;border:none;padding:8px 18px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;flex:1}
-.btn-eligible:hover{background:#1f7a3d;color:#fff}
-.btn-ineligible:hover{background:#dc2626;color:#fff}
-
-/* FILE VIEWER */
-.fv-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:2000;display:none;flex-direction:column}
-.fv-overlay.open{display:flex}
-.fv-bar{padding:12px 20px;background:#06251b;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;flex-shrink:0}
-.fv-title{font-size:13px;font-weight:700;color:#fff}
-.fv-close{background:rgba(255,255,255,.1);border:none;color:#fff;font-size:13px;padding:7px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:'Poppins',sans-serif;font-weight:700}
-.fv-close:hover{background:rgba(255,255,255,.2)}
-.fv-content{flex:1;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
-.fv-content iframe{width:100%;height:100%;border:none;border-radius:8px}
-.fv-content img{max-width:100%;max-height:100%;border-radius:8px;object-fit:contain}
-</style>
 </head>
 <body class="dash-body">
 <?php include("components/sidebar.php"); ?>
@@ -392,7 +162,7 @@ $inv_res->close();
     <div class="vp-breadcrumbs">
         <a href="bid_opening.php"><i class="bi bi-envelope-open-fill"></i> Bid Opening</a>
         <span>/</span>
-        <span style="color:#06251b"><?= htmlspecialchars(mb_strimwidth($session['proc_title'],0,40,'…')) ?></span>
+        <span class="t-dark"><?= htmlspecialchars(mb_strimwidth($session['proc_title'],0,40,'…')) ?></span>
     </div>
     <a href="bid_opening.php" class="vp-back-link"><i class="bi bi-arrow-left"></i> Back</a>
 </div>
@@ -423,11 +193,11 @@ $inv_res->close();
         <div class="met"><div class="met-lbl"><i class="bi bi-currency-dollar"></i> ABC</div><div class="met-val gold">₱<?= number_format((float)$session['abc'],2) ?></div></div>
         <div class="met"><div class="met-lbl"><i class="bi bi-layers"></i> Lots</div><div class="met-val"><?= count($lots) ?></div></div>
         <div class="met"><div class="met-lbl"><i class="bi bi-people"></i> Invited</div><div class="met-val"><?= count($invited) ?></div></div>
-        <div class="met"><div class="met-lbl"><i class="bi bi-clock"></i> Started</div><div class="met-val" style="font-size:12px"><?= $session['started_at'] ? date('g:i A',strtotime($session['started_at'])) : '—' ?></div></div>
+        <div class="met"><div class="met-lbl"><i class="bi bi-clock"></i> Started</div><div class="met-val fz-12"><?= $session['started_at'] ? date('g:i A',strtotime($session['started_at'])) : '—' ?></div></div>
     </div>
     <?php if ($can_manage && $st === 'scheduled'): ?>
-    <div style="margin-top:14px;display:flex;justify-content:flex-end" id="heroStartWrap">
-        <button class="btn-confirm" style="background:#ffc107;color:#06251b;font-weight:800;padding:9px 20px;border-radius:10px;border:none;cursor:pointer" id="btn-start-session" onclick="openStartSessionModal()">
+    <div class="mt-14 flex-end" id="heroStartWrap">
+        <button class="btn-confirm btn-confirm--gold-lg" id="btn-start-session" onclick="openStartSessionModal()">
             <i class="bi bi-play-circle-fill"></i> Start Session
         </button>
     </div>
@@ -444,12 +214,12 @@ $inv_res->close();
     </div>
     <?php endforeach; ?>
     <div class="master-tab <?= (empty($lots) || $all_lots_done || in_array($st,['awarding','ended'])) ? 'active' : 'locked' ?>" id="mtab-awarding" onclick="onMasterTabClick('awarding')">
-        <i class="bi bi-trophy-fill" style="color:#ffc107"></i>
+        <i class="bi bi-trophy-fill t-gold"></i>
         <span>Awarding</span>
         <span class="mtab-badge" id="mtab-badge-awarding"></span>
     </div>
     <div class="master-tab <?= $st === 'ended' ? '' : 'locked' ?>" id="mtab-conclusion" onclick="onMasterTabClick('conclusion')">
-        <i class="bi bi-flag-fill" style="color:#1f7a3d"></i>
+        <i class="bi bi-flag-fill t-forest"></i>
         <span>Conclusion</span>
         <span class="mtab-badge" id="mtab-badge-conclusion"></span>
     </div>
@@ -461,12 +231,12 @@ $inv_res->close();
         <div class="lot-head">
             <div>
                 <div class="lot-head-title" id="lotHeadTitle">
-                    <i class="bi bi-layers-fill" style="color:#1f7a3d"></i>
+                    <i class="bi bi-layers-fill t-forest"></i>
                     <span>Lot 1</span>
                 </div>
                 <div class="lot-head-abc" id="lotHeadAbc">Approved Budget for Contract: <strong>₱0.00</strong></div>
             </div>
-            <div id="lotStagePills" style="display:flex;align-items:center;gap:6px">
+            <div id="lotStagePills" class="flexc gap-6">
                 <span class="ipill live" id="lotCurrentStagePill"><i class="bi bi-shield-check"></i> Eligibility Stage</span>
             </div>
         </div>
@@ -484,28 +254,28 @@ $inv_res->close();
 
         <!-- Start Eligibility Phase gate — shown only when status is 'started' (not yet in a phase) -->
         <?php if ($can_manage): ?>
-        <div id="startEligibilityGate" style="display:none;padding:32px 24px;text-align:center;border-bottom:1px solid #eaeeec">
-            <div style="width:52px;height:52px;border-radius:14px;background:#e4f5ea;color:#1f7a3d;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 14px">
+        <div id="startEligibilityGate" class="hide gate-panel gate-panel--ready">
+            <div class="notice-icon notice-icon--xl notice-icon--forest-lt">
                 <i class="bi bi-shield-check"></i>
             </div>
-            <div style="font-size:15px;font-weight:800;color:#06251b;margin-bottom:6px">Ready to begin Eligibility Review?</div>
-            <div style="font-size:12.5px;color:#55665a;margin-bottom:20px;max-width:380px;margin-left:auto;margin-right:auto">
+            <div class="fz-15 fw-8 t-dark mb-6">Ready to begin Eligibility Review?</div>
+            <div class="gate-desc-centered">
                 Click the button below to officially start the Eligibility &amp; Technical evaluation phase. This will be recorded in the system.
             </div>
             <button id="btnStartEligibility" onclick="openStartEligibilityModal()"
-                style="background:#1f7a3d;color:#fff;border:none;border-radius:10px;padding:10px 24px;font-size:13.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px">
+                class="btn-begin-eligibility">
                 <i class="bi bi-play-circle-fill"></i> Begin Eligibility &amp; Technical Phase
             </button>
         </div>
         <?php else: ?>
-        <div id="startEligibilityGate" style="display:none;padding:20px;border-bottom:1px solid #eaeeec">
-            <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:14px">
-                <div style="width:40px;height:40px;border-radius:12px;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">
+        <div id="startEligibilityGate" class="hide gate-panel gate-panel--waiting">
+            <div class="banner-box banner-box--amber">
+                <div class="notice-icon notice-icon--lg notice-icon--amber">
                     <i class="bi bi-hourglass-split"></i>
                 </div>
                 <div>
-                    <div style="font-size:13.5px;font-weight:800;color:#92400e">Waiting for Eligibility Phase to Begin</div>
-                    <div style="font-size:12px;color:#b45309;margin-top:2px">The Secretariat will officially open the Eligibility &amp; Technical review. Please stand by.</div>
+                    <div class="fz-13-5 fw-8 t-warndark">Waiting for Eligibility Phase to Begin</div>
+                    <div class="fz-12 t-warnmid mt-2">The Secretariat will officially open the Eligibility &amp; Technical review. Please stand by.</div>
                 </div>
             </div>
         </div>
@@ -513,9 +283,9 @@ $inv_res->close();
 
         <!-- Bidder Area (Tabs, Action Bar, Files Pane) -->
         <div id="lot-bidder-area">
-            <div style="padding:24px;display:flex;gap:8px">
-                <div class="skel" style="height:32px;width:120px;border-radius:20px"></div>
-                <div class="skel" style="height:32px;width:120px;border-radius:20px"></div>
+            <div class="pad-24 flexr gap-8">
+                <div class="skel h-32 w-120 r-20"></div>
+                <div class="skel h-32 w-120 r-20"></div>
             </div>
         </div>
 
@@ -523,7 +293,7 @@ $inv_res->close();
         <?php if ($can_manage): ?>
         <div class="lot-footer-bar" id="lotFooterBar">
             <div class="lot-footer-info">
-                <i class="bi bi-info-circle-fill" style="color:#00796b"></i>
+                <i class="bi bi-info-circle-fill t-teal"></i>
                 <span>Complete review of bidders before finalizing this lot.</span>
             </div>
             <button class="btn-confirm-lot" id="btnDoneLot" onclick="openDoneLotModal()">
@@ -533,10 +303,10 @@ $inv_res->close();
         <?php else: ?>
         <div class="lot-footer-bar" id="lotFooterBar">
             <div class="lot-footer-info">
-                <i class="bi bi-info-circle-fill" style="color:#00796b"></i>
+                <i class="bi bi-info-circle-fill t-teal"></i>
                 <span>Review in progress — waiting for Secretariat to finalize this lot.</span>
             </div>
-            <span style="font-size:11px;font-weight:700;color:#f59e0b;background:#fef3c7;border:1px solid #fde68a;padding:6px 14px;border-radius:20px;display:inline-flex;align-items:center;gap:6px">
+            <span class="status-chip status-chip--amber status-chip--lg">
                 <i class="bi bi-hourglass-split"></i> Waiting for Secretariat…
             </span>
         </div>
@@ -545,43 +315,43 @@ $inv_res->close();
 </div>
 
 <!-- ══ AWARDING VIEW (Active for 'awarding' tab) ══ -->
-<div id="awarding-container" style="display:none">
+<div id="awarding-container" class="hide">
 
     <?php if (!$can_manage): ?>
-    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
-        <div style="width:40px;height:40px;border-radius:12px;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">
+    <div class="banner-box banner-box--amber mb-16">
+        <div class="notice-icon notice-icon--lg notice-icon--amber">
             <i class="bi bi-hourglass-split"></i>
         </div>
         <div>
-            <div style="font-size:13.5px;font-weight:800;color:#92400e">Awarding in Progress</div>
-            <div style="font-size:12px;color:#b45309;margin-top:2px">The Secretariat is currently declaring winners for each lot. Results will appear below once finalized.</div>
+            <div class="fz-13-5 fw-8 t-warndark">Awarding in Progress</div>
+            <div class="fz-12 t-warnmid mt-2">The Secretariat is currently declaring winners for each lot. Results will appear below once finalized.</div>
         </div>
     </div>
     <?php endif; ?>
 
     <div class="award-panel">
         <div class="award-head">
-            <div style="display:flex;align-items:center;gap:10px">
-                <div style="width:36px;height:36px;border-radius:10px;background:#e0f2f1;color:#00796b;display:flex;align-items:center;justify-content:center;font-size:18px">
+            <div class="flexc gap-10">
+                <div class="notice-icon notice-icon--fs18 notice-icon--teal-lt">
                     <i class="bi bi-trophy-fill"></i>
                 </div>
                 <div>
-                    <div style="font-size:15px;font-weight:800;color:#06251b">Awarding Phase</div>
-                    <div style="font-size:11.5px;color:#88968d">Select and declare winning bidders for each lot</div>
+                    <div class="fz-15 fw-8 t-dark">Awarding Phase</div>
+                    <div class="fz-11-5 t-muted">Select and declare winning bidders for each lot</div>
                 </div>
             </div>
             <span class="status-pill sp-active" id="awardStatusPill"><i class="bi bi-trophy"></i> Ready to Award</span>
         </div>
 
         <div id="awarding-lots-list">
-            <div style="padding:24px;display:flex;flex-direction:column;gap:12px">
-                <div class="skel" style="height:60px"></div>
-                <div class="skel" style="height:60px"></div>
+            <div class="pad-24 flexcol gap-12">
+                <div class="skel h-60"></div>
+                <div class="skel h-60"></div>
             </div>
         </div>
 
         <?php if ($can_manage && $st !== 'ended'): ?>
-        <div style="padding:16px 20px;border-top:1px solid #f0f4f2;background:#fafcfb;display:flex;justify-content:flex-end;">
+        <div class="panel-footer panel-footer--end">
             <button class="btn-end-session" onclick="openEndSessionModal()">
                 <i class="bi bi-check2-all"></i> Conclude &amp; End Session
             </button>
@@ -591,35 +361,35 @@ $inv_res->close();
 </div>
 
 <!-- ══ CONCLUSION VIEW ══ -->
-<div id="conclusion-container" style="display:none">
+<div id="conclusion-container" class="hide">
     <div class="award-panel">
         <div class="award-head">
-            <div style="display:flex;align-items:center;gap:10px">
-                <div style="width:36px;height:36px;border-radius:10px;background:#e4f5ea;color:#1f7a3d;display:flex;align-items:center;justify-content:center;font-size:18px">
+            <div class="flexc gap-10">
+                <div class="notice-icon notice-icon--fs18 notice-icon--forest-lt">
                     <i class="bi bi-flag-fill"></i>
                 </div>
                 <div>
-                    <div style="font-size:15px;font-weight:800;color:#06251b">Session Concluded</div>
-                    <div style="font-size:11.5px;color:#88968d">Official summary of this bid opening session</div>
+                    <div class="fz-15 fw-8 t-dark">Session Concluded</div>
+                    <div class="fz-11-5 t-muted">Official summary of this bid opening session</div>
                 </div>
             </div>
-            <span class="status-pill sp-active" style="background:#e4f5ea;color:#1f7a3d;border-color:#bbf7d0"><i class="bi bi-check2-all"></i> Ended</span>
+            <span class="status-pill sp-active status-pill--ended"><i class="bi bi-check2-all"></i> Ended</span>
         </div>
-        <div id="conclusion-body" style="padding:20px">
-            <div style="display:flex;flex-direction:column;gap:8px">
-                <div class="skel" style="height:80px;border-radius:12px"></div>
-                <div class="skel" style="height:120px;border-radius:12px"></div>
-                <div class="skel" style="height:120px;border-radius:12px"></div>
+        <div id="conclusion-body" class="pad-20">
+            <div class="flexcol gap-8">
+                <div class="skel h-80 r-12"></div>
+                <div class="skel h-120 r-12"></div>
+                <div class="skel h-120 r-12"></div>
             </div>
         </div>
-        <div style="padding:16px 20px;border-top:1px solid #f0f4f2;background:#fafcfb;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div class="panel-footer panel-footer--between">
             <?php if ($can_manage): ?>
             <a href="checklist_pdf.php?session=<?= (int)$session_id ?>" target="_blank"
-               style="display:inline-flex;align-items:center;gap:8px;background:#1d4ed8;color:#fff;font-size:13px;font-weight:800;padding:9px 20px;border-radius:10px;text-decoration:none;font-family:'Poppins',sans-serif;transition:all .15s">
+               class="modal-cta-link modal-cta-link--blue">
                 <i class="bi bi-file-earmark-pdf-fill"></i> Download Checklist PDF
             </a>
             <?php else: ?><span></span><?php endif; ?>
-            <a href="dashboard.php" style="display:inline-flex;align-items:center;gap:8px;background:#06251b;color:#ffc107;font-size:13px;font-weight:800;padding:9px 20px;border-radius:10px;text-decoration:none;font-family:'Poppins',sans-serif;transition:all .15s">
+            <a href="dashboard.php" class="modal-cta-link modal-cta-link--dark">
                 <i class="bi bi-house-fill"></i> Go to Dashboard
             </a>
         </div>
@@ -629,15 +399,15 @@ $inv_res->close();
 </div><!-- /left -->
 
 <!-- ════ RIGHT ════ -->
-<div style="display:flex;flex-direction:column;gap:4px">
+<div class="flexcol gap-4">
 
 <div class="sb-panel">
-    <div class="sb-head"><i class="bi bi-chat-dots-fill" style="color:#ffc107"></i> Live Chat</div>
+    <div class="sb-head"><i class="bi bi-chat-dots-fill t-gold"></i> Live Chat</div>
     <div class="chat-ph"><i class="bi bi-chat-square-dots"></i><span>Chat coming soon</span></div>
 </div>
 
 <div class="sb-panel">
-    <div class="sb-head"><i class="bi bi-list-check" style="color:#ffc107"></i> Progress</div>
+    <div class="sb-head"><i class="bi bi-list-check t-gold"></i> Progress</div>
     <div class="sb-body">
         <?php
         $step1_done   = ($st !== 'scheduled');
@@ -701,25 +471,25 @@ $inv_res->close();
 
 <div class="sb-panel">
     <div class="sb-head">
-        <i class="bi bi-people-fill" style="color:#ffc107"></i> Members
-        <span style="margin-left:auto;font-size:11px;font-weight:700;background:#06251b;color:#ffc107;padding:1px 8px;border-radius:10px"><?= count($invited) ?></span>
+        <i class="bi bi-people-fill t-gold"></i> Members
+        <span class="count-badge"><?= count($invited) ?></span>
     </div>
-    <div class="sb-body" style="padding:10px 12px">
+    <div class="sb-body pad-10-12">
         <?php if (empty($invited)): ?>
-        <div style="text-align:center;color:#88968d;font-size:12px;padding:12px">None invited.</div>
+        <div class="ta-center t-muted fz-12 pad-12">None invited.</div>
         <?php else: ?>
         <?php foreach ($invited as $m):
             $ini = strtoupper(substr($m['firstname'],0,1).substr($m['lastname'],0,1));
         ?>
-        <div style="display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid #f7faf8">
-            <div style="width:28px;height:28px;border-radius:50%;background:#e0ece4;color:#06251b;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+        <div class="member-row">
+            <div class="avatar-28 avatar-28--mint">
                 <?php if ($m['profile_picture_url']): ?>
-                <img src="../<?= htmlspecialchars($m['profile_picture_url']) ?>" style="width:100%;height:100%;object-fit:cover">
+                <img src="../<?= htmlspecialchars($m['profile_picture_url']) ?>" class="w-full-h-full-cover">
                 <?php else: ?><?= htmlspecialchars($ini) ?><?php endif; ?>
             </div>
-            <div style="flex:1;min-width:0">
-                <div style="font-size:12px;font-weight:700;color:#06251b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= htmlspecialchars($m['firstname'].' '.$m['lastname']) ?></div>
-                <div style="font-size:10px;color:#88968d"><?= htmlspecialchars($m['admin_type'] ?? '—') ?></div>
+            <div class="flex-1 min-w-0">
+                <div class="fz-12 fw-7 t-dark truncate"><?= htmlspecialchars($m['firstname'].' '.$m['lastname']) ?></div>
+                <div class="fz-10 t-muted"><?= htmlspecialchars($m['admin_type'] ?? '—') ?></div>
             </div>
         </div>
         <?php endforeach; ?>
@@ -736,14 +506,14 @@ $inv_res->close();
 <div class="bsm-bg" id="startSessionModal" onclick="if(event.target===this)closeStartSessionModal()">
     <div class="bsm">
         <div class="bsm-head">
-            <h4><i class="bi bi-play-circle-fill" style="color:#ffc107"></i> Start Bid Opening Session</h4>
+            <h4><i class="bi bi-play-circle-fill t-gold"></i> Start Bid Opening Session</h4>
             <button class="bsm-x" onclick="closeStartSessionModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="bsm-body">
-            <p style="font-size:13px;color:#06251b;font-weight:700;margin:0 0 8px">Are you sure you want to start this session?</p>
-            <p style="font-size:12.5px;color:#55665a;margin:0 0 12px">This will officially open the bid opening process. You will begin reviewing documents lot-by-lot starting with Lot 1.</p>
-            <div style="background:#fef8e7;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#92400e;">
-                <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;flex-shrink:0"></i>
+            <p class="fz-13 fw-7 t-dark mb-8">Are you sure you want to start this session?</p>
+            <p class="fz-12-5 t-graphite mb-12">This will officially open the bid opening process. You will begin reviewing documents lot-by-lot starting with Lot 1.</p>
+            <div class="notice-box notice-box--amber">
+                <i class="bi bi-exclamation-triangle-fill t-amberdark shrink-0"></i>
                 All invited committee members and bidders can view live progress.
             </div>
         </div>
@@ -760,20 +530,20 @@ $inv_res->close();
 <div class="bsm-bg" id="startEligibilityModal" onclick="if(event.target===this)closeStartEligibilityModal()">
     <div class="bsm">
         <div class="bsm-head">
-            <h4><i class="bi bi-shield-check" style="color:#1f7a3d"></i> Begin Eligibility &amp; Technical Phase</h4>
+            <h4><i class="bi bi-shield-check t-forest"></i> Begin Eligibility &amp; Technical Phase</h4>
             <button class="bsm-x" onclick="closeStartEligibilityModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="bsm-body">
-            <p style="font-size:13.5px;color:#06251b;font-weight:700;margin:0 0 8px">Start the Eligibility &amp; Technical evaluation for <span id="startEligLotName">Lot 1</span>?</p>
-            <p style="font-size:12.5px;color:#55665a;margin:0 0 12px">This will officially open the eligibility review phase. All invited members will be notified and documents will be available for inspection.</p>
-            <div style="background:#e4f5ea;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#166534;">
-                <i class="bi bi-info-circle-fill" style="color:#1f7a3d;flex-shrink:0"></i>
+            <p class="fz-13-5 fw-7 t-dark mb-8">Start the Eligibility &amp; Technical evaluation for <span id="startEligLotName">Lot 1</span>?</p>
+            <p class="fz-12-5 t-graphite mb-12">This will officially open the eligibility review phase. All invited members will be notified and documents will be available for inspection.</p>
+            <div class="notice-box notice-box--green">
+                <i class="bi bi-info-circle-fill t-forest shrink-0"></i>
                 This action will be recorded in the system.
             </div>
         </div>
         <div class="bsm-foot">
             <button class="btn-cancel" onclick="closeStartEligibilityModal()">Cancel</button>
-            <button class="btn-confirm" style="background:#1f7a3d;color:#fff" id="startEligConfirmBtn" onclick="doStartEligibilityPhase()">
+            <button class="btn-confirm btn-confirm--green" id="startEligConfirmBtn" onclick="doStartEligibilityPhase()">
                 <i class="bi bi-play-circle-fill"></i> Yes, Begin Phase
             </button>
         </div>
@@ -784,19 +554,19 @@ $inv_res->close();
 <div class="bsm-bg" id="cannotProceedModal" onclick="if(event.target===this)closeCannotProceedModal()">
     <div class="bsm">
         <div class="bsm-head">
-            <h4><i class="bi bi-exclamation-triangle-fill" style="color:#d97706"></i> Cannot Proceed Yet</h4>
+            <h4><i class="bi bi-exclamation-triangle-fill t-amberdark"></i> Cannot Proceed Yet</h4>
             <button class="bsm-x" onclick="closeCannotProceedModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="bsm-body">
-            <p style="font-size:13px;color:#06251b;font-weight:700;margin:0 0 10px" id="cannotProceedTitle">Review incomplete</p>
-            <div id="cannotProceedList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
-            <div style="background:#fef8e7;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#92400e;">
-                <i class="bi bi-info-circle-fill" style="color:#d97706;flex-shrink:0"></i>
+            <p class="fz-13 fw-7 t-dark mb-10" id="cannotProceedTitle">Review incomplete</p>
+            <div id="cannotProceedList" class="flexcol gap-8 mb-12"></div>
+            <div class="notice-box notice-box--amber">
+                <i class="bi bi-info-circle-fill t-amberdark shrink-0"></i>
                 Complete all evaluations before finalizing this lot.
             </div>
         </div>
         <div class="bsm-foot">
-            <button class="btn-confirm" style="background:#06251b" onclick="closeCannotProceedModal()">Got it</button>
+            <button class="btn-confirm" onclick="closeCannotProceedModal()">Got it</button>
         </div>
     </div>
 </div>
@@ -805,20 +575,20 @@ $inv_res->close();
 <div class="bsm-bg" id="doneLotModal" onclick="if(event.target===this)closeDoneLotModal()">
     <div class="bsm">
         <div class="bsm-head">
-            <h4><i class="bi bi-check-circle-fill" style="color:#1f7a3d"></i> Complete Lot Opening</h4>
+            <h4><i class="bi bi-check-circle-fill t-forest"></i> Complete Lot Opening</h4>
             <button class="bsm-x" onclick="closeDoneLotModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="bsm-body">
-            <p style="font-size:13.5px;color:#06251b;font-weight:700;margin:0 0 8px">Complete opening for <span id="doneLotModalName">Lot 1</span>?</p>
-            <p style="font-size:12.5px;color:#55665a;margin:0 0 12px">This will mark this lot as completed and advance the session to the next step. You can still return to inspect this lot at any time.</p>
-            <div style="background:#e4f5ea;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#166534;">
-                <i class="bi bi-info-circle-fill" style="color:#1f7a3d;flex-shrink:0"></i>
+            <p class="fz-13-5 fw-7 t-dark mb-8">Complete opening for <span id="doneLotModalName">Lot 1</span>?</p>
+            <p class="fz-12-5 t-graphite mb-12">This will mark this lot as completed and advance the session to the next step. You can still return to inspect this lot at any time.</p>
+            <div class="notice-box notice-box--green">
+                <i class="bi bi-info-circle-fill t-forest shrink-0"></i>
                 <span id="doneLotModalPrompt">Proceeding to next Lot.</span>
             </div>
         </div>
         <div class="bsm-foot">
             <button class="btn-cancel" onclick="closeDoneLotModal()">Cancel</button>
-            <button class="btn-confirm" style="background:#1f7a3d;color:#fff" id="doneLotConfirmBtn" onclick="confirmDoneLot()">
+            <button class="btn-confirm btn-confirm--green" id="doneLotConfirmBtn" onclick="confirmDoneLot()">
                 <i class="bi bi-arrow-right-circle-fill"></i> Confirm &amp; Proceed
             </button>
         </div>
@@ -829,13 +599,13 @@ $inv_res->close();
 <div class="bsm-bg" id="signModal" onclick="if(event.target===this)closeSignModal()">
     <div class="bsm">
         <div class="bsm-head">
-            <h4><i class="bi bi-pen-fill" style="color:#ffc107"></i> Sign to Open Bid Documents</h4>
+            <h4><i class="bi bi-pen-fill t-gold"></i> Sign to Open Bid Documents</h4>
             <button class="bsm-x" onclick="closeSignModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="bsm-body">
-            <p style="font-size:13px;color:#06251b;font-weight:700;margin:0 0 4px">Bidder: <span id="signBidderName"></span></p>
-            <p style="font-size:12px;color:#88968d;margin:0 0 14px">Your signature contributes to the quorum needed to decrypt this bid. Enter your password to sign.</p>
-            <div id="signQuorumStatus" style="margin-bottom:12px"></div>
+            <p class="fz-13 fw-7 t-dark mb-4">Bidder: <span id="signBidderName"></span></p>
+            <p class="fz-12 t-muted mb-14">Your signature contributes to the quorum needed to decrypt this bid. Enter your password to sign.</p>
+            <div id="signQuorumStatus" class="mb-12"></div>
             <input type="password" id="signPwInput" class="bsm-input" placeholder="Enter your password…"
                    onkeydown="if(event.key==='Enter')doSign()">
             <div class="bsm-err" id="signErr"></div>
@@ -853,20 +623,20 @@ $inv_res->close();
 <div class="bsm-bg" id="startOpeningModal" onclick="if(event.target===this)closeStartOpeningModal()">
     <div class="bsm">
         <div class="bsm-head">
-            <h4><i class="bi bi-broadcast" style="color:#ffc107"></i> Start Bid Opening</h4>
+            <h4><i class="bi bi-broadcast t-gold"></i> Start Bid Opening</h4>
             <button class="bsm-x" onclick="closeStartOpeningModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="bsm-body">
-            <p style="font-size:13.5px;color:#06251b;font-weight:700;margin:0 0 8px">Start opening for <span id="startOpeningBidderName"></span>?</p>
-            <p style="font-size:12.5px;color:#55665a;margin:0 0 12px">This will signal BAC members that they can now sign to unlock the bid documents. The files will not be decrypted until the required number of BAC members have signed.</p>
-            <div style="background:#fef8e7;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#92400e;">
-                <i class="bi bi-info-circle-fill" style="color:#d97706;flex-shrink:0"></i>
+            <p class="fz-13-5 fw-7 t-dark mb-8">Start opening for <span id="startOpeningBidderName"></span>?</p>
+            <p class="fz-12-5 t-graphite mb-12">This will signal BAC members that they can now sign to unlock the bid documents. The files will not be decrypted until the required number of BAC members have signed.</p>
+            <div class="notice-box notice-box--amber">
+                <i class="bi bi-info-circle-fill t-amberdark shrink-0"></i>
                 BAC signatures are required to decrypt the documents. This action is recorded.
             </div>
         </div>
         <div class="bsm-foot">
             <button class="btn-cancel" onclick="closeStartOpeningModal()">Cancel</button>
-            <button class="btn-confirm" style="background:#1f7a3d;color:#fff" id="startOpeningConfirmBtn" onclick="doSignalOpen()">
+            <button class="btn-confirm btn-confirm--green" id="startOpeningConfirmBtn" onclick="doSignalOpen()">
                 <i class="bi bi-broadcast"></i> Yes, Start Opening
             </button>
         </div>
@@ -877,20 +647,20 @@ $inv_res->close();
 <div class="bsm-bg" id="openNowModal" onclick="if(event.target===this)closeOpenNowModal()">
     <div class="bsm">
         <div class="bsm-head">
-            <h4><i class="bi bi-unlock-fill" style="color:#ffc107"></i> Open Bid Documents</h4>
+            <h4><i class="bi bi-unlock-fill t-gold"></i> Open Bid Documents</h4>
             <button class="bsm-x" onclick="closeOpenNowModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="bsm-body">
-            <p style="font-size:13.5px;color:#06251b;font-weight:700;margin:0 0 8px">Quorum has been reached.</p>
-            <p style="font-size:12.5px;color:#55665a;margin:0 0 12px">All required BAC members have signed. You can now officially open and decrypt the bid documents. This action will be permanently recorded.</p>
-            <div style="background:#e4f5ea;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#166534;">
-                <i class="bi bi-shield-check" style="color:#1f7a3d;flex-shrink:0"></i>
+            <p class="fz-13-5 fw-7 t-dark mb-8">Quorum has been reached.</p>
+            <p class="fz-12-5 t-graphite mb-12">All required BAC members have signed. You can now officially open and decrypt the bid documents. This action will be permanently recorded.</p>
+            <div class="notice-box notice-box--green">
+                <i class="bi bi-shield-check t-forest shrink-0"></i>
                 Documents will be decrypted and made available for review.
             </div>
         </div>
         <div class="bsm-foot">
             <button class="btn-cancel" onclick="closeOpenNowModal()">Cancel</button>
-            <button class="btn-confirm" style="background:#1f7a3d;color:#fff" id="openNowConfirmBtn" onclick="doOpenFiles()">
+            <button class="btn-confirm btn-confirm--green" id="openNowConfirmBtn" onclick="doOpenFiles()">
                 <i class="bi bi-unlock-fill"></i> Yes, Open Files
             </button>
         </div>
@@ -901,11 +671,11 @@ $inv_res->close();
 <div class="bsm-bg" id="pwModal" onclick="if(event.target===this)closePw()">
     <div class="bsm">
         <div class="bsm-head">
-            <h4><i class="bi bi-lock-fill" style="color:#ffc107"></i> Enter Password to Open Files</h4>
+            <h4><i class="bi bi-lock-fill t-gold"></i> Enter Password to Open Files</h4>
             <button class="bsm-x" onclick="closePw()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="bsm-body">
-            <p style="font-size:12.5px;color:#55665a;margin:0 0 12px">Your admin password is required to decrypt and open these documents.</p>
+            <p class="fz-12-5 t-graphite mb-12">Your admin password is required to decrypt and open these documents.</p>
             <input type="password" id="pwInput" class="bsm-input" placeholder="Enter your password…"
                    onkeydown="if(event.key==='Enter')doPwConfirm()">
             <div class="bsm-err" id="pwErr"></div>
@@ -923,20 +693,20 @@ $inv_res->close();
 <div class="bsm-bg" id="eligModal" onclick="if(event.target===this)closeElig()">
     <div class="bsm bsm-wide">
         <div class="bsm-head">
-            <h4 id="eligModalTitle"><i class="bi bi-clipboard-check" style="color:#ffc107"></i> Document Checklist</h4>
+            <h4 id="eligModalTitle"><i class="bi bi-clipboard-check t-gold"></i> Document Checklist</h4>
             <button class="bsm-x" onclick="closeElig()"><i class="bi bi-x-lg"></i></button>
         </div>
-        <div class="bsm-body" style="max-height:70vh;overflow-y:auto">
-            <p style="font-size:12.5px;color:#55665a;margin:0 0 2px">Business: <strong id="eligName" style="color:#06251b"></strong></p>
-            <p style="font-size:12px;color:#88968d;margin:0 0 4px" id="eligModalSub">Mark compliance for each document below.</p>
+        <div class="bsm-body modal-scroll">
+            <p class="fz-12-5 t-graphite mb-2">Business: <strong id="eligName" class="t-dark"></strong></p>
+            <p class="fz-12 t-muted mb-4" id="eligModalSub">Mark compliance for each document below.</p>
             <div id="eligChecklistArea">
-                <div style="padding:16px 0;display:flex;gap:8px">
-                    <div class="skel" style="height:36px;flex:1;border-radius:8px"></div>
-                    <div class="skel" style="height:36px;flex:1;border-radius:8px"></div>
+                <div class="pad-16-0 flexr gap-8">
+                    <div class="skel h-36 flex-1 r-8"></div>
+                    <div class="skel h-36 flex-1 r-8"></div>
                 </div>
             </div>
         </div>
-        <div class="bsm-foot" style="gap:10px;border-top:1px solid #f0f4f2;flex-wrap:wrap">
+        <div class="bsm-foot bsm-foot--wide">
             <?php if ($can_manage): ?>
             <button class="btn-ineligible" id="btn-disqualify" onclick="submitElig(0)"><i class="bi bi-x-circle-fill"></i> Disqualify</button>
             <button class="btn-eligible"   id="btn-comply"     onclick="submitElig(1)"><i class="bi bi-check-circle-fill"></i> Comply / Eligible</button>
@@ -951,15 +721,15 @@ $inv_res->close();
 <div class="bsm-bg" id="awardModal" onclick="if(event.target===this)closeAwardModal()">
     <div class="bsm">
         <div class="bsm-head">
-            <h4><i class="bi bi-trophy-fill" style="color:#ffc107"></i> Confirm Winning Bidder</h4>
+            <h4><i class="bi bi-trophy-fill t-gold"></i> Confirm Winning Bidder</h4>
             <button class="bsm-x" onclick="closeAwardModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="bsm-body">
-            <p style="font-size:13px;color:#06251b;font-weight:700;margin:0 0 8px">Declare Winner for <span id="awardLotTitle">Lot</span>?</p>
-            <p style="font-size:12.5px;color:#55665a;margin:0 0 6px">Winner: <strong id="awardBidderName" style="color:#06251b"></strong></p>
-            <p style="font-size:12.5px;color:#55665a;margin:0 0 12px">Awarded Amount: <strong id="awardDisplayAmount" style="color:#00796b;font-family:'Space Grotesk',sans-serif"></strong></p>
-            <div style="background:#fef8e7;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#92400e;">
-                <i class="bi bi-info-circle-fill" style="color:#d97706;flex-shrink:0"></i>
+            <p class="fz-13 fw-7 t-dark mb-8">Declare Winner for <span id="awardLotTitle">Lot</span>?</p>
+            <p class="fz-12-5 t-graphite mb-6">Winner: <strong id="awardBidderName" class="t-dark"></strong></p>
+            <p class="fz-12-5 t-graphite mb-12">Awarded Amount: <strong id="awardDisplayAmount" class="t-teal font-sg"></strong></p>
+            <div class="notice-box notice-box--amber">
+                <i class="bi bi-info-circle-fill t-amberdark shrink-0"></i>
                 This will officially record the winning award for this lot.
             </div>
         </div>
@@ -976,20 +746,20 @@ $inv_res->close();
 <div class="bsm-bg" id="failLotModal" onclick="if(event.target===this)closeFailLotModal()">
     <div class="bsm">
         <div class="bsm-head">
-            <h4><i class="bi bi-x-circle-fill" style="color:#dc2626"></i> Mark Lot as Failed</h4>
+            <h4><i class="bi bi-x-circle-fill t-red"></i> Mark Lot as Failed</h4>
             <button class="bsm-x" onclick="closeFailLotModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="bsm-body">
-            <p style="font-size:13.5px;color:#06251b;font-weight:700;margin:0 0 8px">Mark <span id="failLotTitle">Lot</span> as Failed / No Award?</p>
-            <p style="font-size:12.5px;color:#55665a;margin:0 0 12px">This will record that no winner was declared for this lot. All bids will be marked as rejected.</p>
-            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#991b1b;">
-                <i class="bi bi-exclamation-triangle-fill" style="color:#dc2626;flex-shrink:0"></i>
+            <p class="fz-13-5 fw-7 t-dark mb-8">Mark <span id="failLotTitle">Lot</span> as Failed / No Award?</p>
+            <p class="fz-12-5 t-graphite mb-12">This will record that no winner was declared for this lot. All bids will be marked as rejected.</p>
+            <div class="notice-box notice-box--red">
+                <i class="bi bi-exclamation-triangle-fill t-red shrink-0"></i>
                 This action can be reviewed but cannot be automatically undone.
             </div>
         </div>
         <div class="bsm-foot">
             <button class="btn-cancel" onclick="closeFailLotModal()">Cancel</button>
-            <button class="btn-confirm" style="background:#dc2626;color:#fff" id="failLotConfirmBtn" onclick="doFailLot()">
+            <button class="btn-confirm btn-confirm--red" id="failLotConfirmBtn" onclick="doFailLot()">
                 <i class="bi bi-x-circle-fill"></i> Confirm — No Award
             </button>
         </div>
@@ -1000,12 +770,12 @@ $inv_res->close();
 <div class="bsm-bg" id="endSessionModal" onclick="if(event.target===this)closeEndSessionModal()">
     <div class="bsm">
         <div class="bsm-head">
-            <h4><i class="bi bi-check2-all" style="color:#ffc107"></i> End Bid Opening Session</h4>
+            <h4><i class="bi bi-check2-all t-gold"></i> End Bid Opening Session</h4>
             <button class="bsm-x" onclick="closeEndSessionModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="bsm-body">
-            <p style="font-size:13px;color:#06251b;font-weight:700;margin:0 0 8px">Are you sure you want to conclude this session?</p>
-            <p style="font-size:12.5px;color:#55665a;margin:0 0 12px">This will finalize all lot reviews, archive the live session, and update the procurement status. This action cannot be undone.</p>
+            <p class="fz-13 fw-7 t-dark mb-8">Are you sure you want to conclude this session?</p>
+            <p class="fz-12-5 t-graphite mb-12">This will finalize all lot reviews, archive the live session, and update the procurement status. This action cannot be undone.</p>
         </div>
         <div class="bsm-foot">
             <button class="btn-cancel" onclick="closeEndSessionModal()">Cancel</button>
@@ -1275,9 +1045,9 @@ function switchMasterTab(tab){
     const awardContainer  = document.getElementById('awarding-container');
     const conclusionContainer = document.getElementById('conclusion-container');
 
-    lotContainer.style.display        = (tab !== 'awarding' && tab !== 'conclusion') ? 'block' : 'none';
-    awardContainer.style.display      = (tab === 'awarding')   ? 'block' : 'none';
-    conclusionContainer.style.display = (tab === 'conclusion') ? 'block' : 'none';
+    lotContainer.classList.toggle('hide', tab === 'awarding' || tab === 'conclusion');
+    awardContainer.classList.toggle('hide', tab !== 'awarding');
+    conclusionContainer.classList.toggle('hide', tab !== 'conclusion');
 
     if(tab === 'awarding'){
         loadAwarding();
@@ -1294,7 +1064,7 @@ function loadLot(idx){
     const lot = LOTS[idx];
     if(!lot) return;
 
-    document.getElementById('lotHeadTitle').innerHTML = `<i class="bi bi-layers-fill" style="color:#1f7a3d"></i> <span>Lot ${esc(lot.lot_number)}${lot.lot_title ? ' · '+esc(lot.lot_title) : ''}</span>`;
+    document.getElementById('lotHeadTitle').innerHTML = `<i class="bi bi-layers-fill t-forest"></i> <span>Lot ${esc(lot.lot_number)}${lot.lot_title ? ' · '+esc(lot.lot_title) : ''}</span>`;
     document.getElementById('lotHeadAbc').innerHTML = `Approved Budget for Contract: <strong>₱${parseFloat(lot.abc||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong>`;
 
     const doneNumEl = document.getElementById('btnDoneLotNum');
@@ -1320,14 +1090,14 @@ function fetchAndRenderBiddersByDB(lotId){
     // If session is still in 'started' state, show the "Begin Eligibility Phase" gate
     // and hide the bidder area until the phase is officially started
     if(SESSION_STATUS === 'started'){
-        if(gate) gate.style.display = '';
+        if(gate) gate.classList.remove('hide');
         area.innerHTML = '';
         return;
     }
 
-    if(gate) gate.style.display = 'none';
+    if(gate) gate.classList.add('hide');
 
-    area.innerHTML = '<div style="padding:24px;display:flex;gap:8px"><div class="skel" style="height:32px;width:120px;border-radius:20px"></div><div class="skel" style="height:32px;width:120px;border-radius:20px"></div></div>';
+    area.innerHTML = '<div class="pad-24 flexr gap-8"><div class="skel h-32 w-120 r-20"></div><div class="skel h-32 w-120 r-20"></div></div>';
 
     // Stage comes from the DB status field — SESSION_STATUS is set on PHP page load from
     // bid_opening_sessions.status, and updated whenever setLotStage() persists a change.
@@ -1364,7 +1134,7 @@ function doStartEligibilityPhase(){
         closeStartEligibilityModal();
         SESSION_STATUS = 'eligibility';
         const gate = document.getElementById('startEligibilityGate');
-        if(gate) gate.style.display = 'none';
+        if(gate) gate.classList.add('hide');
         refreshSessionProgressFromDB();
         const lot = LOTS[STATE.activeLotIdx];
         if(lot) fetchAndRenderBiddersByDB(lot.id);
@@ -1418,22 +1188,15 @@ function updateStageUI(stage){
     const pill    = document.getElementById('lotCurrentStagePill');
 
     if(stage === 'eligibility'){
-        eligBtn.className  = 'stage-step active';
-        eligBtn.style.pointerEvents = CAN_MANAGE ? '' : 'none';
-        finBtn.className   = 'stage-step';
+        eligBtn.className  = 'stage-step active' + (CAN_MANAGE ? '' : ' stage-step--noclick');
         // financial locked until eligibility done — pointer-events blocked
-        finBtn.style.pointerEvents = 'none';
-        finBtn.style.opacity = '.45';
+        finBtn.className   = 'stage-step stage-step--noclick stage-step--dim';
         pill.className    = 'ipill live';
         pill.innerHTML    = '<i class="bi bi-shield-check"></i> Stage 1: Eligibility &amp; Technical';
     } else {
-        eligBtn.className  = 'stage-step done';
         // once on financial, eligibility is read-only indicator
-        eligBtn.style.pointerEvents = 'none';
-        eligBtn.style.opacity = '1';
-        finBtn.className   = 'stage-step active';
-        finBtn.style.pointerEvents = CAN_MANAGE ? '' : 'none';
-        finBtn.style.opacity = '';
+        eligBtn.className  = 'stage-step done stage-step--noclick';
+        finBtn.className   = 'stage-step active' + (CAN_MANAGE ? '' : ' stage-step--noclick');
         pill.className    = 'ipill mode';
         pill.innerHTML    = '<i class="bi bi-cash-stack"></i> Stage 2: Financial Proposal';
     }
@@ -1442,7 +1205,7 @@ function updateStageUI(stage){
 // ── Fetch and Render Bidders for Lot & Stage ───────────────────────────────
 function fetchAndRenderBidders(lotId, stage){
     const area = document.getElementById('lot-bidder-area');
-    area.innerHTML = '<div style="padding:24px;display:flex;gap:8px"><div class="skel" style="height:32px;width:120px;border-radius:20px"></div><div class="skel" style="height:32px;width:120px;border-radius:20px"></div></div>';
+    area.innerHTML = '<div class="pad-24 flexr gap-8"><div class="skel h-32 w-120 r-20"></div><div class="skel h-32 w-120 r-20"></div></div>';
 
     get({ action:'bidders', lot_id:lotId, phase:stage, session_id:SESSION_ID })
     .then(d=>{
@@ -1507,7 +1270,7 @@ function renderLotBidderArea(lotId, stage, bidders){
         tab.innerHTML = `
             <div class="bt-avatar">${b.avatar ? `<img src="../${esc(b.avatar)}" alt="">` : esc(ini)}</div>
             <span>${esc(bName)}</span>
-            ${isDisq ? '<span class="disq-badge"><i class="bi bi-x-circle-fill"></i> Disqualified</span>' : (isDone ? '<i class="bi bi-check2-circle" style="color:#00796b;font-size:11px;margin-left:2px"></i>' : '')}
+            ${isDisq ? '<span class="disq-badge"><i class="bi bi-x-circle-fill"></i> Disqualified</span>' : (isDone ? '<i class="bi bi-check2-circle t-teal fz-11 ml-2"></i>' : '')}
         `;
 
         if(!isDisq){
@@ -1545,28 +1308,28 @@ function renderLotBidderArea(lotId, stage, bidders){
             if(stage === 'eligibility'){
                 // Unlock the financial stage button now
                 const finBtn = document.getElementById('stageBtn-financial');
-                if(finBtn){ finBtn.style.pointerEvents=''; finBtn.style.opacity=''; }
+                if(finBtn){ finBtn.classList.remove('stage-step--noclick', 'stage-step--dim'); }
 
                 actBar.innerHTML = `
-                    <div style="font-size:12.5px;font-weight:700;color:#15803d;display:flex;align-items:center;gap:6px">
+                    <div class="fz-12-5 fw-7 t-greendark flexc gap-6">
                         <i class="bi bi-check-circle-fill"></i> Eligibility Stage Complete
                     </div>
-                    <button class="btn-confirm" style="background:#06251b;color:#ffc107" onclick="setLotStage('financial')">
+                    <button class="btn-confirm" onclick="setLotStage('financial')">
                         Proceed to Stage 2: Financial <i class="bi bi-arrow-right"></i>
                     </button>
                 `;
                 // Hide the button for non-managers
                 if(!CAN_MANAGE){
-                    actBar.querySelector('button.btn-confirm') && (actBar.querySelector('button.btn-confirm').style.display = 'none');
+                    actBar.querySelector('button.btn-confirm') && actBar.querySelector('button.btn-confirm').classList.add('hide');
                 }
-                fileArea.innerHTML = '<div class="p-empty"><i class="bi bi-check2-all" style="color:#15803d"></i>All eligibility documents reviewed for this lot.</div>';
+                fileArea.innerHTML = '<div class="p-empty"><i class="bi bi-check2-all t-greendark"></i>All eligibility documents reviewed for this lot.</div>';
             } else {
                 actBar.innerHTML = `
-                    <div style="font-size:12.5px;font-weight:700;color:#15803d;display:flex;align-items:center;gap:6px">
+                    <div class="fz-12-5 fw-7 t-greendark flexc gap-6">
                         <i class="bi bi-check-circle-fill"></i> Financial Stage Complete
                     </div>
                 `;
-                fileArea.innerHTML = '<div class="p-empty"><i class="bi bi-trophy" style="color:#00796b"></i>All bids reviewed for this lot. Click "Done Opening Lot" below to proceed.</div>';
+                fileArea.innerHTML = '<div class="p-empty"><i class="bi bi-trophy t-teal"></i>All bids reviewed for this lot. Click "Done Opening Lot" below to proceed.</div>';
             }
         }
     }
@@ -1583,7 +1346,7 @@ function selectBidderTab(lotId, stage, bidder, actBar, fileArea){
 
     const bName = bidder.business_name || (bidder.firstname+' '+bidder.lastname);
 
-    fileArea.innerHTML = '<div style="padding:16px;display:flex;flex-direction:column;gap:8px"><div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div></div>';
+    fileArea.innerHTML = '<div class="pad-16 flexcol gap-8"><div class="skel h-44"></div><div class="skel h-44"></div></div>';
 
     actBar.innerHTML = `
         <div class="action-bar-name"><i class="bi bi-building"></i>${esc(bName)}</div>
@@ -1644,7 +1407,7 @@ function _renderActionButtons(bidder, stage, lotId, files, quorum){
         // ── SECRETARIAT flow ──
         if(isOpened || sigDone){
             // Files already officially opened
-            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#1f7a3d;background:#e4f5ea;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-check-circle-fill"></i> Files Opened</span>`;
+            btns.innerHTML = `<span class="status-chip status-chip--forest"><i class="bi bi-check-circle-fill"></i> Files Opened</span>`;
         } else if(qReached && signaled){
             // Quorum reached — secretariat can now officially open
             btns.innerHTML = `<button class="btn-signal-open" id="btn-open-now-${bidder.bidder_id}"
@@ -1653,7 +1416,7 @@ function _renderActionButtons(bidder, stage, lotId, files, quorum){
             </button>`;
         } else if(signaled){
             // Secretariat already signaled — waiting for BAC to sign
-            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-hourglass-split"></i> Waiting for BAC (${quorum.sig_count}/${quorum.required})</span>`;
+            btns.innerHTML = `<span class="status-chip status-chip--blue"><i class="bi bi-hourglass-split"></i> Waiting for BAC (${quorum.sig_count}/${quorum.required})</span>`;
         } else {
             // Not yet started — show Start Opening button
             btns.innerHTML = `<button class="btn-signal-open" id="btn-start-opening-${bidder.bidder_id}"
@@ -1673,11 +1436,11 @@ function _renderActionButtons(bidder, stage, lotId, files, quorum){
         if(isOpened){
             // Files opened — show evaluation status
         } else if(qReached){
-            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-shield-check"></i> Quorum Reached — Secretariat opening files</span>`;
+            btns.innerHTML = `<span class="status-chip status-chip--blue"><i class="bi bi-shield-check"></i> Quorum Reached — Secretariat opening files</span>`;
         } else if(signaled){
             // Secretariat signaled — BAC can sign
             if(quorum.already_signed){
-                btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-check2-circle"></i> Signed — ${quorum.sig_count}/${quorum.required} reached</span>`;
+                btns.innerHTML = `<span class="status-chip status-chip--green"><i class="bi bi-check2-circle"></i> Signed — ${quorum.sig_count}/${quorum.required} reached</span>`;
             } else {
                 btns.innerHTML = `<button class="btn-sign" id="btn-sign-${bidder.bidder_id}"
                     onclick="openSignModal('${stage}', ${lotId}, ${bidder.bidder_id}, ${bidder.bid_id}, ${bidder.bid_lot_id}, '${esc(bName).replace(/'/g,"\\'")}')">
@@ -1686,25 +1449,25 @@ function _renderActionButtons(bidder, stage, lotId, files, quorum){
             }
         } else {
             // Secretariat hasn't started yet
-            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#f59e0b;background:#fef3c7;border:1px solid #fde68a;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-hourglass-split"></i> Waiting for Secretariat…</span>`;
+            btns.innerHTML = `<span class="status-chip status-chip--amber"><i class="bi bi-hourglass-split"></i> Waiting for Secretariat…</span>`;
         }
 
         // Evaluation status pill
         const st = stage === 'eligibility' ? bidder.eligibility_status : bidder.financial_status;
         if(st === 'eligible' || st === 'qualified')
-            btns.innerHTML += ` <span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-check-circle-fill"></i> ${st === 'eligible' ? 'Eligible' : 'Qualified'}</span>`;
+            btns.innerHTML += ` <span class="status-chip status-chip--green"><i class="bi bi-check-circle-fill"></i> ${st === 'eligible' ? 'Eligible' : 'Qualified'}</span>`;
         else if(st === 'disqualified' || st === 'non_compliant')
-            btns.innerHTML += ` <span style="font-size:11px;font-weight:700;color:#dc2626;background:#fee2e2;border:1px solid #fecaca;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-x-circle-fill"></i> ${st === 'disqualified' ? 'Disqualified' : 'Non-Compliant'}</span>`;
+            btns.innerHTML += ` <span class="status-chip status-chip--red"><i class="bi bi-x-circle-fill"></i> ${st === 'disqualified' ? 'Disqualified' : 'Non-Compliant'}</span>`;
 
     } else {
         // ── TWG / observer — status only ──
         const st = stage === 'eligibility' ? bidder.eligibility_status : bidder.financial_status;
         if(st === 'eligible' || st === 'qualified')
-            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-check-circle-fill"></i> ${st === 'eligible' ? 'Eligible' : 'Qualified'}</span>`;
+            btns.innerHTML = `<span class="status-chip status-chip--green"><i class="bi bi-check-circle-fill"></i> ${st === 'eligible' ? 'Eligible' : 'Qualified'}</span>`;
         else if(st === 'disqualified' || st === 'non_compliant')
-            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#dc2626;background:#fee2e2;border:1px solid #fecaca;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-x-circle-fill"></i> ${st === 'disqualified' ? 'Disqualified' : 'Non-Compliant'}</span>`;
+            btns.innerHTML = `<span class="status-chip status-chip--red"><i class="bi bi-x-circle-fill"></i> ${st === 'disqualified' ? 'Disqualified' : 'Non-Compliant'}</span>`;
         else
-            btns.innerHTML = `<span style="font-size:11px;font-weight:700;color:#f59e0b;background:#fef3c7;border:1px solid #fde68a;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-hourglass-split"></i> Waiting for evaluation…</span>`;
+            btns.innerHTML = `<span class="status-chip status-chip--amber"><i class="bi bi-hourglass-split"></i> Waiting for evaluation…</span>`;
     }
 }
 
@@ -1715,23 +1478,23 @@ function renderFiles(area, files, quorum){
     if(quorum){
         const bar = mkEl('div','');
         if(quorum.signing_status === 'done'){
-            bar.style.cssText = 'margin:8px 12px 0;padding:8px 12px;background:#e4f5ea;border:1px solid #bbf7d0;border-radius:10px;font-size:11.5px;font-weight:700;color:#166534;display:flex;align-items:center;gap:7px';
-            bar.innerHTML = `<i class="bi bi-unlock-fill" style="font-size:14px"></i> Files officially opened — decryption complete`;
+            bar.className = 'quorum-bar quorum-bar--done';
+            bar.innerHTML = `<i class="bi bi-unlock-fill fz-14"></i> Files officially opened — decryption complete`;
         } else if(quorum.quorum_reached){
-            bar.style.cssText = 'margin:8px 12px 0;padding:8px 12px;background:#dbeafe;border:1px solid #bfdbfe;border-radius:10px;font-size:11.5px;font-weight:700;color:#1e40af;display:flex;align-items:center;gap:7px';
-            bar.innerHTML = `<i class="bi bi-shield-check" style="font-size:14px"></i> Quorum reached (${quorum.sig_count}/${quorum.required} signatures) — waiting for Secretariat to open`;
+            bar.className = 'quorum-bar quorum-bar--reached';
+            bar.innerHTML = `<i class="bi bi-shield-check fz-14"></i> Quorum reached (${quorum.sig_count}/${quorum.required} signatures) — waiting for Secretariat to open`;
         } else {
             const pct = quorum.bac_total > 0 ? Math.round((quorum.sig_count / quorum.required) * 100) : 0;
-            bar.style.cssText = 'margin:8px 12px 0;padding:8px 12px;background:#fef3c7;border:1px solid #fde68a;border-radius:10px;font-size:11.5px;font-weight:700;color:#92400e;';
+            bar.className = 'quorum-bar quorum-bar--pending';
             bar.innerHTML = `
-                <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">
-                    <i class="bi bi-hourglass-split" style="font-size:13px"></i>
+                <div class="flexc gap-7 mb-6">
+                    <i class="bi bi-hourglass-split fz-13"></i>
                     Awaiting signatures — ${quorum.sig_count} of ${quorum.required} required (${quorum.bac_total} BAC invited)
                 </div>
-                <div style="background:#fde68a;border-radius:4px;height:6px;overflow:hidden">
-                    <div style="background:#f59e0b;height:100%;width:${Math.min(pct,100)}%;transition:width .3s"></div>
+                <div class="progress-track progress-track--amber-light">
+                    <div class="progress-fill progress-fill--amber" style="--w:${Math.min(pct,100)}%"></div>
                 </div>
-                ${quorum.signers && quorum.signers.length ? `<div style="margin-top:6px;font-size:10.5px;color:#b45309">Signed: ${quorum.signers.map(s=>`${s.firstname} ${s.lastname}`).join(', ')}</div>` : ''}
+                ${quorum.signers && quorum.signers.length ? `<div class="mt-6 fz-10-5 t-warnmid">Signed: ${quorum.signers.map(s=>`${s.firstname} ${s.lastname}`).join(', ')}</div>` : ''}
             `;
         }
         area.appendChild(bar);
@@ -1788,7 +1551,7 @@ function doSignalOpen(){
         SIGNING_STATUS = 'signing';
         closeStartOpeningModal();
         const startBtn = document.getElementById(`btn-start-opening-${bidderId}`);
-        if(startBtn) startBtn.outerHTML = `<span style="font-size:11px;font-weight:700;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-hourglass-split"></i> Waiting for BAC…</span>`;
+        if(startBtn) startBtn.outerHTML = `<span class="status-chip status-chip--blue"><i class="bi bi-hourglass-split"></i> Waiting for BAC…</span>`;
     })
     .catch(()=>{ btn.disabled=false; btn.innerHTML='<i class="bi bi-broadcast"></i> Yes, Start Opening'; });
 }
@@ -1839,7 +1602,7 @@ function doOpenFiles(){
 
         // Replace only the "Open Now" button — leave checklist intact
         const openNowBtn = document.getElementById(`btn-open-now-${bidderId}`);
-        if(openNowBtn) openNowBtn.outerHTML = `<span style="font-size:11px;font-weight:700;color:#1f7a3d;background:#e4f5ea;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-check-circle-fill"></i> Files Opened</span>`;
+        if(openNowBtn) openNowBtn.outerHTML = `<span class="status-chip status-chip--forest"><i class="bi bi-check-circle-fill"></i> Files Opened</span>`;
         const chkBtn = document.getElementById(`btn-chk-${bidderId}`);
         if(chkBtn) chkBtn.classList.add('ready');
     })
@@ -1852,7 +1615,7 @@ function openSignModal(stage, lotId, bidderId, bidId, bidLotId, bName){
     _signCtx = { stage, lotId, bidderId, bidId, bidLotId };
     document.getElementById('signBidderName').textContent = bName;
     document.getElementById('signPwInput').value = '';
-    document.getElementById('signErr').style.display = 'none';
+    document.getElementById('signErr').classList.remove('show');
 
     // Load current quorum state
     get({ action:'check_quorum', bid_lot_id:bidLotId, opening_type:stage, session_id:SESSION_ID })
@@ -1872,15 +1635,15 @@ function _renderSignQuorumStatus(q){
     if(!el) return;
     const pct = q.bac_total > 0 ? Math.round((q.sig_count / q.required) * 100) : 0;
     el.innerHTML = `
-        <div style="background:#f0f4f2;border-radius:10px;padding:10px 12px;font-size:12px;color:#55665a">
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-                <span style="font-weight:700">Signatures</span>
-                <span style="font-weight:800;color:#06251b">${q.sig_count} / ${q.required} needed</span>
+        <div class="info-box info-box--gray">
+            <div class="flex-between mb-6">
+                <span class="fw-7">Signatures</span>
+                <span class="fw-8 t-dark">${q.sig_count} / ${q.required} needed</span>
             </div>
-            <div style="background:#d1d5db;border-radius:4px;height:6px;overflow:hidden">
-                <div style="background:#1d4ed8;height:100%;width:${Math.min(pct,100)}%;transition:width .3s"></div>
+            <div class="progress-track progress-track--gray">
+                <div class="progress-fill progress-fill--blue" style="--w:${Math.min(pct,100)}%"></div>
             </div>
-            ${q.signers && q.signers.length ? `<div style="margin-top:6px;color:#6b7280;font-size:10.5px">Signed: ${q.signers.map(s=>`${s.firstname} ${s.lastname}`).join(', ')}</div>` : ''}
+            ${q.signers && q.signers.length ? `<div class="mt-6 t-slate fz-10-5">Signed: ${q.signers.map(s=>`${s.firstname} ${s.lastname}`).join(', ')}</div>` : ''}
         </div>
     `;
 }
@@ -1890,11 +1653,11 @@ function doSign(){
     const pw  = document.getElementById('signPwInput').value.trim();
     const err = document.getElementById('signErr');
     const btn = document.getElementById('signConfirmBtn');
-    if(!pw){ err.textContent = 'Password is required.'; err.style.display = 'block'; return; }
+    if(!pw){ err.textContent = 'Password is required.'; err.classList.add('show'); return; }
 
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Signing…';
-    err.style.display = 'none';
+    err.classList.remove('show');
 
     post({
         action:       'sign_lot',
@@ -1908,7 +1671,7 @@ function doSign(){
 
         if(!d.success){
             err.textContent = d.message || 'Failed.';
-            err.style.display = 'block';
+            err.classList.add('show');
             return;
         }
 
@@ -1922,14 +1685,14 @@ function doSign(){
             const btns = document.getElementById(`actbtns-${_signCtx.bidderId}`);
             if(btns){
                 const signBtn = document.getElementById(`btn-sign-${_signCtx.bidderId}`);
-                if(signBtn) signBtn.outerHTML = `<span style="font-size:11px;font-weight:700;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-shield-check"></i> Quorum Reached — waiting for Secretariat to open</span>`;
+                if(signBtn) signBtn.outerHTML = `<span class="status-chip status-chip--blue"><i class="bi bi-shield-check"></i> Quorum Reached — waiting for Secretariat to open</span>`;
             }
         } else {
             // Update button to "Signed" state
             const btns = document.getElementById(`actbtns-${_signCtx.bidderId}`);
             if(btns){
                 const signBtn = document.getElementById(`btn-sign-${_signCtx.bidderId}`);
-                if(signBtn) signBtn.outerHTML = `<span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="bi bi-check2-circle"></i> Signed (${d.sig_count}/${d.required})</span>`;
+                if(signBtn) signBtn.outerHTML = `<span class="status-chip status-chip--green"><i class="bi bi-check2-circle"></i> Signed (${d.sig_count}/${d.required})</span>`;
             }
             closeSignModal();
         }
@@ -1937,7 +1700,7 @@ function doSign(){
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-pen-fill"></i> Sign &amp; Submit';
         err.textContent = 'Network error. Please try again.';
-        err.style.display = 'block';
+        err.classList.add('show');
     });
 }
 
@@ -1948,11 +1711,11 @@ function doPwConfirm(){
     const pw  = document.getElementById('pwInput').value.trim();
     const err = document.getElementById('pwErr');
     const btn = document.getElementById('pwConfirmBtn');
-    if(!pw){ err.textContent = 'Password is required.'; err.style.display = 'block'; return; }
+    if(!pw){ err.textContent = 'Password is required.'; err.classList.add('show'); return; }
 
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Decrypting…';
-    err.style.display = 'none';
+    err.classList.remove('show');
 
     (async ()=>{
         let ok = true;
@@ -1960,7 +1723,7 @@ function doPwConfirm(){
             const res = await post({ action:'decrypt_file', doc_id:f.id, password:pw, session_id:SESSION_ID });
             if(!res.success){
                 err.textContent = res.message;
-                err.style.display = 'block';
+                err.classList.add('show');
                 ok = false;
                 break;
             }
@@ -2002,21 +1765,19 @@ function viewDoc(docId){
     if(e.mime === 'application/pdf'){
         const ifr = document.createElement('iframe');
         ifr.src   = objUrl;
-        ifr.style.cssText = 'width:100%;height:100%;min-height:80vh;border:none;border-radius:8px;';
+        ifr.className = 'fv-pdf-frame';
         c.appendChild(ifr);
     } else if(e.mime.startsWith('image/')){
         const img = document.createElement('img');
         img.src   = objUrl;
-        img.style.cssText = 'max-width:100%;max-height:80vh;border-radius:8px;object-fit:contain;';
+        img.className = 'fv-img';
         c.appendChild(img);
     } else {
         const a = document.createElement('a');
         a.href  = objUrl;
         a.download = e.file_name;
-        a.className = 'btn-confirm';
-        a.style.cssText = 'display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:10px;text-decoration:none;';
+        a.className = 'btn-confirm fv-download-link';
         a.innerHTML = '<i class="bi bi-download"></i> Download File';
-        c.style.justifyContent = 'center';
         c.appendChild(a);
     }
 
@@ -2041,12 +1802,12 @@ function openEligModal(bidId, name, stage, lotId, bidderId, bidLotId){
 
     document.getElementById('eligName').textContent = name;
     document.getElementById('eligModalTitle').innerHTML =
-        `<i class="bi bi-clipboard-check" style="color:#ffc107"></i> ${stage==='eligibility'?'Eligibility & Technical':'Financial'} Checklist`;
+        `<i class="bi bi-clipboard-check t-gold"></i> ${stage==='eligibility'?'Eligibility & Technical':'Financial'} Checklist`;
     document.getElementById('eligModalSub').textContent = `Review all documents for ${name}.`;
 
     // Load checklist from DB
     const area = document.getElementById('eligChecklistArea');
-    area.innerHTML = '<div style="padding:12px 0;display:flex;flex-direction:column;gap:8px"><div class="skel" style="height:36px;border-radius:8px"></div><div class="skel" style="height:36px;border-radius:8px"></div><div class="skel" style="height:36px;border-radius:8px"></div></div>';
+    area.innerHTML = '<div class="pad-12-0 flexcol gap-8"><div class="skel h-36 r-8"></div><div class="skel h-36 r-8"></div><div class="skel h-36 r-8"></div></div>';
 
     get({ action:'get_checklist', bid_lot_id:bidLotId, checklist_type:stage, procurement_type:PROC_TYPE, session_id:SESSION_ID })
     .then(d => {
@@ -2061,7 +1822,7 @@ function closeElig(){ document.getElementById('eligModal').classList.remove('ope
 
 function _renderChecklist(area, items, stage){
     if(!items || !items.length){
-        area.innerHTML = `<div style="padding:16px 0;text-align:center;color:#88968d;font-size:12.5px"><i class="bi bi-inbox"></i> No checklist items configured for the ${stage} phase.</div>`;
+        area.innerHTML = `<div class="pad-16-0 ta-center t-muted fz-12-5"><i class="bi bi-inbox"></i> No checklist items configured for the ${stage} phase.</div>`;
         _refreshEligibleBtn();
         return;
     }
@@ -2082,7 +1843,7 @@ function _renderChecklist(area, items, stage){
                 ${esc(item.item_name)}
                 ${item.is_required ? '<span class="cl-required">Required</span>' : ''}
             </div>
-            ${item.description ? `<div style="font-size:11px;color:#88968d;margin-bottom:5px">${esc(item.description)}</div>` : ''}
+            ${item.description ? `<div class="fz-11 t-muted mb-5">${esc(item.description)}</div>` : ''}
             <div class="cl-controls">
                 <select class="cl-select ${item.result}" id="cl-result-${item.id}"
                     onchange="_onResultChange(this, ${item.id})">
@@ -2140,8 +1901,7 @@ function _refreshEligibleBtn(){
 
     // Disable / enable the Eligible button
     complyBtn.disabled = hasPending;
-    complyBtn.style.opacity   = hasPending ? '0.45' : '';
-    complyBtn.style.cursor    = hasPending ? 'not-allowed' : '';
+    complyBtn.classList.toggle('btn-eligible--pending', hasPending);
     complyBtn.title            = hasPending
         ? `Complete all checklist items before marking the bidder as Eligible. (${pendingCount} pending)`
         : '';
@@ -2188,8 +1948,8 @@ function _saveChecklistItem(checklistId){
             setTimeout(()=>{ saveBtn.innerHTML = origHtml; }, 1500);
         } else {
             saveBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Saved';
-            saveBtn.style.background = '#1f7a3d';
-            setTimeout(()=>{ saveBtn.innerHTML = origHtml; saveBtn.style.background = ''; }, 1800);
+            saveBtn.classList.add('cl-save-btn--saved');
+            setTimeout(()=>{ saveBtn.innerHTML = origHtml; saveBtn.classList.remove('cl-save-btn--saved'); }, 1800);
             // Re-sync row background from the saved value (already matches what the user selected,
             // but calling _refreshEligibleBtn keeps the hint/button in sync after every save)
             _refreshEligibleBtn();
@@ -2244,8 +2004,8 @@ function openCannotProceedModal(title, items){
     list.innerHTML = '';
     items.forEach(item => {
         const row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 12px;font-size:12px;color:#9a3412;font-weight:600';
-        row.innerHTML = `<i class="bi bi-x-circle-fill" style="color:#dc2626;flex-shrink:0"></i>${item}`;
+        row.className = 'cannot-proceed-row';
+        row.innerHTML = `<i class="bi bi-x-circle-fill t-red shrink-0"></i>${item}`;
         list.appendChild(row);
     });
     document.getElementById('cannotProceedModal').classList.add('open');
@@ -2354,7 +2114,7 @@ function confirmDoneLot(){
 // ── Awarding Phase ────────────────────────────────────────────────────────
 function loadAwarding(){
     const list = document.getElementById('awarding-lots-list');
-    list.innerHTML = '<div style="padding:24px;display:flex;flex-direction:column;gap:12px"><div class="skel" style="height:60px"></div><div class="skel" style="height:60px"></div></div>';
+    list.innerHTML = '<div class="pad-24 flexcol gap-12"><div class="skel h-60"></div><div class="skel h-60"></div></div>';
 
     Promise.all([
         get({ action:'get_awards', proc_id:PROC_ID, session_id:SESSION_ID }),
@@ -2377,12 +2137,12 @@ function loadAwarding(){
             let headStatus = '';
             if(awarded)      headStatus = '<span class="award-winner-badge"><i class="bi bi-trophy-fill"></i> Awarded</span>';
             else if(failed)  headStatus = '<span class="status-pill sp-failed"><i class="bi bi-x-circle-fill"></i> Failed / No Award</span>';
-            else             headStatus = '<span style="font-size:11px;font-weight:700;color:#88968d">Select winning bidder below</span>';
+            else             headStatus = '<span class="fz-11 fw-7 t-muted">Select winning bidder below</span>';
 
             head.innerHTML = `
                 <div>
                     <div class="award-lot-title">Lot ${esc(lot.lot_number)}${lot.lot_title ? ' · '+esc(lot.lot_title) : ''}</div>
-                    <div style="font-size:11.5px;color:#55665a">Approved Budget: <strong style="color:#1f7a3d;font-family:'Space Grotesk',sans-serif">₱${parseFloat(lot.abc||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></div>
+                    <div class="fz-11-5 t-graphite">Approved Budget: <strong class="t-forest font-sg">₱${parseFloat(lot.abc||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></div>
                 </div>
                 ${headStatus}
             `;
@@ -2415,7 +2175,7 @@ function loadAwarding(){
                 card.appendChild(box);
 
             } else if(!bidders.length){
-                card.innerHTML += '<div class="p-empty" style="padding:20px"><i class="bi bi-inbox" style="font-size:22px"></i>No submitted bids for this lot.</div>';
+                card.innerHTML += '<div class="p-empty pad-20"><i class="bi bi-inbox fz-22"></i>No submitted bids for this lot.</div>';
 
             } else {
                 const bList = mkEl('div','award-bidders-list');
@@ -2428,7 +2188,7 @@ function loadAwarding(){
                     let actionHtml = '';
 
                     if(isDisq){
-                        actionHtml = `<span class="disq-badge" style="font-size:11px;padding:3px 8px"><i class="bi bi-x-circle-fill"></i> Ineligible / Disqualified</span>`;
+                        actionHtml = `<span class="disq-badge fz-11 pad-3-8"><i class="bi bi-x-circle-fill"></i> Ineligible / Disqualified</span>`;
                     } else if(CAN_MANAGE){
                         actionHtml = `
                             <div class="award-amount-wrap">
@@ -2446,8 +2206,8 @@ function loadAwarding(){
                         <div class="award-bidder-info">
                             <div class="bt-avatar">${b.avatar ? `<img src="../${esc(b.avatar)}" alt="">` : esc(ini)}</div>
                             <div>
-                                <div style="font-size:13px;font-weight:700;color:#06251b">${esc(bName)}</div>
-                                <div style="font-size:11px;color:#88968d">Bid Ref #${esc(b.bid_id)} · ${esc(b.submission_date||'')}</div>
+                                <div class="fz-13 fw-7 t-dark">${esc(bName)}</div>
+                                <div class="fz-11 t-muted">Bid Ref #${esc(b.bid_id)} · ${esc(b.submission_date||'')}</div>
                             </div>
                         </div>
                         <div class="award-bidder-actions">${actionHtml}</div>
@@ -2458,10 +2218,9 @@ function loadAwarding(){
 
                 // "Mark as Failed" footer — only for managers when lot is not yet resolved
                 if(CAN_MANAGE){
-                    const failBar = mkEl('div','');
-                    failBar.style.cssText = 'padding:10px 18px;border-top:1px solid #fef2f2;background:#fffafa;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap';
+                    const failBar = mkEl('div','fail-lot-bar');
                     failBar.innerHTML = `
-                        <span style="font-size:11.5px;color:#88968d">No qualified bidder? Mark this lot as failed instead.</span>
+                        <span class="fz-11-5 t-muted">No qualified bidder? Mark this lot as failed instead.</span>
                         <button class="btn-fail-lot" onclick="openFailLotModal(${lot.id}, ${lot.lot_number})">
                             <i class="bi bi-x-circle-fill"></i> Mark as Failed / No Award
                         </button>
@@ -2610,18 +2369,18 @@ function _conclusionFileList(bidderId, lotId, phase){
             const el = document.getElementById(id);
             if(!el) return;
             const files = d.files || [];
-            if(!files.length){ el.innerHTML = '<span style="font-size:11px;color:#9ca3af">No documents.</span>'; return; }
+            if(!files.length){ el.innerHTML = '<span class="fz-11 t-gray">No documents.</span>'; return; }
             el.innerHTML = files.map(f => {
                 const opened = !!openedDocs[f.id];
                 const ext = (f.display_name||'').split('.').pop().toLowerCase();
                 const icon = ext==='pdf' ? 'bi-file-earmark-pdf'
                            : ['jpg','jpeg','png','gif','webp'].includes(ext) ? 'bi-file-earmark-image'
                            : 'bi-file-earmark-text';
-                return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f7faf8">
-                    <i class="bi ${esc(icon)}" style="color:#88968d;font-size:13px;flex-shrink:0"></i>
-                    <span style="flex:1;font-size:11.5px;color:#06251b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.display_name)}</span>
+                return `<div class="list-row-sm">
+                    <i class="bi ${esc(icon)} t-muted fz-13 shrink-0"></i>
+                    <span class="flex-1 fz-11-5 t-dark truncate">${esc(f.display_name)}</span>
                     <button class="btn-view${opened?' active':''}" onclick="viewDoc(${f.id})"
-                        style="font-size:11px;padding:3px 10px"
+                        class="fz-11 pad-3-10"
                         title="${opened?'View document':'File not yet decrypted'}">
                         <i class="bi bi-eye"></i> View
                     </button>
@@ -2641,14 +2400,14 @@ function _conclusionFileList(bidderId, lotId, phase){
             })();
         });
     }, 0);
-    return `<div id="${id}" style="padding:2px 0"><span style="font-size:11px;color:#9ca3af">Loading…</span></div>`;
+    return `<div id="${id}" class="pad-2-0"><span class="fz-11 t-gray">Loading…</span></div>`;
 }
 
 // ── Conclusion Tab ────────────────────────────────────────────────────────
 function loadConclusion(){
     const body = document.getElementById('conclusion-body');
     if(!body) return;
-    body.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px"><div class="skel" style="height:80px;border-radius:12px"></div><div class="skel" style="height:140px;border-radius:12px"></div><div class="skel" style="height:140px;border-radius:12px"></div></div>';
+    body.innerHTML = '<div class="flexcol gap-10"><div class="skel h-80 r-12"></div><div class="skel h-140 r-12"></div><div class="skel h-140 r-12"></div></div>';
 
     Promise.all([
         get({ action:'progress',   session_id:SESSION_ID }),
@@ -2679,27 +2438,27 @@ function loadConclusion(){
 
         // Session info card
         let html = `
-        <div style="background:#f8faf9;border:1px solid #eaeeec;border-radius:14px;padding:18px 20px;margin-bottom:14px">
-            <div style="font-size:12px;font-weight:800;color:#88968d;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px">Session Info</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="info-card">
+            <div class="eyebrow-label-lg mb-12">Session Info</div>
+            <div class="grid-3col gap-12">
                 <div>
-                    <div style="font-size:11px;color:#88968d;font-weight:600;margin-bottom:3px"><i class="bi bi-play-circle-fill" style="color:#1f7a3d"></i> Started</div>
-                    <div style="font-size:13px;font-weight:700;color:#06251b">${esc(fmtDate(startedAt))}</div>
+                    <div class="fz-11 t-muted fw-6 mb-3"><i class="bi bi-play-circle-fill t-forest"></i> Started</div>
+                    <div class="fz-13 fw-7 t-dark">${esc(fmtDate(startedAt))}</div>
                 </div>
                 <div>
-                    <div style="font-size:11px;color:#88968d;font-weight:600;margin-bottom:3px"><i class="bi bi-stop-circle-fill" style="color:#dc2626"></i> Concluded</div>
-                    <div style="font-size:13px;font-weight:700;color:#06251b">${esc(fmtDate(endedAt))}</div>
+                    <div class="fz-11 t-muted fw-6 mb-3"><i class="bi bi-stop-circle-fill t-red"></i> Concluded</div>
+                    <div class="fz-13 fw-7 t-dark">${esc(fmtDate(endedAt))}</div>
                 </div>
                 <div>
-                    <div style="font-size:11px;color:#88968d;font-weight:600;margin-bottom:3px"><i class="bi bi-clock-fill" style="color:#f59e0b"></i> Duration</div>
-                    <div style="font-size:13px;font-weight:700;color:#06251b">${durationHtml}</div>
+                    <div class="fz-11 t-muted fw-6 mb-3"><i class="bi bi-clock-fill t-amber"></i> Duration</div>
+                    <div class="fz-13 fw-7 t-dark">${durationHtml}</div>
                 </div>
             </div>
         </div>`;
 
         // Lots result cards
-        html += `<div style="font-size:12px;font-weight:800;color:#88968d;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Lot Results</div>`;
-        html += `<div style="display:flex;flex-direction:column;gap:10px">`;
+        html += `<div class="eyebrow-label-lg mb-10">Lot Results</div>`;
+        html += `<div class="flexcol gap-10">`;
 
         LOTS.forEach(lot => {
             const awarded    = awards.find(a => parseInt(a.lot_id) === parseInt(lot.id));
@@ -2710,36 +2469,36 @@ function loadConclusion(){
                 const bName = awarded.business_name || (awarded.firstname+' '+awarded.lastname);
                 const amt   = parseFloat(awarded.awarded_amount||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
                 html += `
-                <div style="border:1.5px solid #b2dfdb;border-radius:12px;padding:14px 18px;background:#f0fdfa;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-                    <div style="display:flex;align-items:center;gap:12px">
-                        <div style="width:36px;height:36px;border-radius:10px;background:#00796b;color:#ffc107;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0"><i class="bi bi-trophy-fill"></i></div>
+                <div class="result-box result-box--teal">
+                    <div class="flexc gap-12">
+                        <div class="notice-icon notice-icon--teal-gold"><i class="bi bi-trophy-fill"></i></div>
                         <div>
-                            <div style="font-size:12px;font-weight:800;color:#06251b">${esc(lotName)}</div>
-                            <div style="font-size:12.5px;font-weight:700;color:#00796b;margin-top:2px"><i class="bi bi-building"></i> ${esc(bName)}</div>
+                            <div class="fz-12 fw-8 t-dark">${esc(lotName)}</div>
+                            <div class="fz-12-5 fw-7 t-teal mt-2"><i class="bi bi-building"></i> ${esc(bName)}</div>
                         </div>
                     </div>
-                    <div style="text-align:right">
-                        <div style="font-size:11px;color:#88968d;font-weight:600">Awarded Amount</div>
-                        <div style="font-size:14px;font-weight:800;color:#1f7a3d;font-family:'Space Grotesk',sans-serif">₱${amt}</div>
-                        <div style="font-size:10.5px;color:#88968d">${esc(awarded.award_date_fmt||'')}</div>
+                    <div class="ta-right">
+                        <div class="fz-11 t-muted fw-6">Awarded Amount</div>
+                        <div class="fz-14 fw-8 t-forest font-sg">₱${amt}</div>
+                        <div class="fz-10-5 t-muted">${esc(awarded.award_date_fmt||'')}</div>
                     </div>
                 </div>`;
             } else if(isFailed){
                 html += `
-                <div style="border:1.5px solid #fecaca;border-radius:12px;padding:14px 18px;background:#fef2f2;display:flex;align-items:center;gap:12px">
-                    <div style="width:36px;height:36px;border-radius:10px;background:#dc2626;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0"><i class="bi bi-x-lg"></i></div>
+                <div class="result-box result-box--red">
+                    <div class="notice-icon notice-icon--red"><i class="bi bi-x-lg"></i></div>
                     <div>
-                        <div style="font-size:12px;font-weight:800;color:#991b1b">${esc(lotName)}</div>
-                        <div style="font-size:11.5px;color:#ef4444;font-weight:600;margin-top:2px">No Award — Lot Failed</div>
+                        <div class="fz-12 fw-8 t-dangerdark">${esc(lotName)}</div>
+                        <div class="fz-11-5 t-danger fw-6 mt-2">No Award — Lot Failed</div>
                     </div>
                 </div>`;
             } else {
                 html += `
-                <div style="border:1.5px solid #e5e7eb;border-radius:12px;padding:14px 18px;background:#f9fafb;display:flex;align-items:center;gap:12px">
-                    <div style="width:36px;height:36px;border-radius:10px;background:#e5e7eb;color:#9ca3af;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0"><i class="bi bi-dash"></i></div>
+                <div class="result-box result-box--gray">
+                    <div class="notice-icon notice-icon--gray"><i class="bi bi-dash"></i></div>
                     <div>
-                        <div style="font-size:12px;font-weight:800;color:#374151">${esc(lotName)}</div>
-                        <div style="font-size:11.5px;color:#9ca3af;font-weight:600;margin-top:2px">No result recorded</div>
+                        <div class="fz-12 fw-8 t-charcoal">${esc(lotName)}</div>
+                        <div class="fz-11-5 t-gray fw-6 mt-2">No result recorded</div>
                     </div>
                 </div>`;
             }
@@ -2752,18 +2511,18 @@ function loadConclusion(){
         const failedCount  = failedLots.length;
         const totalLots    = LOTS.length;
         html += `
-        <div style="margin-top:14px;background:#06251b;border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:24px;flex-wrap:wrap">
-            <div style="flex:1;min-width:80px;text-align:center">
-                <div style="font-size:22px;font-weight:800;color:#ffc107;font-family:'Space Grotesk',sans-serif">${totalLots}</div>
-                <div style="font-size:11px;color:#a8c5ae;font-weight:600;margin-top:2px">Total Lots</div>
+        <div class="quorum-summary-bar">
+            <div class="flex-1 min-w-80 ta-center">
+                <div class="fz-22 fw-8 t-gold font-sg">${totalLots}</div>
+                <div class="fz-11 t-mint fw-6 mt-2">Total Lots</div>
             </div>
-            <div style="flex:1;min-width:80px;text-align:center">
-                <div style="font-size:22px;font-weight:800;color:#4ade80;font-family:'Space Grotesk',sans-serif">${awardedCount}</div>
-                <div style="font-size:11px;color:#a8c5ae;font-weight:600;margin-top:2px">Awarded</div>
+            <div class="flex-1 min-w-80 ta-center">
+                <div class="fz-22 fw-8 t-lightgreen font-sg">${awardedCount}</div>
+                <div class="fz-11 t-mint fw-6 mt-2">Awarded</div>
             </div>
-            <div style="flex:1;min-width:80px;text-align:center">
-                <div style="font-size:22px;font-weight:800;color:#f87171;font-family:'Space Grotesk',sans-serif">${failedCount}</div>
-                <div style="font-size:11px;color:#a8c5ae;font-weight:600;margin-top:2px">Failed / No Award</div>
+            <div class="flex-1 min-w-80 ta-center">
+                <div class="fz-22 fw-8 t-lightred font-sg">${failedCount}</div>
+                <div class="fz-11 t-mint fw-6 mt-2">Failed / No Award</div>
             </div>
         </div>`;
 
@@ -2780,33 +2539,33 @@ function loadConclusion(){
                 get({ action:'bidders', lot_id:lot.id, phase:'financial',   session_id:SESSION_ID })
             ]).then(([ed, fd]) => ({ lot, eligBidders: ed.bidders||[], finBidders: fd.bidders||[] }))
         )).then(lotBidders => {
-            let bHtml = `<div style="font-size:12px;font-weight:800;color:#88968d;letter-spacing:.06em;text-transform:uppercase;margin:18px 0 10px">Submitted Bid Documents</div>`;
+            let bHtml = `<div class="eyebrow-label-lg mt-18 mb-10">Submitted Bid Documents</div>`;
             lotBidders.forEach(({ lot, eligBidders }) => {
                 if(!eligBidders.length) return;
                 const lotName = `Lot ${lot.lot_number}${lot.lot_title ? ' · '+lot.lot_title : ''}`;
-                bHtml += `<div style="border:1px solid #eaeeec;border-radius:14px;overflow:hidden;margin-bottom:14px">
-                    <div style="background:#f8faf9;border-bottom:1px solid #eaeeec;padding:10px 16px;font-size:13px;font-weight:800;color:#06251b">
-                        <i class="bi bi-layers-fill" style="color:#1f7a3d"></i> ${esc(lotName)}
+                bHtml += `<div class="bordered-card mb-14">
+                    <div class="section-head-bar">
+                        <i class="bi bi-layers-fill t-forest"></i> ${esc(lotName)}
                     </div>`;
 
                 eligBidders.forEach(b => {
                     const bName = b.business_name || (b.firstname+' '+b.lastname);
                     const ini   = (b.firstname||'').charAt(0).toUpperCase()+(b.lastname||'').charAt(0).toUpperCase();
-                    const statusColor = b.eligibility_status==='eligible' ? '#15803d' : b.eligibility_status==='disqualified' ? '#dc2626' : '#f59e0b';
+                    const statusClass = b.eligibility_status==='eligible' ? 'status-text--eligible' : b.eligibility_status==='disqualified' ? 'status-text--disqualified' : 'status-text--pending';
                     const statusLabel = b.eligibility_status==='eligible' ? 'Eligible' : b.eligibility_status==='disqualified' ? 'Disqualified' : b.eligibility_status;
 
-                    bHtml += `<div style="padding:12px 16px;border-bottom:1px solid #f0f4f2">
-                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-                            <div style="width:28px;height:28px;border-radius:50%;background:#06251b;color:#ffc107;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
-                                ${b.avatar ? `<img src="../${esc(b.avatar)}" style="width:100%;height:100%;object-fit:cover">` : esc(ini)}
+                    bHtml += `<div class="pad-12-16 border-b">
+                        <div class="flexc gap-10 mb-10">
+                            <div class="avatar-28 avatar-28--dark">
+                                ${b.avatar ? `<img src="../${esc(b.avatar)}" class="w-full-h-full-cover">` : esc(ini)}
                             </div>
-                            <div style="font-size:12.5px;font-weight:700;color:#06251b;flex:1">${esc(bName)}</div>
-                            <span style="font-size:10.5px;font-weight:700;color:${statusColor}">${esc(statusLabel)}</span>
+                            <div class="fz-12-5 fw-7 t-dark flex-1">${esc(bName)}</div>
+                            <span class="status-text ${statusClass}">${esc(statusLabel)}</span>
                         </div>
-                        <div style="font-size:10.5px;font-weight:700;color:#88968d;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Eligibility Documents</div>
+                        <div class="eyebrow-label mb-4">Eligibility Documents</div>
                         ${_conclusionFileList(b.bidder_id, lot.id, 'eligibility')}
                         ${b.eligibility_status !== 'disqualified' ? `
-                        <div style="font-size:10.5px;font-weight:700;color:#88968d;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.05em">Financial Documents</div>
+                        <div class="eyebrow-label mt-8 mb-4">Financial Documents</div>
                         ${_conclusionFileList(b.bidder_id, lot.id, 'financial')}` : ''}
                     </div>`;
                 });

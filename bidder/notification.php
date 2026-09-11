@@ -170,54 +170,8 @@ $notifs_data = [];
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        .btn-mark-read-all {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #eef2f0;
-            color: #06251b;
-            font-size: 12px;
-            font-weight: 700;
-            padding: 8px 14px;
-            border-radius: 9px;
-            border: none;
-            cursor: pointer;
-            transition: all .15s ease;
-            font-family: 'Poppins', sans-serif;
-            white-space: nowrap;
-        }
-
-        .btn-mark-read-all:hover {
-            background: #06251b;
-            color: #ffc107;
-        }
-
-        .vp-back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #06251b;
-            font-size: 12.5px;
-            font-weight: 700;
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            padding: 7px 14px;
-            border-radius: 10px;
-            text-decoration: none;
-            transition: all .2s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-            cursor: pointer;
-            font-family: 'Poppins', sans-serif;
-            white-space: nowrap;
-        }
-
-        .vp-back-link:hover {
-            background: #06251b;
-            color: #ffc107;
-            border-color: #06251b;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/bidder-notification.css">
 </head>
 <body class="dash-body">
 
@@ -238,12 +192,12 @@ include("components/topbar.php");
 
     <!-- ── Stat Cards (matching /superadmin/announcements.php & /admin/audit_trail.php) ── -->
     <div class="sad-section-label">Summary</div>
-    <div class="ap2-stats ap2-stats-4" style="margin-bottom:20px;">
-        
+    <div class="ap2-stats ap2-stats-4 mb-20">
+
         <!-- Total Notifications -->
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#06251b 0% 100%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-bell-fill" style="color:#06251b;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#06251b; --pct:100%">
+                <div class="ap2-ring-inner"><i class="bi bi-bell-fill"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= number_format($stat_total) ?></div>
@@ -252,34 +206,35 @@ include("components/topbar.php");
         </div>
 
         <!-- Unread -->
+        <?php $unreadColor = $stat_unread > 0 ? '#e67e22' : '#8B958E'; ?>
         <div class="ap2-stat <?= $stat_unread > 0 ? 'bsv-stat-warn' : '' ?>">
-            <div class="ap2-ring" style="background:conic-gradient(<?= $stat_unread > 0 ? '#e67e22' : '#8B958E' ?> 0% <?= $stat_total > 0 ? round($stat_unread / $stat_total * 100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-bell-slash-fill" style="color:<?= $stat_unread > 0 ? '#e67e22' : '#8B958E' ?>;"></i></div>
+            <div class="ap2-ring" style="--ring-color:<?= $unreadColor ?>; --pct:<?= $stat_total > 0 ? round($stat_unread / $stat_total * 100) : 0 ?>%">
+                <div class="ap2-ring-inner"><i class="bi bi-bell-slash-fill"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:<?= $stat_unread > 0 ? '#e67e22' : 'inherit' ?>;"><?= number_format($stat_unread) ?></div>
+                <div class="ap2-stat-num <?= $stat_unread > 0 ? 'ap2-stat-num--warn' : '' ?>"><?= number_format($stat_unread) ?></div>
                 <div class="ap2-stat-lbl">Unread</div>
             </div>
         </div>
 
         <!-- Broadcast / Public -->
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#219653 0% <?= $stat_total > 0 ? round($stat_broadcast / max($stat_total,1) * 100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-globe" style="color:#219653;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#219653; --pct:<?= $stat_total > 0 ? round($stat_broadcast / max($stat_total,1) * 100) : 0 ?>%">
+                <div class="ap2-ring-inner"><i class="bi bi-globe"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:#219653;"><?= number_format($stat_broadcast) ?></div>
+                <div class="ap2-stat-num ap2-stat-num--broadcast"><?= number_format($stat_broadcast) ?></div>
                 <div class="ap2-stat-lbl">Broadcasts</div>
             </div>
         </div>
 
         <!-- Direct / Role Targeted -->
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#2F6FED 0% <?= $stat_total > 0 ? round($stat_direct / max($stat_total,1) * 100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-person-badge" style="color:#2F6FED;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#2F6FED; --pct:<?= $stat_total > 0 ? round($stat_direct / max($stat_total,1) * 100) : 0 ?>%">
+                <div class="ap2-ring-inner"><i class="bi bi-person-badge"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:#2F6FED;"><?= number_format($stat_direct) ?></div>
+                <div class="ap2-stat-num ap2-stat-num--direct"><?= number_format($stat_direct) ?></div>
                 <div class="ap2-stat-lbl">Role / Direct</div>
             </div>
         </div>
@@ -287,18 +242,18 @@ include("components/topbar.php");
     </div>
 
     <!-- ── Notification List Panel (matching superadmin announcements layout) ── -->
-    <div class="proc-table-panel" style="margin-bottom:24px;">
+    <div class="proc-table-panel mb-24">
 
         <!-- Filter bar -->
         <div class="filter-bar">
-            <form method="GET" action="notification.php" id="notifForm" style="display:contents;">
+            <form method="GET" action="notification.php" id="notifForm" class="form-contents">
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
                     <input type="text" name="search"
                         placeholder="Search by title, message, or author..."
                         value="<?= htmlspecialchars($search) ?>">
                 </div>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <div class="filter-status-group">
                     <?php foreach (['all'=>'All','unread'=>'Unread','broadcast'=>'Broadcast','direct'=>'Direct / Role'] as $val => $lbl): ?>
                         <button type="submit" name="type" value="<?= $val ?>"
                                 class="ap2-filter-btn <?= $filter_type === $val ? 'active' : '' ?>">
@@ -316,12 +271,12 @@ include("components/topbar.php");
         </div>
 
         <?php if ($total_shown === 0): ?>
-        <div style="padding:52px 20px; text-align:center; color:#88968d;">
-            <i class="bi bi-megaphone" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
-            <div style="font-size:13px; font-weight:700;">No notifications found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?></div>
+        <div class="notif-empty-state">
+            <i class="bi bi-megaphone notif-empty-icon"></i>
+            <div class="notif-empty-title">No notifications found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?></div>
         </div>
         <?php else: ?>
-        <div style="overflow-x:auto;">
+        <div class="table-scroll-x">
             <table class="proc-table">
                 <thead>
                     <tr>
@@ -329,7 +284,7 @@ include("components/topbar.php");
                         <th class="col-mode">Target</th>
                         <th class="col-opening">From</th>
                         <th class="col-abc">Date</th>
-                        <th style="text-align:right; min-width:170px;">Actions</th>
+                        <th class="col-actions-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -337,42 +292,41 @@ include("components/topbar.php");
                     $notifs_data[$nt['notification_id']] = $nt;
                     $isRead = (bool)$nt['is_read'];
                     $tt = $nt['target_type'];
-                    $pillBg = '#E7EEFE'; $pillFg = '#1565c0'; $badgeTxt = 'Broadcast'; $badgeIcn = 'globe';
+                    $pillClass = 'notif-pill--broadcast'; $badgeTxt = 'Broadcast'; $badgeIcn = 'globe';
                     if ($tt === 'role') {
                         $r = $nt['target_role'];
-                        if ($r === 'bidder')     { $pillBg='#FCF1CF'; $pillFg='#C99A1D'; $badgeTxt='Bidders';  $badgeIcn='person-badge'; }
-                        elseif ($r === 'admin')  { $pillBg='#E4F5EA'; $pillFg='#219653'; $badgeTxt='Admins';   $badgeIcn='shield-check'; }
-                        else                     { $pillBg='#F3E5F5'; $pillFg='#7b1fa2'; $badgeTxt=strtoupper($r); $badgeIcn='people'; }
-                    } elseif ($tt === 'user') { $pillBg='#EDE7F6'; $pillFg='#512da8'; $badgeTxt='Direct'; $badgeIcn='person'; }
+                        if ($r === 'bidder')     { $pillClass='notif-pill--bidder';    $badgeTxt='Bidders';  $badgeIcn='person-badge'; }
+                        elseif ($r === 'admin')  { $pillClass='notif-pill--admin';     $badgeTxt='Admins';   $badgeIcn='shield-check'; }
+                        else                     { $pillClass='notif-pill--role-other'; $badgeTxt=strtoupper($r); $badgeIcn='people'; }
+                    } elseif ($tt === 'user') { $pillClass='notif-pill--direct'; $badgeTxt='Direct'; $badgeIcn='person'; }
                     $creatorName = trim(($nt['creator_fname']??'').' '.($nt['creator_lname']??'')) ?: 'BAC Secretariat';
                 ?>
-                <tr id="notif-row-<?= $nt['notification_id'] ?>" <?= !$isRead ? 'style="background:#fdfaf3;"' : '' ?>>
+                <tr id="notif-row-<?= $nt['notification_id'] ?>" class="<?= !$isRead ? 'notif-row--unread' : '' ?>">
                     <td class="proc-title-cell">
-                        <div style="display:flex; align-items:center; gap:7px; font-weight:700; color:#06251b; margin-bottom:3px;">
+                        <div class="notif-title-row">
                             <?= htmlspecialchars($nt['title']) ?>
                             <?php if (!$isRead): ?>
-                                <span style="background:#fff3e0; color:#e67e22; padding:1px 7px; border-radius:10px; font-weight:800; font-size:9.5px; flex-shrink:0;">UNREAD</span>
+                                <span class="notif-unread-badge">UNREAD</span>
                             <?php endif; ?>
                         </div>
-                        <div style="font-size:11px; color:#63736a; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;">
+                        <div class="notif-message-clamp">
                             <?= htmlspecialchars($nt['message']) ?>
                         </div>
                     </td>
                     <td class="col-mode">
-                        <span class="proc-status-pill" style="background:<?= $pillBg ?>; color:<?= $pillFg ?>; font-size:10px; padding:3px 8px; border-radius:20px; display:inline-flex; align-items:center; gap:4px; white-space:nowrap;">
-                            <i class="bi bi-<?= $badgeIcn ?>" style="font-size:9px;"></i> <?= htmlspecialchars($badgeTxt) ?>
+                        <span class="proc-status-pill notif-pill <?= $pillClass ?>">
+                            <i class="bi bi-<?= $badgeIcn ?> notif-pill-icon"></i> <?= htmlspecialchars($badgeTxt) ?>
                         </span>
                     </td>
                     <td class="proc-deadline-cell col-opening"><?= htmlspecialchars($creatorName) ?></td>
-                    <td class="proc-deadline-cell col-abc" style="white-space:nowrap;">
+                    <td class="proc-deadline-cell col-abc notif-date-cell">
                         <?= date('M j, Y', strtotime($nt['created_at'])) ?><br>
-                        <span style="color:#88968d; font-size:10.5px;"><?= timeAgo($nt['created_at']) ?></span>
+                        <span class="notif-time-ago"><?= timeAgo($nt['created_at']) ?></span>
                     </td>
-                    <td style="text-align:right;">
-                        <div style="display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
+                    <td class="notif-actions-cell">
+                        <div class="notif-actions-wrap">
                             <?php if (!$isRead): ?>
-                            <button type="button" class="proc-action-btn mark-read-btn"
-                                    style="background:#e4f5ea; color:#1f7a3d; border:none; cursor:pointer;"
+                            <button type="button" class="proc-action-btn mark-read-btn proc-action-btn--mark-read"
                                     onclick="pageMarkSingleRead(<?= $nt['notification_id'] ?>, this)">
                                 <i class="bi bi-check2"></i> Read
                             </button>
@@ -449,8 +403,8 @@ async function viewAnnouncement(id) {
             nt.is_read = 1;
             const row = document.getElementById(`notif-row-${id}`);
             if (row) {
-                row.style.background = '#fff';
-                const unreadBadge = row.querySelector('.sp-proc-title span[style*="background:#fff3e0"]');
+                row.classList.remove('notif-row--unread');
+                const unreadBadge = row.querySelector('.notif-unread-badge');
                 if (unreadBadge) unreadBadge.remove();
                 const readBtn = row.querySelector('.mark-read-btn');
                 if (readBtn) readBtn.remove();
@@ -479,8 +433,8 @@ async function pageMarkSingleRead(id, btn) {
         if (data.status === 'success') {
             const row = document.getElementById(`notif-row-${id}`);
             if (row) {
-                row.style.background = '#fff';
-                const unreadBadge = row.querySelector('.sp-proc-title span[style*="background:#fff3e0"]');
+                row.classList.remove('notif-row--unread');
+                const unreadBadge = row.querySelector('.notif-unread-badge');
                 if (unreadBadge) unreadBadge.remove();
             }
             if (btn) btn.remove();

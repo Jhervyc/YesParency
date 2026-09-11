@@ -217,82 +217,8 @@ $rstmt->close();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        * { box-sizing: border-box; }
-        .dash-content { max-width: 100%; overflow-x: hidden; }
-
-        /* Status pills */
-        .req-status-pill {
-            display: inline-flex; align-items: center; gap: 4px;
-            font-size: 10.5px; font-weight: 800; padding: 3px 9px;
-            border-radius: 20px; text-transform: uppercase; white-space: nowrap;
-        }
-        .req-status-pill.pending  { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-        .req-status-pill.approved { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-        .req-status-pill.rejected { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-
-        /* Action buttons */
-        .req-btn {
-            display: inline-flex; align-items: center; gap: 5px;
-            font-size: 11.5px; font-weight: 700; padding: 5px 11px;
-            border-radius: 8px; border: none; cursor: pointer; transition: all .15s;
-            text-decoration: none;
-        }
-        .req-btn.approve { background: #1f7a3d; color: #fff; }
-        .req-btn.approve:hover { background: #16602f; }
-        .req-btn.reject  { background: #fff; color: #b91c1c; border: 1.5px solid #fecaca; }
-        .req-btn.reject:hover  { background: #fef2f2; border-color: #b91c1c; }
-        .req-btn.resend  { background: #fffbeb; color: #b45309; border: 1.5px solid #fde68a; }
-        .req-btn.resend:hover  { background: #fef3c7; }
-
-        /* Table */
-        .req-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-        .req-table thead tr { background: #fafcfb; border-bottom: 2px solid #eaeeec; }
-        .req-table thead th { padding: 11px 14px; text-align: left; font-size: 10.5px; font-weight: 800; color: #88968d; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; }
-        .req-table tbody tr { border-bottom: 1px solid #f4f6f5; transition: background .1s; }
-        .req-table tbody tr:last-child { border-bottom: none; }
-        .req-table tbody tr:hover { background: #fafcfb; }
-        .req-table td { padding: 13px 14px; vertical-align: middle; }
-
-        /* Company cell */
-        .req-company { font-size: 13px; font-weight: 700; color: #06251b; }
-        .req-contact { font-size: 11.5px; color: #6c776e; margin-top: 2px; }
-
-        /* Notes textarea in reject modal */
-        .rej-modal-backdrop {
-            display: none; position: fixed; inset: 0;
-            background: rgba(6,37,27,.5); backdrop-filter: blur(4px);
-            z-index: 9999; align-items: center; justify-content: center; padding: 16px;
-        }
-        .rej-modal-backdrop.open { display: flex; }
-        .rej-modal {
-            background: #fff; border-radius: 18px; padding: 28px 28px 24px;
-            width: 100%; max-width: 460px;
-            box-shadow: 0 12px 40px rgba(6,37,27,.18);
-        }
-        .rej-modal h4 { font-size: 17px; font-weight: 800; color: #06251b; margin: 0 0 6px; }
-        .rej-modal p  { font-size: 12.5px; color: #6c776e; margin: 0 0 18px; line-height: 1.6; }
-        .rej-modal textarea {
-            width: 100%; border: 1.5px solid #dbe2df; border-radius: 10px;
-            padding: 10px 12px; font-family: 'Poppins', sans-serif; font-size: 12.5px;
-            color: #06251b; resize: vertical; min-height: 90px; outline: none;
-            transition: border-color .15s;
-        }
-        .rej-modal textarea:focus { border-color: #1f7a3d; }
-        .rej-modal-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
-        .btn-cancel-rej { background: #f4f6f5; color: #06251b; border: none; border-radius: 9px; padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .15s; }
-        .btn-cancel-rej:hover { background: #e0e8e4; }
-        .btn-confirm-rej { background: #b91c1c; color: #fff; border: none; border-radius: 9px; padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .15s; }
-        .btn-confirm-rej:hover { background: #991b1b; }
-
-        /* Pagination */
-        .pag-wrap { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-top: 1px solid #f0f4f2; font-size: 12px; color: #6c776e; flex-wrap: wrap; gap: 8px; }
-        .pag-links { display: flex; gap: 4px; flex-wrap: wrap; }
-        .pag-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; color: #06251b; border: 1px solid #eaeeec; background: #fff; transition: all .15s; }
-        .pag-btn:hover { background: #06251b; color: #ffc107; border-color: #06251b; }
-        .pag-btn.active { background: #06251b; color: #ffc107; border-color: #06251b; }
-        .pag-btn.disabled { opacity: .4; pointer-events: none; }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-invitation-requests.css">
 </head>
 <body class="dash-body">
 
@@ -315,10 +241,10 @@ include("components/topbar.php");
 
     <!-- ── Stat Cards ── -->
     <div class="sad-section-label">Summary</div>
-    <div class="ap2-stats ap2-stats-4" style="margin-bottom:20px;">
+    <div class="ap2-stats ap2-stats-4">
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#06251b 0% 100%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-envelope-paper" style="color:#06251b;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#06251b; --pct:100%;">
+                <div class="ap2-ring-inner"><i class="bi bi-envelope-paper clr-dark"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= $stat_total ?></div>
@@ -326,17 +252,17 @@ include("components/topbar.php");
             </div>
         </div>
         <div class="ap2-stat <?= $stat_pending > 0 ? 'bsv-stat-warn' : '' ?>">
-            <div class="ap2-ring" style="background:conic-gradient(<?= $stat_pending > 0 ? '#e67e22' : '#8B958E' ?> 0% <?= $stat_total > 0 ? round($stat_pending/$stat_total*100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-hourglass-split" style="color:<?= $stat_pending > 0 ? '#e67e22' : '#8B958E' ?>;"></i></div>
+            <div class="ap2-ring" style="--ring-color:<?= $stat_pending > 0 ? '#e67e22' : '#8B958E' ?>; --pct:<?= $stat_total > 0 ? round($stat_pending/$stat_total*100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-hourglass-split <?= $stat_pending > 0 ? 'clr-amber' : 'clr-idle' ?>"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:<?= $stat_pending > 0 ? '#e67e22' : 'inherit' ?>"><?= $stat_pending ?></div>
+                <div class="ap2-stat-num <?= $stat_pending > 0 ? 'stat-num--warn' : '' ?>"><?= $stat_pending ?></div>
                 <div class="ap2-stat-lbl">Pending Review</div>
             </div>
         </div>
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#219653 0% <?= $stat_total > 0 ? round($stat_approved/$stat_total*100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-patch-check" style="color:#219653;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#219653; --pct:<?= $stat_total > 0 ? round($stat_approved/$stat_total*100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-patch-check clr-green"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= $stat_approved ?></div>
@@ -344,8 +270,8 @@ include("components/topbar.php");
             </div>
         </div>
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#c23b3b 0% <?= $stat_total > 0 ? round($stat_rejected/$stat_total*100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-x-circle" style="color:#c23b3b;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#c23b3b; --pct:<?= $stat_total > 0 ? round($stat_rejected/$stat_total*100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-x-circle clr-red"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= $stat_rejected ?></div>
@@ -361,7 +287,7 @@ include("components/topbar.php");
         </div>
 
         <!-- Search + filter -->
-        <form method="GET" action="" class="ap2-controls" style="margin-bottom:16px;">
+        <form method="GET" action="" class="ap2-controls mb-16">
             <div class="ap2-search-field">
                 <i class="bi bi-search"></i>
                 <input type="text" name="search"
@@ -374,7 +300,7 @@ include("components/topbar.php");
                             class="ap2-filter-btn <?= $status_filter === $val ? 'active' : '' ?>">
                         <?= $lbl ?>
                         <?php if ($val === 'pending' && $stat_pending > 0): ?>
-                            <span style="background:#e67e22; color:#fff; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; margin-left:3px;"><?= $stat_pending ?></span>
+                            <span class="pending-count-badge"><?= $stat_pending ?></span>
                         <?php endif; ?>
                     </button>
                 <?php endforeach; ?>
@@ -383,14 +309,14 @@ include("components/topbar.php");
         </form>
 
         <?php if (empty($requests)): ?>
-            <div style="padding:52px 20px; text-align:center; color:#88968d;">
-                <i class="bi bi-envelope-paper" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
-                <div style="font-size:13px; font-weight:700;">
+            <div class="results-empty">
+                <i class="bi bi-envelope-paper results-empty-icon"></i>
+                <div class="results-empty-title">
                     No <?= $status_filter !== 'all' ? $status_filter . ' ' : '' ?>requests found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.
                 </div>
             </div>
         <?php else: ?>
-        <div style="overflow-x:auto;">
+        <div class="table-scroll">
             <table class="req-table">
                 <thead>
                     <tr>
@@ -400,7 +326,7 @@ include("components/topbar.php");
                         <th>TIN</th>
                         <th>Submitted</th>
                         <th>Status</th>
-                        <th style="text-align:right; min-width:180px;">Actions</th>
+                        <th class="col-actions-th">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -415,19 +341,19 @@ include("components/topbar.php");
                             <div class="req-contact"><i class="bi bi-telephone"></i> <?= htmlspecialchars($req['phone']) ?></div>
                         <?php endif; ?>
                     </td>
-                    <td style="color:#06251b; font-weight:600; font-size:12.5px;">
+                    <td class="email-cell">
                         <?= htmlspecialchars($req['email']) ?>
                     </td>
-                    <td style="font-size:12px; color:#55665a;">
+                    <td class="biztype-cell">
                         <?= htmlspecialchars($req['business_type'] ?? '—') ?>
                     </td>
-                    <td style="font-size:12px; color:#6c776e;">
+                    <td class="tin-cell">
                         <?= htmlspecialchars($req['tax_id_tin'] ?? '—') ?>
                     </td>
-                    <td style="white-space:nowrap; font-size:12px; color:#6c776e;">
+                    <td class="date-cell">
                         <?= date('M j, Y', strtotime($req['created_at'])) ?>
                         <?php if ($status !== 'pending' && $req['reviewed_at']): ?>
-                            <div style="font-size:10.5px; color:#88968d; margin-top:2px;">
+                            <div class="reviewed-note">
                                 <?= $status === 'approved' ? 'Approved' : 'Rejected' ?> <?= date('M j, Y', strtotime($req['reviewed_at'])) ?>
                                 <?php if ($req['reviewer_username']): ?>
                                     by @<?= htmlspecialchars($req['reviewer_username']) ?>
@@ -437,19 +363,19 @@ include("components/topbar.php");
                     </td>
                     <td>
                         <span class="req-status-pill <?= $status ?>">
-                            <i class="bi bi-circle-fill" style="font-size:5px;"></i>
+                            <i class="bi bi-circle-fill status-dot-xxtiny"></i>
                             <?= ucfirst($status) ?>
                         </span>
                         <?php if (!empty($req['admin_notes']) && $status === 'rejected'): ?>
-                            <div style="font-size:10.5px; color:#88968d; margin-top:4px; font-style:italic; max-width:160px; word-break:break-word;">
+                            <div class="admin-notes-preview">
                                 "<?= htmlspecialchars(mb_strimwidth($req['admin_notes'], 0, 60, '...')) ?>"
                             </div>
                         <?php endif; ?>
                     </td>
-                    <td style="text-align:right; white-space:nowrap;">
+                    <td class="actions-cell">
                         <?php if ($status === 'pending'): ?>
                             <!-- Approve form -->
-                            <form method="POST" action="" style="display:inline;">
+                            <form method="POST" action="" class="inline-form">
                                 <input type="hidden" name="action"  value="approve">
                                 <input type="hidden" name="req_id" value="<?= $req['id'] ?>">
                                 <button type="submit" class="req-btn approve"
@@ -465,7 +391,7 @@ include("components/topbar.php");
 
                         <?php elseif ($status === 'approved'): ?>
                             <!-- Resend invite -->
-                            <form method="POST" action="" style="display:inline;">
+                            <form method="POST" action="" class="inline-form">
                                 <input type="hidden" name="action"  value="resend">
                                 <input type="hidden" name="req_id" value="<?= $req['id'] ?>">
                                 <button type="submit" class="req-btn resend"
@@ -475,7 +401,7 @@ include("components/topbar.php");
                             </form>
 
                         <?php else: ?>
-                            <span style="font-size:11.5px; color:#88968d; font-style:italic;">No actions</span>
+                            <span class="no-actions-text">No actions</span>
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -515,7 +441,7 @@ include("components/topbar.php");
 <!-- ── Reject Modal ── -->
 <div class="rej-modal-backdrop" id="rejectModal">
     <div class="rej-modal">
-        <h4><i class="bi bi-x-circle-fill" style="color:#b91c1c; margin-right:6px;"></i> Reject Request</h4>
+        <h4><i class="bi bi-x-circle-fill modal-title-icon"></i> Reject Request</h4>
         <p id="rejectModalDesc">Provide an optional reason for the rejection. This will be included in the email sent to the applicant.</p>
         <form method="POST" action="" id="rejectForm">
             <input type="hidden" name="action"  value="reject">

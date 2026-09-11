@@ -106,77 +106,8 @@ $logs_data = [];
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        /* Drawer and detail specific additions */
-        .at-drawer-section {
-            background: #fff;
-            border-radius: 14px;
-            padding: 16px 18px;
-            margin-bottom: 14px;
-            border: 1px solid #eaeeec;
-            box-shadow: 0 1px 4px rgba(0,0,0,.03);
-        }
-        .at-drawer-section-title {
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .06em;
-            color: #9aa8a1;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .at-drawer-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px 16px;
-        }
-        .at-drawer-field label {
-            display: block;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: #9aa8a1;
-            margin-bottom: 2px;
-        }
-        .at-drawer-field .val {
-            font-size: 13px;
-            font-weight: 600;
-            color: #182019;
-            word-break: break-word;
-        }
-        .at-json-box {
-            background: #f4f7f5;
-            border: 1px solid #e2e9e5;
-            border-radius: 10px;
-            padding: 12px;
-            font-family: 'Courier New', monospace;
-            font-size: 11.5px;
-            color: #1f3a2c;
-            white-space: pre-wrap;
-            word-break: break-all;
-            max-height: 220px;
-            overflow-y: auto;
-        }
-        .module-select-wrap select {
-            border: 1.5px solid #eaeeec;
-            background: #eef2f0;
-            color: #16241d;
-            font-family: 'Poppins', sans-serif;
-            font-size: 12.5px;
-            font-weight: 600;
-            padding: 8px 12px;
-            border-radius: 9px;
-            outline: none;
-            cursor: pointer;
-            transition: all .15s;
-        }
-        .module-select-wrap select:focus {
-            border-color: #06251b;
-            background: #fff;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-audit-trail.css">
 </head>
 <body class="dash-body">
 
@@ -194,11 +125,11 @@ $logs_data = [];
 
     <!-- ── Stat cards (matching account-management.php) ── -->
     <div class="sad-section-label">Summary</div>
-    <div class="ap2-stats ap2-stats-4" style="margin-bottom:20px;">
+    <div class="ap2-stats ap2-stats-4 mb-20">
         <!-- Total Modifications -->
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#06251b 0% 100%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-database-check" style="color:#06251b;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#06251b; --pct:100%;">
+                <div class="ap2-ring-inner"><i class="bi bi-database-check clr-dark"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= number_format($stat_total) ?></div>
@@ -207,47 +138,47 @@ $logs_data = [];
         </div>
         <!-- Created / Added -->
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#219653 0% <?= $stat_total > 0 ? round($stat_create / $stat_total * 100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-plus-circle" style="color:#219653;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#219653; --pct:<?= $stat_total > 0 ? round($stat_create / $stat_total * 100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-plus-circle clr-create"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:#219653;"><?= number_format($stat_create) ?></div>
+                <div class="ap2-stat-num ap2-stat-num--create"><?= number_format($stat_create) ?></div>
                 <div class="ap2-stat-lbl">Added / Created</div>
             </div>
         </div>
         <!-- Updated / Modified -->
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#2F6FED 0% <?= $stat_total > 0 ? round($stat_update / $stat_total * 100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-pencil-square" style="color:#2F6FED;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#2F6FED; --pct:<?= $stat_total > 0 ? round($stat_update / $stat_total * 100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-pencil-square clr-update"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:#2F6FED;"><?= number_format($stat_update) ?></div>
+                <div class="ap2-stat-num ap2-stat-num--update"><?= number_format($stat_update) ?></div>
                 <div class="ap2-stat-lbl">Updated / Modified</div>
             </div>
         </div>
         <!-- Deleted / Removed -->
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#c23b3b 0% <?= $stat_total > 0 ? round($stat_delete / $stat_total * 100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-trash3" style="color:#c23b3b;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#c23b3b; --pct:<?= $stat_total > 0 ? round($stat_delete / $stat_total * 100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-trash3 clr-delete"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:#c23b3b;"><?= number_format($stat_delete) ?></div>
+                <div class="ap2-stat-num ap2-stat-num--delete"><?= number_format($stat_delete) ?></div>
                 <div class="ap2-stat-lbl">Deleted</div>
             </div>
         </div>
     </div>
 
     <!-- ── Log list panel ── -->
-    <div class="proc-table-panel" style="margin-bottom:24px;">
+    <div class="proc-table-panel mb-24">
         <div class="filter-bar">
-            <form method="GET" action="audit_trail.php" id="auditFilterForm" style="display:contents;">
+            <form method="GET" action="audit_trail.php" id="auditFilterForm" class="at-filter-form">
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
                     <input type="text" name="search"
                         placeholder="Search by description, record ID, or user..."
                         value="<?= htmlspecialchars($search) ?>">
                 </div>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <div class="at-tabs">
                     <?php foreach (['all'=>'All','CREATE'=>'Created','UPDATE'=>'Updated','DELETE'=>'Deleted'] as $val => $lbl): ?>
                     <button type="submit" name="action" value="<?= $val ?>"
                             class="ap2-filter-btn <?= $action_filter === $val ? 'active' : '' ?>">
@@ -255,7 +186,7 @@ $logs_data = [];
                     </button>
                     <?php endforeach; ?>
                 </div>
-                <select name="module" class="filter-dropdowns" style="border:1.5px solid #eaeeec; background:#eef2f0; color:#16241d; font-family:'Poppins',sans-serif; font-size:12.5px; font-weight:600; padding:8px 12px; border-radius:9px; outline:none; cursor:pointer;" onchange="document.getElementById('auditFilterForm').submit()">
+                <select name="module" class="filter-dropdowns" onchange="document.getElementById('auditFilterForm').submit()">
                     <option value="all" <?= $module_filter==='all'?'selected':'' ?>>All Modules</option>
                     <option value="procurements" <?= $module_filter==='procurements'?'selected':'' ?>>Procurements</option>
                     <option value="bids" <?= $module_filter==='bids'?'selected':'' ?>>Bids</option>
@@ -270,67 +201,66 @@ $logs_data = [];
         </div>
 
         <?php if ($total_shown === 0): ?>
-        <div style="padding:52px 20px; text-align:center; color:#88968d;">
-            <i class="bi bi-database-exclamation" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
-            <div style="font-size:13px; font-weight:700;">No audit records found<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.</div>
+        <div class="anc-empty-state">
+            <i class="bi bi-database-exclamation anc-empty-icon"></i>
+            <div class="anc-empty-text">No audit records found<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.</div>
         </div>
         <?php else: ?>
-        <div style="overflow-x:auto;">
+        <div class="table-scroll">
             <table class="proc-table">
                 <thead>
                     <tr>
-                        <th style="width:42px;"></th>
+                        <th class="col-w-42"></th>
                         <th>Description</th>
                         <th class="col-mode">Actor</th>
                         <th class="col-opening">Module</th>
                         <th class="col-abc">IP Address</th>
                         <th class="col-status">Time</th>
-                        <th style="text-align:right; min-width:80px;">Action</th>
+                        <th class="at-action-th">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                 <?php while ($row = $result->fetch_assoc()):
                     $logs_data[$row['log_id']] = $row;
                     $act = strtoupper($row['action']);
-                    $iconBg='#f0f4f2'; $iconFg='#06251b'; $icon='bi-database';
-                    $pillBg='#EEF0ED'; $pillFg='#8B958E';
+                    $mod = 'default'; $icon = 'bi-database';
                     $is_create = in_array($act,['CREATE','INSERT'])||str_ends_with($act,'_CREATED')||str_ends_with($act,'SUBMITTED')||str_ends_with($act,'INVITED')||str_ends_with($act,'RECORDED');
                     $is_update = in_array($act,['UPDATE','PUBLISH','APPROVE','REJECT','TOGGLE_MAINTENANCE'])||str_ends_with($act,'_UPDATED')||str_ends_with($act,'_CHANGED')||str_ends_with($act,'_APPROVED')||str_ends_with($act,'_REJECTED')||str_ends_with($act,'_STARTED')||str_ends_with($act,'_ACTIVATED')||str_ends_with($act,'_DEACTIVATED')||str_ends_with($act,'_REORDERED');
                     $is_delete = $act==='DELETE'||str_ends_with($act,'_DELETED')||str_ends_with($act,'_CANCELLED')||str_ends_with($act,'_REMOVED');
-                    if ($is_create) { $iconBg='#E4F5EA'; $iconFg='#219653'; $icon='bi-plus-circle'; $pillBg='#D9F2DF'; $pillFg='#1f7a3d'; }
-                    elseif ($is_update) { $iconBg='#E7EEFE'; $iconFg='#2F6FED'; $icon='bi-pencil-square'; $pillBg='#E7EEFE'; $pillFg='#2F6FED'; }
-                    elseif ($is_delete) { $iconBg='#FBE1E1'; $iconFg='#c23b3b'; $icon='bi-trash3'; $pillBg='#FBE1E1'; $pillFg='#c23b3b'; }
+                    if ($is_create) { $mod='create'; $icon='bi-plus-circle'; }
+                    elseif ($is_update) { $mod='update'; $icon='bi-pencil-square'; }
+                    elseif ($is_delete) { $mod='delete'; $icon='bi-trash3'; }
                     $actorName = $row['username'] ? trim($row['firstname'].' '.$row['lastname']) : 'System';
                     $usernameStr = $row['username'] ? '@'.$row['username'] : '—';
                 ?>
                 <tr>
-                    <td style="padding:14px 8px 14px 16px;">
-                        <div style="width:32px; height:32px; border-radius:9px; background:<?= $iconBg ?>; color:<?= $iconFg ?>; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">
+                    <td class="at-icon-col">
+                        <div class="at-action-icon at-action-icon--<?= $mod ?>">
                             <i class="bi <?= $icon ?>"></i>
                         </div>
                     </td>
                     <td class="proc-title-cell">
                         <?= htmlspecialchars(mb_strimwidth($row['description'], 0, 70, '…')) ?>
-                        <div style="font-size:10.5px; color:#88968d; margin-top:2px;">
-                            <span class="proc-status-pill" style="background:<?= $pillBg ?>; color:<?= $pillFg ?>; font-size:9.5px; padding:2px 7px;">
+                        <div class="at-action-sub">
+                            <span class="proc-status-pill at-action-pill at-action-pill--<?= $mod ?>">
                                 <?= htmlspecialchars($act) ?>
                             </span>
                         </div>
                     </td>
                     <td class="proc-deadline-cell col-mode">
                         <strong><?= htmlspecialchars($actorName) ?></strong>
-                        <span style="color:#88968d;"><?= htmlspecialchars($usernameStr) ?></span>
+                        <span class="clr-idle"><?= htmlspecialchars($usernameStr) ?></span>
                     </td>
                     <td class="proc-deadline-cell col-opening">
                         <strong><?= htmlspecialchars(ucfirst($row['module'])) ?></strong>
-                        <?php if ($row['record_id']): ?><span style="color:#88968d;">#<?= intval($row['record_id']) ?></span><?php endif; ?>
+                        <?php if ($row['record_id']): ?><span class="clr-idle">#<?= intval($row['record_id']) ?></span><?php endif; ?>
                     </td>
                     <td class="proc-deadline-cell col-abc"><?= htmlspecialchars($row['ip_address'] ?? '—') ?></td>
-                    <td class="proc-deadline-cell col-status" style="white-space:nowrap;">
+                    <td class="proc-deadline-cell col-status nowrap">
                         <?= date('M j, Y', strtotime($row['created_at'])) ?><br>
-                        <span style="color:#88968d;"><?= date('g:i A', strtotime($row['created_at'])) ?></span>
+                        <span class="clr-idle"><?= date('g:i A', strtotime($row['created_at'])) ?></span>
                     </td>
-                    <td style="text-align:right;">
+                    <td class="text-right">
                         <button type="button" class="proc-action-btn btn-view" onclick="loadLogDetail(<?= $row['log_id'] ?>)">
                             <i class="bi bi-eye"></i>
                         </button>
@@ -413,22 +343,22 @@ $logs_data = [];
         }
 
         const act = (log.action || '').toUpperCase();
-        let pillBg = '#EEF0ED', pillFg = '#8B958E';
+        let pillMod = 'default';
         const isCreate = ['CREATE', 'INSERT'].includes(act) || act.endsWith('_CREATED') || act.endsWith('SUBMITTED') || act.endsWith('INVITED') || act.endsWith('RECORDED');
         const isUpdate = ['UPDATE', 'PUBLISH', 'APPROVE', 'REJECT', 'TOGGLE_MAINTENANCE'].includes(act) || act.endsWith('_UPDATED') || act.endsWith('_CHANGED') || act.endsWith('_APPROVED') || act.endsWith('_REJECTED') || act.endsWith('_STARTED') || act.endsWith('_ACTIVATED') || act.endsWith('_DEACTIVATED') || act.endsWith('_REORDERED');
         const isDelete = act === 'DELETE' || act.endsWith('_DELETED') || act.endsWith('_CANCELLED') || act.endsWith('_REMOVED');
 
         if (isCreate) {
-            pillBg = '#D9F2DF'; pillFg = '#1f7a3d';
+            pillMod = 'create';
         } else if (isUpdate) {
-            pillBg = '#E7EEFE'; pillFg = '#2F6FED';
+            pillMod = 'update';
         } else if (isDelete) {
-            pillBg = '#FBE1E1'; pillFg = '#c23b3b';
+            pillMod = 'delete';
         }
 
         const actor = log.username
-            ? `${log.firstname || ''} ${log.lastname || ''} <span style="color:#9aa8a1">(@${log.username})</span>`
-            : '<span style="color:#9aa8a1">System / Automated</span>';
+            ? `${log.firstname || ''} ${log.lastname || ''} <span class="at-actor-fallback">(@${log.username})</span>`
+            : '<span class="at-actor-fallback">System / Automated</span>';
 
         const logDate = new Date(log.created_at).toLocaleString('en-PH', {
             year: 'numeric', month: 'long', day: 'numeric',
@@ -446,12 +376,12 @@ $logs_data = [];
                     <div class="at-drawer-field">
                         <label>Action</label>
                         <div class="val">
-                            <span class="sp-status-pill" style="background:${pillBg}; color:${pillFg}">${act}</span>
+                            <span class="sp-status-pill at-action-pill--${pillMod}">${act}</span>
                         </div>
                     </div>
                     <div class="at-drawer-field">
                         <label>Module</label>
-                        <div class="val" style="text-transform:capitalize;">${log.module}</div>
+                        <div class="val capitalize">${log.module}</div>
                     </div>
                     <div class="at-drawer-field">
                         <label>Record ID</label>
@@ -467,7 +397,7 @@ $logs_data = [];
             <!-- Description -->
             <div class="at-drawer-section">
                 <div class="at-drawer-section-title"><i class="bi bi-card-text"></i> Summary / Description</div>
-                <div style="font-size:13.5px; font-weight:600; color:#06251b; line-height:1.5;">
+                <div class="at-desc-text">
                     ${log.description}
                 </div>
             </div>
@@ -476,22 +406,22 @@ $logs_data = [];
             <div class="at-drawer-section">
                 <div class="at-drawer-section-title"><i class="bi bi-person-gear"></i> Performed By & Network</div>
                 <div class="at-drawer-grid">
-                    <div class="at-drawer-field" style="grid-column:1 / -1;">
+                    <div class="at-drawer-field at-drawer-field--full">
                         <label>Actor</label>
                         <div class="val">${actor}</div>
                     </div>
                     <div class="at-drawer-field">
                         <label>Timestamp</label>
-                        <div class="val" style="font-size:12px;">${logDate}</div>
+                        <div class="val at-val-sm">${logDate}</div>
                     </div>
                     <div class="at-drawer-field">
                         <label>IP Address</label>
-                        <div class="val" style="font-size:12px;">${log.ip_address || '—'}</div>
+                        <div class="val at-val-sm">${log.ip_address || '—'}</div>
                     </div>
                     ${log.user_agent ? `
-                    <div class="at-drawer-field" style="grid-column:1 / -1;">
+                    <div class="at-drawer-field at-drawer-field--full">
                         <label>User Agent</label>
-                        <div class="val" style="font-size:11px; color:#6C776E;">${log.user_agent}</div>
+                        <div class="val at-val-xs">${log.user_agent}</div>
                     </div>` : ''}
                 </div>
             </div>

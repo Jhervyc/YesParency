@@ -209,6 +209,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
     <!-- Shared Stylesheets -->
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
+    <link rel="stylesheet" href="../css/responsive.css">
     <link rel="stylesheet" href="../css/pages/user-bidder-registration.css">
 </head>
 <body class="dash-body">

@@ -242,844 +242,8 @@
     <!-- Shared Stylesheets -->
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        /* ── Base Layout & Utility ── */
-        * {
-            box-sizing: border-box;
-        }
-
-        .dash-content {
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-
-        /* ── Breadcrumb & Top Bar ── */
-        .vp-nav-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 18px;
-        }
-
-        .vp-breadcrumbs {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            color: #88968d;
-            font-weight: 600;
-        }
-
-        .vp-breadcrumbs a {
-            color: #1f7a3d;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            transition: color .15s;
-        }
-
-        .vp-breadcrumbs a:hover {
-            text-decoration: underline;
-            color: #06251b;
-        }
-
-        .vp-back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #06251b;
-            font-size: 12.5px;
-            font-weight: 700;
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            padding: 8px 16px;
-            border-radius: 10px;
-            text-decoration: none;
-            transition: all .2s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
-
-        .vp-back-link:hover {
-            background: #06251b;
-            color: #ffc107;
-            border-color: #06251b;
-            transform: translateY(-1px);
-        }
-
-        /* ── Hero Banner ── */
-        .vp-hero-card {
-            background: linear-gradient(135deg, #06251b 0%, #0c3d2c 60%, #14593f 100%);
-            border-radius: 20px;
-            padding: 26px 30px;
-            color: #ffffff;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(6, 37, 27, 0.16);
-            margin-bottom: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .vp-hero-card::after {
-            content: '';
-            position: absolute;
-            top: -50px;
-            right: -50px;
-            width: 220px;
-            height: 220px;
-            background: radial-gradient(circle, rgba(255, 193, 7, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-
-        .vp-hero-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 12px;
-        }
-
-        .vp-hero-badges {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .hero-pill {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            letter-spacing: .3px;
-        }
-
-        .hero-pill.ref {
-            background: rgba(255, 255, 255, 0.12);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            cursor: pointer;
-            transition: all .15s;
-        }
-
-        .hero-pill.ref:hover {
-            background: rgba(255, 255, 255, 0.22);
-        }
-
-        .hero-pill.mode {
-            background: rgba(255, 193, 7, 0.2);
-            border: 1px solid rgba(255, 193, 7, 0.4);
-            color: #ffc107;
-        }
-
-        .hero-pill.status {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: #ffffff;
-        }
-
-        .vp-hero-title {
-            font-size: 22px;
-            font-weight: 800;
-            color: #ffffff;
-            line-height: 1.35;
-            margin-bottom: 20px;
-            letter-spacing: -0.3px;
-        }
-
-        /* Hero Key Metrics */
-        .vp-hero-metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-        }
-
-        .vp-hero-metric-item {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 14px;
-            padding: 12px 16px;
-        }
-
-        .vp-hero-metric-lbl {
-            font-size: 10px;
-            font-weight: 700;
-            color: #d1e5db;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .vp-hero-metric-lbl i {
-            color: #ffc107;
-        }
-
-        .vp-hero-metric-val {
-            font-size: 16px;
-            font-weight: 800;
-            color: #ffffff;
-            font-family: 'Space Grotesk', sans-serif;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .vp-hero-metric-val.gold {
-            color: #ffc107;
-        }
-
-        /* ── Modern Stat Ring Cards ── */
-        .stats-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-            gap: 14px;
-            margin-bottom: 24px;
-        }
-
-        .stat-ring-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 16px;
-            padding: 16px 18px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            box-shadow: 0 1px 3px rgba(16,36,26,.02);
-            transition: all .2s ease;
-        }
-
-        .stat-ring-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(16,36,26,.06);
-            border-color: #d2ded7;
-        }
-
-        .stat-ring-wrap {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .stat-ring-wrap.green { background: #eef7f1; color: #1f7a3d; }
-        .stat-ring-wrap.gold  { background: #fff8e6; color: #b78103; }
-        .stat-ring-wrap.blue  { background: #eef4ff; color: #2563eb; }
-        .stat-ring-wrap.red   { background: #fdf2f2; color: #dc2626; }
-
-        .stat-ring-info {
-            min-width: 0;
-        }
-
-        .stat-ring-num {
-            font-size: 19px;
-            font-weight: 800;
-            color: #06251b;
-            font-family: 'Space Grotesk', sans-serif;
-            line-height: 1.1;
-        }
-
-        .stat-ring-lbl {
-            font-size: 11.5px;
-            font-weight: 600;
-            color: #718278;
-            margin-top: 3px;
-        }
-
-        /* ── Two-Column Layout (1.7fr + 1fr) ── */
-        .vp-grid-layout {
-            display: grid;
-            grid-template-columns: 1.7fr 1fr;
-            gap: 24px;
-            align-items: start;
-            margin-bottom: 30px;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .vp-left-col {
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .vp-right-col {
-            min-width: 0;
-            max-width: 100%;
-            position: sticky;
-            top: 20px;
-        }
-
-        @media (max-width: 1060px) {
-            .vp-grid-layout {
-                grid-template-columns: 1fr;
-            }
-            .vp-right-col {
-                position: static;
-            }
-        }
-
-        /* ── Card Containers ── */
-        .vp-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            margin-bottom: 22px;
-            overflow: hidden;
-        }
-
-        .vp-card-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px;
-            border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .vp-card-title {
-            font-size: 14px;
-            font-weight: 800;
-            color: #06251b;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .vp-card-count {
-            background: #eef7f1;
-            color: #1f7a3d;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 12px;
-        }
-
-        .vp-card-body {
-            padding: 20px;
-        }
-
-        /* ── Allocation Visual Progress Meter ── */
-        .allocation-meter-card {
-            background: #fbfdfc;
-            border: 1px solid #eaeeec;
-            border-radius: 14px;
-            padding: 16px;
-            margin-bottom: 18px;
-        }
-
-        .alloc-header-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 12px;
-            font-weight: 700;
-            color: #06251b;
-            margin-bottom: 8px;
-        }
-
-        .alloc-progress-track {
-            width: 100%;
-            height: 10px;
-            background: #eaeeec;
-            border-radius: 10px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .alloc-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #1f7a3d 0%, #2ecc71 100%);
-            border-radius: 10px;
-            transition: width .4s ease;
-        }
-
-        .alloc-progress-fill.overbudget {
-            background: linear-gradient(90deg, #e53e3e 0%, #fc8181 100%);
-        }
-
-        .alloc-sub-text {
-            font-size: 11px;
-            color: #63736a;
-            margin-top: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        /* ── Lots List Table/Items ── */
-        .lots-table-container {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .lot-row-card {
-            background: #ffffff;
-            border: 1px solid #e7ede9;
-            border-radius: 14px;
-            padding: 16px 18px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 16px;
-            transition: all .2s ease;
-        }
-
-        .lot-row-card:hover {
-            border-color: #bad3c5;
-            box-shadow: 0 4px 12px rgba(6, 37, 27, 0.04);
-            transform: translateY(-1px);
-        }
-
-        .lot-badge-num {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            background: #06251b;
-            color: #ffc107;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: 800;
-            font-family: 'Space Grotesk', sans-serif;
-            flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(6, 37, 27, 0.12);
-        }
-
-        .lot-main-info {
-            flex: 1 1 auto;
-            min-width: 0;
-        }
-
-        .lot-title-heading {
-            font-size: 14px;
-            font-weight: 800;
-            color: #06251b;
-            margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .lot-desc-text {
-            font-size: 12px;
-            color: #63736a;
-            line-height: 1.45;
-            margin-bottom: 8px;
-        }
-
-        .lot-meta-tags {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .lot-abc-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 12px;
-            font-weight: 800;
-            font-family: 'Space Grotesk', sans-serif;
-            padding: 3px 10px;
-            border-radius: 6px;
-            background: #eef7f1;
-            color: #1f7a3d;
-            border: 1px solid #d2ebd9;
-        }
-
-        .lot-action-btns {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-shrink: 0;
-        }
-
-        .btn-lot-action {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 7px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all .15s ease;
-            border: 1px solid transparent;
-        }
-
-        .btn-lot-action.edit {
-            background: #f4faf6;
-            color: #1f7a3d;
-            border-color: #cce7d6;
-        }
-
-        .btn-lot-action.edit:hover {
-            background: #1f7a3d;
-            color: #ffffff;
-            border-color: #1f7a3d;
-        }
-
-        .btn-lot-action.delete {
-            background: #fdf2f2;
-            color: #dc2626;
-            border-color: #fbd5d5;
-        }
-
-        .btn-lot-action.delete:hover {
-            background: #dc2626;
-            color: #ffffff;
-            border-color: #dc2626;
-        }
-
-        /* ── Input Form Elements ── */
-        .field-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-bottom: 14px;
-            min-width: 0;
-        }
-
-        .field-label {
-            font-size: 12px;
-            font-weight: 700;
-            color: #2b3a31;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .field-label .req {
-            color: #e53935;
-            font-weight: 800;
-        }
-
-        .field-hint {
-            font-size: 11px;
-            color: #88968d;
-            font-weight: 400;
-        }
-
-        .input-icon-box {
-            position: relative;
-            display: flex;
-            align-items: center;
-            width: 100%;
-            min-width: 0;
-        }
-
-        .input-icon-box i.input-icon {
-            position: absolute;
-            left: 14px;
-            color: #88968d;
-            font-size: 15px;
-            pointer-events: none;
-            transition: color .15s;
-            z-index: 1;
-        }
-
-        .input-icon-box input,
-        .input-icon-box select,
-        .input-icon-box textarea {
-            width: 100%;
-            min-width: 0;
-            background: #ffffff;
-            border: 1.5px solid #dce4e0;
-            border-radius: 10px;
-            padding: 10px 14px 10px 40px;
-            font-size: 13px;
-            font-family: inherit;
-            color: #06251b;
-            font-weight: 500;
-            transition: all .2s ease;
-            outline: none;
-            box-sizing: border-box;
-        }
-
-        .input-icon-box textarea {
-            padding: 12px 14px 12px 40px;
-            resize: vertical;
-            min-height: 80px;
-            line-height: 1.5;
-        }
-
-        .input-icon-box textarea + i.input-icon {
-            top: 14px;
-        }
-
-        .input-icon-box input:focus,
-        .input-icon-box textarea:focus {
-            border-color: #1f7a3d;
-            box-shadow: 0 0 0 3px rgba(31, 122, 61, 0.12);
-            background: #fafcfb;
-        }
-
-        .input-icon-box input:focus + i.input-icon,
-        .input-icon-box textarea:focus + i.input-icon {
-            color: #1f7a3d;
-        }
-
-        .currency-preview-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #eef7f1;
-            color: #1f7a3d;
-            font-size: 11.5px;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 6px;
-            margin-top: 6px;
-            border: 1px solid #d3ebd9;
-            transition: all .2s;
-        }
-
-        /* ── Submit Buttons ── */
-        .btn-submit-proposal {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: #06251b;
-            color: #ffc107;
-            font-size: 13.5px;
-            font-weight: 800;
-            padding: 12px 22px;
-            border-radius: 12px;
-            border: none;
-            cursor: pointer;
-            transition: all .2s ease;
-            box-shadow: 0 4px 14px rgba(6, 37, 27, 0.18);
-            width: 100%;
-        }
-
-        .btn-submit-proposal:hover {
-            background: #144937;
-            color: #ffffff;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(6, 37, 27, 0.26);
-        }
-
-        /* ── Guidelines Timeline ── */
-        .timeline-guide {
-            position: relative;
-            padding-left: 20px;
-        }
-
-        .timeline-guide::before {
-            content: '';
-            position: absolute;
-            top: 6px;
-            bottom: 6px;
-            left: 5px;
-            width: 2px;
-            background: #eaeeec;
-        }
-
-        .timeline-guide-step {
-            position: relative;
-            margin-bottom: 14px;
-        }
-
-        .timeline-guide-step:last-child {
-            margin-bottom: 0;
-        }
-
-        .timeline-guide-dot {
-            position: absolute;
-            left: -19px;
-            top: 4px;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #ffffff;
-            border: 2.5px solid #1f7a3d;
-        }
-
-        .timeline-guide-title {
-            font-size: 12px;
-            font-weight: 700;
-            color: #06251b;
-        }
-
-        .timeline-guide-sub {
-            font-size: 11px;
-            color: #88968d;
-            margin-top: 1px;
-            line-height: 1.4;
-        }
-
-        /* ── Empty State ── */
-        .vp-empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            background: #fafcfb;
-            border: 1.5px dashed #d5ded9;
-            border-radius: 16px;
-        }
-
-        .vp-empty-state i {
-            font-size: 40px;
-            color: #88968d;
-            display: block;
-            margin-bottom: 10px;
-        }
-
-        .vp-empty-state h4 {
-            font-size: 15px;
-            font-weight: 800;
-            color: #06251b;
-            margin: 0 0 6px;
-        }
-
-        .vp-empty-state p {
-            font-size: 12px;
-            color: #718278;
-            margin: 0;
-            max-width: 380px;
-            margin-inline: auto;
-        }
-
-        /* ── Modals & Backdrop ── */
-        .modal-backdrop {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(6, 37, 27, 0.6);
-            backdrop-filter: blur(4px);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            opacity: 0;
-            transition: opacity .2s ease;
-        }
-
-        .modal-backdrop.open {
-            display: flex;
-            opacity: 1;
-        }
-
-        .modal-dialog-box {
-            background: #ffffff;
-            border-radius: 20px;
-            width: 100%;
-            max-width: 520px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            animation: modalPopIn .2s ease;
-            overflow: hidden;
-            text-align: left;
-        }
-
-        @keyframes modalPopIn {
-            from { transform: scale(0.96) translateY(8px); opacity: 0; }
-            to { transform: scale(1) translateY(0); opacity: 1; }
-        }
-
-        .modal-head {
-            padding: 18px 22px;
-            background: #06251b;
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .modal-head h3 {
-            font-size: 15px;
-            font-weight: 800;
-            color: #ffc107;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .modal-close-btn {
-            background: none;
-            border: none;
-            color: #d1e5db;
-            font-size: 18px;
-            cursor: pointer;
-            transition: color .15s;
-        }
-
-        .modal-close-btn:hover {
-            color: #ffffff;
-        }
-
-        .modal-body-content {
-            padding: 22px;
-        }
-
-        .modal-foot {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 10px;
-            padding: 16px 22px;
-            background: #fafcfb;
-            border-top: 1px solid #eaeeec;
-        }
-
-        .btn-modal-cancel {
-            padding: 10px 18px;
-            border-radius: 10px;
-            border: 1px solid #eaeeec;
-            background: #ffffff;
-            color: #63736a;
-            font-size: 12.5px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all .15s;
-        }
-
-        .btn-modal-cancel:hover {
-            background: #f5f8f6;
-            color: #06251b;
-        }
-
-        .btn-modal-save {
-            padding: 10px 20px;
-            border-radius: 10px;
-            border: none;
-            background: #06251b;
-            color: #ffc107;
-            font-size: 12.5px;
-            font-weight: 800;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: all .15s;
-        }
-
-        .btn-modal-save:hover {
-            background: #144937;
-            color: #ffffff;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-manage-lots.css">
 </head>
 <body class="dash-body">
 
@@ -1111,13 +275,13 @@
         <div class="vp-hero-top">
             <div class="vp-hero-badges">
                 <span class="hero-pill ref" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($proc['slsu_ref_no']) ?>');" title="Click to copy">
-                    <i class="bi bi-hash"></i> <?= htmlspecialchars($proc['slsu_ref_no']) ?> <i class="bi bi-copy" style="font-size:10px; opacity:0.8;"></i>
+                    <i class="bi bi-hash"></i> <?= htmlspecialchars($proc['slsu_ref_no']) ?> <i class="bi bi-copy ref-copy-icon"></i>
                 </span>
                 <span class="hero-pill mode">
                     <i class="bi bi-briefcase"></i> <?= htmlspecialchars($proc['procurement_mode']) ?>
                 </span>
                 <span class="hero-pill status">
-                    <i class="bi bi-circle-fill" style="font-size:8px; color:#4ade80;"></i> <?= $status_label ?>
+                    <i class="bi bi-circle-fill status-dot-live"></i> <?= $status_label ?>
                 </span>
             </div>
         </div>
@@ -1142,7 +306,7 @@
             </div>
             <div class="vp-hero-metric-item">
                 <div class="vp-hero-metric-lbl"><i class="bi bi-wallet2"></i> Remaining Unallocated</div>
-                <div class="vp-hero-metric-val" style="color: <?= $remaining_abc < 0 ? '#ff8585' : '#ffffff' ?>;">
+                <div class="vp-hero-metric-val <?= $remaining_abc < 0 ? 'hero-metric-val--danger' : '' ?>">
                     ₱ <?= number_format($remaining_abc, 2) ?>
                 </div>
             </div>
@@ -1153,7 +317,7 @@
     <div class="stats-summary-grid">
         <div class="stat-ring-card">
             <div class="stat-ring-wrap green">
-                <i class="bi bi-layers-fill" style="font-size:22px;"></i>
+                <i class="bi bi-layers-fill stat-ring-icon"></i>
             </div>
             <div class="stat-ring-info">
                 <div class="stat-ring-num"><?= $lots_count ?></div>
@@ -1163,7 +327,7 @@
 
         <div class="stat-ring-card">
             <div class="stat-ring-wrap gold">
-                <i class="bi bi-cash-stack" style="font-size:22px;"></i>
+                <i class="bi bi-cash-stack stat-ring-icon"></i>
             </div>
             <div class="stat-ring-info">
                 <div class="stat-ring-num">₱ <?= number_format($total_lots_abc, 2) ?></div>
@@ -1173,17 +337,17 @@
 
         <div class="stat-ring-card">
             <div class="stat-ring-wrap <?= $remaining_abc < 0 ? 'red' : 'blue' ?>">
-                <i class="bi <?= $remaining_abc < 0 ? 'bi-exclamation-triangle-fill' : 'bi-wallet-fill' ?>" style="font-size:22px;"></i>
+                <i class="bi <?= $remaining_abc < 0 ? 'bi-exclamation-triangle-fill' : 'bi-wallet-fill' ?> stat-ring-icon"></i>
             </div>
             <div class="stat-ring-info">
-                <div class="stat-ring-num" style="<?= $remaining_abc < 0 ? 'color:#dc2626;' : '' ?>">₱ <?= number_format($remaining_abc, 2) ?></div>
+                <div class="stat-ring-num <?= $remaining_abc < 0 ? 'stat-ring-num--danger' : '' ?>">₱ <?= number_format($remaining_abc, 2) ?></div>
                 <div class="stat-ring-lbl"><?= $remaining_abc < 0 ? 'Overbudget Deficit' : 'Unallocated Balance' ?></div>
             </div>
         </div>
 
         <div class="stat-ring-card">
             <div class="stat-ring-wrap green">
-                <i class="bi bi-percent" style="font-size:22px;"></i>
+                <i class="bi bi-percent stat-ring-icon"></i>
             </div>
             <div class="stat-ring-info">
                 <div class="stat-ring-num"><?= $budget_pct ?>%</div>
@@ -1211,17 +375,17 @@
                     <!-- Budget Allocation Meter -->
                     <div class="allocation-meter-card">
                         <div class="alloc-header-row">
-                            <span><i class="bi bi-bar-chart-fill" style="color:#1f7a3d;"></i> ABC Allocation Progress</span>
+                            <span><i class="bi bi-bar-chart-fill clr-forest"></i> ABC Allocation Progress</span>
                             <span>₱ <?= number_format($total_lots_abc, 2) ?> / ₱ <?= number_format($proc_abc, 2) ?> (<?= $budget_pct ?>%)</span>
                         </div>
                         <div class="alloc-progress-track">
-                            <div class="alloc-progress-fill <?= $remaining_abc < 0 ? 'overbudget' : '' ?>" style="width: <?= min(100, $budget_pct) ?>%;"></div>
+                            <div class="alloc-progress-fill <?= $remaining_abc < 0 ? 'overbudget' : '' ?>" style="--fill-pct: <?= min(100, $budget_pct) ?>%;"></div>
                         </div>
                         <div class="alloc-sub-text">
                             <?php if ($remaining_abc < 0): ?>
-                                <span style="color:#dc2626; font-weight:700;"><i class="bi bi-exclamation-triangle-fill"></i> Warning: Total lot ABC exceeds overall project ABC budget by ₱ <?= number_format(abs($remaining_abc), 2) ?>!</span>
+                                <span class="alloc-warn-text"><i class="bi bi-exclamation-triangle-fill"></i> Warning: Total lot ABC exceeds overall project ABC budget by ₱ <?= number_format(abs($remaining_abc), 2) ?>!</span>
                             <?php elseif ($remaining_abc == 0): ?>
-                                <span style="color:#1f7a3d; font-weight:700;"><i class="bi bi-check-circle-fill"></i> 100% of project budget is perfectly allocated across lots.</span>
+                                <span class="alloc-ok-text"><i class="bi bi-check-circle-fill"></i> 100% of project budget is perfectly allocated across lots.</span>
                             <?php else: ?>
                                 <span>₱ <?= number_format($remaining_abc, 2) ?> remaining to be allocated to other lots or contingencies.</span>
                             <?php endif; ?>
@@ -1367,7 +531,7 @@
                         </div>
 
                         <!-- Submit Button -->
-                        <button type="submit" name="add_lot" class="btn-submit-proposal" style="margin-top:6px;">
+                        <button type="submit" name="add_lot" class="btn-submit-proposal mt-6">
                             <i class="bi bi-plus-lg"></i> Add Lot to Project
                         </button>
                     </form>
@@ -1491,35 +655,35 @@
 <!-- DELETE CONFIRMATION MODAL -->
 <!-- ========================= -->
 <div id="deleteLotModal" class="modal-backdrop">
-    <div class="modal-dialog-box" style="max-width:440px;">
-        <div class="modal-head" style="background:#4a0f13;">
-            <h3 style="color:#ffffff;"><i class="bi bi-trash3-fill text-danger"></i> Confirm Lot Deletion</h3>
+    <div class="modal-dialog-box modal-dialog-box--sm">
+        <div class="modal-head modal-head--danger">
+            <h3><i class="bi bi-trash3-fill text-danger"></i> Confirm Lot Deletion</h3>
             <button type="button" class="modal-close-btn" onclick="closeDeleteModal()" aria-label="Close">
                 <i class="bi bi-x-lg"></i>
             </button>
         </div>
 
         <form action="manage_lots.php?id=<?= $procurement_id ?>" method="POST">
-            <div class="modal-body-content" style="text-align:center; padding:28px 24px;">
+            <div class="modal-body-content modal-body-content--center">
                 <input type="hidden" id="delete_lot_id" name="lot_id">
-                
-                <div style="width:52px; height:52px; border-radius:50%; background:#ffeaea; color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:24px; margin:0 auto 16px;">
+
+                <div class="delete-warn-icon">
                     <i class="bi bi-exclamation-triangle-fill"></i>
                 </div>
 
-                <h4 style="font-size:16px; font-weight:800; color:#06251b; margin:0 0 8px;">
+                <h4 class="delete-modal-title">
                     Delete Lot #<span id="delete_lot_num_txt"></span>?
                 </h4>
-                <p style="font-size:13px; color:#63736a; margin:0; line-height:1.5;">
-                    Are you sure you want to remove <strong id="delete_lot_title_txt" style="color:#06251b;"></strong>? Any line items or bidder allocations associated with this lot will be affected.
+                <p class="delete-modal-desc">
+                    Are you sure you want to remove <strong id="delete_lot_title_txt" class="clr-dark"></strong>? Any line items or bidder allocations associated with this lot will be affected.
                 </p>
             </div>
 
-            <div class="modal-foot" style="justify-content:center; gap:12px;">
+            <div class="modal-foot modal-foot--center">
                 <button type="button" onclick="closeDeleteModal()" class="btn-modal-cancel">
                     Cancel
                 </button>
-                <button type="submit" name="delete_lot" class="btn-lot-action delete" style="padding:10px 20px; font-size:13px; border-radius:10px;">
+                <button type="submit" name="delete_lot" class="btn-lot-action delete btn-lot-action--modal">
                     <i class="bi bi-trash3-fill"></i> Yes, Delete Lot
                 </button>
             </div>

@@ -1,0 +1,74 @@
+/* ==========================================================================
+   responsive.css — shared mobile-responsive utilities for the dashboard
+   (admin/bidder/user). Load AFTER dashboard-shell.css and BEFORE the page's
+   own css/pages/<page>.css, so page CSS can still override on a per-case
+   basis when a utility isn't quite right for that page.
+
+   STANDARD BREAKPOINTS (use these values in page CSS too, instead of
+   picking new ones per page):
+     1040px — two-column dashboard layouts (e.g. .vp-grid-layout,
+              .xx-grid-layout) collapse to a single column
+      860px — secondary grids / two-up sub-layouts collapse to one column
+      640px — row-style headers/toolbars start wrapping, side-by-side
+              actions go full-width
+      480px — small-phone tightening: card padding, hero padding, font
+              sizes step down a notch
+
+   These utility classes are additive — they don't replace page-specific
+   @media blocks for structural changes, they cover the recurring cases
+   (hide something on mobile, stack a row, force full-width buttons) so
+   pages don't redeclare the same rules over and over.
+   ========================================================================== */
+
+/* ── Visibility ── */
+@media (max-width: 640px) {
+    .hide-on-mobile { display: none !important; }
+}
+
+@media (min-width: 641px) {
+    .show-on-mobile { display: none !important; }
+}
+
+/* ── Stacking / direction ── */
+@media (max-width: 640px) {
+    .stack-on-mobile {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .wrap-on-mobile {
+        flex-wrap: wrap !important;
+    }
+}
+
+/* ── Full-width controls (buttons, form actions) on small screens ── */
+@media (max-width: 480px) {
+    .full-width-on-mobile {
+        width: 100% !important;
+    }
+
+    .center-on-mobile {
+        text-align: center !important;
+    }
+}
+
+/* ── Grid collapse helpers (for one-off grids that don't warrant their
+   own page-CSS media query) ── */
+@media (max-width: 1040px) {
+    .grid-collapse-1040 {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 860px) {
+    .grid-collapse-860 {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
+
+/* ── Tighten card/section padding on small phones ── */
+@media (max-width: 480px) {
+    .tight-padding-on-mobile {
+        padding: 16px !important;
+    }
+}

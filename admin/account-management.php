@@ -72,6 +72,8 @@ $result = $stmt->get_result();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-account-management.css">
 </head>
 <body class="dash-body">
 
@@ -89,10 +91,10 @@ $result = $stmt->get_result();
 
     <!-- ── Stat cards ── -->
     <div class="sad-section-label">Summary</div>
-    <div class="ap2-stats ap2-stats-4" style="margin-bottom:20px;">
+    <div class="ap2-stats ap2-stats-4">
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#06251b 0% 100%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-people" style="color:#06251b;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#06251b; --pct:100%;">
+                <div class="ap2-ring-inner"><i class="bi bi-people clr-dark"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= $stat_total ?></div>
@@ -100,8 +102,8 @@ $result = $stmt->get_result();
             </div>
         </div>
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#219653 0% <?= $stat_total > 0 ? round($stat_approved/$stat_total*100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-patch-check" style="color:#219653;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#219653; --pct:<?= $stat_total > 0 ? round($stat_approved/$stat_total*100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-patch-check clr-green"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= $stat_approved ?></div>
@@ -109,17 +111,17 @@ $result = $stmt->get_result();
             </div>
         </div>
         <div class="ap2-stat <?= $stat_pending > 0 ? 'bsv-stat-warn' : '' ?>">
-            <div class="ap2-ring" style="background:conic-gradient(<?= $stat_pending > 0 ? '#e67e22' : '#8B958E' ?> 0% <?= $stat_total > 0 ? round($stat_pending/$stat_total*100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-hourglass-split" style="color:<?= $stat_pending > 0 ? '#e67e22' : '#8B958E' ?>;"></i></div>
+            <div class="ap2-ring" style="--ring-color:<?= $stat_pending > 0 ? '#e67e22' : '#8B958E' ?>; --pct:<?= $stat_total > 0 ? round($stat_pending/$stat_total*100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-hourglass-split <?= $stat_pending > 0 ? 'clr-amber' : 'clr-idle' ?>"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:<?= $stat_pending > 0 ? '#e67e22' : 'inherit' ?>"><?= $stat_pending ?></div>
+                <div class="ap2-stat-num <?= $stat_pending > 0 ? 'stat-num--warn' : '' ?>"><?= $stat_pending ?></div>
                 <div class="ap2-stat-lbl">Pending</div>
             </div>
         </div>
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#c23b3b 0% <?= $stat_total > 0 ? round($stat_rejected/$stat_total*100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-x-circle" style="color:#c23b3b;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#c23b3b; --pct:<?= $stat_total > 0 ? round($stat_rejected/$stat_total*100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-x-circle clr-red"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= $stat_rejected ?></div>
@@ -136,7 +138,7 @@ $result = $stmt->get_result();
         </div>
 
         <!-- ── Search + filter ── -->
-        <form method="GET" action="" class="ap2-controls" style="margin-bottom:16px;">
+        <form method="GET" action="" class="ap2-controls mb-16">
             <div class="ap2-search-field">
                 <i class="bi bi-search"></i>
                 <input type="text" name="search"
@@ -163,7 +165,7 @@ $result = $stmt->get_result();
         </div>
 
         <?php if ($total_shown === 0): ?>
-            <div class="empty-state" style="padding:48px;">
+            <div class="empty-state empty-state--lg">
                 <i class="bi bi-people"></i>
                 <p>No bidders found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</p>
             </div>
@@ -171,17 +173,11 @@ $result = $stmt->get_result();
             <?php while ($row = $result->fetch_assoc()):
                 $appSt    = $row['application_status'] ?? null;
                 $isPending = $appSt === 'pending';
-                $pillClass = match($appSt) {
-                    'approved' => 'ap2-badge-bidder',
-                    'pending'  => 'ap2-badge-user',
-                    'rejected' => 'ap2-badge-admin',
-                    default    => 'ap2-badge-user',
-                };
-                $badgeStyle = match($appSt) {
-                    'approved' => 'background:#D9F2DF; color:#1f7a3d;',
-                    'pending'  => 'background:#FDF0CF; color:#97710a;',
-                    'rejected' => 'background:#FBE1E1; color:#c23b3b;',
-                    default    => 'background:#EEF0ED; color:#8B958E;',
+                $badgeClass = match($appSt) {
+                    'approved' => 'ap2-status-badge--approved',
+                    'pending'  => 'ap2-status-badge--pending',
+                    'rejected' => 'ap2-status-badge--rejected',
+                    default    => 'ap2-status-badge--default',
                 };
                 $businessName = $row['business_name'] ?? 'No business profile';
                 $initials     = strtoupper(substr($row['firstname'],0,1).substr($row['lastname'],0,1));
@@ -192,10 +188,9 @@ $result = $stmt->get_result();
             <div class="ap2-user-row <?= $isPending ? 'bsv-row-pending' : '' ?>">
 
                 <div class="ap2-who-cell">
-                    <div class="ap2-avatar ap2-avatar--<?= $row['role'] ?>"
-                         style="overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                    <div class="ap2-avatar ap2-avatar--<?= $row['role'] ?> avatar-cover">
                         <?php if (!empty($avatarUrl)): ?>
-                            <img src="<?= htmlspecialchars($avatarUrl) ?>" alt="<?= htmlspecialchars($initials) ?>" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">
+                            <img src="<?= htmlspecialchars($avatarUrl) ?>" alt="<?= htmlspecialchars($initials) ?>">
                         <?php else: ?>
                             <?= htmlspecialchars($initials) ?>
                         <?php endif; ?>
@@ -205,7 +200,7 @@ $result = $stmt->get_result();
                         <div class="ap2-user-sub">
                             @<?= htmlspecialchars($row['username']) ?>
                             &nbsp;·&nbsp;
-                            <i class="bi bi-building" style="font-size:10px;"></i> <?= htmlspecialchars($businessName) ?>
+                            <i class="bi bi-building fz-10"></i> <?= htmlspecialchars($businessName) ?>
                             &nbsp;·&nbsp;
                             <?= htmlspecialchars($row['email']) ?>
                         </div>
@@ -213,15 +208,15 @@ $result = $stmt->get_result();
                 </div>
 
                 <div class="ap2-action-cell">
-                    <span class="ap2-badge" style="<?= $badgeStyle ?>">
+                    <span class="ap2-badge <?= $badgeClass ?>">
                         <?= strtoupper($appSt ?? 'UNKNOWN') ?>
                     </span>
                     <?php if ($isPending): ?>
-                        <span class="ap2-self-label" style="background:#FDF0CF; color:#97710a;">
+                        <span class="ap2-self-label">
                             <i class="bi bi-hourglass-split"></i> Pending
                         </span>
                     <?php endif; ?>
-                    <a href="bidder-profile.php?id=<?= $row['user_id'] ?>" class="proc-action-btn btn-view" style="text-decoration:none;">
+                    <a href="bidder-profile.php?id=<?= $row['user_id'] ?>" class="proc-action-btn btn-view no-underline">
                         <i class="bi bi-eye"></i> View Profile
                     </a>
                 </div>
@@ -230,7 +225,7 @@ $result = $stmt->get_result();
             <?php endwhile; ?>
         <?php endif; ?>
 
-        <div class="ap2-card-foot" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div class="ap2-card-foot ap2-card-foot--flex">
             <div>
                 Showing <strong><?= min($total_shown, $offset+1) ?></strong>–<strong><?= min($total_shown, $offset+$per_page) ?></strong>
                 of <strong><?= number_format($total_shown) ?></strong> bidder<?= $total_shown != 1 ? 's' : '' ?>

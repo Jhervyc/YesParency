@@ -1,0 +1,109 @@
+/* ==========================================================================
+   pages/bidder-bid-opening.css — styles specific to bidder/bid_opening.php.
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css. Standard mobile breakpoints/utilities live in
+   ../responsive.css (loaded before this file).
+   ========================================================================== */
+
+/* ── Small utilities ── */
+.mb-8 { margin-bottom: 8px; }
+.mb-20 { margin-bottom: 20px; }
+.mb-28 { margin-bottom: 28px; }
+.form-contents { display: contents; }
+.text-right { text-align: right; }
+.clr-placeholder { color: #c7d2cb; }
+.clr-red { color: #dc2626; }
+.clr-amber { color: #d97706; }
+
+/* Stat ring donuts — dashboard.css's shared .ap2-ring/.ap2-ring-inner ship
+   with no background/icon-color of their own; this page supplies
+   --ring-color/--pct custom properties and the gradient shape here. */
+.ap2-ring {
+    background: conic-gradient(var(--ring-color, #06251b) 0% var(--pct, 100%), #e7ece9 0%);
+}
+.ap2-ring-inner i {
+    color: var(--ring-color, #06251b);
+}
+.ap2-stat-num--active { color: #1f7a3d; }
+.ap2-stat-num--warn { color: #e67e22; }
+.ap2-stat-num--sessions { color: #2F6FED; }
+
+/* stat grid */
+.bo-stat-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:20px; }
+@media(min-width:640px){ .bo-stat-grid{ grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; } }
+
+/* live banner */
+.bo-live-banner {
+    background:linear-gradient(135deg,#06251b 0%,#0c3d2c 60%,#14593f 100%);
+    border-radius:0; padding:16px; color:#fff;
+    display:flex; flex-direction:column; gap:14px; margin-bottom:0;
+}
+@media(min-width:640px){ .bo-live-banner{ flex-direction:row; align-items:center; justify-content:space-between; padding:20px 24px; } }
+.bo-live-banner--flush { box-shadow: none; border: none; }
+.bo-live-pill { display:inline-flex; align-items:center; gap:6px; background:#dc2626; color:#fff; font-size:11px; font-weight:800; padding:4px 12px; border-radius:20px; letter-spacing:.4px; animation:pulseLive 1.8s infinite; }
+@keyframes pulseLive { 0%,100%{opacity:1;} 50%{opacity:.7;} }
+.bo-live-dot { width:7px; height:7px; border-radius:50%; background:#fff; }
+.bo-live-content { display:flex; align-items:center; gap:14px; flex:1; min-width:0; }
+.bo-live-info { flex:1; min-width:0; }
+.bo-live-title { font-size:15px; font-weight:800; color:#fff; margin-bottom:4px; line-height:1.3; }
+@media(min-width:640px){ .bo-live-title{ font-size:17px; } }
+.bo-live-meta { font-size:11.5px; color:#d1e5db; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.bo-live-meta span { display:inline-flex; align-items:center; gap:5px; }
+.bo-live-meta i { color:#ffc107; }
+.bo-live-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.bo-live-actions a { flex:1; justify-content:center; }
+@media(min-width:640px){ .bo-live-actions{ flex-shrink:0; flex-wrap:nowrap; } .bo-live-actions a{ flex:none; } }
+.bo-btn-primary { display:inline-flex; align-items:center; justify-content:center; gap:6px; background:#ffc107; color:#06251b; font-size:12.5px; font-weight:800; padding:9px 18px; border-radius:10px; text-decoration:none; transition:all .15s; }
+.bo-btn-primary:hover { background:#e6ac00; }
+
+.bo-live-empty { padding:22px 18px; display:flex; align-items:center; gap:14px; color:#55665a; font-size:13px; }
+.bo-live-empty-icon { font-size:22px; color:#c7d2cb; flex-shrink:0; }
+.bo-live-empty-title { font-weight:700; color:#374151; margin-bottom:2px; }
+.bo-live-empty-desc { font-size:12px; color:#88968d; }
+
+/* scheduled panel */
+.sched-panel { background:#fff; border:1px solid #eaeeec; border-radius:18px; box-shadow:0 1px 2px rgba(16,36,26,.03),0 10px 24px -14px rgba(16,36,26,.08); overflow:hidden; }
+.sched-panel-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #f0f4f2; background:#fafcfb; }
+.sched-panel-head-label { font-size:13.5px; font-weight:800; color:#06251b; display:flex; align-items:center; gap:8px; }
+.sched-list { display:flex; flex-direction:column; }
+.sched-card { background:#fff; padding:14px 18px; display:flex; align-items:center; gap:14px; border-bottom:1px solid #f0f4f2; transition:background .12s; }
+.sched-card:last-child { border-bottom:none; }
+.sched-card:hover { background:#fbfdfc; }
+.sched-icon { width:40px; height:40px; border-radius:10px; background:#fef8e7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.sched-info { flex:1; min-width:0; }
+.sched-title { font-size:13px; font-weight:700; color:#06251b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:3px; }
+.sched-meta { font-size:10.5px; color:#88968d; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.sched-pill { font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; background:#fef3c7; color:#d97706; display:inline-flex; align-items:center; gap:4px; }
+.sched-empty { padding:24px 16px; text-align:center; color:#88968d; font-size:12.5px; }
+.sched-empty-icon { font-size:24px; color:#c7d2cb; display:block; margin-bottom:6px; }
+.section-view-more { font-size:11.5px; font-weight:700; color:#1f7a3d; text-decoration:none; display:inline-flex; align-items:center; gap:4px; transition:color .15s; white-space:nowrap; }
+.section-view-more:hover { color:#06251b; }
+
+/* section label with trailing link */
+.sad-section-label--split { display:flex; align-items:center; justify-content:space-between; }
+
+/* ── Open procurements table ── */
+.col-ref-narrow { width: 120px; }
+.col-actions-right { text-align: right; min-width: 120px; }
+.proc-ref-icon { color: #88968d; font-size: 10px; }
+.proc-title-sub { font-size: 10.5px; color: #88968d; margin-top: 2px; }
+.status-dot-icon { font-size: 7px; }
+.actions-wrap-end { display: flex; gap: 6px; justify-content: flex-end; }
+.proc-action-btn--scheduled { background: #fef3c7; color: #d97706; }
+
+.proc-empty-state { padding: 48px 20px; text-align: center; color: #88968d; }
+.proc-empty-icon { font-size: 32px; color: #c7d2cb; display: block; margin-bottom: 8px; }
+.proc-empty-title { font-size: 13px; font-weight: 700; }
+
+.table-scroll-x { overflow-x: auto; }
+
+/* ════════════════════════════════
+   MOBILE-FIRST RESPONSIVE
+   (see ../responsive.css for the shared breakpoint set + utilities)
+   ════════════════════════════════ */
+@media (max-width: 640px) {
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

@@ -713,702 +713,9 @@ if (in_array($active_tab, ['system_config', 'maintenance']) && $admin_role !== '
 
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-settings.css">
 
-    <style>
-        /* ─────────────────────────────────────────────────────────────────────
-           BASE CONTAINER
-        ───────────────────────────────────────────────────────────────────── */
-        .dash-content { max-width: 100%; overflow-x: hidden; }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           SETTINGS TABS NAV
-        ───────────────────────────────────────────────────────────────────── */
-        .settings-tabs-bar {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 14px;
-            padding: 6px;
-            margin-bottom: 28px;
-            width: fit-content;
-            box-shadow: 0 1px 4px rgba(16,36,26,.04);
-        }
-
-        .stab-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 9px 20px;
-            border: none;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 700;
-            font-family: 'Poppins', sans-serif;
-            cursor: pointer;
-            color: #55665a;
-            background: transparent;
-            transition: all .18s ease;
-            white-space: nowrap;
-            text-decoration: none;
-        }
-
-        .stab-btn:hover {
-            background: #f0f4f2;
-            color: #06251b;
-        }
-
-        .stab-btn.active {
-            background: #06251b;
-            color: #ffc107;
-            box-shadow: 0 2px 10px rgba(6,37,27,.18);
-        }
-
-        .stab-btn i { font-size: 15px; }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           TAB PANELS
-        ───────────────────────────────────────────────────────────────────── */
-        .stab-panel { display: none; }
-        .stab-panel.active { display: block; }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           PROFILE — existing layout
-        ───────────────────────────────────────────────────────────────────── */
-        .settings-grid {
-            display: grid;
-            grid-template-columns: 340px 1fr;
-            gap: 24px;
-            align-items: start;
-        }
-
-        @media (max-width: 1024px) {
-            .settings-grid { grid-template-columns: 1fr; }
-        }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           SHARED SETTING CARD
-        ───────────────────────────────────────────────────────────────────── */
-        .set-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.06);
-            overflow: hidden;
-            margin-bottom: 24px;
-        }
-
-        .set-card-head {
-            padding: 16px 22px;
-            border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
-        .set-card-title {
-            font-size: 14px;
-            font-weight: 800;
-            color: #06251b;
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-
-        .set-card-body { padding: 22px; }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           PROFILE — avatar
-        ───────────────────────────────────────────────────────────────────── */
-        .avatar-preview-wrapper {
-            display: flex; flex-direction: column;
-            align-items: center; text-align: center;
-            padding: 10px 0 20px;
-        }
-
-        .avatar-circle {
-            width: 124px; height: 124px; border-radius: 50%;
-            border: 3px solid #1f7a3d;
-            box-shadow: 0 4px 16px rgba(31,122,61,.15);
-            background: #f0f7f2;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 38px; font-weight: 800; color: #1f7a3d;
-            overflow: hidden; position: relative; margin-bottom: 14px;
-        }
-
-        .avatar-circle img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-        .avatar-meta-name   { font-size: 16px; font-weight: 800; color: #06251b; margin-bottom: 3px; }
-        .avatar-meta-sub    { font-size: 12px; color: #88968d; margin-bottom: 14px; }
-
-        .avatar-drop-zone {
-            border: 2px dashed #d6e2db; border-radius: 14px;
-            padding: 18px; text-align: center; background: #fafcfb;
-            cursor: pointer; transition: all .2s ease;
-            position: relative; width: 100%; margin-bottom: 14px;
-        }
-
-        .avatar-drop-zone:hover, .avatar-drop-zone.dragover {
-            border-color: #1f7a3d; background: #eef7f1;
-        }
-
-        .avatar-drop-zone i   { font-size: 26px; color: #1f7a3d; display: block; margin-bottom: 6px; }
-        .avatar-drop-zone p   { font-size: 12px; font-weight: 600; color: #06251b; margin: 0; }
-        .avatar-drop-zone span { font-size: 10.5px; color: #88968d; }
-
-        .file-hidden-input {
-            position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-        }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           BUTTONS
-        ───────────────────────────────────────────────────────────────────── */
-        .btn-set-primary {
-            background: #06251b; color: #ffc107; border: none;
-            padding: 10px 18px; border-radius: 10px;
-            font-size: 12.5px; font-weight: 700; font-family: 'Poppins', sans-serif;
-            cursor: pointer; display: inline-flex; align-items: center;
-            justify-content: center; gap: 7px; transition: all .2s ease; width: 100%;
-        }
-
-        .btn-set-primary:hover {
-            background: #144937; color: #ffffff;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(6,37,27,.15);
-        }
-
-        .btn-set-danger {
-            background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2;
-            padding: 9px 14px; border-radius: 10px;
-            font-size: 12px; font-weight: 700; font-family: 'Poppins', sans-serif;
-            cursor: pointer; display: inline-flex; align-items: center;
-            justify-content: center; gap: 6px; transition: all .15s ease; width: 100%;
-        }
-
-        .btn-set-danger:hover { background: #dc2626; color: #ffffff; }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           PROFILE — form fields
-        ───────────────────────────────────────────────────────────────────── */
-        .info-alert-box {
-            background: #f4f8f5; border: 1px solid #dcebe1; border-radius: 12px;
-            padding: 12px 16px; margin-bottom: 20px;
-            display: flex; align-items: flex-start; gap: 12px;
-        }
-
-        .info-alert-box i { font-size: 18px; color: #1f7a3d; margin-top: 1px; flex-shrink: 0; }
-
-        .info-alert-text { font-size: 12px; color: #385141; line-height: 1.45; }
-        .info-alert-text strong { color: #06251b; }
-
-        .form-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-
-        @media (max-width: 640px) { .form-grid-2 { grid-template-columns: 1fr; } }
-
-        .form-field-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-        .form-field-group.span-2 { grid-column: span 2; }
-
-        @media (max-width: 640px) { .form-field-group.span-2 { grid-column: span 1; } }
-
-        .field-label {
-            font-size: 11.5px; font-weight: 700; text-transform: uppercase;
-            letter-spacing: .4px; color: #55665a;
-            display: flex; align-items: center; gap: 6px;
-        }
-
-        .field-input-wrap { position: relative; display: flex; align-items: center; }
-        .field-input-wrap i.prefix-icon { position: absolute; left: 14px; color: #88968d; font-size: 14px; pointer-events: none; }
-
-        .field-input {
-            width: 100%; padding: 10px 14px 10px 38px;
-            border: 1.5px solid #d4e0d8; border-radius: 10px;
-            font-size: 12.5px; font-family: 'Poppins', sans-serif;
-            color: #1a1a1a; outline: none; background: #ffffff; transition: all .15s ease;
-        }
-
-        .field-input:focus { border-color: #1f7a3d; box-shadow: 0 0 0 3px rgba(31,122,61,.1); }
-
-        .field-input.locked {
-            background: #fafcfb; border: 1.5px solid #eef2ef; color: #4a5a50;
-            cursor: not-allowed; padding-right: 36px; font-weight: 600;
-        }
-
-        .locked-badge-icon { position: absolute; right: 14px; color: #aab5ae; font-size: 13px; pointer-events: none; }
-
-        .status-pill-badge {
-            font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 20px;
-            display: inline-flex; align-items: center; gap: 4px;
-            font-family: 'Space Grotesk', sans-serif; text-transform: uppercase;
-        }
-
-        .status-pill-badge.active { background: #e4f5ea; color: #1f7a3d; }
-        .status-pill-badge.admin  { background: #fef3c7; color: #d97706; }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           PROFILE — password form
-        ───────────────────────────────────────────────────────────────────── */
-        .pw-form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-        .pw-label      { font-size: 12px; font-weight: 700; color: #06251b; }
-
-        .pw-input-wrap { position: relative; display: flex; align-items: center; }
-        .pw-input-wrap i.prefix-icon { position: absolute; left: 14px; color: #88968d; font-size: 14px; pointer-events: none; }
-
-        .pw-input-field {
-            width: 100%; padding: 10px 42px 10px 38px;
-            border: 1.5px solid #d4e0d8; border-radius: 10px;
-            font-size: 12.5px; font-family: 'Poppins', sans-serif;
-            color: #1a1a1a; outline: none; background: #ffffff; transition: all .15s ease;
-        }
-
-        .pw-input-field:focus { border-color: #1f7a3d; box-shadow: 0 0 0 3px rgba(31,122,61,.1); }
-
-        .pw-toggle-btn {
-            position: absolute; right: 12px; background: transparent; border: none;
-            color: #88968d; cursor: pointer; font-size: 14px; padding: 4px;
-            display: flex; align-items: center; justify-content: center; transition: color .15s;
-        }
-
-        .pw-toggle-btn:hover { color: #06251b; }
-
-        .pw-requirements-box {
-            background: #fbfdfc; border: 1px solid #edf1ee;
-            border-radius: 12px; padding: 14px 16px; margin-bottom: 20px;
-        }
-
-        .pw-req-title {
-            font-size: 11px; font-weight: 700; color: #55665a;
-            text-transform: uppercase; letter-spacing: .4px; margin-bottom: 8px;
-        }
-
-        .pw-req-list {
-            list-style: none; padding: 0; margin: 0;
-            display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px;
-        }
-
-        @media (max-width: 600px) { .pw-req-list { grid-template-columns: 1fr; } }
-
-        .pw-req-item {
-            font-size: 11.5px; color: #88968d;
-            display: flex; align-items: center; gap: 6px; transition: color .15s;
-        }
-
-        .pw-req-item.valid { color: #1f7a3d; font-weight: 600; }
-        .pw-req-item i     { font-size: 13px; }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           FLASH ALERTS
-        ───────────────────────────────────────────────────────────────────── */
-        .flash-alert {
-            padding: 12px 16px; border-radius: 12px;
-            font-size: 12.5px; font-weight: 600; margin-bottom: 18px;
-            display: flex; align-items: center; gap: 10px;
-            animation: fadeInAlert .2s ease;
-        }
-
-        @keyframes fadeInAlert {
-            from { opacity: 0; transform: translateY(-4px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        .flash-alert.success { background: #eaf7ee; color: #1f7a3d; border: 1px solid #c9e8d3; }
-        .flash-alert.error   { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           CHECKLIST TAB — procurement & checklist type switchers
-        ───────────────────────────────────────────────────────────────────── */
-        .cl-switcher-row {
-            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-        }
-
-        .cl-switch-group {
-            display: flex; background: #f0f4f2;
-            border-radius: 10px; padding: 4px; gap: 4px;
-        }
-
-        .cl-sw-btn {
-            padding: 8px 18px; border: none; border-radius: 8px;
-            font-size: 12.5px; font-weight: 700; font-family: 'Poppins', sans-serif;
-            cursor: pointer; color: #55665a; background: transparent;
-            transition: all .16s ease; white-space: nowrap;
-        }
-
-        .cl-sw-btn:hover { background: #ffffff; color: #06251b; }
-
-        .cl-sw-btn.active {
-            background: #06251b; color: #ffc107;
-            box-shadow: 0 2px 8px rgba(6,37,27,.18);
-        }
-
-        .cl-divider {
-            width: 1px; height: 28px; background: #d6e2db; margin: 0 6px;
-            align-self: center;
-        }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           CHECKLIST TAB — item list
-        ───────────────────────────────────────────────────────────────────── */
-        .cl-list-wrap {
-            margin-top: 22px;
-            min-height: 80px;
-        }
-
-        .cl-list-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 14px;
-        }
-
-        .cl-list-title {
-            font-size: 13px; font-weight: 800; color: #06251b;
-        }
-
-        .cl-group-badge {
-            font-size: 11px; font-weight: 700; padding: 3px 10px;
-            border-radius: 20px; background: #eaf7ee; color: #1f7a3d;
-            font-family: 'Space Grotesk', sans-serif;
-        }
-
-        .cl-empty-state {
-            text-align: center; padding: 40px 20px; color: #88968d;
-        }
-
-        .cl-empty-state i   { font-size: 36px; display: block; margin-bottom: 10px; color: #c8d8ce; }
-        .cl-empty-state p   { font-size: 13px; margin: 0; }
-
-        .cl-loading {
-            text-align: center; padding: 32px; color: #88968d; font-size: 13px;
-        }
-
-        /* Drag-and-drop list */
-        .cl-item-list {
-            list-style: none; padding: 0; margin: 0;
-        }
-
-        .cl-item {
-            display: flex; align-items: flex-start; gap: 12px;
-            padding: 13px 16px;
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 12px;
-            margin-bottom: 8px;
-            transition: box-shadow .15s ease, border-color .15s ease;
-            cursor: default;
-        }
-
-        .cl-item:hover { border-color: #c5d9cc; box-shadow: 0 2px 8px rgba(16,36,26,.06); }
-
-        .cl-item.dragging {
-            opacity: .5; border: 2px dashed #1f7a3d;
-        }
-
-        .cl-item.drag-over {
-            border-color: #1f7a3d;
-            box-shadow: 0 0 0 2px rgba(31,122,61,.15);
-        }
-
-        .cl-drag-handle {
-            cursor: grab; color: #c8d8ce; font-size: 18px;
-            padding-top: 2px; flex-shrink: 0;
-            touch-action: none;
-        }
-
-        .cl-drag-handle:active { cursor: grabbing; }
-
-        .cl-item-order {
-            width: 22px; height: 22px; border-radius: 50%;
-            background: #f0f4f2; color: #55665a;
-            font-size: 11px; font-weight: 800; font-family: 'Space Grotesk', sans-serif;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; margin-top: 1px;
-        }
-
-        .cl-item-body { flex: 1; min-width: 0; }
-
-        .cl-item-name {
-            font-size: 13.5px; font-weight: 700; color: #06251b;
-            margin-bottom: 4px; word-break: break-word;
-        }
-
-        .cl-item-desc {
-            font-size: 12px; color: #55665a; margin-bottom: 6px;
-            word-break: break-word; line-height: 1.45;
-        }
-
-        .cl-item-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-
-        .cl-tag {
-            font-size: 10.5px; font-weight: 700; padding: 2px 8px;
-            border-radius: 20px; font-family: 'Space Grotesk', sans-serif;
-            text-transform: uppercase; letter-spacing: .2px;
-        }
-
-        .cl-tag.required  { background: #fff8e7; color: #d97706; border: 1px solid #fde68a; }
-        .cl-tag.optional  { background: #f0f4f2; color: #55665a; border: 1px solid #d6e2db; }
-        .cl-tag.active    { background: #e4f5ea; color: #1f7a3d; border: 1px solid #a7d9b6; }
-        .cl-tag.inactive  { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
-
-        .cl-item-actions {
-            display: flex; gap: 5px; flex-shrink: 0; padding-top: 1px;
-        }
-
-        .cl-action-btn {
-            width: 30px; height: 30px; border: none; border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; cursor: pointer; transition: all .14s ease;
-        }
-
-        .cl-action-btn.edit   { background: #f0f7ff; color: #2563eb; }
-        .cl-action-btn.edit:hover { background: #2563eb; color: #ffffff; }
-        .cl-action-btn.del    { background: #fef2f2; color: #dc2626; }
-        .cl-action-btn.del:hover  { background: #dc2626; color: #ffffff; }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           CHECKLIST — Add button row
-        ───────────────────────────────────────────────────────────────────── */
-        .cl-add-row {
-            display: flex; justify-content: flex-end; margin-bottom: 4px;
-        }
-
-        .btn-cl-add {
-            background: #06251b; color: #ffc107; border: none;
-            padding: 9px 18px; border-radius: 10px;
-            font-size: 12.5px; font-weight: 700; font-family: 'Poppins', sans-serif;
-            cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
-            transition: all .18s ease;
-        }
-
-        .btn-cl-add:hover { background: #144937; color: #ffffff; transform: translateY(-1px); }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           MODAL
-        ───────────────────────────────────────────────────────────────────── */
-        .cl-modal-backdrop {
-            display: none;
-            position: fixed; inset: 0; z-index: 9000;
-            background: rgba(6,37,27,.45);
-            align-items: center; justify-content: center;
-            padding: 20px;
-        }
-
-        .cl-modal-backdrop.open { display: flex; }
-
-        .cl-modal {
-            background: #ffffff; border-radius: 20px;
-            width: 100%; max-width: 540px;
-            box-shadow: 0 24px 64px rgba(6,37,27,.22);
-            animation: modalPop .18s ease;
-            overflow: hidden;
-        }
-
-        @keyframes modalPop {
-            from { opacity: 0; transform: scale(.95) translateY(10px); }
-            to   { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .cl-modal-head {
-            padding: 18px 22px;
-            border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-
-        .cl-modal-title {
-            font-size: 15px; font-weight: 800; color: #06251b;
-            display: flex; align-items: center; gap: 8px;
-        }
-
-        .cl-modal-close {
-            width: 32px; height: 32px; border: none;
-            border-radius: 8px; background: #f0f4f2;
-            color: #55665a; font-size: 18px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            transition: all .14s;
-        }
-
-        .cl-modal-close:hover { background: #dc2626; color: #ffffff; }
-
-        .cl-modal-body { padding: 22px; }
-
-        .cl-form-group { margin-bottom: 16px; }
-
-        .cl-form-label {
-            display: block; font-size: 12px; font-weight: 700; color: #06251b;
-            margin-bottom: 6px;
-        }
-
-        .cl-form-label span { color: #dc2626; margin-left: 2px; }
-
-        .cl-form-input, .cl-form-textarea {
-            width: 100%; padding: 10px 14px;
-            border: 1.5px solid #d4e0d8; border-radius: 10px;
-            font-size: 13px; font-family: 'Poppins', sans-serif;
-            color: #1a1a1a; outline: none; background: #ffffff;
-            transition: border-color .15s, box-shadow .15s;
-            box-sizing: border-box;
-        }
-
-        .cl-form-input:focus, .cl-form-textarea:focus {
-            border-color: #1f7a3d; box-shadow: 0 0 0 3px rgba(31,122,61,.1);
-        }
-
-        .cl-form-textarea { resize: vertical; min-height: 72px; }
-
-        .cl-form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-
-        @media (max-width: 540px) { .cl-form-row { grid-template-columns: 1fr 1fr; } }
-
-        .cl-toggle-group {
-            display: flex; gap: 6px;
-        }
-
-        .cl-toggle-opt {
-            flex: 1;
-            display: flex; align-items: center; justify-content: center;
-            gap: 5px; padding: 9px 6px;
-            border: 1.5px solid #d4e0d8; border-radius: 9px;
-            font-size: 12px; font-weight: 700; font-family: 'Poppins', sans-serif;
-            cursor: pointer; color: #55665a; background: #fafcfb;
-            transition: all .14s;
-            user-select: none;
-        }
-
-        .cl-toggle-opt.selected-req  { border-color: #d97706; background: #fff8e7; color: #d97706; }
-        .cl-toggle-opt.selected-opt  { border-color: #55665a; background: #f0f4f2; color: #06251b; }
-        .cl-toggle-opt.selected-active { border-color: #1f7a3d; background: #e4f5ea; color: #1f7a3d; }
-        .cl-toggle-opt.selected-inactive { border-color: #dc2626; background: #fef2f2; color: #dc2626; }
-
-        .cl-context-info {
-            background: #f4f8f5; border: 1px solid #dcebe1; border-radius: 10px;
-            padding: 10px 14px; margin-bottom: 18px;
-            font-size: 12px; color: #385141;
-            display: flex; align-items: center; gap: 8px;
-        }
-
-        .cl-context-info i { color: #1f7a3d; font-size: 14px; flex-shrink: 0; }
-
-        .cl-modal-footer {
-            padding: 16px 22px;
-            border-top: 1px solid #f0f4f2;
-            display: flex; justify-content: flex-end; gap: 10px;
-        }
-
-        .btn-cl-cancel {
-            background: #f0f4f2; color: #55665a; border: none;
-            padding: 10px 20px; border-radius: 10px;
-            font-size: 12.5px; font-weight: 700; font-family: 'Poppins', sans-serif;
-            cursor: pointer; transition: all .14s;
-        }
-
-        .btn-cl-cancel:hover { background: #d6e2db; color: #06251b; }
-
-        .btn-cl-save {
-            background: #06251b; color: #ffc107; border: none;
-            padding: 10px 22px; border-radius: 10px;
-            font-size: 12.5px; font-weight: 700; font-family: 'Poppins', sans-serif;
-            cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
-            transition: all .18s;
-        }
-
-        .btn-cl-save:hover { background: #144937; color: #ffffff; }
-
-        .btn-cl-save:disabled { opacity: .6; cursor: not-allowed; }
-
-        /* Error / success inside modal */
-        .cl-modal-alert {
-            padding: 10px 14px; border-radius: 10px;
-            font-size: 12.5px; font-weight: 600; margin-bottom: 14px;
-            display: flex; align-items: center; gap: 8px;
-        }
-
-        .cl-modal-alert.error   { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
-        .cl-modal-alert.success { background: #eaf7ee; color: #1f7a3d; border: 1px solid #c9e8d3; }
-
-        /* Toast */
-        .cl-toast {
-            position: fixed; bottom: 28px; right: 28px; z-index: 9999;
-            background: #06251b; color: #ffffff;
-            padding: 12px 20px; border-radius: 12px;
-            font-size: 13px; font-weight: 600; font-family: 'Poppins', sans-serif;
-            display: flex; align-items: center; gap: 9px;
-            box-shadow: 0 8px 24px rgba(6,37,27,.3);
-            transform: translateY(80px); opacity: 0;
-            transition: all .25s ease;
-            pointer-events: none;
-        }
-
-        .cl-toast.show { transform: translateY(0); opacity: 1; }
-        .cl-toast.error-toast { background: #dc2626; }
-
-        /* Reorder hint */
-        .cl-reorder-hint {
-            font-size: 11.5px; color: #88968d; margin-top: 6px;
-            display: flex; align-items: center; gap: 5px;
-        }
-
-        /* ─────────────────────────────────────────────────────────────────────
-           LIVE CONFIG TAB
-        ───────────────────────────────────────────────────────────────────── */
-        .live-config-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-        @media (max-width: 640px) { .live-config-grid { grid-template-columns: 1fr; } }
-
-        .live-field-group { display: flex; flex-direction: column; gap: 6px; }
-
-        .live-field-label {
-            font-size: 11.5px; font-weight: 700; text-transform: uppercase;
-            letter-spacing: .4px; color: #55665a;
-            display: flex; align-items: center; gap: 6px;
-        }
-
-        .live-field-wrap { position: relative; display: flex; align-items: center; }
-        .live-field-wrap i.prefix-icon {
-            position: absolute; left: 14px; color: #88968d; font-size: 14px; pointer-events: none;
-        }
-
-        .live-field-input {
-            width: 100%; padding: 10px 14px 10px 38px;
-            border: 1.5px solid #d4e0d8; border-radius: 10px;
-            font-size: 13px; font-family: 'Poppins', sans-serif;
-            color: #1a1a1a; outline: none; background: #ffffff;
-            transition: border-color .15s, box-shadow .15s;
-            box-sizing: border-box;
-        }
-        .live-field-input:focus { border-color: #1f7a3d; box-shadow: 0 0 0 3px rgba(31,122,61,.1); }
-
-        .live-field-hint { font-size: 11px; color: #88968d; line-height: 1.4; }
-
-        .live-preview-box {
-            background: #f4f8f5; border: 1px solid #dcebe1; border-radius: 12px;
-            padding: 14px 18px; margin-top: 4px; margin-bottom: 20px;
-            font-size: 12px; color: #385141;
-        }
-        .live-preview-box strong { color: #06251b; font-size: 12.5px; }
-        .live-preview-url {
-            font-family: monospace; font-size: 12.5px; color: #1f7a3d;
-            word-break: break-all; margin-top: 4px;
-            display: block;
-        }
-
-        .live-save-row {
-            display: flex; align-items: center; justify-content: space-between;
-            flex-wrap: wrap; gap: 12px;
-        }
-
-        .live-status-msg {
-            font-size: 12.5px; font-weight: 600;
-            display: flex; align-items: center; gap: 7px;
-            opacity: 0; transition: opacity .25s;
-        }
-        .live-status-msg.show { opacity: 1; }
-        .live-status-msg.success { color: #1f7a3d; }
-        .live-status-msg.error   { color: #dc2626; }
-    </style>
 </head>
 <body class="dash-body">
 
@@ -1425,7 +732,7 @@ include("components/topbar.php");
 <div class="dash-content">
 
     <!-- Page Header -->
-    <div class="page-header" style="margin-bottom:24px;">
+    <div class="page-header mb-24">
         <h2>Account Settings</h2>
         <p>Manage your administrative profile, checklist templates, and system settings.</p>
     </div>
@@ -1475,9 +782,9 @@ include("components/topbar.php");
                 <div class="set-card" id="avatar-card">
                     <div class="set-card-head">
                         <span class="set-card-title">
-                            <i class="bi bi-person-badge-fill" style="color:#1f7a3d;"></i> Profile Photo
+                            <i class="bi bi-person-badge-fill clr-green"></i> Profile Photo
                         </span>
-                        <span style="font-size:11px; font-weight:700; color:#88968d;">Avatar</span>
+                        <span class="fz-11-idle">Avatar</span>
                     </div>
 
                     <div class="set-card-body">
@@ -1501,7 +808,7 @@ include("components/topbar.php");
                                         <img src="<?= htmlspecialchars($avatar_url) ?>" alt="<?= htmlspecialchars($fullname) ?>" id="avatarImgPreview">
                                     <?php else: ?>
                                         <span id="avatarInitials"><?= $initials ?></span>
-                                        <img src="" alt="Preview" id="avatarImgPreview" style="display:none;">
+                                        <img src="" alt="Preview" id="avatarImgPreview" class="hide">
                                     <?php endif; ?>
                                 </div>
 
@@ -1517,8 +824,7 @@ include("components/topbar.php");
                                     <span>JPG, PNG, WEBP or GIF (Max 5MB)</span>
                                 </div>
 
-                                <button type="submit" class="btn-set-primary" id="saveAvatarBtn"
-                                        style="display:none; margin-bottom:10px;">
+                                <button type="submit" class="btn-set-primary hide mb-10" id="saveAvatarBtn">
                                     <i class="bi bi-check2-circle"></i> Save Photo
                                 </button>
                             </div>
@@ -1540,22 +846,22 @@ include("components/topbar.php");
                 <div class="set-card">
                     <div class="set-card-head">
                         <span class="set-card-title">
-                            <i class="bi bi-shield-check" style="color:#2F6FED;"></i> Account Overview
+                            <i class="bi bi-shield-check clr-blue"></i> Account Overview
                         </span>
                         <span class="status-pill-badge active"><?= htmlspecialchars($status) ?></span>
                     </div>
-                    <div class="set-card-body" style="font-size:12px; color:#55665a; line-height:1.6;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid #f0f4f2; padding-bottom:6px;">
+                    <div class="set-card-body set-overview-body">
+                        <div class="set-overview-row">
                             <span>Member Since:</span>
-                            <strong style="color:#06251b;"><?= $member_since ?></strong>
+                            <strong><?= $member_since ?></strong>
                         </div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid #f0f4f2; padding-bottom:6px;">
+                        <div class="set-overview-row">
                             <span>System Role:</span>
-                            <strong style="color:#06251b;">BAC Secretariat Admin</strong>
+                            <strong>BAC Secretariat Admin</strong>
                         </div>
-                        <div style="display:flex; justify-content:space-between;">
+                        <div class="set-overview-row--last">
                             <span>Security Protection:</span>
-                            <span style="color:#1f7a3d; font-weight:700;"><i class="bi bi-shield-lock-fill"></i> Active</span>
+                            <span class="set-overview-active"><i class="bi bi-shield-lock-fill"></i> Active</span>
                         </div>
                     </div>
                 </div>
@@ -1569,9 +875,9 @@ include("components/topbar.php");
                 <div class="set-card" id="profile-card">
                     <div class="set-card-head">
                         <span class="set-card-title">
-                            <i class="bi bi-person-lines-fill" style="color:#1f7a3d;"></i> Personal &amp; Account Information
+                            <i class="bi bi-person-lines-fill clr-green"></i> Personal &amp; Account Information
                         </span>
-                        <span style="font-size:11.5px; font-weight:700; color:#88968d;">Administrator Info</span>
+                        <span class="fz-115-idle">Administrator Info</span>
                     </div>
 
                     <div class="set-card-body">
@@ -1646,8 +952,8 @@ include("components/topbar.php");
                                 </div>
                             </div>
 
-                            <div style="display:flex; justify-content:flex-end; margin-top:14px;">
-                                <button type="submit" class="btn-set-primary" style="width:auto; padding:10px 24px;">
+                            <div class="form-actions-end">
+                                <button type="submit" class="btn-set-primary btn-set-inline">
                                     <i class="bi bi-check2-circle"></i> Save Profile Changes
                                 </button>
                             </div>
@@ -1659,9 +965,9 @@ include("components/topbar.php");
                 <div class="set-card" id="password-card">
                     <div class="set-card-head">
                         <span class="set-card-title">
-                            <i class="bi bi-key-fill" style="color:#d97706;"></i> Change Password
+                            <i class="bi bi-key-fill clr-amber"></i> Change Password
                         </span>
-                        <span style="font-size:11px; font-weight:700; color:#88968d;">Security</span>
+                        <span class="fz-11-idle">Security</span>
                     </div>
 
                     <div class="set-card-body">
@@ -1729,11 +1035,11 @@ include("components/topbar.php");
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
-                                <div id="match-hint" style="font-size:11.5px; margin-top:4px; display:none;"></div>
+                                <div id="match-hint" class="match-hint hide"></div>
                             </div>
 
-                            <div style="display:flex; justify-content:flex-end; margin-top:20px;">
-                                <button type="submit" class="btn-set-primary" style="width:auto; padding:10px 24px;">
+                            <div class="form-actions-end--lg">
+                                <button type="submit" class="btn-set-primary btn-set-inline">
                                     <i class="bi bi-shield-check"></i> Update Password
                                 </button>
                             </div>
@@ -1755,9 +1061,9 @@ include("components/topbar.php");
         <div class="set-card">
             <div class="set-card-head">
                 <span class="set-card-title">
-                    <i class="bi bi-card-checklist" style="color:#1f7a3d;"></i> Checklist Templates
+                    <i class="bi bi-card-checklist clr-green"></i> Checklist Templates
                 </span>
-                <span style="font-size:11px; font-weight:700; color:#88968d;">Bid Opening</span>
+                <span class="fz-11-idle">Bid Opening</span>
             </div>
 
             <div class="set-card-body">
@@ -1808,7 +1114,7 @@ include("components/topbar.php");
                                 Drag rows to reorder. Order is saved automatically.
                             </div>
                         </div>
-                        <div style="display:flex; align-items:center; gap:10px;">
+                        <div class="checklist-header-row">
                             <span class="cl-group-badge" id="clGroupBadge">Goods &amp; Services &rarr; Eligibility</span>
                             <button class="btn-cl-add" onclick="openAddModal()">
                                 <i class="bi bi-plus-lg"></i> Add Item
@@ -1837,13 +1143,13 @@ include("components/topbar.php");
         <div class="set-card">
             <div class="set-card-head">
                 <span class="set-card-title">
-                    <i class="bi bi-broadcast" style="color:#dc2626;"></i> MediaMTX Live Configuration
+                    <i class="bi bi-broadcast clr-red"></i> MediaMTX Live Configuration
                 </span>
-                <span style="font-size:11px; font-weight:700; color:#88968d;">Streaming</span>
+                <span class="fz-11-idle">Streaming</span>
             </div>
             <div class="set-card-body">
 
-                <div class="info-alert-box" style="margin-bottom:22px;">
+                <div class="info-alert-box mb-22">
                     <i class="bi bi-info-circle-fill"></i>
                     <div class="info-alert-text">
                         <strong>Live Stream Settings:</strong> These values control how the system connects to the
@@ -1928,8 +1234,7 @@ include("components/topbar.php");
                     <span class="live-status-msg" id="liveStatusMsg">
                         <i class="bi bi-check-circle-fill"></i> <span id="liveStatusText"></span>
                     </span>
-                    <button class="btn-set-primary" id="liveSaveBtn" onclick="saveLiveConfig()"
-                            style="width:auto; min-width:160px;">
+                    <button class="btn-set-primary field-select--auto" id="liveSaveBtn" onclick="saveLiveConfig()">
                         <i class="bi bi-floppy"></i> Save Configuration
                     </button>
                 </div>
@@ -1949,72 +1254,72 @@ include("components/topbar.php");
         <div class="set-card">
             <div class="set-card-head">
                 <span class="set-card-title">
-                    <i class="bi bi-building-gear" style="color:#1f7a3d;"></i> Institutional &amp; Organization Parameters
+                    <i class="bi bi-building-gear clr-green"></i> Institutional &amp; Organization Parameters
                 </span>
-                <span style="font-size:11px; font-weight:700; color:#88968d;">Global Config</span>
+                <span class="fz-11-idle">Global Config</span>
             </div>
             <div class="set-card-body">
 
                 <?php if (!empty($org_success)): ?>
-                    <div class="flash-alert success" style="display:flex; align-items:center; gap:8px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#166534; font-weight:600;">
+                    <div class="flash-alert success flash-alert-inline">
                         <i class="bi bi-check-circle-fill"></i> <?= htmlspecialchars($org_success) ?>
                     </div>
                 <?php endif; ?>
 
-                <div style="display:flex; align-items:flex-start; gap:10px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px 16px; margin-bottom:20px; font-size:12.5px; color:#1e40af;">
-                    <i class="bi bi-info-circle-fill" style="font-size:15px; margin-top:1px; flex-shrink:0;"></i>
+                <div class="info-alert-box--blue">
+                    <i class="bi bi-info-circle-fill"></i>
                     <div><strong>System Identity:</strong> These official organization details appear on public procurement notices, bid invitation exports, and broadcast notifications.</div>
                 </div>
 
                 <form method="POST" action="settings.php">
                     <input type="hidden" name="save_org" value="1">
 
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="org-field-grid">
 
                         <div>
-                            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:6px;"><i class="bi bi-building"></i> Organization Name</label>
-                            <div style="position:relative;">
-                                <i class="bi bi-building" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#88968d; font-size:14px; pointer-events:none;"></i>
-                                <input type="text" name="org_name" class="field-input" style="padding-left:36px;" value="<?= setting($settings, 'org_name', 'YesParency') ?>" placeholder="e.g. Provincial Government / Agency">
+                            <label class="org-field-label"><i class="bi bi-building"></i> Organization Name</label>
+                            <div class="org-field-wrap">
+                                <i class="bi bi-building org-field-icon"></i>
+                                <input type="text" name="org_name" class="field-input field-input--icon" value="<?= setting($settings, 'org_name', 'YesParency') ?>" placeholder="e.g. Provincial Government / Agency">
                             </div>
                         </div>
 
                         <div>
-                            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:6px;"><i class="bi bi-tag"></i> Short Name / Acronym</label>
-                            <div style="position:relative;">
-                                <i class="bi bi-tag" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#88968d; font-size:14px; pointer-events:none;"></i>
-                                <input type="text" name="short_name" class="field-input" style="padding-left:36px;" value="<?= setting($settings, 'short_name', 'YSP') ?>" placeholder="e.g. BAC, LGU, DBM">
+                            <label class="org-field-label"><i class="bi bi-tag"></i> Short Name / Acronym</label>
+                            <div class="org-field-wrap">
+                                <i class="bi bi-tag org-field-icon"></i>
+                                <input type="text" name="short_name" class="field-input field-input--icon" value="<?= setting($settings, 'short_name', 'YSP') ?>" placeholder="e.g. BAC, LGU, DBM">
                             </div>
                         </div>
 
                         <div>
-                            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:6px;"><i class="bi bi-globe"></i> Official Website URL</label>
-                            <div style="position:relative;">
-                                <i class="bi bi-globe" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#88968d; font-size:14px; pointer-events:none;"></i>
-                                <input type="url" name="official_website" class="field-input" style="padding-left:36px;" value="<?= setting($settings, 'official_website') ?>" placeholder="https://example.gov.ph">
+                            <label class="org-field-label"><i class="bi bi-globe"></i> Official Website URL</label>
+                            <div class="org-field-wrap">
+                                <i class="bi bi-globe org-field-icon"></i>
+                                <input type="url" name="official_website" class="field-input field-input--icon" value="<?= setting($settings, 'official_website') ?>" placeholder="https://example.gov.ph">
                             </div>
                         </div>
 
                         <div>
-                            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:6px;"><i class="bi bi-envelope"></i> Secretariat Contact Email</label>
-                            <div style="position:relative;">
-                                <i class="bi bi-envelope" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#88968d; font-size:14px; pointer-events:none;"></i>
-                                <input type="email" name="contact_email" class="field-input" style="padding-left:36px;" value="<?= setting($settings, 'contact_email') ?>" placeholder="bac.secretariat@example.gov.ph">
+                            <label class="org-field-label"><i class="bi bi-envelope"></i> Secretariat Contact Email</label>
+                            <div class="org-field-wrap">
+                                <i class="bi bi-envelope org-field-icon"></i>
+                                <input type="email" name="contact_email" class="field-input field-input--icon" value="<?= setting($settings, 'contact_email') ?>" placeholder="bac.secretariat@example.gov.ph">
                             </div>
                         </div>
 
-                        <div style="grid-column:1/-1;">
-                            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:6px;"><i class="bi bi-geo-alt"></i> Official Physical Office Address</label>
-                            <div style="position:relative;">
-                                <i class="bi bi-geo-alt" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#88968d; font-size:14px; pointer-events:none;"></i>
-                                <input type="text" name="address" class="field-input" style="padding-left:36px;" value="<?= setting($settings, 'address') ?>" placeholder="Full official address of the procuring entity...">
+                        <div class="org-field-full">
+                            <label class="org-field-label"><i class="bi bi-geo-alt"></i> Official Physical Office Address</label>
+                            <div class="org-field-wrap">
+                                <i class="bi bi-geo-alt org-field-icon"></i>
+                                <input type="text" name="address" class="field-input field-input--icon" value="<?= setting($settings, 'address') ?>" placeholder="Full official address of the procuring entity...">
                             </div>
                         </div>
 
                     </div>
 
-                    <div style="display:flex; justify-content:flex-end; margin-top:18px;">
-                        <button type="submit" class="btn-set-primary" style="width:auto; padding:10px 24px;">
+                    <div class="form-actions-end--sm">
+                        <button type="submit" class="btn-set-primary btn-set-inline">
                             <i class="bi bi-check2-circle"></i> Save System Parameters
                         </button>
                     </div>
@@ -2034,11 +1339,11 @@ include("components/topbar.php");
         <div class="set-card">
             <div class="set-card-head">
                 <span class="set-card-title">
-                    <i class="bi bi-hdd-network" style="color:#2F6FED;"></i> System Runtime &amp; Server Environment
+                    <i class="bi bi-hdd-network clr-blue"></i> System Runtime &amp; Server Environment
                 </span>
-                <span style="font-size:11px; font-weight:700; color:#88968d;">Diagnostics</span>
+                <span class="fz-11-idle">Diagnostics</span>
             </div>
-            <div class="set-card-body" style="padding:0;">
+            <div class="set-card-body set-card-body--flush">
                 <?php
                 $sys_info = [
                     ['Application Engine', 'YesParency Transparency Portal', 'green'],
@@ -2050,20 +1355,12 @@ include("components/topbar.php");
                 ];
                 foreach ($sys_info as $si_row):
                 ?>
-                <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 20px; border-bottom:1px solid #f0f4f2; font-size:12.5px;">
-                    <span style="color:#55665a; font-weight:600;"><?= htmlspecialchars($si_row[0]) ?></span>
+                <div class="runtime-row">
+                    <span class="runtime-label"><?= htmlspecialchars($si_row[0]) ?></span>
                     <?php if (!empty($si_row[2])): ?>
-                        <?php
-                        $badge_colors = [
-                            'green'  => 'background:#dcfce7; color:#166534;',
-                            'blue'   => 'background:#dbeafe; color:#1d4ed8;',
-                            'yellow' => 'background:#fef9c3; color:#854d0e;',
-                        ];
-                        $bc = $badge_colors[$si_row[2]] ?? '';
-                        ?>
-                        <span style="font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:20px; <?= $bc ?>"><?= htmlspecialchars($si_row[1]) ?></span>
+                        <span class="runtime-pill runtime-pill--<?= $si_row[2] ?>"><?= htmlspecialchars($si_row[1]) ?></span>
                     <?php else: ?>
-                        <span style="font-size:12.5px; color:#6c776e; font-weight:600;"><?= htmlspecialchars($si_row[1]) ?></span>
+                        <span class="runtime-value"><?= htmlspecialchars($si_row[1]) ?></span>
                     <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
@@ -2071,22 +1368,22 @@ include("components/topbar.php");
         </div>
 
         <!-- Danger Zone -->
-        <div class="set-card" style="border-color:#fee2e2;">
-            <div class="set-card-head" style="background:#fef2f2; border-bottom-color:#fecaca;">
-                <span class="set-card-title" style="color:#b91c1c;">
+        <div class="set-card set-card--danger">
+            <div class="set-card-head set-card-head--danger">
+                <span class="set-card-title set-card-title--danger">
                     <i class="bi bi-exclamation-triangle-fill"></i> Restricted Danger Zone
                 </span>
-                <span style="font-size:11px; font-weight:700; color:#b91c1c;">Superadmin Only</span>
+                <span class="fz-11-idle clr-red-idle">Superadmin Only</span>
             </div>
             <div class="set-card-body">
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
-                    <div style="max-width:550px;">
-                        <div style="font-size:13.5px; font-weight:700; color:#06251b; margin-bottom:3px;">System Maintenance Mode</div>
-                        <div style="font-size:12px; color:#88968d; line-height:1.45;">
+                <div class="maint-row">
+                    <div class="maint-desc">
+                        <div class="maint-title">System Maintenance Mode</div>
+                        <div class="maint-sub">
                             Temporarily restrict portal access for regular bidders and non-admin users during scheduled database updates or migrations.
                         </div>
                     </div>
-                    <button type="button" class="btn-set-danger" style="width:auto; padding:9px 18px;"
+                    <button type="button" class="btn-set-danger btn-set-danger-inline"
                             onclick="alert('Maintenance mode toggled for demonstration.')">
                         <i class="bi bi-power"></i> Toggle Mode
                     </button>
@@ -2120,7 +1417,7 @@ include("components/topbar.php");
                 <span id="clModalContextText">Adding item for: <strong>Goods &amp; Services &rarr; Eligibility</strong></span>
             </div>
 
-            <div id="clModalAlert" style="display:none;" class="cl-modal-alert error"></div>
+            <div id="clModalAlert" class="cl-modal-alert error hide"></div>
 
             <div class="cl-form-group">
                 <label class="cl-form-label" for="clItemName">Item Name <span>*</span></label>
@@ -2185,10 +1482,6 @@ include("components/topbar.php");
 <!-- Toast notification -->
 <div class="cl-toast" id="clToast"></div>
 
-<style>
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spin { display: inline-block; animation: spin .8s linear infinite; }
-</style>
 
 <script>
 // ════════════════════════════════════════════════════════════════════
@@ -2209,10 +1502,10 @@ function previewAvatar(input) {
             const initials = document.getElementById('avatarInitials');
             const saveBtn  = document.getElementById('saveAvatarBtn');
             img.src = e.target.result;
-            img.style.display = 'block';
-            if (initials) initials.style.display = 'none';
+            img.classList.remove('hide');
+            if (initials) initials.classList.add('hide');
             if (saveBtn) {
-                saveBtn.style.display = 'inline-flex';
+                saveBtn.classList.remove('hide');
                 saveBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         };
@@ -2259,12 +1552,12 @@ function checkPasswordMatch() {
     const confirmPw = document.getElementById('confirm_password')?.value ?? '';
     const matchHint = document.getElementById('match-hint');
     if (!matchHint) return;
-    if (!confirmPw) { matchHint.style.display = 'none'; return; }
-    matchHint.style.display = 'block';
+    if (!confirmPw) { matchHint.classList.add('hide'); return; }
+    matchHint.classList.remove('hide');
     if (newPw === confirmPw) {
-        matchHint.innerHTML = '<span style="color:#1f7a3d;font-weight:600;"><i class="bi bi-check-circle-fill"></i> Passwords match</span>';
+        matchHint.innerHTML = '<span class="match-hint--ok"><i class="bi bi-check-circle-fill"></i> Passwords match</span>';
     } else {
-        matchHint.innerHTML = '<span style="color:#dc2626;font-weight:600;"><i class="bi bi-x-circle-fill"></i> Passwords do not match</span>';
+        matchHint.innerHTML = '<span class="match-hint--bad"><i class="bi bi-x-circle-fill"></i> Passwords do not match</span>';
     }
 }
 
@@ -2711,12 +2004,11 @@ function showModalAlert(msg, type) {
     const el = document.getElementById('clModalAlert');
     el.className = 'cl-modal-alert ' + type;
     el.innerHTML = (type === 'error' ? '<i class="bi bi-exclamation-circle-fill"></i> ' : '<i class="bi bi-check-circle-fill"></i> ') + msg;
-    el.style.display = 'flex';
 }
 
 function clearModalAlert() {
     const el = document.getElementById('clModalAlert');
-    el.style.display = 'none';
+    el.classList.add('hide');
     el.innerHTML = '';
 }
 

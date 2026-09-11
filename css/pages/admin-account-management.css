@@ -1,0 +1,67 @@
+/* ==========================================================================
+   pages/admin-account-management.css — styles specific to
+   admin/account-management.php.
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css. Standard mobile breakpoints/utilities live in
+   ../responsive.css (loaded before this file). Shared dashboard components
+   (.ap2-stats, .ap2-stat, .ap2-ring, .ap2-card, .ap2-controls,
+   .ap2-search-field, .ap2-filters, .ap2-filter-btn, .ap2-go-btn,
+   .ap2-table-head, .ap2-user-row, .ap2-who-cell, .ap2-avatar,
+   .ap2-user-text, .ap2-badge, .ap2-action-cell, .ap2-card-foot,
+   .pagination, .page-link, .bsv-stat-warn, .bsv-row-pending,
+   .empty-state) already live in ../../dashboard.css — this file only adds
+   the handful of classes genuinely unique to this page.
+
+   Duplicate-but-different note: .ap2-self-label IS redeclared here with
+   different values (an amber pill) than the shared dashboard.css version
+   (plain gray italic text) — kept as this page's own override, same
+   reasoning as other admin page CSS files.
+   ========================================================================== */
+
+/* ── Small color/utilities ── */
+.clr-dark  { color: #06251b; }
+.clr-green { color: #219653; }
+.clr-amber { color: #e67e22; }
+.clr-red   { color: #c23b3b; }
+.clr-idle  { color: #8B958E; }
+.stat-num--warn { color: #e67e22; }
+
+/* .ap2-ring/.ap2-ring-inner shells come from the shared dashboard.css;
+   this page adds the dynamic conic-gradient background via custom props
+   instead of inline per-instance backgrounds. */
+.ap2-ring {
+    background: conic-gradient(var(--ring-color, #06251b) 0% var(--pct, 100%), #e7ece9 0%);
+}
+
+.mb-16 { margin-bottom: 16px; }
+.no-underline { text-decoration: none; }
+.avatar-cover { overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.avatar-cover img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.fz-10 { font-size: 10px; }
+.empty-state--lg { padding: 48px; }
+
+/* Status badge color modifiers (approved/pending/rejected/default) */
+.ap2-status-badge--approved { background: #D9F2DF; color: #1f7a3d; }
+.ap2-status-badge--pending  { background: #FDF0CF; color: #97710a; }
+.ap2-status-badge--rejected { background: #FBE1E1; color: #c23b3b; }
+.ap2-status-badge--default  { background: #EEF0ED; color: #8B958E; }
+
+.ap2-self-label {
+    background: #FDF0CF;
+    color: #97710a;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+}
+
+.ap2-card-foot--flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}

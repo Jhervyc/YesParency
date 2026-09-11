@@ -106,732 +106,8 @@ function pct($part, $total) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        /* ── 60% + 40% Layout ── */
-        .dash-layout-60-40 {
-            display: grid;
-            grid-template-columns: 1.55fr 1fr;
-            gap: 22px;
-            align-items: start;
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 1120px) {
-            .dash-layout-60-40 {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* ── Green Greetings Card ── */
-        .dash-greeting-card {
-            background: linear-gradient(135deg, #06251b 0%, #0b3829 55%, #14593f 100%);
-            border-radius: 20px;
-            padding: 24px 28px;
-            color: #ffffff;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(6, 37, 27, 0.16);
-            margin-bottom: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .dash-greeting-card::after {
-            content: '';
-            position: absolute;
-            top: -40px;
-            right: -40px;
-            width: 180px;
-            height: 180px;
-            background: radial-gradient(circle, rgba(255, 193, 7, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-
-        .greeting-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-        }
-
-        .greeting-title {
-            font-size: 22px;
-            font-weight: 800;
-            color: #ffffff;
-            line-height: 1.2;
-            letter-spacing: -0.3px;
-        }
-
-        .greeting-badge {
-            background: rgba(255, 193, 7, 0.18);
-            border: 1px solid rgba(255, 193, 7, 0.4);
-            color: #ffc107;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px 12px;
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }
-
-        .greeting-sub {
-            font-size: 13px;
-            color: #d1e5db;
-            line-height: 1.5;
-            max-width: 600px;
-            margin-bottom: 16px;
-        }
-
-        .greeting-pills {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .greeting-pill {
-            background: rgba(255, 255, 255, 0.09);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            padding: 6px 13px;
-            border-radius: 11px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #ffffff;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .greeting-pill i {
-            color: #ffc107;
-        }
-
-        /* ── Compact Stat Cards (Reduced Height) ── */
-        .compact-stat-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 16px;
-            padding: 14px 18px;
-            margin-bottom: 16px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-        }
-
-        .compact-stat-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #f0f4f2;
-        }
-
-        .compact-stat-title {
-            font-size: 13px;
-            font-weight: 800;
-            color: #06251b;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .compact-stat-link,
-        .sub-card-link,
-        .side-panel-link {
-            font-size: 11px;
-            font-weight: 700;
-            color: #1f7a3d;
-            background: #eef7f1;
-            padding: 4px 10px;
-            border-radius: 8px;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            transition: all .15s ease;
-            line-height: 1.2;
-        }
-
-        .compact-stat-link:hover,
-        .sub-card-link:hover,
-        .side-panel-link:hover {
-            background: #06251b;
-            color: #ffc107;
-            text-decoration: none;
-            transform: translateY(-1px);
-            box-shadow: 0 3px 8px rgba(6, 37, 27, 0.12);
-        }
-
-        .compact-stat-body {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .compact-donut-wrap {
-            width: 58px;
-            height: 58px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            position: relative;
-        }
-
-        .compact-donut-inner {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            background: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-        }
-
-        .compact-donut-num {
-            font-size: 14px;
-            font-weight: 800;
-            color: #06251b;
-        }
-
-        .compact-stat-metrics {
-            flex: 1;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-        }
-
-        .compact-metric-item {
-            background: #f7faf8;
-            border: 1px solid #edf1ee;
-            border-radius: 10px;
-            padding: 7px 10px;
-            text-align: center;
-        }
-
-        .compact-metric-num {
-            font-size: 15px;
-            font-weight: 800;
-            line-height: 1.1;
-        }
-
-        .compact-metric-lbl {
-            font-size: 9.5px;
-            font-weight: 700;
-            color: #88968d;
-            text-transform: uppercase;
-            letter-spacing: .3px;
-            margin-top: 2px;
-        }
-
-        /* ── Side-by-Side: Applications & Bids (60% Column) ── */
-        .dash-side-by-side {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-
-        @media (max-width: 768px) {
-            .dash-side-by-side {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .sub-card {
-            background: #fff;
-            border: 1px solid #eaeeec;
-            border-radius: 16px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sub-card-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 13px 16px 11px;
-            border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb;
-        }
-
-        .sub-card-title {
-            font-size: 13px;
-            font-weight: 800;
-            color: #06251b;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-
-
-        .sub-card-list {
-            padding: 2px 0;
-            flex: 1;
-        }
-
-        .sub-item-row {
-            padding: 10px 14px;
-            border-bottom: 1px solid #f4f7f5;
-            transition: background .15s;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .sub-item-row:last-child {
-            border-bottom: none;
-        }
-
-        .sub-item-row:hover {
-            background: #f9fbf9;
-        }
-
-        .sub-item-main {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .sub-item-title {
-            font-size: 12px;
-            font-weight: 700;
-            color: #1a1a1a;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.3;
-        }
-
-        .sub-item-meta {
-            font-size: 10.5px;
-            color: #88968d;
-            margin-top: 2px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* ── Profile Card (40% Column) ── */
-        .profile-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            padding: 20px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            margin-bottom: 18px;
-        }
-
-        .profile-top {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 14px;
-            padding-bottom: 14px;
-            border-bottom: 1px solid #f0f4f2;
-        }
-
-        .profile-avatar-box {
-            width: 50px;
-            height: 50px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #06251b 0%, #1f7a3d 100%);
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 19px;
-            font-weight: 800;
-            flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(6, 37, 27, 0.15);
-            overflow: hidden;
-        }
-
-        .profile-avatar-box img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: inherit;
-        }
-
-        .profile-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .profile-biz-name {
-            font-size: 14.5px;
-            font-weight: 800;
-            color: #06251b;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.2;
-        }
-
-        .profile-rep-name {
-            font-size: 11.5px;
-            color: #6C776E;
-            margin-top: 2px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .profile-status-badge {
-            font-size: 9.5px;
-            font-weight: 800;
-            padding: 3px 8px;
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            margin-top: 4px;
-            background: #e4f5ea;
-            color: #1f7a3d;
-        }
-
-        .profile-details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        .profile-detail-item {
-            background: #f7faf8;
-            border: 1px solid #edf1ee;
-            border-radius: 10px;
-            padding: 7px 9px;
-        }
-
-        .profile-detail-lbl {
-            font-size: 9px;
-            font-weight: 700;
-            color: #88968d;
-            text-transform: uppercase;
-            letter-spacing: .3px;
-            margin-bottom: 2px;
-        }
-
-        .profile-detail-val {
-            font-size: 11px;
-            font-weight: 700;
-            color: #1a1a1a;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* ── Compact Bid Calendar & Schedules (40% Column) ── */
-        .side-panel-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            margin-bottom: 18px;
-            overflow: hidden;
-        }
-
-        .side-panel-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 18px;
-            border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb;
-        }
-
-        .side-panel-title {
-            font-size: 13.5px;
-            font-weight: 800;
-            color: #06251b;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .mini-cal-container {
-            padding: 14px 18px;
-        }
-
-        .mini-cal-nav {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-
-        .mini-cal-month {
-            font-weight: 800;
-            font-size: 13px;
-            color: #06251b;
-            font-family: 'Space Grotesk', sans-serif;
-        }
-
-        .mini-cal-btn {
-            background: #eef2f0;
-            border: none;
-            width: 26px;
-            height: 26px;
-            border-radius: 7px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: #06251b;
-            font-size: 11px;
-            transition: all .15s;
-        }
-
-        .mini-cal-btn:hover {
-            background: #06251b;
-            color: #ffc107;
-        }
-
-        .mini-cal-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-            text-align: center;
-        }
-
-        .mini-cal-day-head {
-            font-size: 10px;
-            font-weight: 700;
-            color: #88968d;
-            padding: 4px 0;
-            text-transform: uppercase;
-        }
-
-        .mini-cal-cell {
-            aspect-ratio: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #1a1a1a;
-            position: relative;
-            cursor: default;
-            transition: all .12s;
-        }
-
-        .mini-cal-cell.empty {
-            visibility: hidden;
-        }
-
-        .mini-cal-cell.has-event {
-            background: #f0f7f3;
-            color: #06251b;
-            font-weight: 800;
-            cursor: pointer;
-        }
-
-        .mini-cal-cell.has-event:hover {
-            background: #06251b;
-            color: #ffc107;
-        }
-
-        .mini-cal-cell.is-today {
-            border: 1.5px solid #1f7a3d;
-        }
-
-        .mini-cal-dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: #e67e22;
-            position: absolute;
-            bottom: 2px;
-        }
-
-        .mini-cal-cell:hover .mini-cal-dot {
-            background: #ffc107;
-        }
-
-        .side-events-list {
-            padding: 8px 18px 14px;
-            border-top: 1px solid #f0f4f2;
-            max-height: 180px;
-            overflow-y: auto;
-        }
-
-        .side-event-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 7px 0;
-            border-bottom: 1px solid #f0f4f2;
-            font-size: 11.5px;
-        }
-
-        .side-event-item:last-child {
-            border-bottom: none;
-        }
-
-        .side-event-title {
-            font-weight: 700;
-            color: #1a1a1a;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 160px;
-        }
-
-        .side-event-date {
-            font-size: 9.5px;
-            color: #88968d;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        /* ── Event Viewer Modal ── */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(6, 37, 27, 0.45);
-            backdrop-filter: blur(4px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1050;
-            padding: 16px;
-        }
-
-        .modal-backdrop.open {
-            display: flex;
-        }
-
-        .modal-box {
-            background: #ffffff;
-            border-radius: 20px;
-            width: 100%;
-            max-width: 480px;
-            box-shadow: 0 16px 40px rgba(0,0,0,0.15);
-            overflow: hidden;
-            animation: modalPopIn .2s cubic-bezier(.34,1.56,.64,1);
-        }
-
-        @keyframes modalPopIn {
-            from { transform: scale(0.94); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        .modal-header {
-            padding: 18px 22px;
-            background: #fafcfb;
-            border-bottom: 1px solid #f0f4f2;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .modal-header h4 {
-            font-size: 15px;
-            font-weight: 800;
-            color: #06251b;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: #88968d;
-            font-size: 16px;
-            cursor: pointer;
-            padding: 4px;
-            border-radius: 6px;
-            display: flex;
-        }
-
-        .modal-close:hover {
-            color: #06251b;
-            background: #eef2f0;
-        }
-
-        .modal-body {
-            padding: 20px 22px;
-            max-height: 380px;
-            overflow-y: auto;
-        }
-
-        /* Notification item in 60% column */
-        .side-notif-row {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            padding: 10px 14px;
-            border-bottom: 1px solid #f4f7f5;
-            transition: background .15s;
-        }
-
-        .side-notif-row:last-child { border-bottom: none; }
-        .side-notif-row:hover { background: #f9fbf9; }
-
-        .side-notif-icon {
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            background: #e8f5e9;
-            color: #1f7a3d;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-
-        .side-notif-body { flex: 1; min-width: 0; }
-        .side-notif-title {
-            font-size: 12px;
-            font-weight: 700;
-            color: #182019;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.2;
-        }
-
-        .side-notif-snippet {
-            font-size: 11px;
-            color: #6C776E;
-            margin-top: 2px;
-            display: -webkit-box;
-            -webkit-line-clamp: 1;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .side-notif-meta {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 10px;
-            color: #9aa8a1;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-dashboard.css">
 </head>
 <body class="dash-body">
 
@@ -891,7 +167,7 @@ include("components/topbar.php");
             <div class="compact-stat-card">
                 <div class="compact-stat-top">
                     <div class="compact-stat-title">
-                        <i class="bi bi-pie-chart-fill" style="color:#1f7a3d;"></i> Procurement Overview
+                        <i class="bi bi-pie-chart-fill clr-forest"></i> Procurement Overview
                     </div>
                     <a href="procurement.php" class="compact-stat-link">Manage Procurements <i class="bi bi-arrow-right"></i></a>
                 </div>
@@ -899,24 +175,24 @@ include("components/topbar.php");
                     <div class="compact-donut-wrap" style="background:conic-gradient(#1f7a3d 0% <?= pct($open_procs, max($total_procs,1)) ?>%, #c23b3b 0% <?= pct($open_procs+$closed_procs, max($total_procs,1)) ?>%, #f0b92e 0% 100%);">
                         <div class="compact-donut-inner">
                             <span class="compact-donut-num"><?= $total_procs ?></span>
-                            <span style="font-size:8px; color:#88968d; font-weight:700;">TOTAL</span>
+                            <span class="donut-label">TOTAL</span>
                         </div>
                     </div>
                     <div class="compact-stat-metrics">
                         <div class="compact-metric-item">
-                            <div class="compact-metric-num" style="color:#1f7a3d;"><?= $open_procs ?></div>
+                            <div class="compact-metric-num metric-num--forest"><?= $open_procs ?></div>
                             <div class="compact-metric-lbl">Open</div>
                         </div>
                         <div class="compact-metric-item">
-                            <div class="compact-metric-num" style="color:#f0b92e;"><?= $draft_procs ?></div>
+                            <div class="compact-metric-num metric-num--gold"><?= $draft_procs ?></div>
                             <div class="compact-metric-lbl">Draft</div>
                         </div>
                         <div class="compact-metric-item">
-                            <div class="compact-metric-num" style="color:#c23b3b;"><?= $closed_procs ?></div>
+                            <div class="compact-metric-num metric-num--red"><?= $closed_procs ?></div>
                             <div class="compact-metric-lbl">Closed</div>
                         </div>
                         <div class="compact-metric-item">
-                            <div class="compact-metric-num" style="color:#2F6FED;"><?= $awarded_procs ?></div>
+                            <div class="compact-metric-num metric-num--blue"><?= $awarded_procs ?></div>
                             <div class="compact-metric-lbl">Awarded</div>
                         </div>
                     </div>
@@ -927,7 +203,7 @@ include("components/topbar.php");
             <div class="compact-stat-card">
                 <div class="compact-stat-top">
                     <div class="compact-stat-title">
-                        <i class="bi bi-inbox-fill" style="color:#2F6FED;"></i> Bid Submissions Overview
+                        <i class="bi bi-inbox-fill clr-blue"></i> Bid Submissions Overview
                     </div>
                     <a href="bid_submissions.php" class="compact-stat-link">View All Bids <i class="bi bi-arrow-right"></i></a>
                 </div>
@@ -935,24 +211,24 @@ include("components/topbar.php");
                     <div class="compact-donut-wrap" style="background:conic-gradient(#2F6FED 0% <?= pct($submitted_bids, max($total_bids,1)) ?>%, #e67e22 0% <?= pct($submitted_bids+$pending_bids, max($total_bids,1)) ?>%, #c23b3b 0% 100%);">
                         <div class="compact-donut-inner">
                             <span class="compact-donut-num"><?= $total_bids ?></span>
-                            <span style="font-size:8px; color:#88968d; font-weight:700;">BIDS</span>
+                            <span class="donut-label">BIDS</span>
                         </div>
                     </div>
                     <div class="compact-stat-metrics">
                         <div class="compact-metric-item">
-                            <div class="compact-metric-num" style="color:#e67e22;"><?= $pending_bids ?></div>
+                            <div class="compact-metric-num metric-num--amber"><?= $pending_bids ?></div>
                             <div class="compact-metric-lbl">Pending Review</div>
                         </div>
                         <div class="compact-metric-item">
-                            <div class="compact-metric-num" style="color:#2F6FED;"><?= $submitted_bids ?></div>
+                            <div class="compact-metric-num metric-num--blue"><?= $submitted_bids ?></div>
                             <div class="compact-metric-lbl">Submitted</div>
                         </div>
                         <div class="compact-metric-item">
-                            <div class="compact-metric-num" style="color:#1f7a3d;"><?= max(0, $total_bids - $pending_bids - $submitted_bids - $rejected_bids) ?></div>
+                            <div class="compact-metric-num metric-num--forest"><?= max(0, $total_bids - $pending_bids - $submitted_bids - $rejected_bids) ?></div>
                             <div class="compact-metric-lbl">Opened</div>
                         </div>
                         <div class="compact-metric-item">
-                            <div class="compact-metric-num" style="color:#c23b3b;"><?= $rejected_bids ?></div>
+                            <div class="compact-metric-num metric-num--red"><?= $rejected_bids ?></div>
                             <div class="compact-metric-lbl">Rejected</div>
                         </div>
                     </div>
@@ -966,14 +242,14 @@ include("components/topbar.php");
                 <div class="sub-card">
                     <div class="sub-card-head">
                         <div class="sub-card-title">
-                            <i class="bi bi-person-check" style="color:#f9a825;"></i> Pending Applications
+                            <i class="bi bi-person-check clr-amber-gold"></i> Pending Applications
                         </div>
                         <a href="account-management.php" class="sub-card-link">Review <i class="bi bi-arrow-right"></i></a>
                     </div>
                     <div class="sub-card-list">
                         <?php if ($pending_result->num_rows === 0): ?>
-                            <div style="padding:28px 16px; text-align:center; color:#88968d; font-size:11.5px;">
-                                <i class="bi bi-check-circle" style="font-size:22px; color:#c7d2cb; display:block; margin-bottom:4px;"></i>
+                            <div class="empty-mini">
+                                <i class="bi bi-check-circle empty-mini-icon"></i>
                                 No pending bidder registrations.
                             </div>
                         <?php else: while ($pa = $pending_result->fetch_assoc()):
@@ -989,7 +265,7 @@ include("components/topbar.php");
                                     </div>
                                 </div>
                                 <div class="sub-item-action">
-                                    <a href="account-management.php" class="proc-action-btn review" style="background:#E7EEFE; color:#2F6FED; font-size:11px; padding:4px 10px; border-radius:7px; font-weight:700; text-decoration:none;">
+                                    <a href="account-management.php" class="proc-action-btn review review-pill">
                                         <i class="bi bi-eye"></i> View
                                     </a>
                                 </div>
@@ -1002,14 +278,14 @@ include("components/topbar.php");
                 <div class="sub-card">
                     <div class="sub-card-head">
                         <div class="sub-card-title">
-                            <i class="bi bi-hourglass-split" style="color:#e67e22;"></i> Pending Bids
+                            <i class="bi bi-hourglass-split clr-amber"></i> Pending Bids
                         </div>
                         <a href="bid_submissions.php" class="sub-card-link">View all <i class="bi bi-arrow-right"></i></a>
                     </div>
                     <div class="sub-card-list">
                         <?php if ($pending_bids_result->num_rows === 0): ?>
-                            <div style="padding:28px 16px; text-align:center; color:#88968d; font-size:11.5px;">
-                                <i class="bi bi-inbox" style="font-size:22px; color:#c7d2cb; display:block; margin-bottom:4px;"></i>
+                            <div class="empty-mini">
+                                <i class="bi bi-inbox empty-mini-icon"></i>
                                 No pending bids to verify.
                             </div>
                         <?php else: while ($pb = $pending_bids_result->fetch_assoc()): ?>
@@ -1025,7 +301,7 @@ include("components/topbar.php");
                                     </div>
                                 </div>
                                 <div class="sub-item-action">
-                                    <a href="bid_submissions.php" class="proc-action-btn review" style="background:#E7EEFE; color:#2F6FED; font-size:11px; padding:4px 10px; border-radius:7px; font-weight:700; text-decoration:none;">
+                                    <a href="bid_submissions.php" class="proc-action-btn review review-pill">
                                         <i class="bi bi-eye"></i> View
                                     </a>
                                 </div>
@@ -1040,14 +316,14 @@ include("components/topbar.php");
             <div class="sub-card">
                 <div class="sub-card-head">
                     <div class="sub-card-title">
-                        <i class="bi bi-megaphone" style="color:#e67e22;"></i> System Announcements &amp; Broadcasts
+                        <i class="bi bi-megaphone clr-amber"></i> System Announcements &amp; Broadcasts
                     </div>
                     <a href="announcements.php" class="sub-card-link">Manage Broadcasts <i class="bi bi-arrow-right"></i></a>
                 </div>
                 <div>
                     <?php if (!$notifs_dash_result || $notifs_dash_result->num_rows === 0): ?>
-                        <div style="padding:26px 16px; text-align:center; color:#88968d; font-size:12px;">
-                            <i class="bi bi-bell-slash" style="font-size:24px; color:#c7d2cb; display:block; margin-bottom:6px;"></i>
+                        <div class="empty-announce">
+                            <i class="bi bi-bell-slash empty-announce-icon"></i>
                             No announcements posted yet.
                         </div>
                     <?php else: while ($nt = $notifs_dash_result->fetch_assoc()):
@@ -1065,25 +341,25 @@ include("components/topbar.php");
                                 <i class="bi bi-bell-fill"></i>
                             </div>
                             <div class="side-notif-body">
-                                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                                <div class="notif-title-row">
                                     <div class="side-notif-title" title="<?= htmlspecialchars($nt['title']) ?>">
                                         <?= htmlspecialchars($nt['title']) ?>
                                     </div>
-                                    <span style="font-size:10px; color:#88968d; white-space:nowrap;">
+                                    <span class="notif-time">
                                         <i class="bi bi-clock"></i> <?= timeAgo($nt['created_at']) ?>
                                     </span>
                                 </div>
                                 <div class="side-notif-snippet">
                                     <?= htmlspecialchars($nt['message']) ?>
                                 </div>
-                                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px; gap:8px;">
+                                <div class="notif-meta-row">
                                     <div class="side-notif-meta">
-                                        <span style="background:<?= $targetColor ?>; color:<?= $targetFg ?>; padding:1px 6px; border-radius:4px; font-weight:700; font-size:9.5px;">
+                                        <span class="notif-target-badge" style="--badge-bg:<?= $targetColor ?>; --badge-fg:<?= $targetFg ?>;">
                                             <?= htmlspecialchars($targetBadge) ?>
                                         </span>
                                         <span>By: <?= htmlspecialchars(trim(($nt['firstname'] ?? '') . ' ' . ($nt['lastname'] ?? '')) ?: 'Admin') ?></span>
                                     </div>
-                                    <a href="announcements.php" class="proc-action-btn review" style="background:#E7EEFE; color:#2F6FED; font-size:11px; padding:4px 10px; border-radius:7px; font-weight:700; text-decoration:none;">
+                                    <a href="announcements.php" class="proc-action-btn review review-pill">
                                         <i class="bi bi-eye"></i> View
                                     </a>
                                 </div>
@@ -1132,7 +408,7 @@ include("components/topbar.php");
                         <div class="profile-detail-lbl">Member Since</div>
                         <div class="profile-detail-val"><?= $admin_since ?></div>
                     </div>
-                    <div class="profile-detail-item" style="grid-column: span 2;">
+                    <div class="profile-detail-item profile-detail-item--wide">
                         <div class="profile-detail-lbl">Official Email</div>
                         <div class="profile-detail-val" title="<?= htmlspecialchars($admin_email) ?>"><?= htmlspecialchars($admin_email) ?></div>
                     </div>
@@ -1143,7 +419,7 @@ include("components/topbar.php");
             <div class="side-panel-card">
                 <div class="side-panel-head">
                     <div class="side-panel-title">
-                        <i class="bi bi-calendar3" style="color:#1f7a3d;"></i>
+                        <i class="bi bi-calendar3 clr-forest"></i>
                         <span>Schedule of Activities</span>
                     </div>
                     <a href="procurement.php" class="side-panel-link">View all <i class="bi bi-arrow-right"></i></a>
@@ -1161,12 +437,12 @@ include("components/topbar.php");
                     </div>
                 </div>
 
-                <div style="display:flex; justify-content:space-around; padding:6px 12px 8px; font-size:10.5px; color:#777; border-top:1px solid #f0f4f2; background:#fafcfb;">
-                    <span style="display:flex; align-items:center; gap:4px;">
-                        <span style="width:6px; height:6px; border-radius:50%; background:#1f7a3d; display:inline-block;"></span> Bid Opening
+                <div class="legend-row">
+                    <span class="legend-item">
+                        <span class="legend-dot legend-dot--forest"></span> Bid Opening
                     </span>
-                    <span style="display:flex; align-items:center; gap:4px;">
-                        <span style="width:6px; height:6px; border-radius:50%; background:#e67e22; display:inline-block;"></span> Deadline
+                    <span class="legend-item">
+                        <span class="legend-dot legend-dot--amber"></span> Deadline
                     </span>
                 </div>
 
@@ -1186,27 +462,27 @@ include("components/topbar.php");
     <div class="sad-section-label">Quick Actions</div>
     <div class="sad-actions">
         <a href="procurement.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#e8f5e9; color:#43a047;"><i class="bi bi-folder2-open"></i></div>
+            <div class="sad-action-icon sad-action-icon--green"><i class="bi bi-folder2-open"></i></div>
             <span>Procurements</span>
         </a>
         <a href="account-management.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#e3f2fd; color:#1565c0;"><i class="bi bi-people"></i></div>
+            <div class="sad-action-icon sad-action-icon--blue"><i class="bi bi-people"></i></div>
             <span>Accounts</span>
         </a>
         <a href="bid_submissions.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#fff8e1; color:#f9a825;"><i class="bi bi-inbox"></i></div>
+            <div class="sad-action-icon sad-action-icon--gold"><i class="bi bi-inbox"></i></div>
             <span>Bid Submissions</span>
         </a>
         <a href="audit_trail.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#f3e5f5; color:#7b1fa2;"><i class="bi bi-journal-text"></i></div>
+            <div class="sad-action-icon sad-action-icon--purple"><i class="bi bi-journal-text"></i></div>
             <span>Audit Trail</span>
         </a>
         <a href="announcements.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#e0f2f1; color:#00796b;"><i class="bi bi-megaphone"></i></div>
+            <div class="sad-action-icon sad-action-icon--teal"><i class="bi bi-megaphone"></i></div>
             <span>Announcements</span>
         </a>
         <a href="../logout.php" class="sad-action-card">
-            <div class="sad-action-icon" style="background:#fce4ec; color:#c62828;"><i class="bi bi-box-arrow-left"></i></div>
+            <div class="sad-action-icon sad-action-icon--red"><i class="bi bi-box-arrow-left"></i></div>
             <span>Logout</span>
         </a>
     </div>
@@ -1218,7 +494,7 @@ include("components/topbar.php");
 <div class="modal-backdrop" id="calEventModal" onclick="if(event.target===this) this.classList.remove('open')">
     <div class="modal-box">
         <div class="modal-header">
-            <h4><i class="bi bi-calendar-event" style="color:#1f7a3d;"></i> <span id="calModalDate">Activities</span></h4>
+            <h4><i class="bi bi-calendar-event clr-forest"></i> <span id="calModalDate">Activities</span></h4>
             <button type="button" class="modal-close" onclick="document.getElementById('calEventModal').classList.remove('open')">
                 <i class="bi bi-x-lg"></i>
             </button>
@@ -1313,7 +589,7 @@ include("components/topbar.php");
         });
 
         if (monthEvents.length === 0) {
-            listEl.innerHTML = '<div style="font-size:11px; color:#88968d; padding:10px 0; text-align:center;">No scheduled events this month.</div>';
+            listEl.innerHTML = '<div class="mini-empty">No scheduled events this month.</div>';
             return;
         }
 
@@ -1325,12 +601,12 @@ include("components/topbar.php");
             const fDate = dateObj.toLocaleDateString('en-US', { month:'short', day:'numeric' });
             const isOpening = Boolean(e.opening_date);
             const typeLabel = isOpening ? 'Bid Opening' : 'Deadline';
-            const typeColor = isOpening ? '#1f7a3d' : '#e67e22';
+            const typeClass = isOpening ? 'side-event-type--opening' : 'side-event-type--deadline';
 
             item.innerHTML = `
-                <div style="min-width:0; flex:1;">
+                <div class="side-event-main">
                     <div class="side-event-title" title="${e.title}">${e.title}</div>
-                    <span style="font-size:9.5px; color:${typeColor}; font-weight:700; text-transform:uppercase;">${typeLabel}</span>
+                    <span class="side-event-type ${typeClass}">${typeLabel}</span>
                 </div>
                 <span class="side-event-date">${fDate}</span>
             `;
@@ -1358,26 +634,26 @@ include("components/topbar.php");
 
         events.forEach(e => {
             const card = document.createElement('div');
-            card.style.cssText = 'padding:14px; background:#fafcfb; border:1px solid #eaeeec; border-radius:12px; margin-bottom:10px;';
-            
+            card.className = 'cal-event-card';
+
             let typeBadge = '';
             if (e.opening_date && e.opening_date.includes(dateStr)) {
-                typeBadge = '<span style="background:#e4f5ea; color:#1f7a3d; padding:2px 8px; border-radius:6px; font-size:10px; font-weight:700; text-transform:uppercase;">BID OPENING</span>';
+                typeBadge = '<span class="cal-type-badge cal-type-badge--opening">BID OPENING</span>';
             } else {
-                typeBadge = '<span style="background:#fff3e0; color:#e67e22; padding:2px 8px; border-radius:6px; font-size:10px; font-weight:700; text-transform:uppercase;">SUBMISSION DEADLINE</span>';
+                typeBadge = '<span class="cal-type-badge cal-type-badge--deadline">SUBMISSION DEADLINE</span>';
             }
 
             card.innerHTML = `
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                <div class="cal-event-head">
                     ${typeBadge}
-                    <span style="font-size:11px; color:#88968d; font-weight:600;">Ref: ${e.slsu_ref_no || 'N/A'}</span>
+                    <span class="cal-event-ref">Ref: ${e.slsu_ref_no || 'N/A'}</span>
                 </div>
-                <div style="font-weight:700; font-size:13px; color:#1a2a20; margin-bottom:8px; line-height:1.35;">${e.title}</div>
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
-                    <span style="font-family:'Space Grotesk',sans-serif; font-weight:800; font-size:12.5px; color:#06251b;">
+                <div class="cal-event-title">${e.title}</div>
+                <div class="cal-event-foot">
+                    <span class="cal-event-abc">
                         ${e.abc ? '₱' + Number(e.abc).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : ''}
                     </span>
-                    <a href="procurement.php" class="proc-action-btn review" style="background:#06251b; color:#ffc107; font-size:11px; padding:4px 10px; border-radius:7px; font-weight:700; text-decoration:none;">
+                    <a href="procurement.php" class="proc-action-btn review review-pill review-pill--dark">
                         <i class="bi bi-eye"></i> View Procurement
                     </a>
                 </div>

@@ -263,1170 +263,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_bid'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        /* ── Base Container & Reset ── */
-        * {
-            box-sizing: border-box;
-        }
-
-        .dash-content {
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-
-        /* ── Breadcrumbs & Top Navigation Bar ── */
-        .vp-nav-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 18px;
-        }
-
-        .vp-breadcrumbs {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            color: #88968d;
-            font-weight: 600;
-        }
-
-        .vp-breadcrumbs a {
-            color: #1f7a3d;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            transition: color .15s;
-        }
-
-        .vp-breadcrumbs a:hover {
-            text-decoration: underline;
-            color: #06251b;
-        }
-
-        .vp-back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #06251b;
-            font-size: 12.5px;
-            font-weight: 700;
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            padding: 7px 14px;
-            border-radius: 10px;
-            text-decoration: none;
-            transition: all .2s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
-
-        .vp-back-link:hover {
-            background: #06251b;
-            color: #ffc107;
-            border-color: #06251b;
-        }
-
-        /* ── Project Hero Header ── */
-        .vp-hero-card {
-            background: linear-gradient(135deg, #06251b 0%, #0c3d2c 60%, #14593f 100%);
-            border-radius: 20px;
-            padding: 26px 30px;
-            color: #ffffff;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(6, 37, 27, 0.16);
-            margin-bottom: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .vp-hero-card::after {
-            content: '';
-            position: absolute;
-            top: -50px;
-            right: -50px;
-            width: 240px;
-            height: 240px;
-            background: radial-gradient(circle, rgba(255, 193, 7, 0.14) 0%, rgba(255, 255, 255, 0) 70%);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-
-        .vp-hero-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 12px;
-        }
-
-        .vp-hero-badges {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .hero-pill {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            letter-spacing: .3px;
-        }
-
-        .hero-pill.ref {
-            background: rgba(255, 255, 255, 0.12);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            cursor: pointer;
-            transition: all .15s;
-        }
-
-        .hero-pill.ref:hover {
-            background: rgba(255, 255, 255, 0.22);
-            border-color: rgba(255, 255, 255, 0.35);
-        }
-
-        .hero-pill.mode {
-            background: rgba(255, 193, 7, 0.2);
-            border: 1px solid rgba(255, 193, 7, 0.4);
-            color: #ffc107;
-        }
-
-        .hero-pill.open {
-            background: rgba(33, 150, 83, 0.25);
-            border: 1px solid rgba(33, 150, 83, 0.5);
-            color: #81c784;
-        }
-
-        .hero-pill.urgent {
-            background: rgba(235, 87, 87, 0.25);
-            border: 1px solid rgba(235, 87, 87, 0.5);
-            color: #ff8a80;
-            animation: pulseUrgent 2s infinite;
-        }
-
-        @keyframes pulseUrgent {
-            0% { opacity: 1; }
-            50% { opacity: 0.75; }
-            100% { opacity: 1; }
-        }
-
-        .vp-hero-title {
-            font-size: 22px;
-            font-weight: 800;
-            color: #ffffff;
-            line-height: 1.35;
-            margin-bottom: 18px;
-            letter-spacing: -0.2px;
-        }
-
-        .vp-hero-metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-        }
-
-        .vp-hero-metric-item {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 14px;
-            padding: 12px 16px;
-        }
-
-        .vp-hero-metric-lbl {
-            font-size: 10px;
-            font-weight: 700;
-            color: #d1e5db;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .vp-hero-metric-lbl i {
-            color: #ffc107;
-        }
-
-        .vp-hero-metric-val {
-            font-size: 16px;
-            font-weight: 800;
-            color: #ffffff;
-            font-family: 'Space Grotesk', sans-serif;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .vp-hero-metric-val.gold {
-            color: #ffc107;
-        }
-
-        /* ── Two-Column Layout ── */
-        .vp-grid-layout {
-            display: grid;
-            grid-template-columns: 1.7fr 1fr;
-            gap: 24px;
-            align-items: start;
-            margin-bottom: 30px;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .vp-left-col {
-            min-width: 0;
-            max-width: 100%;
-            overflow: hidden;
-        }
-
-        .vp-right-col {
-            min-width: 0;
-            max-width: 100%;
-            overflow: hidden;
-        }
-
-        @media (max-width: 1040px) {
-            .vp-grid-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* ── Main Step Card Styles ── */
-        .submit-step-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            margin-bottom: 22px;
-            overflow: hidden;
-            min-width: 0;
-            max-width: 100%;
-            transition: border-color .2s;
-        }
-
-        .submit-step-card:focus-within {
-            border-color: #1f7a3d;
-        }
-
-        .step-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 18px 22px;
-            border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb;
-            gap: 14px;
-            flex-wrap: wrap;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .step-header-left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            min-width: 0;
-            flex: 1 1 auto;
-        }
-
-        .step-badge {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: #06251b;
-            color: #ffc107;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-            font-weight: 800;
-            font-family: 'Space Grotesk', sans-serif;
-            flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(6, 37, 27, 0.15);
-        }
-
-        .step-title-text {
-            min-width: 0;
-            flex: 1 1 auto;
-        }
-
-        .step-title-text h4 {
-            font-size: 15px;
-            font-weight: 800;
-            color: #06251b;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .step-title-text p {
-            font-size: 12px;
-            color: #6c776e;
-            margin: 3px 0 0;
-        }
-
-        .step-card-body {
-            padding: 22px;
-            min-width: 0;
-            max-width: 100%;
-            overflow: hidden;
-        }
-
-        /* ── Error Banner ── */
-        .sb-error-banner {
-            background: #fdf2f2;
-            border: 1px solid #f8d7da;
-            border-left: 4px solid #dc3545;
-            border-radius: 14px;
-            padding: 16px 20px;
-            margin-bottom: 22px;
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            color: #842029;
-            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.06);
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .sb-error-banner i {
-            font-size: 20px;
-            color: #dc3545;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
-
-        .sb-error-banner ul {
-            margin: 6px 0 0;
-            padding-left: 18px;
-            font-size: 12.5px;
-            line-height: 1.6;
-            word-break: break-word;
-        }
-
-        /* ── STEP 1: Lot Selector Grid ── */
-        .lots-select-toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 14px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .lots-select-info {
-            font-size: 12px;
-            font-weight: 600;
-            color: #55665a;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .lots-select-info strong {
-            color: #06251b;
-        }
-
-        .lots-quick-btns {
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn-quick-toggle {
-            background: #f0f4f2;
-            border: 1px solid #dbe2df;
-            color: #06251b;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all .15s;
-        }
-
-        .btn-quick-toggle:hover {
-            background: #06251b;
-            color: #ffc107;
-            border-color: #06251b;
-        }
-
-        .sb-lot-cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 14px;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .sb-lot-card {
-            background: #fafcfb;
-            border: 2px solid #e4eae6;
-            border-radius: 14px;
-            padding: 16px;
-            cursor: pointer;
-            transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            user-select: none;
-            min-width: 0;
-            max-width: 100%;
-            overflow: hidden;
-        }
-
-        .sb-lot-card:hover {
-            border-color: #b0c9bb;
-            background: #f4faf6;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(6, 37, 27, 0.06);
-        }
-
-        .sb-lot-card.selected {
-            background: #f2f9f4;
-            border-color: #1f7a3d;
-            box-shadow: 0 4px 14px rgba(31, 122, 61, 0.12);
-        }
-
-        .sb-lot-card input[type="checkbox"] {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .sb-lot-card-top {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
-
-        .sb-lot-badge {
-            background: #e0ece4;
-            color: #06251b;
-            font-size: 11px;
-            font-weight: 800;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-family: 'Space Grotesk', sans-serif;
-            letter-spacing: .3px;
-            flex-shrink: 0;
-        }
-
-        .sb-lot-card.selected .sb-lot-badge {
-            background: #1f7a3d;
-            color: #ffffff;
-        }
-
-        .sb-lot-checkbox-ui {
-            width: 22px;
-            height: 22px;
-            border-radius: 6px;
-            border: 2px solid #cfd8d3;
-            background: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            color: #ffffff;
-            transition: all .15s;
-            flex-shrink: 0;
-        }
-
-        .sb-lot-card.selected .sb-lot-checkbox-ui {
-            background: #1f7a3d;
-            border-color: #1f7a3d;
-        }
-
-        .sb-lot-card-title {
-            font-size: 13.5px;
-            font-weight: 700;
-            color: #06251b;
-            line-height: 1.4;
-            margin-bottom: 12px;
-            flex-grow: 1;
-            word-break: break-word;
-        }
-
-        .sb-lot-card-bottom {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-top: 1px solid #edf1ee;
-            padding-top: 10px;
-            font-size: 12px;
-            gap: 6px;
-        }
-
-        .sb-lot-abc-lbl {
-            font-size: 10.5px;
-            font-weight: 700;
-            color: #88968d;
-            text-transform: uppercase;
-        }
-
-        .sb-lot-abc-val {
-            font-size: 13px;
-            font-weight: 800;
-            color: #1f7a3d;
-            font-family: 'Space Grotesk', sans-serif;
-            white-space: nowrap;
-        }
-
-        /* ── STEP 2: Receipt Upload Box ── */
-        .receipt-dropzone {
-            background: #fbfdfc;
-            border: 2px dashed #cfdbd4;
-            border-radius: 14px;
-            padding: 24px 20px;
-            text-align: center;
-            transition: all .2s;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .receipt-dropzone:hover,
-        .receipt-dropzone.dragover {
-            border-color: #1f7a3d;
-            background: #f4faf6;
-        }
-
-        .receipt-icon-wrap {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            background: #eef7f1;
-            color: #1f7a3d;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            margin-bottom: 4px;
-            flex-shrink: 0;
-        }
-
-        .receipt-dropzone-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #06251b;
-        }
-
-        .receipt-dropzone-sub {
-            font-size: 11.5px;
-            color: #6c776e;
-        }
-
-        .btn-browse-file {
-            background: #06251b;
-            color: #ffc107;
-            font-size: 12px;
-            font-weight: 700;
-            padding: 7px 16px;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 4px;
-            border: none;
-            cursor: pointer;
-            transition: all .15s;
-        }
-
-        .btn-browse-file:hover {
-            background: #144937;
-            color: #ffffff;
-        }
-
-        /* ── STEP 3: Lot Envelope Blocks ── */
-        .sb-no-lots-placeholder {
-            background: #fbfdfc;
-            border: 2px dashed #dae3de;
-            border-radius: 14px;
-            padding: 32px 20px;
-            text-align: center;
-            color: #6c776e;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .sb-no-lots-placeholder i {
-            font-size: 32px;
-            color: #88968d;
-        }
-
-        #lotEnvelopesContainer {
-            min-width: 0;
-            max-width: 100%;
-            overflow: hidden;
-        }
-
-        .sb-lot-envelope-card {
-            background: #ffffff;
-            border: 1px solid #e2e9e5;
-            border-radius: 14px;
-            margin-bottom: 18px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-            transition: all .2s;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .sb-lot-envelope-card.hidden {
-            display: none !important;
-        }
-
-        .sb-lot-envelope-header {
-            background: #f7faf8;
-            padding: 14px 18px;
-            border-bottom: 1px solid #eaeeec;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .sb-envelope-lot-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 13.5px;
-            font-weight: 800;
-            color: #06251b;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            flex: 1 1 auto;
-        }
-
-        .envelope-badge {
-            background: #06251b;
-            color: #ffc107;
-            font-size: 10.5px;
-            font-weight: 800;
-            padding: 2px 7px;
-            border-radius: 5px;
-            font-family: 'Space Grotesk', sans-serif;
-            flex-shrink: 0;
-        }
-
-        .envelope-status-pill {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            flex-shrink: 0;
-        }
-
-        .envelope-status-pill.pending {
-            background: #fcf1cf;
-            color: #946900;
-        }
-
-        .envelope-status-pill.complete {
-            background: #e4f5ea;
-            color: #1f7a3d;
-        }
-
-        .sb-lot-envelope-body {
-            padding: 18px;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            gap: 18px;
-            min-width: 0;
-            max-width: 100%;
-            overflow: hidden;
-        }
-
-        @media (max-width: 860px) {
-            .sb-lot-envelope-body {
-                grid-template-columns: minmax(0, 1fr);
-            }
-        }
-
-        .envelope-upload-box {
-            background: #fbfdfc;
-            border: 1px solid #edf1ee;
-            border-radius: 12px;
-            padding: 14px;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-            max-width: 100%;
-            overflow: hidden;
-        }
-
-        /* Push the trigger + file list to the bottom of each box so both columns align */
-        .envelope-upload-box-bottom {
-            margin-top: auto;
-            padding-top: 4px;
-        }
-
-        .envelope-box-head {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            margin-bottom: 12px;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .envelope-icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 8px;
-            background: #eef7f1;
-            color: #1f7a3d;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            flex-shrink: 0;
-        }
-
-        .envelope-icon.financial {
-            background: #fef8e7;
-            color: #c98800;
-        }
-
-        .envelope-box-title {
-            font-size: 13px;
-            font-weight: 800;
-            color: #06251b;
-            word-break: break-word;
-        }
-
-        .envelope-box-desc {
-            font-size: 11px;
-            color: #88968d;
-            margin-top: 2px;
-            line-height: 1.4;
-            word-break: break-word;
-        }
-
-        .envelope-upload-trigger {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #ffffff;
-            border: 1px dashed #cfdbd4;
-            border-radius: 8px;
-            padding: 8px 12px;
-            cursor: pointer;
-            transition: all .15s;
-            margin-top: 8px;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .envelope-upload-trigger:hover {
-            border-color: #1f7a3d;
-            background: #f4faf6;
-        }
-
-        .trigger-left {
-            font-size: 11.5px;
-            font-weight: 600;
-            color: #55665a;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .trigger-btn {
-            background: #06251b;
-            color: #ffffff;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px 9px;
-            border-radius: 6px;
-            flex-shrink: 0;
-        }
-
-        /* ── File Stack Items ── */
-        .file-stack-list {
-            margin-top: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            min-width: 0;
-            max-width: 100%;
-            overflow: hidden;
-        }
-
-        .file-stack-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 8px;
-            padding: 7px 10px;
-            font-size: 11.5px;
-            gap: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-            min-width: 0;
-            max-width: 100%;
-            overflow: hidden;
-            animation: fadeInFile .2s ease;
-        }
-
-        @keyframes fadeInFile {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .file-stack-item-left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 0;
-            flex: 1 1 0;
-            overflow: hidden;
-        }
-
-        .file-stack-item i.file-icon {
-            color: #1f7a3d;
-            font-size: 14px;
-            flex-shrink: 0;
-        }
-
-        .file-stack-name {
-            font-weight: 600;
-            color: #1a1a1a;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            min-width: 0;
-            flex: 1 1 auto;
-            display: block;
-        }
-
-        .file-stack-size {
-            font-size: 10px;
-            color: #88968d;
-            background: #f0f4f2;
-            padding: 2px 6px;
-            border-radius: 4px;
-            flex-shrink: 0;
-            white-space: nowrap;
-        }
-
-        .file-remove-btn {
-            background: none;
-            border: none;
-            color: #c23b3b;
-            cursor: pointer;
-            padding: 2px 4px;
-            font-size: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: color .15s, transform .15s;
-            flex-shrink: 0;
-        }
-
-        .file-remove-btn:hover {
-            color: #ff3b30;
-            transform: scale(1.1);
-        }
-
-        /* ── STEP 4: Legal & Security Terms ── */
-        .security-notice-card {
-            background: #f4faf6;
-            border: 1px solid #cde6d5;
-            border-radius: 12px;
-            padding: 14px 16px;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 16px;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .security-notice-card i {
-            font-size: 18px;
-            color: #1f7a3d;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
-
-        .security-notice-card p {
-            font-size: 12px;
-            color: #294734;
-            line-height: 1.5;
-            margin: 0;
-            word-break: break-word;
-        }
-
-        .certification-checkbox-label {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            cursor: pointer;
-            font-size: 12.5px;
-            color: #3b4d42;
-            line-height: 1.5;
-            user-select: none;
-            margin-bottom: 20px;
-            background: #fafcfb;
-            border: 1px solid #eaeeec;
-            border-radius: 10px;
-            padding: 12px 14px;
-            transition: border-color .15s;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .certification-checkbox-label:hover {
-            border-color: #1f7a3d;
-        }
-
-        .certification-checkbox-label input[type="checkbox"] {
-            margin-top: 2px;
-            accent-color: #1f7a3d;
-            width: 16px;
-            height: 16px;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-
-        .form-actions-bar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .btn-submit-proposal {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: #06251b;
-            color: #ffc107;
-            font-size: 13.5px;
-            font-weight: 800;
-            padding: 13px 24px;
-            border-radius: 12px;
-            border: none;
-            cursor: pointer;
-            transition: all .2s ease;
-            box-shadow: 0 4px 14px rgba(6, 37, 27, 0.18);
-        }
-
-        .btn-submit-proposal:hover:not(:disabled) {
-            background: #144937;
-            color: #ffffff;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(6, 37, 27, 0.26);
-        }
-
-        .btn-submit-proposal:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn-cancel-proposal {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            background: #ffffff;
-            color: #6c776e;
-            border: 1px solid #eaeeec;
-            font-size: 13px;
-            font-weight: 700;
-            padding: 12px 20px;
-            border-radius: 12px;
-            text-decoration: none;
-            transition: all .15s ease;
-        }
-
-        .btn-cancel-proposal:hover {
-            background: #f7faf8;
-            color: #c23b3b;
-            border-color: #f0cece;
-        }
-
-        /* ── Right Column Sidebar Summary (Normal Static Card) ── */
-        .sidebar-summary-card {
-            background: #ffffff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            margin-bottom: 22px;
-            overflow: hidden;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .summary-card-head {
-            background: #06251b;
-            color: #ffffff;
-            padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            min-width: 0;
-        }
-
-        .summary-card-head h4 {
-            font-size: 14px;
-            font-weight: 800;
-            color: #ffc107;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .summary-card-body {
-            padding: 18px 20px;
-            min-width: 0;
-            max-width: 100%;
-            overflow: hidden;
-        }
-
-        .summary-metric-box {
-            background: #f7faf8;
-            border: 1px solid #edf1ee;
-            border-radius: 12px;
-            padding: 12px 14px;
-            margin-bottom: 16px;
-            min-width: 0;
-            overflow: hidden;
-        }
-
-        .summary-metric-lbl {
-            font-size: 10.5px;
-            font-weight: 700;
-            color: #88968d;
-            text-transform: uppercase;
-            letter-spacing: .3px;
-        }
-
-        .summary-metric-val {
-            font-size: 20px;
-            font-weight: 800;
-            color: #06251b;
-            font-family: 'Space Grotesk', sans-serif;
-            margin-top: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .summary-checklist {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 20px;
-            min-width: 0;
-            overflow: hidden;
-        }
-
-        .checklist-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 12px;
-            color: #55665a;
-            font-weight: 500;
-            min-width: 0;
-            overflow: hidden;
-        }
-
-        .checklist-item span {
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .checklist-item i {
-            font-size: 14px;
-            color: #adb8b1;
-            transition: all .15s;
-            flex-shrink: 0;
-        }
-
-        .checklist-item.done {
-            color: #06251b;
-            font-weight: 700;
-        }
-
-        .checklist-item.done i {
-            color: #1f7a3d;
-        }
-
-        .summary-guidelines-box {
-            border-top: 1px solid #edf1ee;
-            padding-top: 16px;
-            font-size: 11.5px;
-            color: #6c776e;
-            line-height: 1.5;
-            min-width: 0;
-            overflow: hidden;
-        }
-
-        .summary-guidelines-box strong {
-            color: #06251b;
-            display: block;
-            margin-bottom: 6px;
-            font-size: 12px;
-        }
-
-        /* Visually hidden file inputs — accessible to browser file APIs, not display:none */
-        .visually-hidden-input {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            overflow: hidden;
-            pointer-events: none;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/bidder-submit-bid.css">
 </head>
 <body class="dash-body">
 
@@ -1450,7 +288,7 @@ include("components/topbar.php");
             <span>/</span>
             <a href="view_procurement.php?id=<?= $procurement_id ?>"><?= htmlspecialchars(mb_strimwidth($procurement['title'], 0, 30, '...')) ?></a>
             <span>/</span>
-            <span style="color:#06251b;">Submit Proposal</span>
+            <span class="vp-breadcrumbs-current">Submit Proposal</span>
         </div>
         <a href="view_procurement.php?id=<?= $procurement_id ?>" class="vp-back-link">
             <i class="bi bi-arrow-left"></i> Back to Procurement Details
@@ -1463,7 +301,7 @@ include("components/topbar.php");
             <div class="vp-hero-badges">
                 <span class="hero-pill ref" onclick="copyRefNo('<?= htmlspecialchars($procurement['slsu_ref_no'] ?? '') ?>')" title="Click to copy reference number">
                     <i class="bi bi-hash"></i> Ref: <?= htmlspecialchars($procurement['slsu_ref_no'] ?? 'N/A') ?>
-                    <i class="bi bi-copy" style="font-size:10px; opacity:0.7;"></i>
+                    <i class="bi bi-copy ref-copy-icon"></i>
                 </span>
                 <span class="hero-pill mode">
                     <i class="bi bi-tag-fill"></i> <?= htmlspecialchars($procurement['procurement_mode'] ?? 'Public Bidding') ?>
@@ -1478,8 +316,8 @@ include("components/topbar.php");
                 <?php endif; ?>
             </div>
             <div>
-                <span style="font-size:11px; color:#d1e5db; font-weight:600; letter-spacing:0.3px;">
-                    <i class="bi bi-shield-lock-fill" style="color:#ffc107;"></i> AES-256 Encrypted Envelopes
+                <span class="hero-encrypt-note">
+                    <i class="bi bi-shield-lock-fill clr-gold"></i> AES-256 Encrypted Envelopes
                 </span>
             </div>
         </div>
@@ -1497,7 +335,7 @@ include("components/topbar.php");
             </div>
             <div class="vp-hero-metric-item">
                 <div class="vp-hero-metric-lbl"><i class="bi bi-hourglass-split"></i> Submission Deadline</div>
-                <div class="vp-hero-metric-val" style="font-size:14px;"><?= $deadline_text ?></div>
+                <div class="vp-hero-metric-val vp-hero-metric-val--sm"><?= $deadline_text ?></div>
             </div>
         </div>
     </div>
@@ -1534,7 +372,7 @@ include("components/topbar.php");
                         <div class="step-header-left">
                             <div class="step-badge">1</div>
                             <div class="step-title-text">
-                                <h4>Select Lots to Bid On <span style="color:#e53935;">*</span></h4>
+                                <h4>Select Lots to Bid On <span class="required-mark">*</span></h4>
                                 <p>Choose one or more project lots. Each selected lot requires its own technical &amp; financial proposal.</p>
                             </div>
                         </div>
@@ -1552,7 +390,7 @@ include("components/topbar.php");
                                 <span id="selectedLotsCount">0</span> of <?= count($lots) ?> lots selected
                             </div>
                             <div class="lots-select-info">
-                                Selected Total ABC: <strong id="selectedLotsAbc" style="color:#1f7a3d; margin-left:4px; font-family:'Space Grotesk',sans-serif;">₱0.00</strong>
+                                Selected Total ABC: <strong id="selectedLotsAbc" class="selected-abc-value">₱0.00</strong>
                             </div>
                         </div>
 
@@ -1597,7 +435,7 @@ include("components/topbar.php");
                         <div class="step-header-left">
                             <div class="step-badge">2</div>
                             <div class="step-title-text">
-                                <h4>Bidding Fee Receipt / Proof of Payment <span style="color:#e53935;">*</span></h4>
+                                <h4>Bidding Fee Receipt / Proof of Payment <span class="required-mark">*</span></h4>
                                 <p>Upload your Official Receipt or electronic payment confirmation issued by the BAC Secretariat.</p>
                             </div>
                         </div>
@@ -1634,7 +472,7 @@ include("components/topbar.php");
                         <div class="step-header-left">
                             <div class="step-badge">3</div>
                             <div class="step-title-text">
-                                <h4>Proposal Documents per Lot <span style="color:#e53935;">*</span></h4>
+                                <h4>Proposal Documents per Lot <span class="required-mark">*</span></h4>
                                 <p>Provide both Technical/Eligibility and Financial envelopes for each selected lot.</p>
                             </div>
                         </div>
@@ -1644,7 +482,7 @@ include("components/topbar.php");
                         <!-- Placeholder when no lots are selected -->
                         <div class="sb-no-lots-placeholder" id="noLotsPlaceholder">
                             <i class="bi bi-arrow-up-circle"></i>
-                            <div style="font-weight:700; color:#06251b;">No Lots Selected Yet</div>
+                            <div class="placeholder-title">No Lots Selected Yet</div>
                             <div>Please select at least one lot in <strong>Step 1</strong> above to unlock document upload fields.</div>
                         </div>
 
@@ -1671,7 +509,7 @@ include("components/topbar.php");
                                                     <i class="bi bi-file-earmark-check-fill"></i>
                                                 </div>
                                                 <div>
-                                                    <div class="envelope-box-title">Eligibility &amp; Technical Envelope <span style="color:#e53935;">*</span></div>
+                                                    <div class="envelope-box-title">Eligibility &amp; Technical Envelope <span class="required-mark">*</span></div>
                                                     <div class="envelope-box-desc">PhilGEPS cert, Mayor's permit, Omnibus statement, specs (PDF/DOCX/ZIP).</div>
                                                 </div>
                                             </div>
@@ -1688,7 +526,7 @@ include("components/topbar.php");
                                             <div class="envelope-upload-box-bottom">
                                                 <div class="envelope-upload-trigger" onclick="document.getElementById('elig_<?= $lot['id'] ?>').click()">
                                                     <div class="trigger-left">
-                                                        <i class="bi bi-plus-circle-fill" style="color:#1f7a3d;"></i> Add Document(s)
+                                                        <i class="bi bi-plus-circle-fill clr-forest"></i> Add Document(s)
                                                     </div>
                                                     <span class="trigger-btn">Browse</span>
                                                 </div>
@@ -1703,7 +541,7 @@ include("components/topbar.php");
                                                     <i class="bi bi-file-earmark-bar-graph-fill"></i>
                                                 </div>
                                                 <div>
-                                                    <div class="envelope-box-title">Financial Proposal Envelope <span style="color:#e53935;">*</span></div>
+                                                    <div class="envelope-box-title">Financial Proposal Envelope <span class="required-mark">*</span></div>
                                                     <div class="envelope-box-desc">Bid Form, Bill of Quantities / Detailed Price Breakdown (PDF/DOCX/ZIP).</div>
                                                 </div>
                                             </div>
@@ -1720,7 +558,7 @@ include("components/topbar.php");
                                             <div class="envelope-upload-box-bottom">
                                                 <div class="envelope-upload-trigger" onclick="document.getElementById('fin_<?= $lot['id'] ?>').click()">
                                                     <div class="trigger-left">
-                                                        <i class="bi bi-plus-circle-fill" style="color:#c98800;"></i> Add Document(s)
+                                                        <i class="bi bi-plus-circle-fill clr-amber-dark"></i> Add Document(s)
                                                     </div>
                                                     <span class="trigger-btn">Browse</span>
                                                 </div>
@@ -1798,7 +636,7 @@ include("components/topbar.php");
                         <div class="summary-metric-val" id="summaryTotalAbc">₱0.00</div>
                     </div>
 
-                    <div style="font-size:12px; font-weight:700; color:#06251b; margin-bottom:8px;">
+                    <div class="checklist-heading">
                         Submission Checklist
                     </div>
 
@@ -1823,7 +661,7 @@ include("components/topbar.php");
 
                     <div class="summary-guidelines-box">
                         <strong><i class="bi bi-info-circle"></i> Important Reminders</strong>
-                        <ul style="margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px;">
+                        <ul class="guidelines-list">
                             <li>Bids submitted past the deadline will be automatically rejected.</li>
                             <li>Ensure file sizes are within 10MB per document for optimal encryption.</li>
                             <li>You can track submission verification in <em>My Bids</em> portal.</li>
@@ -1840,7 +678,7 @@ include("components/topbar.php");
 </main>
 
 <!-- Notification Toast for Copy / Feedback -->
-<div id="toastAlert" style="display:none; position:fixed; bottom:24px; right:24px; z-index:9999; padding:12px 20px; border-radius:12px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,0.2); align-items:center; gap:10px; font-size:13px; max-width:360px;">
+<div id="toastAlert" class="wide-toast wide-toast--success" hidden>
     <i id="toastIcon" class="bi bi-check-circle-fill"></i> <span id="toastMessage"></span>
 </div>
 
@@ -1860,13 +698,11 @@ include("components/topbar.php");
         if (!toast) return;
 
         if (type === 'error') {
-            toast.style.background = '#7f1d1d';
-            toast.style.color      = '#fecaca';
-            icon.className         = 'bi bi-exclamation-triangle-fill';
+            toast.className = 'wide-toast wide-toast--error';
+            icon.className  = 'bi bi-exclamation-triangle-fill';
         } else {
-            toast.style.background = '#06251b';
-            toast.style.color      = '#ffc107';
-            icon.className         = 'bi bi-check-circle-fill';
+            toast.className = 'wide-toast wide-toast--success';
+            icon.className  = 'bi bi-check-circle-fill';
         }
 
         text.textContent = msg;
@@ -2230,7 +1066,7 @@ include("components/topbar.php");
         </button>
 
         <div class="urm-modal-icon-wrap">
-            <div class="urm-modal-icon" style="background:#e8f5e9; color:#1f7a3d;">
+            <div class="urm-modal-icon urm-modal-icon--green">
                 <i class="bi bi-shield-lock-fill"></i>
             </div>
         </div>
@@ -2245,7 +1081,7 @@ include("components/topbar.php");
             <button type="button" onclick="closeBidConfirm()" class="urm-btn-cancel">
                 Cancel
             </button>
-            <button type="button" class="urm-btn-confirm" style="background:#1f7a3d;"
+            <button type="button" class="urm-btn-confirm urm-btn-confirm--green"
                     onclick="
                         this.disabled=true;
                         this.innerHTML='<i class=\'bi bi-hourglass-split\'></i> Submitting...';

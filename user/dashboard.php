@@ -78,6 +78,7 @@ function timeAgo($datetime) {
     <!-- Dashboard styles -->
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
+    <link rel="stylesheet" href="../css/responsive.css">
     <!-- Page-specific styles -->
     <link rel="stylesheet" href="../css/pages/user-dashboard.css">
 </head>

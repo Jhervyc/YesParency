@@ -118,49 +118,8 @@ if ($sp) while ($r = $sp->fetch_row()) $scheduled_proc_ids[] = (int)$r[0];
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <link rel="stylesheet" href="../dashboard.css">
 <link rel="stylesheet" href="../css/dashboard-shell.css">
-<style>
-/* stat grid */
-.bo-stat-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:20px; }
-@media(min-width:640px){ .bo-stat-grid{ grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; } }
-
-/* live banner */
-.bo-live-banner {
-    background:linear-gradient(135deg,#06251b 0%,#0c3d2c 60%,#14593f 100%);
-    border-radius:0; padding:16px; color:#fff;
-    display:flex; flex-direction:column; gap:14px; margin-bottom:0;
-}
-@media(min-width:640px){ .bo-live-banner{ flex-direction:row; align-items:center; justify-content:space-between; padding:20px 24px; } }
-.bo-live-pill { display:inline-flex; align-items:center; gap:6px; background:#dc2626; color:#fff; font-size:11px; font-weight:800; padding:4px 12px; border-radius:20px; letter-spacing:.4px; animation:pulseLive 1.8s infinite; }
-@keyframes pulseLive { 0%,100%{opacity:1;} 50%{opacity:.7;} }
-.bo-live-dot { width:7px; height:7px; border-radius:50%; background:#fff; }
-.bo-live-info { flex:1; min-width:0; }
-.bo-live-title { font-size:15px; font-weight:800; color:#fff; margin-bottom:4px; line-height:1.3; }
-@media(min-width:640px){ .bo-live-title{ font-size:17px; } }
-.bo-live-meta { font-size:11.5px; color:#d1e5db; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.bo-live-meta span { display:inline-flex; align-items:center; gap:5px; }
-.bo-live-meta i { color:#ffc107; }
-.bo-live-actions { display:flex; gap:8px; flex-wrap:wrap; }
-.bo-live-actions a { flex:1; justify-content:center; }
-@media(min-width:640px){ .bo-live-actions{ flex-shrink:0; flex-wrap:nowrap; } .bo-live-actions a{ flex:none; } }
-.bo-btn-primary { display:inline-flex; align-items:center; justify-content:center; gap:6px; background:#ffc107; color:#06251b; font-size:12.5px; font-weight:800; padding:9px 18px; border-radius:10px; text-decoration:none; transition:all .15s; }
-.bo-btn-primary:hover { background:#e6ac00; }
-
-/* scheduled panel */
-.sched-panel { background:#fff; border:1px solid #eaeeec; border-radius:18px; box-shadow:0 1px 2px rgba(16,36,26,.03),0 10px 24px -14px rgba(16,36,26,.08); overflow:hidden; }
-.sched-panel-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #f0f4f2; background:#fafcfb; }
-.sched-list { display:flex; flex-direction:column; }
-.sched-card { background:#fff; padding:14px 18px; display:flex; align-items:center; gap:14px; border-bottom:1px solid #f0f4f2; transition:background .12s; }
-.sched-card:last-child { border-bottom:none; }
-.sched-card:hover { background:#fbfdfc; }
-.sched-icon { width:40px; height:40px; border-radius:10px; background:#fef8e7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
-.sched-info { flex:1; min-width:0; }
-.sched-title { font-size:13px; font-weight:700; color:#06251b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:3px; }
-.sched-meta { font-size:10.5px; color:#88968d; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.sched-pill { font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; background:#fef3c7; color:#d97706; display:inline-flex; align-items:center; gap:4px; }
-.sched-empty { padding:24px 16px; text-align:center; color:#88968d; font-size:12.5px; }
-.section-view-more { font-size:11.5px; font-weight:700; color:#1f7a3d; text-decoration:none; display:inline-flex; align-items:center; gap:4px; transition:color .15s; white-space:nowrap; }
-.section-view-more:hover { color:#06251b; }
-</style>
+<link rel="stylesheet" href="../css/responsive.css">
+<link rel="stylesheet" href="../css/pages/bidder-bid-opening.css">
 </head>
 <body class="dash-body">
 
@@ -179,8 +138,8 @@ if ($sp) while ($r = $sp->fetch_row()) $scheduled_proc_ids[] = (int)$r[0];
     <div class="sad-section-label">Overview</div>
     <div class="bo-stat-grid">
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#06251b 0% 100%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-folder2-open" style="color:#06251b;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#06251b; --pct:100%">
+                <div class="ap2-ring-inner"><i class="bi bi-folder2-open"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= $stat_total ?></div>
@@ -188,47 +147,48 @@ if ($sp) while ($r = $sp->fetch_row()) $scheduled_proc_ids[] = (int)$r[0];
             </div>
         </div>
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#1f7a3d 0% <?= $stat_total>0?round($stat_open/$stat_total*100):0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-check-circle" style="color:#1f7a3d;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#1f7a3d; --pct:<?= $stat_total>0?round($stat_open/$stat_total*100):0 ?>%">
+                <div class="ap2-ring-inner"><i class="bi bi-check-circle"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:#1f7a3d;"><?= $stat_open ?></div>
+                <div class="ap2-stat-num ap2-stat-num--active"><?= $stat_open ?></div>
                 <div class="ap2-stat-lbl">Active Opportunities</div>
             </div>
         </div>
+        <?php $closingColor = $stat_closing>0?'#e67e22':'#8B958E'; ?>
         <div class="ap2-stat <?= $stat_closing>0?'bsv-stat-warn':'' ?>">
-            <div class="ap2-ring" style="background:conic-gradient(<?= $stat_closing>0?'#e67e22':'#8B958E' ?> 0% <?= $stat_total>0?round($stat_closing/$stat_total*100):0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-alarm" style="color:<?= $stat_closing>0?'#e67e22':'#8B958E' ?>;"></i></div>
+            <div class="ap2-ring" style="--ring-color:<?= $closingColor ?>; --pct:<?= $stat_total>0?round($stat_closing/$stat_total*100):0 ?>%">
+                <div class="ap2-ring-inner"><i class="bi bi-alarm"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:<?= $stat_closing>0?'#e67e22':'inherit' ?>;"><?= $stat_closing ?></div>
+                <div class="ap2-stat-num <?= $stat_closing>0?'ap2-stat-num--warn':'' ?>"><?= $stat_closing ?></div>
                 <div class="ap2-stat-lbl">Closing in 3 Days</div>
             </div>
         </div>
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#2F6FED 0% 100%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-broadcast" style="color:#2F6FED;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#2F6FED; --pct:100%">
+                <div class="ap2-ring-inner"><i class="bi bi-broadcast"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:#2F6FED;"><?= $stat_sessions ?></div>
+                <div class="ap2-stat-num ap2-stat-num--sessions"><?= $stat_sessions ?></div>
                 <div class="ap2-stat-lbl">Total Sessions</div>
             </div>
         </div>
     </div>
 
     <!-- ── Current Live Session ── -->
-    <div class="sched-panel" style="margin-bottom:20px;">
+    <div class="sched-panel mb-20">
         <div class="sched-panel-head">
-            <span style="font-size:13.5px; font-weight:800; color:#06251b; display:flex; align-items:center; gap:8px;">
-                <i class="bi bi-broadcast" style="color:#dc2626;"></i> Current Live Session
+            <span class="sched-panel-head-label">
+                <i class="bi bi-broadcast clr-red"></i> Current Live Session
             </span>
             <a href="bid-session-list.php?filter=live" class="section-view-more"><i class="bi bi-arrow-right"></i> View More</a>
         </div>
         <?php if ($live_session): ?>
-        <div class="bo-live-banner" style="border-radius:0; box-shadow:none; margin-bottom:0; border:none;">
-            <div style="display:flex; align-items:center; gap:14px; flex:1; min-width:0;">
+        <div class="bo-live-banner bo-live-banner--flush">
+            <div class="bo-live-content">
                 <div>
-                    <div style="margin-bottom:8px;">
+                    <div class="mb-8">
                         <span class="bo-live-pill"><span class="bo-live-dot"></span> LIVE</span>
                     </div>
                     <div class="bo-live-title"><?= htmlspecialchars($live_session['proc_title']) ?></div>
@@ -248,28 +208,28 @@ if ($sp) while ($r = $sp->fetch_row()) $scheduled_proc_ids[] = (int)$r[0];
             </div>
         </div>
         <?php else: ?>
-        <div style="padding:22px 18px; display:flex; align-items:center; gap:14px; color:#55665a; font-size:13px;">
-            <i class="bi bi-broadcast" style="font-size:22px; color:#c7d2cb; flex-shrink:0;"></i>
+        <div class="bo-live-empty">
+            <i class="bi bi-broadcast bo-live-empty-icon"></i>
             <div>
-                <div style="font-weight:700; color:#374151; margin-bottom:2px;">No Active Live Session</div>
-                <div style="font-size:12px; color:#88968d;">There is no bid opening session currently in progress.</div>
+                <div class="bo-live-empty-title">No Active Live Session</div>
+                <div class="bo-live-empty-desc">There is no bid opening session currently in progress.</div>
             </div>
         </div>
         <?php endif; ?>
     </div>
 
     <!-- ── Scheduled Bid Opening ── -->
-    <div class="sched-panel" style="margin-bottom:28px;">
+    <div class="sched-panel mb-28">
         <div class="sched-panel-head">
-            <span style="font-size:13.5px; font-weight:800; color:#06251b; display:flex; align-items:center; gap:8px;">
-                <i class="bi bi-calendar-event" style="color:#d97706;"></i> Scheduled Bid Opening
+            <span class="sched-panel-head-label">
+                <i class="bi bi-calendar-event clr-amber"></i> Scheduled Bid Opening
             </span>
             <a href="bid-session-list.php?filter=scheduled" class="section-view-more"><i class="bi bi-arrow-right"></i> View More</a>
         </div>
         <div class="sched-list">
             <?php if (empty($scheduled_sessions)): ?>
             <div class="sched-empty">
-                <i class="bi bi-calendar-x" style="font-size:24px; color:#c7d2cb; display:block; margin-bottom:6px;"></i>
+                <i class="bi bi-calendar-x sched-empty-icon"></i>
                 No scheduled bid opening sessions at the moment.
             </div>
             <?php else: ?>
@@ -294,13 +254,13 @@ if ($sp) while ($r = $sp->fetch_row()) $scheduled_proc_ids[] = (int)$r[0];
     </div>
 
     <!-- Open Procurements Table -->
-    <div class="sad-section-label" style="display:flex; align-items:center; justify-content:space-between;">
+    <div class="sad-section-label sad-section-label--split">
         <span>Open Procurements</span>
         <a href="bid-session-list.php" class="section-view-more">All Sessions <i class="bi bi-arrow-right"></i></a>
     </div>
     <div class="proc-table-panel">
         <div class="filter-bar">
-            <form method="GET" action="" id="procFilterForm" style="display:contents;">
+            <form method="GET" action="" id="procFilterForm" class="form-contents">
                 <input type="hidden" name="sort" id="hiddenSort" value="<?= htmlspecialchars($sort) ?>">
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
@@ -328,22 +288,22 @@ if ($sp) while ($r = $sp->fetch_row()) $scheduled_proc_ids[] = (int)$r[0];
         </div>
 
         <?php if ($total_shown === 0): ?>
-        <div style="padding:48px 20px; text-align:center; color:#88968d;">
-            <i class="bi bi-folder2-open" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
-            <div style="font-size:13px; font-weight:700;">No open procurements found<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.</div>
+        <div class="proc-empty-state">
+            <i class="bi bi-folder2-open proc-empty-icon"></i>
+            <div class="proc-empty-title">No open procurements found<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.</div>
         </div>
         <?php else: ?>
-        <div style="overflow-x:auto;">
+        <div class="table-scroll-x">
             <table class="proc-table">
                 <thead>
                     <tr>
-                        <th style="width:120px;">SLSU Ref</th>
+                        <th class="col-ref-narrow">SLSU Ref</th>
                         <th>Title</th>
                         <th class="col-mode">Mode</th>
                         <th class="col-abc">ABC</th>
                         <th class="col-opening">Opening Date</th>
                         <th class="col-status">Status</th>
-                        <th style="text-align:right; min-width:120px;">Actions</th>
+                        <th class="col-actions-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -354,14 +314,14 @@ if ($sp) while ($r = $sp->fetch_row()) $scheduled_proc_ids[] = (int)$r[0];
                 ?>
                 <tr>
                     <td class="proc-ref-cell">
-                        <i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i>
+                        <i class="bi bi-hash proc-ref-icon"></i>
                         <?= htmlspecialchars($row['slsu_ref_no']) ?>
                     </td>
                     <td class="proc-title-cell">
                         <a href="view_procurement.php?id=<?= $row['id'] ?>">
                             <?= htmlspecialchars(mb_strimwidth($row['title'],0,65,'…')) ?>
                         </a>
-                        <div style="font-size:10.5px; color:#88968d; margin-top:2px;">
+                        <div class="proc-title-sub">
                             <i class="bi bi-layers"></i> <?= (int)$row['lot_count'] ?> lot<?= $row['lot_count']!=1?'s':'' ?>
                             &nbsp;·&nbsp;
                             <i class="bi bi-inbox"></i> <?= (int)$row['bid_count'] ?> bid<?= $row['bid_count']!=1?'s':'' ?>
@@ -375,20 +335,20 @@ if ($sp) while ($r = $sp->fetch_row()) $scheduled_proc_ids[] = (int)$r[0];
                         <?php if (!empty($row['opening_date'])): ?>
                             <strong><?= date('M j, Y', strtotime($row['opening_date'])) ?></strong>
                             <?= date('g:i A', strtotime($row['opening_date'])) ?>
-                        <?php else: ?><span style="color:#c7d2cb;">TBA</span><?php endif; ?>
+                        <?php else: ?><span class="clr-placeholder">TBA</span><?php endif; ?>
                     </td>
                     <td class="col-status">
                         <span class="proc-status-pill <?= $stClass ?>">
-                            <i class="bi bi-circle-fill" style="font-size:7px;"></i> <?= ucfirst($st) ?>
+                            <i class="bi bi-circle-fill status-dot-icon"></i> <?= ucfirst($st) ?>
                         </span>
                     </td>
-                    <td style="text-align:right;">
-                        <div style="display:flex; gap:6px; justify-content:flex-end;">
+                    <td class="text-right">
+                        <div class="actions-wrap-end">
                             <a href="view_procurement.php?id=<?= $row['id'] ?>" class="proc-action-btn btn-view">
                                 <i class="bi bi-eye"></i> View
                             </a>
                             <?php if ($isScheduled): ?>
-                            <a href="bid-session-list.php?filter=scheduled" class="proc-action-btn" style="background:#fef3c7; color:#d97706;">
+                            <a href="bid-session-list.php?filter=scheduled" class="proc-action-btn proc-action-btn--scheduled">
                                 <i class="bi bi-calendar-check"></i> Scheduled
                             </a>
                             <?php endif; ?>

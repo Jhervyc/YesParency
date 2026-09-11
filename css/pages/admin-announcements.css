@@ -1,0 +1,335 @@
+/* ==========================================================================
+   pages/admin-announcements.css — styles specific to
+   admin/announcements.php.
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css. Standard mobile breakpoints/utilities live in
+   ../responsive.css (loaded before this file). Shared dashboard components
+   (.sp-panel, .sp-donut, .sp-legend, .proc-table, .proc-status-pill,
+   .proc-action-btn, .proc-title-cell, .proc-deadline-cell, .filter-bar,
+   .ap2-search-field, .ap2-filter-btn, .ap2-go-btn, .table-foot,
+   .sp-status-pill, .sp-new-btn, .modal-backdrop, .modal-box, .modal-header,
+   .modal-close, .col-mode/.col-abc/.col-opening/.col-status) already live
+   in ../../dashboard.css — this file only adds the classes genuinely
+   unique to this page (alert banners, form fields, target-audience tiles,
+   user picker, and the modal layout tweaks).
+   ========================================================================== */
+
+.hide { display: none; }
+
+/* ── Alert banners ── */
+.anc-alert {
+    border-radius: 12px;
+    padding: 12px 18px;
+    margin-bottom: 18px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.anc-alert--success { background: #e8f5e9; color: #1f7a3d; border: 1px solid #c8e6c9; }
+.anc-alert--error    { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+
+.mb-20 { margin-bottom: 20px; }
+.mb-24 { margin-bottom: 24px; }
+.text-right { text-align: right; }
+.fz-9 { font-size: 9px; }
+.clr-idle { color: #88968d; }
+.clr-amber-icon { color: #ffc107; }
+.clr-amber-view { color: #e67e22; }
+
+/* ── Donut / stat panel ── */
+.sp-donut {
+    background: conic-gradient(var(--donut-grad));
+}
+
+/* Legend dot/percentage color modifiers, keyed to target-audience type */
+.anc-legend-dot--all      { background: #1565c0; }
+.anc-legend-dot--bidders  { background: #C99A1D; }
+.anc-legend-dot--admins   { background: #219653; }
+.anc-legend-dot--users    { background: #7b1fa2; }
+.anc-legend-dot--direct   { background: #512da8; }
+.anc-legend-dot--total    { background: #F0B92E; }
+.anc-legend-pct--all      { color: #1565c0; background: #E7EEFE; }
+.anc-legend-pct--bidders  { color: #C99A1D; background: #FCF1CF; }
+.anc-legend-pct--admins   { color: #219653; background: #E4F5EA; }
+.anc-legend-pct--users    { color: #7b1fa2; background: #F3E5F5; }
+.anc-legend-pct--direct   { color: #512da8; background: #EDE7F6; }
+.anc-legend-value--total  { color: #F0B92E; }
+
+/* ── List filter bar / table ── */
+.anc-filter-form { display: contents; }
+.anc-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.table-scroll { overflow-x: auto; }
+.anc-actions-th { text-align: right; min-width: 140px; }
+
+/* Target-audience status pill color modifiers (list rows) */
+.anc-target-pill--all        { background: #E7EEFE; color: #1565c0; }
+.anc-target-pill--bidders    { background: #FCF1CF; color: #C99A1D; }
+.anc-target-pill--admins     { background: #E4F5EA; color: #219653; }
+.anc-target-pill--users      { background: #F3E5F5; color: #7b1fa2; }
+.anc-target-pill--superadmin { background: #E0F2F1; color: #004D40; }
+.anc-target-pill--direct     { background: #EDE7F6; color: #512da8; }
+
+.anc-msg-preview {
+    font-size: 11px;
+    color: #63736a;
+    margin-top: 3px;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.anc-row-title { font-weight: 700; color: #06251b; }
+.anc-views-cell { font-size: 12px; color: #55665a; font-weight: 600; }
+.anc-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.anc-del-btn { background: #fef2f2; color: #dc2626; border: none; cursor: pointer; }
+.anc-empty-state { padding: 52px 20px; text-align: center; color: #88968d; }
+.anc-empty-icon { font-size: 32px; color: #c7d2cb; display: block; margin-bottom: 8px; }
+.anc-empty-text { font-size: 13px; font-weight: 700; }
+
+/* ── New announcement button ── */
+.anc-new-btn { cursor: pointer; background: #06251b; color: #ffc107; box-shadow: 0 6px 16px -6px rgba(6,37,27,.35); }
+
+/* ── Modal layout tweaks (top-aligned, scrollable) ── */
+.modal-backdrop--top { align-items: flex-start; overflow-y: auto; padding: 24px 10px; }
+.modal-backdrop--center { align-items: center; overflow-y: auto; padding: 20px 10px; }
+.modal-box--scroll {
+    width: 95%;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    border-radius: 18px;
+    padding: 24px;
+    margin: auto;
+}
+.modal-box--scroll-sm { max-height: calc(100vh - 40px); }
+.modal-box--420 { max-width: 440px; }
+.modal-box--540 { max-width: 540px; }
+.modal-box--580 { max-width: 580px; }
+.modal-header--tight { margin-bottom: 16px; padding-bottom: 12px; }
+.modal-title { font-size: 16px; font-weight: 800; color: #06251b; display: flex; align-items: center; gap: 8px; }
+
+.anc-form-group { margin-bottom: 12px; }
+.anc-form-group--tight { margin-bottom: 16px; }
+.anc-form-label { display: block; font-size: 12px; font-weight: 700; color: #06251b; margin-bottom: 5px; }
+.anc-required { color: #c23b3b; }
+.anc-form-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #d4e0d8;
+    border-radius: 10px;
+    font-size: 13px;
+}
+.anc-form-input--select { background: #fff; }
+.anc-form-input--textarea { resize: vertical; font-family: inherit; }
+
+/* Target selector radio tiles */
+.anc-target-tiles {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.anc-tile-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 10px;
+    border: 1.5px solid #d4e0d8;
+    border-radius: 12px;
+    background: #fafcfb;
+    cursor: pointer;
+    transition: all .15s ease;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #55665a;
+}
+.anc-tile-label i { font-size: 18px; color: #06251b; }
+.anc-tile-input { display: none; }
+.anc-tile-input:checked + .anc-tile-label {
+    border-color: #06251b;
+    background: #06251b;
+    color: #ffc107;
+}
+.anc-tile-input:checked + .anc-tile-label i {
+    color: #ffc107;
+}
+
+/* User search list inside modal */
+.anc-user-picker-box {
+    border: 1px solid #d4e0d8;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+}
+.anc-picker-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: #f7faf8;
+    border-bottom: 1px solid #edf1ee;
+}
+.anc-picker-search input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 12px;
+    width: 100%;
+    font-family: inherit;
+}
+.anc-picker-search i { color: #88968d; }
+.anc-user-list-scroll {
+    max-height: 130px;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+.anc-user-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background .15s;
+    border-bottom: 1px solid #f7f9f8;
+}
+.anc-user-option:last-child { border-bottom: none; }
+.anc-user-option:hover, .anc-user-option.selected {
+    background: #eef5f0;
+}
+.anc-user-option.hide { display: none; }
+.anc-user-option-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #182019;
+}
+.anc-user-option-sub {
+    font-size: 10.5px;
+    color: #88968d;
+}
+.anc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 12px;
+}
+.anc-badge.bidder { background: #FCF1CF; color: #C99A1D; }
+.anc-badge.admin  { background: #E4F5EA; color: #219653; }
+.anc-badge.user   { background: #F3E5F5; color: #7B1FA2; }
+.anc-badge.superadmin { background: #E0F2F1; color: #004D40; }
+
+.anc-selected-banner {
+    display: none;
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #06251b;
+    background: #e8f5e9;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #c8e6c9;
+}
+.anc-selected-banner.show { display: block; }
+.anc-selected-banner i { color: #1f7a3d; }
+
+/* Form footer / submit buttons */
+.anc-form-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
+    border-top: 1px solid #eaeeec;
+    margin-top: 4px;
+}
+.anc-form-footer--center { justify-content: center; padding-top: 4px; }
+.anc-form-footer--view { margin-top: 18px; padding-top: 14px; }
+.text-center { text-align: center; }
+.anc-btn-cancel {
+    padding: 10px 20px;
+    background: #fff;
+    border: 1.5px solid #d4e0d8;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4a5e54;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+}
+.anc-btn-submit {
+    padding: 10px 24px;
+    background: #06251b;
+    color: #ffc107;
+    border: none;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+.anc-btn-delete {
+    padding: 10px 24px;
+    background: #c62828;
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+/* View detail modal */
+.anc-view-meta { margin-bottom: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.anc-view-date { font-size: 12px; color: #88968d; font-weight: 600; }
+.anc-view-author { font-size: 12px; color: #88968d; margin-left: auto; }
+.anc-view-message {
+    background: #f7faf8;
+    border: 1px solid #eaeeec;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 13px;
+    color: #2d3a32;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    max-height: 260px;
+    overflow-y: auto;
+}
+.anc-view-reads { margin-top: 14px; font-size: 11.5px; color: #88968d; display: flex; align-items: center; gap: 6px; }
+
+/* Delete confirm modal */
+.anc-del-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #ffebee;
+    color: #c62828;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+}
+.anc-del-title { font-size: 16px; font-weight: 800; color: #06251b; margin-bottom: 8px; }
+.anc-del-desc { font-size: 12.5px; color: #6c776e; margin-bottom: 14px; }
+.anc-del-preview {
+    background: #f7faf8;
+    border: 1px solid #eaeeec;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #06251b;
+    margin-bottom: 20px;
+}

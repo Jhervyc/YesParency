@@ -1,0 +1,92 @@
+/* ==========================================================================
+   pages/admin-bid-submissions.css — styles specific to
+   admin/bid_submissions.php.
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css. Shared dashboard components (.ap2-stats,
+   .ap2-stat, .ap2-ring, .proc-table-panel, .proc-table*, .filter-bar,
+   .ap2-search-field, .ap2-go-btn, .ap2-filter-btn, .table-foot,
+   .bsv-stat-warn) already live in ../../dashboard.css — this file only
+   adds the handful of classes genuinely unique to this page.
+   ========================================================================== */
+
+.stat-link-reset {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+/* .ap2-ring/.ap2-ring-inner shells come from the shared dashboard.css;
+   this page adds the dynamic conic-gradient background via custom props
+   instead of inline per-instance backgrounds. */
+.ap2-ring {
+    background: conic-gradient(var(--ring-color, #06251b) 0% var(--pct, 100%), #e7ece9 0%);
+}
+
+.clr-green  { color: #219653; }
+.clr-blue   { color: #2F6FED; }
+.clr-amber  { color: #e67e22; }
+.clr-idle   { color: #8B958E; }
+
+.mode-select {
+    border: 1.5px solid #eaeeec;
+    background: #f4f7f5;
+    color: #06251b;
+    font-family: 'Poppins', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 10px;
+    border-radius: 9px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color .15s;
+}
+
+.filter-pills-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.quotation-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    color: #b78103;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 1px 7px;
+    border-radius: 20px;
+    margin-left: 5px;
+}
+
+.pending-note {
+    font-size: 10.5px;
+    color: #e67e22;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+.pending-count-badge {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 4px;
+}
+.pending-count-badge--active  { background: #ffc107; color: #06251b; }
+.pending-count-badge--idle    { background: #e67e22; color: #fff; }
+
+.stat-num--warn { color: #e67e22; }
+
+.form-contents { display: contents; }
+.col-ref-th { width: 130px; }
+.col-actions-th { text-align: right; min-width: 100px; }
+.table-scroll { overflow-x: auto; }
+.hash-icon { color: #88968d; font-size: 10px; }
+.status-dot-tiny { font-size: 7px; }
+.results-empty { padding: 52px 20px; text-align: center; color: #88968d; }
+.results-empty-icon { font-size: 32px; color: #c7d2cb; display: block; margin-bottom: 8px; }
+.results-empty-title { font-size: 13px; font-weight: 700; }

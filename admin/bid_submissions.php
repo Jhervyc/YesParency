@@ -141,6 +141,8 @@ if ($mode_filter !== 'all') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-bid-submissions.css">
 </head>
 <body class="dash-body">
 
@@ -158,53 +160,48 @@ if ($mode_filter !== 'all') {
 
     <!-- ── Stat cards ── -->
     <div class="sad-section-label">Overview</div>
-    <div class="ap2-stats" style="grid-template-columns:repeat(3,1fr); margin-bottom:20px;">
-        <a href="bid_submissions.php" class="ap2-stat" style="text-decoration:none; color:inherit; cursor:pointer;">
-            <div class="ap2-ring" style="background:conic-gradient(#219653 0% 100%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-folder2-open" style="color:#219653;"></i></div>
+    <div class="ap2-stats">
+        <a href="bid_submissions.php" class="ap2-stat stat-link-reset">
+            <div class="ap2-ring" style="--ring-color:#219653; --pct:100%;">
+                <div class="ap2-ring-inner"><i class="bi bi-folder2-open clr-green"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= $stat_open ?></div>
                 <div class="ap2-stat-lbl">Open Procurements</div>
             </div>
         </a>
-        <a href="bid_submissions.php?filter=has_bids" class="ap2-stat" style="text-decoration:none; color:inherit; cursor:pointer;">
-            <div class="ap2-ring" style="background:conic-gradient(#2F6FED 0% 100%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-inbox" style="color:#2F6FED;"></i></div>
+        <a href="bid_submissions.php?filter=has_bids" class="ap2-stat stat-link-reset">
+            <div class="ap2-ring" style="--ring-color:#2F6FED; --pct:100%;">
+                <div class="ap2-ring-inner"><i class="bi bi-inbox clr-blue"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= $stat_bids ?></div>
                 <div class="ap2-stat-lbl">Total Bids Received</div>
             </div>
         </a>
-        <a href="bid_submissions.php?filter=pending" class="ap2-stat <?= $stat_pend > 0 ? 'bsv-stat-warn' : '' ?>" style="text-decoration:none; color:inherit; cursor:pointer;">
-            <div class="ap2-ring" style="background:conic-gradient(<?= $stat_pend > 0 ? '#e67e22' : '#8B958E' ?> 0% <?= $stat_bids > 0 ? round($stat_pend/$stat_bids*100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-hourglass-split" style="color:<?= $stat_pend > 0 ? '#e67e22' : '#8B958E' ?>;"></i></div>
+        <a href="bid_submissions.php?filter=pending" class="ap2-stat stat-link-reset <?= $stat_pend > 0 ? 'bsv-stat-warn' : '' ?>">
+            <div class="ap2-ring" style="--ring-color:<?= $stat_pend > 0 ? '#e67e22' : '#8B958E' ?>; --pct:<?= $stat_bids > 0 ? round($stat_pend/$stat_bids*100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-hourglass-split <?= $stat_pend > 0 ? 'clr-amber' : 'clr-idle' ?>"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:<?= $stat_pend > 0 ? '#e67e22' : 'inherit' ?>"><?= $stat_pend ?></div>
+                <div class="ap2-stat-num <?= $stat_pend > 0 ? 'stat-num--warn' : '' ?>"><?= $stat_pend ?></div>
                 <div class="ap2-stat-lbl">Pending Review</div>
             </div>
         </a>
     </div>
 
     <!-- ── List panel ── -->
-    <div class="proc-table-panel" style="margin-bottom:24px;">
+    <div class="proc-table-panel">
         <div class="filter-bar">
-            <form method="GET" action="" style="display:contents;">
+            <form method="GET" action="" class="form-contents">
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
                     <input type="text" name="search"
                         placeholder="Search by procurement title or SLSU ref..."
                         value="<?= htmlspecialchars($search) ?>">
                 </div>
-                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                    <select name="mode_filter"
-                            style="border:1.5px solid #eaeeec; background:#f4f7f5; color:#06251b;
-                                   font-family:'Poppins',sans-serif; font-size:12px; font-weight:600;
-                                   padding:7px 10px; border-radius:9px; outline:none; cursor:pointer;
-                                   transition:border-color .15s;"
-                            onchange="this.form.submit()">
+                <div class="filter-pills-group">
+                    <select name="mode_filter" class="mode-select" onchange="this.form.submit()">
                         <option value="all"            <?= $mode_filter==='all'?'selected':'' ?>>All Modes</option>
                         <option value="public_bidding" <?= $mode_filter==='public_bidding'?'selected':'' ?>>Public Bidding</option>
                         <option value="svp"            <?= $mode_filter==='svp'?'selected':'' ?>>Small Value Procurement</option>
@@ -214,7 +211,7 @@ if ($mode_filter !== 'all') {
                     <button type="submit" name="filter" value="pending" class="ap2-filter-btn <?= $filter==='pending'?'active':'' ?>">
                         <i class="bi bi-hourglass-split"></i> Pending Bids
                         <?php if ($stat_proc_pending > 0): ?>
-                            <span style="background:<?= $filter==='pending'?'#ffc107':'#e67e22' ?>; color:<?= $filter==='pending'?'#06251b':'#fff' ?>; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; margin-left:4px;"><?= $stat_proc_pending ?></span>
+                            <span class="pending-count-badge <?= $filter==='pending'?'pending-count-badge--active':'pending-count-badge--idle' ?>"><?= $stat_proc_pending ?></span>
                         <?php endif; ?>
                     </button>
                     <button type="submit" name="filter" value="has_bids" class="ap2-filter-btn <?= $filter==='has_bids'?'active':'' ?>">
@@ -226,9 +223,9 @@ if ($mode_filter !== 'all') {
         </div>
 
         <?php if (empty($procurements)): ?>
-        <div style="padding:52px 20px; text-align:center; color:#88968d;">
-            <i class="bi bi-inbox" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
-            <div style="font-size:13px; font-weight:700;">
+        <div class="results-empty">
+            <i class="bi bi-inbox results-empty-icon"></i>
+            <div class="results-empty-title">
                 <?php if ($filter==='pending'): ?>No procurements with pending bids<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.
                 <?php elseif ($filter==='has_bids'): ?>No procurements with submitted bids found<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.
                 <?php else: ?>No open procurements found<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.
@@ -236,15 +233,15 @@ if ($mode_filter !== 'all') {
             </div>
         </div>
         <?php else: ?>
-        <div style="overflow-x:auto;">
+        <div class="table-scroll">
             <table class="proc-table">
                 <thead>
                     <tr>
-                        <th style="width:130px;">SLSU Ref</th>
+                        <th class="col-ref-th">SLSU Ref</th>
                         <th>Procurement Title</th>
                         <th class="col-abc">Total Bids</th>
                         <th class="col-status">Status</th>
-                        <th style="text-align:right; min-width:100px;">Action</th>
+                        <th class="col-actions-th">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -255,18 +252,18 @@ if ($mode_filter !== 'all') {
                 ?>
                 <tr>
                     <td class="proc-ref-cell">
-                        <i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i>
+                        <i class="bi bi-hash hash-icon"></i>
                         <?= htmlspecialchars($proc['slsu_ref_no'] ?? '—') ?>
                     </td>
                     <td class="proc-title-cell">
                         <?= htmlspecialchars(mb_strimwidth($proc['procurement_title'], 0, 65, '…')) ?>
                         <?php if (is_quotation_mode($proc['procurement_mode'] ?? '')): ?>
-                        <span style="display:inline-flex; align-items:center; gap:3px; background:#fff8e1; border:1px solid #ffe082; color:#b78103; font-size:10px; font-weight:800; padding:1px 7px; border-radius:20px; margin-left:5px;">
+                        <span class="quotation-badge">
                             <i class="bi bi-file-earmark-text-fill"></i> Quotation
                         </span>
                         <?php endif; ?>
                         <?php if ($hasPending): ?>
-                        <div style="font-size:10.5px; color:#e67e22; font-weight:700; margin-top:2px;">
+                        <div class="pending-note">
                             <i class="bi bi-hourglass-split"></i> <?= $pendingBids ?> pending review
                         </div>
                         <?php endif; ?>
@@ -274,10 +271,10 @@ if ($mode_filter !== 'all') {
                     <td class="proc-abc-cell col-abc"><?= $totalBids ?></td>
                     <td class="col-status">
                         <span class="proc-status-pill status-open">
-                            <i class="bi bi-circle-fill" style="font-size:7px;"></i> Open
+                            <i class="bi bi-circle-fill status-dot-tiny"></i> Open
                         </span>
                     </td>
-                    <td style="text-align:right;">
+                    <td class="col-actions-th">
                         <?php
                             $view_url = is_quotation_mode($proc['procurement_mode'] ?? '')
                                 ? "bid-submission-view.php?id={$proc['procurement_id']}"

@@ -122,6 +122,7 @@ $status_pill_class = in_array($p_status, ['open','draft','closed','awarded','can
     <!-- Dashboard styles -->
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
+    <link rel="stylesheet" href="../css/responsive.css">
     <link rel="stylesheet" href="../css/pages/user-view-procurement.css">
 </head>
 <body class="dash-body">

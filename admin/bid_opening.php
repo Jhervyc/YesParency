@@ -162,306 +162,8 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        /* ── Stat Cards ── */
-        .bo-stat-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        @media(min-width:640px){ .bo-stat-grid{ grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; } }
-
-        /* ── Live Banner ── */
-        .bo-live-banner {
-            background: linear-gradient(135deg, #06251b 0%, #0c3d2c 60%, #14593f 100%);
-            border-radius: 0;
-            padding: 16px;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            margin-bottom: 0;
-            box-shadow: none;
-            border: none;
-        }
-        @media(min-width:640px){
-            .bo-live-banner {
-                flex-direction: row;
-                align-items: center;
-                justify-content: space-between;
-                padding: 20px 24px;
-            }
-        }
-
-        .bo-live-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #dc2626;
-            color: #fff;
-            font-size: 11px;
-            font-weight: 800;
-            padding: 4px 12px;
-            border-radius: 20px;
-            letter-spacing: .4px;
-            animation: pulseLive 1.8s infinite;
-        }
-
-        @keyframes pulseLive {
-            0%,100% { opacity:1; }
-            50%      { opacity:.7; }
-        }
-
-        .bo-live-dot { width:7px; height:7px; border-radius:50%; background:#fff; }
-        .bo-live-info { flex:1; min-width:0; }
-
-        .bo-live-title {
-            font-size: 15px; font-weight: 800; color: #fff;
-            margin-bottom: 4px; line-height: 1.3;
-        }
-        @media(min-width:640px){ .bo-live-title{ font-size:17px; } }
-
-        .bo-live-meta {
-            font-size: 11.5px; color: #d1e5db;
-            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-        }
-        .bo-live-meta span { display:inline-flex; align-items:center; gap:5px; }
-        .bo-live-meta i   { color:#ffc107; }
-
-        .bo-live-actions {
-            display: flex; gap: 8px; flex-wrap: wrap;
-        }
-        .bo-live-actions a { flex:1; justify-content:center; }
-        @media(min-width:640px){
-            .bo-live-actions { flex-shrink:0; flex-wrap:nowrap; }
-            .bo-live-actions a { flex:none; }
-        }
-
-        .bo-btn-primary {
-            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-            background: #ffc107; color: #06251b;
-            font-size: 12.5px; font-weight: 800;
-            padding: 9px 18px; border-radius: 10px;
-            text-decoration: none; border: none; cursor: pointer;
-            transition: all .15s;
-        }
-        .bo-btn-primary:hover { background: #e6ac00; }
-
-        .bo-btn-outline {
-            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-            background: rgba(255,255,255,.1);
-            border: 1px solid rgba(255,255,255,.2);
-            color: #fff;
-            font-size: 12.5px; font-weight: 700;
-            padding: 9px 18px; border-radius: 10px;
-            text-decoration: none; cursor: pointer; transition: all .15s;
-        }
-        .bo-btn-outline:hover { background: rgba(255,255,255,.2); }
-
-        /* ── Proc Table Panel ── */
-        .proc-table-panel {
-            background: #fff;
-            border: 1px solid #eaeeec;
-            border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            overflow: hidden;
-            margin-bottom: 24px;
-        }
-
-        .proc-table { width:100%; border-collapse:collapse; font-size:12px; text-align:left; }
-        .proc-table thead th {
-            background:#fafcfb; padding:13px 16px;
-            font-size:11px; font-weight:700; color:#55665a;
-            text-transform:uppercase; letter-spacing:.04em;
-            border-bottom:1.5px solid #edf1ef; white-space:nowrap;
-        }
-        .proc-table tbody tr { border-bottom:1px solid #f0f4f2; transition:background .12s; }
-        .proc-table tbody tr:last-child { border-bottom:none; }
-        .proc-table tbody tr:hover { background:#fbfdfc; }
-        .proc-table td { padding:14px 16px; vertical-align:middle; }
-
-        /* Hide less-important columns on mobile */
-        .col-mode, .col-abc, .col-opening, .col-status { display:none; }
-        @media(min-width:640px){ .col-mode, .col-status { display:table-cell; } }
-        @media(min-width:900px){ .col-abc, .col-opening { display:table-cell; } }
-
-        .proc-ref-cell { font-weight:700; color:#06251b; font-size:11.5px; white-space:nowrap; }
-        .proc-title-cell { font-weight:700; color:#1a2a20; font-size:13px; line-height:1.35; }
-        .proc-title-cell a { color:inherit; text-decoration:none; }
-        .proc-title-cell a:hover { color:#1f7a3d; text-decoration:underline; }
-        .proc-mode-tag {
-            background:#f0f4f2; color:#384d40;
-            padding:3px 8px; border-radius:6px;
-            font-size:10.5px; font-weight:600; white-space:nowrap;
-        }
-        .proc-abc-cell {
-            font-family:'Space Grotesk',sans-serif;
-            font-size:13px; font-weight:800; color:#06251b; white-space:nowrap;
-        }
-        .proc-deadline-cell { font-size:11.5px; color:#63736a; white-space:nowrap; line-height:1.3; }
-        .proc-deadline-cell strong { color:#1a1a1a; display:block; }
-        .proc-status-pill {
-            display:inline-flex; align-items:center; gap:4px;
-            font-size:10.5px; font-weight:700;
-            padding:3px 9px; border-radius:20px; white-space:nowrap;
-        }
-        .status-open    { background:#e4f5ea; color:#1f7a3d; }
-        .status-closed  { background:#fee2e2; color:#dc2626; }
-        .status-awarded { background:#e0f2f1; color:#00796b; }
-        .status-draft   { background:#f3f4f6; color:#6b7280; }
-
-        .proc-action-btn {
-            display:inline-flex; align-items:center; gap:5px;
-            padding:6px 13px; border-radius:8px;
-            font-size:11.5px; font-weight:700;
-            text-decoration:none; transition:all .15s;
-            white-space:nowrap; cursor:pointer; border:none;
-        }
-        .btn-view       { background:#f0f4f2; color:#06251b; }
-        .btn-view:hover { background:#06251b; color:#ffc107; }
-        .btn-schedule   { background:#ffc107; color:#06251b; }
-        .btn-schedule:hover { background:#e6ac00; }
-        .btn-open       { background:#1f7a3d; color:#fff; }
-        .btn-open:hover { background:#14592d; }
-
-        /* ── Filter bar ── */
-        .filter-bar {
-            padding:12px 14px;
-            border-bottom:1px solid #f0f4f2;
-            background:#fafcfb;
-            display:flex; flex-direction:column; gap:8px;
-        }
-        @media(min-width:640px){
-            .filter-bar { flex-direction:row; align-items:center; padding:16px 20px; gap:10px; flex-wrap:wrap; }
-        }
-        .ap2-search-field {
-            width:100%; position:relative; display:flex; align-items:center;
-        }
-        @media(min-width:640px){ .ap2-search-field{ flex:1; min-width:200px; } }
-        .ap2-search-field i {
-            position:absolute; left:11px; color:#88968d;
-            font-size:13px; pointer-events:none;
-        }
-        .ap2-search-field input {
-            width:100%; padding:9px 12px 9px 33px;
-            border:1.5px solid #e0e8e4; border-radius:9px;
-            font-size:12px; font-family:'Poppins',sans-serif;
-            color:#1a1a1a; background:#fafcfb; outline:none;
-            transition:border-color .15s, box-shadow .15s;
-        }
-        .ap2-search-field input:focus {
-            border-color:#1f7a3d; background:#fff;
-            box-shadow:0 0 0 3px rgba(31,122,61,.08);
-        }
-        .filter-dropdowns {
-            display:flex; gap:8px; flex-wrap:wrap;
-        }
-        .filter-dropdowns select {
-            border:1.5px solid #eaeeec; background:#eef2f0; color:#16241d;
-            font-family:'Poppins',sans-serif; font-size:12.5px; font-weight:600;
-            padding:8px 12px; border-radius:9px; outline:none; cursor:pointer;
-            flex:1; min-width:120px;
-        }
-        .ap2-go-btn {
-            display:inline-flex; align-items:center; justify-content:center; gap:7px;
-            background:#ffc107; color:#16241d;
-            font-family:'Poppins',sans-serif; font-weight:700;
-            font-size:12.5px; border:none; padding:9px 18px;
-            border-radius:9px; cursor:pointer; transition:all .15s; white-space:nowrap;
-            width:100%;
-        }
-        @media(min-width:640px){ .ap2-go-btn{ width:auto; } }
-        .ap2-go-btn:hover { background:#e6ac00; }
-
-        .table-foot {
-            padding:12px 16px;
-            display:flex; align-items:center; justify-content:space-between;
-            gap:10px; flex-wrap:wrap;
-            border-top:1px solid #f0f4f2;
-            font-size:12px; color:#88968d;
-        }
-        .pagination { display:flex; gap:4px; flex-wrap:wrap; }
-        .page-link {
-            display:inline-flex; align-items:center; justify-content:center;
-            width:32px; height:32px; border-radius:8px;
-            font-size:12px; font-weight:700; text-decoration:none;
-            color:#06251b; background:#f0f4f2; transition:all .15s;
-        }
-        .page-link:hover, .page-link.active { background:#06251b; color:#ffc107; }
-        .page-link.disabled { opacity:.4; pointer-events:none; }
-
-        /* ── Scheduled sessions panel ── */
-        .sched-panel {
-            background:#fff;
-            border:1px solid #eaeeec;
-            border-radius:18px;
-            box-shadow:0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            overflow:hidden;
-        }
-        .sched-panel-head {
-            display:flex; align-items:center; justify-content:space-between;
-            padding:12px 16px;
-            border-bottom:1px solid #f0f4f2;
-            background:#fafcfb;
-        }
-        @media(min-width:640px){ .sched-panel-head{ padding:14px 18px; } }
-        .sched-list { display:flex; flex-direction:column; }
-        .sched-card {
-            background:#fff;
-            padding:12px 14px;
-            display:flex; align-items:center; gap:10px;
-            border-bottom:1px solid #f0f4f2;
-            transition:background .12s;
-        }
-        @media(min-width:640px){ .sched-card{ padding:14px 18px; gap:14px; } }
-        .sched-card:last-child { border-bottom:none; }
-        .sched-card:hover { background:#fbfdfc; }
-        .sched-icon {
-            width:36px; height:36px; border-radius:10px;
-            background:#fef8e7; color:#d97706;
-            display:flex; align-items:center; justify-content:center;
-            font-size:16px; flex-shrink:0;
-        }
-        @media(min-width:640px){ .sched-icon{ width:40px; height:40px; font-size:18px; } }
-        .sched-info { flex:1; min-width:0; }
-        .sched-title {
-            font-size:12.5px; font-weight:700; color:#06251b;
-            white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-            margin-bottom:3px;
-        }
-        @media(min-width:640px){ .sched-title{ font-size:13px; } }
-        .sched-meta {
-            font-size:10.5px; color:#88968d;
-            display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-        }
-        .sched-pill {
-            font-size:10px; font-weight:700; padding:2px 7px;
-            border-radius:5px; background:#fef3c7; color:#d97706;
-            display:inline-flex; align-items:center; gap:4px;
-        }
-        .btn-open-now {
-            display:inline-flex; align-items:center; gap:5px;
-            background:#1f7a3d; color:#fff;
-            font-size:11.5px; font-weight:700; padding:6px 12px;
-            border-radius:9px; text-decoration:none; border:none;
-            cursor:pointer; transition:all .15s; white-space:nowrap; flex-shrink:0;
-        }
-        @media(min-width:640px){ .btn-open-now{ font-size:12px; padding:7px 15px; } }
-        .btn-open-now:hover { background:#14592d; }
-        .sched-empty {
-            padding:24px 16px; text-align:center;
-            color:#88968d; font-size:12.5px;
-        }
-
-        /* ── Section view-more link ── */
-        .section-view-more {
-            font-size:11.5px; font-weight:700; color:#1f7a3d;
-            text-decoration:none; display:inline-flex; align-items:center; gap:4px;
-            transition:color .15s; white-space:nowrap;
-        }
-        .section-view-more:hover { color:#06251b; }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-bid-opening.css">
 </head>
 <body class="dash-body">
 
@@ -479,10 +181,10 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
 
     <!-- ── Summary Stats ──────────────────────────────────────────────────── -->
     <div class="sad-section-label">Overview</div>
-    <div class="bo-stat-grid" style="margin-bottom:24px;">
+    <div class="bo-stat-grid">
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#06251b 0% 100%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-folder2-open" style="color:#06251b;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#06251b; --pct:100%;">
+                <div class="ap2-ring-inner"><i class="bi bi-folder2-open clr-dark"></i></div>
             </div>
             <div class="ap2-stat-text">
                 <div class="ap2-stat-num"><?= $stat_total ?></div>
@@ -490,48 +192,48 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
             </div>
         </div>
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#1f7a3d 0% <?= $stat_total>0 ? round($stat_open/$stat_total*100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-check-circle" style="color:#1f7a3d;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#1f7a3d; --pct:<?= $stat_total>0 ? round($stat_open/$stat_total*100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-check-circle clr-forest"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:#1f7a3d;"><?= $stat_open ?></div>
+                <div class="ap2-stat-num clr-forest"><?= $stat_open ?></div>
                 <div class="ap2-stat-lbl">Active Opportunities</div>
             </div>
         </div>
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#e67e22 0% <?= $stat_total>0 ? round($stat_closed/$stat_total*100) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-hourglass-split" style="color:#e67e22;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#e67e22; --pct:<?= $stat_total>0 ? round($stat_closed/$stat_total*100) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-hourglass-split clr-amber"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:#e67e22;"><?= $stat_closed ?></div>
+                <div class="ap2-stat-num clr-amber"><?= $stat_closed ?></div>
                 <div class="ap2-stat-lbl">Closing in 3 Days</div>
             </div>
         </div>
         <div class="ap2-stat">
-            <div class="ap2-ring" style="background:conic-gradient(#e67e22 0% <?= $stat_total>0 ? min(100,round($stat_sessions/$stat_total*100)) : 0 ?>%, #e7ece9 0%);">
-                <div class="ap2-ring-inner"><i class="bi bi-envelope-open" style="color:#e67e22;"></i></div>
+            <div class="ap2-ring" style="--ring-color:#e67e22; --pct:<?= $stat_total>0 ? min(100,round($stat_sessions/$stat_total*100)) : 0 ?>%;">
+                <div class="ap2-ring-inner"><i class="bi bi-envelope-open clr-amber"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num" style="color:#e67e22;"><?= $stat_sessions ?></div>
+                <div class="ap2-stat-num clr-amber"><?= $stat_sessions ?></div>
                 <div class="ap2-stat-lbl">Opening Sessions</div>
             </div>
         </div>
     </div>
 
     <!-- ── Current Live Session ───────────────────────────────────────────── -->
-    <div class="sched-panel" style="margin-bottom:20px;">
+    <div class="sched-panel sched-panel--live">
         <div class="sched-panel-head">
-            <span style="font-size:13.5px; font-weight:800; color:#06251b; display:flex; align-items:center; gap:8px;">
-                <i class="bi bi-broadcast" style="color:#dc2626;"></i> Current Live Session
+            <span class="sched-panel-title">
+                <i class="bi bi-broadcast clr-red"></i> Current Live Session
             </span>
             <a href="bid-session-list.php?filter=live" class="section-view-more"><i class="bi bi-arrow-right"></i> View More</a>
         </div>
 
         <?php if ($live_session): ?>
-        <div class="bo-live-banner" style="border-radius:0; box-shadow:none; margin-bottom:0; border:none; border-bottom:none;">
-            <div style="display:flex; align-items:center; gap:14px; flex:1; min-width:0;">
+        <div class="bo-live-banner">
+            <div class="bo-live-body">
                 <div>
-                    <div style="margin-bottom:8px;">
+                    <div class="bo-live-head-row">
                         <span class="bo-live-pill"><span class="bo-live-dot"></span> LIVE</span>
                     </div>
                     <div class="bo-live-title"><?= htmlspecialchars($live_session['proc_title']) ?></div>
@@ -562,13 +264,13 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
             </div>
         </div>
         <?php else: ?>
-        <div style="padding:22px 18px; display:flex; align-items:center; gap:14px; color:#55665a; font-size:13px;">
-            <i class="bi bi-broadcast" style="font-size:22px; color:#c7d2cb; flex-shrink:0;"></i>
+        <div class="bo-no-live-row">
+            <i class="bi bi-broadcast bo-no-live-icon"></i>
             <div>
-                <div style="font-weight:700; color:#374151; margin-bottom:2px;">No Active Live Session</div>
-                <div style="font-size:12px;">
+                <div class="bo-no-live-title">No Active Live Session</div>
+                <div class="bo-no-live-desc">
                     Schedule a bid opening session from
-                    <a href="bid_opening.php" style="color:#1f7a3d; font-weight:700;">Bid Opening</a>
+                    <a href="bid_opening.php">Bid Opening</a>
                     using the Schedule button next to any open procurement.
                 </div>
             </div>
@@ -578,17 +280,17 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
 
 
     <!-- ── Scheduled Bid Opening Sessions ────────────────────────────────── -->
-    <div class="sched-panel" style="margin-bottom:28px;">
+    <div class="sched-panel sched-panel--scheduled">
         <div class="sched-panel-head">
-            <span style="font-size:13.5px; font-weight:800; color:#06251b; display:flex; align-items:center; gap:8px;">
-                <i class="bi bi-calendar-event" style="color:#d97706;"></i> Scheduled Bid Opening
+            <span class="sched-panel-title">
+                <i class="bi bi-calendar-event clr-gold-dark"></i> Scheduled Bid Opening
             </span>
             <a href="bid-session-list.php?filter=scheduled" class="section-view-more"><i class="bi bi-arrow-right"></i> View More</a>
         </div>
         <div class="sched-list">
             <?php if (empty($scheduled_sessions)): ?>
             <div class="sched-empty">
-                <i class="bi bi-calendar-x" style="font-size:24px; color:#c7d2cb; display:block; margin-bottom:6px;"></i>
+                <i class="bi bi-calendar-x sched-empty-icon"></i>
                 No scheduled bid opening sessions at the moment.
             </div>
             <?php else: ?>
@@ -607,7 +309,7 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
                     </div>
                 </div>
                 <?php if ($can_manage): ?>
-                <form method="POST" id="openNowForm-<?= $ss['session_id'] ?>" style="flex-shrink:0;">
+                <form method="POST" id="openNowForm-<?= $ss['session_id'] ?>" class="sched-form">
                     <input type="hidden" name="session_id" value="<?= $ss['session_id'] ?>">
                     <input type="hidden" name="open_now" value="1">
                     <button type="button" class="btn-open-now"
@@ -616,7 +318,7 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
                     </button>
                 </form>
                 <?php else: ?>
-                <span class="btn-open-now" style="background:#f0f4f2; color:#88968d; cursor:not-allowed; opacity:.6;">
+                <span class="btn-open-now btn-open-now--disabled">
                     <i class="bi bi-play-fill"></i> Open Now
                 </span>
                 <?php endif; ?>
@@ -632,7 +334,7 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
 
         <!-- Search + Filter bar -->
         <div class="filter-bar">
-            <form method="GET" action="" id="procFilterForm" style="display:contents;">
+            <form method="GET" action="" id="procFilterForm" class="form-contents">
                 <input type="hidden" name="sort" id="hiddenSort" value="<?= htmlspecialchars($sort) ?>">
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
@@ -660,22 +362,22 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
         </div>
 
         <?php if ($total_shown === 0): ?>
-        <div style="padding:48px 20px; text-align:center; color:#88968d;">
-            <i class="bi bi-folder2-open" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
-            <div style="font-size:13px; font-weight:700;">No procurements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</div>
+        <div class="results-empty">
+            <i class="bi bi-folder2-open results-empty-icon"></i>
+            <div class="results-empty-title">No procurements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</div>
         </div>
         <?php else: ?>
-        <div style="overflow-x:auto;">
+        <div class="table-scroll">
             <table class="proc-table">
                 <thead>
                     <tr>
-                        <th style="width:120px;">SLSU Ref</th>
+                        <th class="col-ref-th">SLSU Ref</th>
                         <th>Title</th>
                         <th class="col-mode">Mode</th>
                         <th class="col-abc">ABC</th>
                         <th class="col-opening">Opening Date</th>
                         <th class="col-status">Status</th>
-                        <th style="text-align:right; min-width:120px;">Actions</th>
+                        <th class="col-actions-th">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -686,14 +388,14 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
                 ?>
                 <tr>
                     <td class="proc-ref-cell">
-                        <i class="bi bi-hash" style="color:#88968d; font-size:10px;"></i>
+                        <i class="bi bi-hash hash-icon"></i>
                         <?= htmlspecialchars($row['slsu_ref_no']) ?>
                     </td>
                     <td class="proc-title-cell">
                         <a href="procurement-view.php?id=<?= $row['id'] ?>">
                             <?= htmlspecialchars(mb_strimwidth($row['title'], 0, 65, '…')) ?>
                         </a>
-                        <div style="font-size:10.5px; color:#88968d; margin-top:2px;">
+                        <div class="proc-title-specs">
                             <i class="bi bi-layers"></i> <?= (int)$row['lot_count'] ?> lot<?= $row['lot_count'] != 1 ? 's' : '' ?>
                             &nbsp;·&nbsp;
                             <i class="bi bi-inbox"></i> <?= (int)$row['bid_count'] ?> bid<?= $row['bid_count'] != 1 ? 's' : '' ?>
@@ -708,22 +410,22 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
                             <strong><?= date('M j, Y', strtotime($row['opening_date'])) ?></strong>
                             <?= date('g:i A', strtotime($row['opening_date'])) ?>
                         <?php else: ?>
-                            <span style="color:#c7d2cb;">TBA</span>
+                            <span class="deadline-tba">TBA</span>
                         <?php endif; ?>
                     </td>
                     <td class="col-status">
                         <span class="proc-status-pill <?= $stClass ?>">
-                            <i class="bi bi-circle-fill" style="font-size:7px;"></i> <?= $stLabel ?>
+                            <i class="bi bi-circle-fill status-dot-tiny"></i> <?= $stLabel ?>
                         </span>
                     </td>
-                    <td style="text-align:right;">
-                        <div style="display:flex; gap:6px; justify-content:flex-end;">
+                    <td class="col-actions-th">
+                        <div class="actions-row">
                             <a href="procurement-view.php?id=<?= $row['id'] ?>" class="proc-action-btn btn-view">
                                 <i class="bi bi-eye"></i> View
                             </a>
                             <?php if (in_array((int)$row['id'], $scheduled_proc_ids)): ?>
-                            <span class="proc-action-btn" style="background:#f0f4f2; color:#88968d; cursor:default;">
-                                <i class="bi bi-check-circle-fill" style="color:#1f7a3d;"></i> Scheduled
+                            <span class="proc-action-btn proc-action-btn--scheduled">
+                                <i class="bi bi-check-circle-fill clr-forest"></i> Scheduled
                             </span>
                             <?php elseif ($can_manage): ?>
                             <a href="schedule_bid_opening.php?procurement=<?= $row['id'] ?>" class="proc-action-btn btn-schedule">
@@ -766,12 +468,12 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
 
 <!-- ── Open Now Confirmation Modal ───────────────────────────────────────── -->
 <div id="openNowModal" class="modal-backdrop" onclick="if(event.target===this)closeOpenNowModal()">
-    <div class="urm-modal" style="max-width:520px; width:100%;">
+    <div class="urm-modal modal-wide">
         <button class="urm-modal-close" onclick="closeOpenNowModal()">
             <i class="bi bi-x-lg"></i>
         </button>
         <div class="urm-modal-icon-wrap">
-            <div class="urm-modal-icon" style="background:#e8f5e9; color:#1f7a3d;">
+            <div class="urm-modal-icon urm-modal-icon--green">
                 <i class="bi bi-play-fill"></i>
             </div>
         </div>
@@ -779,23 +481,22 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
             <h3>Start Bid Opening Session</h3>
             <p>This will open the session. You can then begin the <strong>Eligibility</strong> or <strong>Financial</strong> phase from inside the session.</p>
             <div class="urm-modal-user-pill" id="openNowPill"></div>
-            <div style="margin-top:10px; display:inline-flex; align-items:center; gap:6px; background:#f0f4f2; border-radius:8px; padding:5px 12px; font-size:11.5px; font-weight:700; color:#55665a;">
-                <i class="bi bi-broadcast" style="color:#1f7a3d;"></i>
-                Stream path: <code id="openNowStreamPath" style="font-size:11.5px; color:#06251b;"></code>
+            <div class="stream-path-box">
+                <i class="bi bi-broadcast clr-forest"></i>
+                Stream path: <code id="openNowStreamPath"></code>
             </div>
         </div>
         <!-- Stream preview -->
-        <div id="openNowStreamPreview" style="margin:0 0 20px; border-radius:12px; overflow:hidden; background:#000; aspect-ratio:16/9; display:none;">
-            <iframe id="openNowIframe" src="" allow="autoplay; fullscreen" allowfullscreen
-                style="width:100%; height:100%; border:none;"></iframe>
+        <div id="openNowStreamPreview" class="stream-preview-box">
+            <iframe id="openNowIframe" src="" allow="autoplay; fullscreen" allowfullscreen></iframe>
         </div>
-        <div id="openNowNoStream" style="margin:0 0 20px; background:#f7faf8; border:1.5px dashed #cfdbd4; border-radius:12px; padding:16px; text-align:center; color:#88968d; font-size:12.5px; display:flex; align-items:center; gap:10px; justify-content:center;">
-            <i class="bi bi-broadcast" style="font-size:20px; color:#c7d2cb;"></i>
+        <div id="openNowNoStream" class="stream-empty-box">
+            <i class="bi bi-broadcast stream-empty-icon"></i>
             <span>Stream not live yet — start OBS before opening the session.</span>
         </div>
         <div class="urm-modal-actions">
             <button type="button" onclick="closeOpenNowModal()" class="urm-btn-cancel">Cancel</button>
-            <button type="button" id="openNowConfirmBtn" class="urm-btn-confirm" style="background:#1f7a3d;">
+            <button type="button" id="openNowConfirmBtn" class="urm-btn-confirm urm-btn-confirm--green">
                 <i class="bi bi-play-fill"></i> Start Session
             </button>
         </div>

@@ -1,0 +1,867 @@
+/* ==========================================================================
+   pages/bidder-view-procurement.css — styles specific to
+   bidder/view_procurement.php (single procurement detail page).
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css. .toast-alert comes from dashboard.css's shared
+   section, not redefined here.
+   ========================================================================== */
+
+/* ── Small color utilities used throughout this page ── */
+.clr-dark   { color: #06251b; }
+.clr-green  { color: #1f7a3d; }
+.clr-blue   { color: #2F6FED; }
+.clr-orange { color: #e67e22; }
+.clr-cyan   { color: #0284c7; }
+.font-mono  { font-family: 'Space Grotesk', sans-serif; }
+
+/* ── Breadcrumb & Back Bar ── */
+.vp-nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.vp-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #88968d;
+    font-weight: 600;
+}
+
+.vp-breadcrumbs a {
+    color: #1f7a3d;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.vp-breadcrumbs a:hover {
+    text-decoration: underline;
+}
+
+.vp-breadcrumb-current {
+    color: #06251b;
+}
+
+.vp-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #06251b;
+    font-size: 12.5px;
+    font-weight: 700;
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    padding: 7px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all .2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.vp-back-link:hover {
+    background: #06251b;
+    color: #ffc107;
+    border-color: #06251b;
+}
+
+/* ── Project Header Hero Banner ── */
+.vp-hero-card {
+    background: linear-gradient(135deg, #06251b 0%, #0c3d2c 60%, #14593f 100%);
+    border-radius: 20px;
+    padding: 26px 30px;
+    color: #ffffff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(6, 37, 27, 0.16);
+    margin-bottom: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vp-hero-card::after {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(255, 193, 7, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.vp-hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.vp-hero-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.vp-hero-posted {
+    font-size: 11.5px;
+    color: #d1e5db;
+}
+
+.hero-pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: .3px;
+}
+
+.hero-pill.ref {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: all .15s;
+}
+
+.hero-pill.ref:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.hero-pill-copy-icon {
+    font-size: 10px;
+    margin-left: 2px;
+    opacity: 0.8;
+}
+
+/* Status pill — replaces the old PHP $status_badge_bg/$status_badge_fg
+   inline-style pair with plain modifier classes. */
+.hero-pill.status-open      { background: #e4f5ea; color: #1f7a3d; font-weight: 800; }
+.hero-pill.status-draft     { background: #eef0ed; color: #6c776e; font-weight: 800; }
+.hero-pill.status-closed    { background: #e7eefe; color: #2F6FED; font-weight: 800; }
+.hero-pill.status-awarded   { background: #fcf1cf; color: #b78103; font-weight: 800; }
+.hero-pill.status-cancelled { background: #ffebee; color: #c23b3b; font-weight: 800; }
+
+.spec-status-badge {
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.spec-status-badge.status-open      { background: #e4f5ea; color: #1f7a3d; }
+.spec-status-badge.status-draft     { background: #eef0ed; color: #6c776e; }
+.spec-status-badge.status-closed    { background: #e7eefe; color: #2F6FED; }
+.spec-status-badge.status-awarded   { background: #fcf1cf; color: #b78103; }
+.spec-status-badge.status-cancelled { background: #ffebee; color: #c23b3b; }
+
+.hero-pill.urgent {
+    background: rgba(235, 87, 87, 0.25);
+    border: 1px solid rgba(235, 87, 87, 0.5);
+    color: #ff8a80;
+    animation: pulseHeroUrgent 2s infinite;
+}
+
+.hero-pill.submitted {
+    background: rgba(33, 150, 83, 0.25);
+    border: 1px solid rgba(33, 150, 83, 0.5);
+    color: #81c784;
+}
+
+@keyframes pulseHeroUrgent {
+    0% { opacity: 1; }
+    50% { opacity: 0.75; }
+    100% { opacity: 1; }
+}
+
+.vp-hero-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.3;
+    margin-bottom: 20px;
+    letter-spacing: -0.3px;
+}
+
+/* Hero Key Metrics Row */
+.vp-hero-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.vp-hero-metric-item {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    padding: 12px 16px;
+}
+
+.vp-hero-metric-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    color: #d1e5db;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.vp-hero-metric-lbl i {
+    color: #ffc107;
+}
+
+.vp-hero-metric-val {
+    font-size: 17px;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: 'Space Grotesk', sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vp-hero-metric-val.gold {
+    color: #ffc107;
+}
+
+.vp-hero-metric-val--sm {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* ── Main Two-Column Layout (65% + 35%) ── */
+.vp-grid-layout {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr;
+    gap: 24px;
+    align-items: start;
+    margin-bottom: 30px;
+}
+
+/* CRITICAL: Grid children must have min-width: 0 to prevent overflow */
+.vp-left-col,
+.vp-right-col {
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* ── Section Cards ── */
+.vp-card {
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    border-radius: 18px;
+    box-shadow: 0 1px 2px rgba(16, 36, 26, .03), 0 10px 24px -14px rgba(16, 36, 26, .08);
+    margin-bottom: 22px;
+    overflow: hidden;
+}
+
+.vp-card--mt {
+    margin-top: 18px;
+}
+
+.vp-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f0f4f2;
+    background: #fafcfb;
+}
+
+.vp-card-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #06251b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vp-card-count {
+    background: #eef7f1;
+    color: #1f7a3d;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.vp-card-body {
+    padding: 20px;
+}
+
+/* ── Key Spec Fields Grid ── */
+.spec-fields-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.spec-field-box {
+    background: #f7faf8;
+    border: 1px solid #edf1ee;
+    border-radius: 12px;
+    padding: 11px 14px;
+}
+
+.spec-field-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    color: #88968d;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 4px;
+}
+
+.spec-field-lbl--gap {
+    margin-bottom: 6px;
+}
+
+.spec-field-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.spec-field-val--mono {
+    font-family: 'Space Grotesk', sans-serif;
+    color: #06251b;
+}
+
+.desc-wrap {
+    margin-top: 10px;
+}
+
+.desc-text-box {
+    background: #fbfdfc;
+    border: 1px solid #edf1ee;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 12.5px;
+    color: #3b4d42;
+    line-height: 1.65;
+    white-space: pre-line;
+}
+
+/* ── Lots Table ── */
+.lots-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: left;
+}
+
+.lots-data-table thead th {
+    background: #fafcfb;
+    padding: 12px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #55665a;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    border-bottom: 1px solid #edf1ee;
+}
+
+.lots-data-table th.col-lotnum-th {
+    width: 90px;
+}
+
+.lots-data-table th.col-abc-th {
+    text-align: right;
+    width: 150px;
+}
+
+.lots-data-table th.col-share-th {
+    text-align: right;
+    width: 90px;
+}
+
+.lots-data-table tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f4f7f5;
+    vertical-align: middle;
+}
+
+.lots-data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.lots-data-table tfoot td {
+    background: #f7faf8;
+    padding: 12px 16px;
+    border-top: 2px solid #eaeeec;
+    font-weight: 800;
+    color: #06251b;
+}
+
+.lots-data-table tfoot td.ta-right {
+    text-align: right;
+}
+
+.lots-total-abc {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13.5px;
+}
+
+.lot-badge {
+    background: #eef7f1;
+    color: #1f7a3d;
+    font-weight: 800;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+.lot-title-cell {
+    font-weight: 700;
+    color: #1a1a1a;
+    font-size: 12.5px;
+}
+
+.lot-desc-cell {
+    font-size: 11px;
+    color: #6c776e;
+    margin-top: 2px;
+}
+
+.lot-abc-cell {
+    text-align: right;
+    font-weight: 800;
+    font-family: 'Space Grotesk', sans-serif;
+    color: #06251b;
+}
+
+.lot-share-cell {
+    text-align: right;
+    color: #88968d;
+    font-weight: 600;
+    font-size: 11px;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+.lots-empty {
+    padding: 32px 20px;
+    text-align: center;
+    color: #88968d;
+    font-size: 12px;
+}
+
+.lots-empty-icon {
+    font-size: 28px;
+    color: #c7d2cb;
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* ── Milestones Timeline ── */
+.vp-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+    padding-left: 28px;
+}
+
+.vp-timeline::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    left: 10px;
+    width: 2px;
+    background: #e0e8e3;
+}
+
+.timeline-step {
+    position: relative;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -28px;
+    top: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid #1f7a3d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: #1f7a3d;
+}
+
+.timeline-dot.closing {
+    border-color: #c23b3b;
+    color: #c23b3b;
+}
+
+.timeline-dot.opening {
+    border-color: #2F6FED;
+    color: #2F6FED;
+}
+
+.timeline-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    color: #88968d;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+
+.timeline-lbl--closing {
+    color: #c23b3b;
+}
+
+.timeline-lbl--opening {
+    color: #2F6FED;
+}
+
+.timeline-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-top: 2px;
+}
+
+.timeline-countdown {
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 6px;
+}
+
+.timeline-countdown--urgent { color: #c23b3b; }
+.timeline-countdown--normal { color: #1f7a3d; }
+
+/* ── Right Sidebar Action CTA Card ── */
+.vp-cta-box {
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 1px 2px rgba(16, 36, 26, .03), 0 10px 24px -14px rgba(16, 36, 26, .08);
+    margin-bottom: 22px;
+    text-align: center;
+}
+
+.vp-cta-box.has-bid {
+    background: linear-gradient(180deg, #f2faf4 0%, #ffffff 100%);
+    border-color: #cde6d5;
+}
+
+.cta-icon-wrap {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    background: #eef7f1;
+    color: #1f7a3d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin: 0 auto 14px;
+}
+
+.vp-cta-box.has-bid .cta-icon-wrap {
+    background: #219653;
+    color: #ffffff;
+}
+
+.cta-icon-wrap--locked {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.cta-icon-wrap--closed {
+    background: #ffebee;
+    color: #c23b3b;
+}
+
+.cta-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #06251b;
+    margin-bottom: 6px;
+}
+
+.cta-title--locked {
+    color: #991b1b;
+}
+
+.cta-desc {
+    font-size: 12px;
+    color: #6c776e;
+    line-height: 1.5;
+    margin-bottom: 18px;
+}
+
+.cta-desc--locked {
+    color: #b91c1c;
+}
+
+.cta-bid-status {
+    text-transform: uppercase;
+    color: #1f7a3d;
+}
+
+.btn-submit-proposal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #06251b;
+    color: #ffc107;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 12px 18px;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all .2s ease;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(6, 37, 27, 0.15);
+}
+
+.btn-submit-proposal:hover {
+    background: #144937;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(6, 37, 27, 0.22);
+}
+
+.btn-submit-proposal--danger {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+.btn-submit-proposal--danger:hover {
+    background: #b91c1c;
+}
+
+.btn-view-submission {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #e7eefe;
+    color: #2F6FED;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 10px 16px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all .15s ease;
+    width: 100%;
+}
+
+.btn-view-submission:hover {
+    background: #d4e4fd;
+}
+
+/* Fills in for the orphan .side-panel-link reference this page used to make
+   (no CSS backed it anywhere — dashboard.css nor this page's own <style>
+   defined it, so the "Browse Active Opportunities" link rendered unstyled). */
+.btn-browse-opportunities {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #f0f4f2;
+    color: #06251b;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all .15s ease;
+    width: 100%;
+}
+
+.btn-browse-opportunities:hover {
+    background: #06251b;
+    color: #ffc107;
+}
+
+/* ── Documents List ── */
+.doc-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f4f7f5;
+    transition: background .15s ease;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.doc-item-row:last-child {
+    border-bottom: none;
+}
+
+.doc-item-row:hover {
+    background: #f9fbf9;
+}
+
+.doc-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.doc-text-wrap {
+    min-width: 0;
+    overflow: hidden;
+    flex: 1 1 0;
+}
+
+.doc-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #eef7f1;
+    color: #1f7a3d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.doc-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.doc-associated-tag {
+    font-size: 10px;
+    font-weight: 700;
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+}
+
+.doc-date {
+    font-size: 10.5px;
+    color: #88968d;
+    margin-top: 1px;
+}
+
+.doc-download-btn {
+    background: #f0f4f2;
+    color: #06251b;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 7px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all .15s ease;
+    flex-shrink: 0;
+}
+
+.doc-download-btn:hover {
+    background: #06251b;
+    color: #ffc107;
+}
+
+.doc-download-btn--cyan {
+    background: #0284c7;
+    color: #ffffff;
+}
+
+.doc-empty {
+    padding: 28px 16px;
+    text-align: center;
+    color: #88968d;
+    font-size: 12px;
+}
+
+.doc-empty-icon {
+    font-size: 24px;
+    color: #c7d2cb;
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* ── Secretariat Support Card ── */
+.support-info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f9fbf9;
+    font-size: 12px;
+    color: #55665a;
+}
+
+.support-info-item:last-child {
+    border-bottom: none;
+}
+
+.support-info-item i {
+    color: #1f7a3d;
+    font-size: 14px;
+    width: 18px;
+}
+
+/* ════════════════════════════════
+   MOBILE-FIRST RESPONSIVE
+   ════════════════════════════════ */
+
+@media (max-width: 1040px) {
+    .vp-grid-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .vp-hero-card {
+        padding: 20px 18px;
+    }
+
+    .vp-hero-title {
+        font-size: 20px;
+    }
+
+    .vp-card-body {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 600px) {
+    .spec-fields-grid {
+        grid-template-columns: 1fr;
+    }
+}

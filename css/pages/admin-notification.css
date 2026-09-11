@@ -1,0 +1,130 @@
+/* ==========================================================================
+   pages/admin-notification.css — styles specific to admin/notification.php.
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css. Standard mobile breakpoints/utilities live in
+   ../responsive.css (loaded before this file). Shared dashboard components
+   (.sad-section-label, .ap2-stats, .ap2-stat, .ap2-ring, .bsv-stat-warn,
+   .proc-table-panel, .filter-bar, .ap2-search-field, .ap2-filter-btn,
+   .ap2-go-btn, .proc-table, .col-mode/.col-abc/.col-opening,
+   .proc-title-cell, .proc-deadline-cell, .proc-status-pill,
+   .proc-action-btn, .table-foot, .pagination, .page-link) already live in
+   ../../dashboard.css — this file only adds the classes genuinely unique
+   to this page (the mark-read/back-link buttons and the unread/target
+   color modifiers).
+   ========================================================================== */
+
+.mb-20 { margin-bottom: 20px; }
+.mb-24 { margin-bottom: 24px; }
+.text-right { text-align: right; }
+.clr-idle { color: #88968d; }
+.clr-dark { color: #06251b; }
+.nowrap { white-space: nowrap; }
+.table-scroll { overflow-x: auto; }
+.at-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.at-filter-form { display: contents; }
+.anc-empty-state { padding: 52px 20px; text-align: center; color: #88968d; }
+.anc-empty-icon { font-size: 32px; color: #c7d2cb; display: block; margin-bottom: 8px; }
+.anc-empty-text { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.anc-empty-reset { display: inline-flex; margin-top: 4px; }
+
+/* ── Stat rings ── */
+.ap2-ring {
+    background: conic-gradient(var(--ring-color, #06251b) 0% var(--pct, 100%), #e7ece9 0%);
+}
+.clr-unread     { color: #e67e22; }
+.clr-unread-off { color: #8B958E; }
+.clr-broadcast  { color: #219653; }
+.clr-direct     { color: #2F6FED; }
+.ap2-stat-num--unread    { color: #e67e22; }
+.ap2-stat-num--broadcast { color: #219653; }
+.ap2-stat-num--direct    { color: #2F6FED; }
+
+/* ── Buttons ── */
+.btn-mark-read-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #eef2f0;
+    color: #06251b;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 9px;
+    border: none;
+    cursor: pointer;
+    transition: all .15s ease;
+    font-family: 'Poppins', sans-serif;
+    white-space: nowrap;
+}
+.btn-mark-read-all:hover {
+    background: #06251b;
+    color: #ffc107;
+}
+
+.vp-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #06251b;
+    font-size: 12.5px;
+    font-weight: 700;
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    padding: 7px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all .2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    white-space: nowrap;
+}
+.vp-back-link:hover {
+    background: #06251b;
+    color: #ffc107;
+    border-color: #06251b;
+}
+
+/* ── Table rows ── */
+.notif-row-unread { background: #fdfaf3; }
+.notif-title-row { display: flex; align-items: center; gap: 7px; font-weight: 700; color: #06251b; margin-bottom: 3px; }
+.notif-unread-badge {
+    background: #fff3e0;
+    color: #e67e22;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 9.5px;
+    flex-shrink: 0;
+}
+.notif-msg-preview {
+    font-size: 11px;
+    color: #63736a;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Target-audience status pill color modifiers (list rows) */
+.notif-target-pill {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+.notif-target-pill--all     { background: #E7EEFE; color: #1565c0; }
+.notif-target-pill--user    { background: #E3F2FD; color: #1565c0; }
+.notif-target-pill--bidder  { background: #FCF1CF; color: #C99A1D; }
+.notif-target-pill--admin   { background: #E4F5EA; color: #219653; }
+.notif-target-pill--other   { background: #F3E5F5; color: #7b1fa2; }
+.notif-target-pill--direct  { background: #EDE7F6; color: #512da8; }
+.notif-target-pill i { font-size: 9px; }
+
+.notif-row-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.mark-read-btn { background: #e4f5ea; color: #1f7a3d; border: none; cursor: pointer; }
+
+.at-actions-th { text-align: right; min-width: 170px; }

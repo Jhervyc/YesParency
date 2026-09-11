@@ -248,106 +248,8 @@ function timeAgo($datetime) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        /* Target selector radio tiles */
-        .anc-target-tiles {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-        .anc-tile-label {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 12px 10px;
-            border: 1.5px solid #d4e0d8;
-            border-radius: 12px;
-            background: #fafcfb;
-            cursor: pointer;
-            transition: all .15s ease;
-            text-align: center;
-            font-size: 12px;
-            font-weight: 700;
-            color: #55665a;
-        }
-        .anc-tile-label i { font-size: 18px; color: #06251b; }
-        .anc-tile-input { display: none; }
-        .anc-tile-input:checked + .anc-tile-label {
-            border-color: #06251b;
-            background: #06251b;
-            color: #ffc107;
-        }
-        .anc-tile-input:checked + .anc-tile-label i {
-            color: #ffc107;
-        }
-
-        /* User search list inside modal */
-        .anc-user-picker-box {
-            border: 1px solid #d4e0d8;
-            border-radius: 12px;
-            overflow: hidden;
-            background: #fff;
-        }
-        .anc-picker-search {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 14px;
-            background: #f7faf8;
-            border-bottom: 1px solid #edf1ee;
-        }
-        .anc-picker-search input {
-            border: none;
-            outline: none;
-            background: transparent;
-            font-size: 12px;
-            width: 100%;
-            font-family: inherit;
-        }
-        .anc-user-list-scroll {
-            max-height: 130px;
-            overflow-y: auto;
-            padding: 4px 0;
-        }
-        .anc-user-option {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 14px;
-            cursor: pointer;
-            transition: background .15s;
-            border-bottom: 1px solid #f7f9f8;
-        }
-        .anc-user-option:last-child { border-bottom: none; }
-        .anc-user-option:hover, .anc-user-option.selected {
-            background: #eef5f0;
-        }
-        .anc-user-option-name {
-            font-size: 12px;
-            font-weight: 700;
-            color: #182019;
-        }
-        .anc-user-option-sub {
-            font-size: 10.5px;
-            color: #88968d;
-        }
-        .anc-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 10.5px;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 12px;
-        }
-        .anc-badge.bidder { background: #FCF1CF; color: #C99A1D; }
-        .anc-badge.admin  { background: #E4F5EA; color: #219653; }
-        .anc-badge.user   { background: #F3E5F5; color: #7B1FA2; }
-        .anc-badge.superadmin { background: #E0F2F1; color: #004D40; }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-announcements.css">
 </head>
 <body class="dash-body">
 
@@ -365,7 +267,7 @@ function timeAgo($datetime) {
 
     <!-- Alert notifications -->
     <?php if (isset($_SESSION['alert_success'])): ?>
-        <div style="background:#e8f5e9; color:#1f7a3d; border:1px solid #c8e6c9; border-radius:12px; padding:12px 18px; margin-bottom:18px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:10px;">
+        <div class="anc-alert anc-alert--success">
             <i class="bi bi-check-circle-fill"></i>
             <span><?= htmlspecialchars($_SESSION['alert_success']) ?></span>
         </div>
@@ -373,7 +275,7 @@ function timeAgo($datetime) {
     <?php endif; ?>
 
     <?php if (isset($_SESSION['alert_error'])): ?>
-        <div style="background:#ffebee; color:#c62828; border:1px solid #ffcdd2; border-radius:12px; padding:12px 18px; margin-bottom:18px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:10px;">
+        <div class="anc-alert anc-alert--error">
             <i class="bi bi-exclamation-triangle-fill"></i>
             <span><?= htmlspecialchars($_SESSION['alert_error']) ?></span>
         </div>
@@ -381,7 +283,7 @@ function timeAgo($datetime) {
     <?php endif; ?>
 
     <!-- ════ STATISTICS PANEL (matching superadmin/procurement.php) ════ -->
-    <div class="sp-panel" style="margin-bottom:20px;">
+    <div class="sp-panel mb-20">
         <div class="sp-panel-head">
             <div class="sp-panel-title">
                 <div class="sp-title-icon"><i class="bi bi-pie-chart"></i></div>
@@ -393,7 +295,7 @@ function timeAgo($datetime) {
         <div class="sp-stats-body">
             <!-- Donut -->
             <div class="sp-donut-wrap">
-                <div class="sp-donut" style="background:conic-gradient(<?= $grad ?>);"></div>
+                <div class="sp-donut" style="--donut-grad: <?= $grad ?>;"></div>
                 <div class="sp-donut-hole">
                     <div class="sp-donut-num"><?= $stat_total ?></div>
                     <div class="sp-donut-lbl">Total<br>Announcements</div>
@@ -404,27 +306,27 @@ function timeAgo($datetime) {
             <div class="sp-legend">
                 <?php
                 $legend = [
-                    'all'     => ['label' => 'Broadcast (All)', 'color' => '#1565c0', 'soft' => '#E7EEFE'],
-                    'bidders' => ['label' => 'Bidders',         'color' => '#C99A1D', 'soft' => '#FCF1CF'],
-                    'admins'  => ['label' => 'Administrators',  'color' => '#219653', 'soft' => '#E4F5EA'],
-                    'users'   => ['label' => 'Normal Users',    'color' => '#7b1fa2', 'soft' => '#F3E5F5'],
-                    'direct'  => ['label' => 'Direct to User',  'color' => '#512da8', 'soft' => '#EDE7F6'],
+                    'all'     => ['label' => 'Broadcast (All)', 'mod' => 'all'],
+                    'bidders' => ['label' => 'Bidders',         'mod' => 'bidders'],
+                    'admins'  => ['label' => 'Administrators',  'mod' => 'admins'],
+                    'users'   => ['label' => 'Normal Users',    'mod' => 'users'],
+                    'direct'  => ['label' => 'Direct to User',  'mod' => 'direct'],
                 ];
                 foreach ($legend as $key => $l):
                     $cnt = $counts[$key];
                     $p   = pct2($cnt, $stat_total);
                 ?>
                 <div class="sp-legend-row">
-                    <span class="sp-legend-dot" style="background:<?= $l['color'] ?>"></span>
+                    <span class="sp-legend-dot anc-legend-dot--<?= $l['mod'] ?>"></span>
                     <span class="sp-legend-label"><?= $l['label'] ?></span>
                     <span class="sp-legend-value"><?= $cnt ?></span>
-                    <span class="sp-legend-pct" style="color:<?= $l['color'] ?>; background:<?= $l['soft'] ?>"><?= $p ?>%</span>
+                    <span class="sp-legend-pct anc-legend-pct--<?= $l['mod'] ?>"><?= $p ?>%</span>
                 </div>
                 <?php endforeach; ?>
                 <div class="sp-legend-row sp-legend-total">
-                    <span class="sp-legend-dot" style="background:#F0B92E"></span>
+                    <span class="sp-legend-dot anc-legend-dot--total"></span>
                     <span class="sp-legend-label">All Announcements</span>
-                    <span class="sp-legend-value" style="color:#F0B92E"><?= $stat_total ?></span>
+                    <span class="sp-legend-value anc-legend-value--total"><?= $stat_total ?></span>
                 </div>
             </div>
         </div>
@@ -432,21 +334,21 @@ function timeAgo($datetime) {
 
     <!-- ════ ANNOUNCEMENTS LIST (matching procurement.php) ════ -->
     <!-- New announcement button -->
-    <button type="button" class="sp-new-btn" onclick="openCreateModal()" style="cursor:pointer; background:#06251b; color:#ffc107; box-shadow:0 6px 16px -6px rgba(6,37,27,.35);">
+    <button type="button" class="sp-new-btn anc-new-btn" onclick="openCreateModal()">
         <i class="bi bi-plus-circle"></i> Broadcast New Announcement
     </button>
 
     <!-- List panel -->
-    <div class="proc-table-panel" style="margin-bottom:24px;">
+    <div class="proc-table-panel mb-24">
         <div class="filter-bar">
-            <form method="GET" action="" id="annoFilterForm" style="display:contents;">
+            <form method="GET" action="" id="annoFilterForm" class="anc-filter-form">
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
                     <input type="text" name="search"
                         placeholder="Search by title, message, or author..."
                         value="<?= htmlspecialchars($search) ?>">
                 </div>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <div class="anc-tabs">
                     <?php
                     $tabs = ['all'=>'All','broadcast'=>'Broadcast','bidders'=>'Bidders','admins'=>'Admins','users'=>'Users','direct'=>'Direct'];
                     foreach ($tabs as $val => $label):
@@ -462,7 +364,7 @@ function timeAgo($datetime) {
         </div>
 
         <?php if ($announcements_res->num_rows > 0): ?>
-        <div style="overflow-x:auto;">
+        <div class="table-scroll">
             <table class="proc-table">
                 <thead>
                     <tr>
@@ -471,21 +373,21 @@ function timeAgo($datetime) {
                         <th class="col-opening">Posted By</th>
                         <th class="col-abc">Date</th>
                         <th class="col-status">Views</th>
-                        <th style="text-align:right; min-width:140px;">Actions</th>
+                        <th class="anc-actions-th">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                 <?php while ($row = $announcements_res->fetch_assoc()):
                     $tt = $row['target_type'];
-                    $pillBg = '#E7EEFE'; $pillFg = '#1565c0'; $badgeTxt = 'Broadcast'; $badgeIcn = 'globe';
+                    $pillMod = 'all'; $badgeTxt = 'Broadcast'; $badgeIcn = 'globe';
                     if ($tt === 'role') {
                         $r = $row['target_role'];
-                        if ($r === 'bidder')     { $pillBg='#FCF1CF'; $pillFg='#C99A1D'; $badgeTxt='Bidders';    $badgeIcn='person-badge'; }
-                        elseif ($r === 'admin')  { $pillBg='#E4F5EA'; $pillFg='#219653'; $badgeTxt='Admins';     $badgeIcn='shield-check'; }
-                        elseif ($r === 'user')   { $pillBg='#F3E5F5'; $pillFg='#7b1fa2'; $badgeTxt='Users';      $badgeIcn='people'; }
-                        elseif ($r === 'superadmin') { $pillBg='#E0F2F1'; $pillFg='#004D40'; $badgeTxt='Superadmins'; $badgeIcn='person-gear'; }
+                        if ($r === 'bidder')     { $pillMod='bidders';    $badgeTxt='Bidders';    $badgeIcn='person-badge'; }
+                        elseif ($r === 'admin')  { $pillMod='admins';     $badgeTxt='Admins';     $badgeIcn='shield-check'; }
+                        elseif ($r === 'user')   { $pillMod='users';      $badgeTxt='Users';      $badgeIcn='people'; }
+                        elseif ($r === 'superadmin') { $pillMod='superadmin'; $badgeTxt='Superadmins'; $badgeIcn='person-gear'; }
                     } elseif ($tt === 'user') {
-                        $pillBg='#EDE7F6'; $pillFg='#512da8';
+                        $pillMod='direct';
                         $targetName = trim(($row['target_fname']??'').' '.($row['target_lname']??'')) ?: $row['target_username'];
                         $badgeTxt = 'Direct: '.$targetName; $badgeIcn='person';
                     }
@@ -493,29 +395,28 @@ function timeAgo($datetime) {
                 ?>
                 <tr>
                     <td class="proc-title-cell">
-                        <span style="font-weight:700; color:#06251b;"><?= htmlspecialchars($row['title']) ?></span>
-                        <div style="font-size:11px; color:#63736a; margin-top:3px; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;">
+                        <span class="anc-row-title"><?= htmlspecialchars($row['title']) ?></span>
+                        <div class="anc-msg-preview">
                             <?= htmlspecialchars($row['message']) ?>
                         </div>
                     </td>
                     <td class="col-mode">
-                        <span class="proc-status-pill" style="background:<?= $pillBg ?>; color:<?= $pillFg ?>;">
-                            <i class="bi bi-<?= $badgeIcn ?>" style="font-size:9px;"></i> <?= htmlspecialchars($badgeTxt) ?>
+                        <span class="proc-status-pill anc-target-pill--<?= $pillMod ?>">
+                            <i class="bi bi-<?= $badgeIcn ?> fz-9"></i> <?= htmlspecialchars($badgeTxt) ?>
                         </span>
                     </td>
                     <td class="proc-deadline-cell col-opening"><?= htmlspecialchars($creatorName) ?></td>
                     <td class="proc-deadline-cell col-abc"><?= date('M j, Y', strtotime($row['created_at'])) ?></td>
-                    <td class="col-status" style="font-size:12px; color:#55665a; font-weight:600;">
-                        <i class="bi bi-eye" style="color:#88968d;"></i> <?= (int)$row['read_count'] ?>
+                    <td class="col-status anc-views-cell">
+                        <i class="bi bi-eye clr-idle"></i> <?= (int)$row['read_count'] ?>
                     </td>
-                    <td style="text-align:right;">
-                        <div style="display:flex; gap:6px; justify-content:flex-end;">
+                    <td class="text-right">
+                        <div class="anc-row-actions">
                             <button type="button" class="proc-action-btn btn-view"
                                     onclick="viewAnnouncement(<?= htmlspecialchars(json_encode($row)) ?>)">
                                 <i class="bi bi-eye"></i> View
                             </button>
-                            <button type="button" class="proc-action-btn"
-                                    style="background:#fef2f2; color:#dc2626; border:none; cursor:pointer;"
+                            <button type="button" class="proc-action-btn anc-del-btn"
                                     onclick="confirmDelete(<?= $row['notification_id'] ?>, '<?= htmlspecialchars(addslashes($row['title'])) ?>')">
                                 <i class="bi bi-trash3"></i>
                             </button>
@@ -530,9 +431,9 @@ function timeAgo($datetime) {
             <div><?= $announcements_res->num_rows ?> announcement<?= $announcements_res->num_rows != 1 ? 's' : '' ?> shown</div>
         </div>
         <?php else: ?>
-        <div style="padding:52px 20px; text-align:center; color:#88968d;">
-            <i class="bi bi-megaphone" style="font-size:32px; color:#c7d2cb; display:block; margin-bottom:8px;"></i>
-            <div style="font-size:13px; font-weight:700;">No announcements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</div>
+        <div class="anc-empty-state">
+            <i class="bi bi-megaphone anc-empty-icon"></i>
+            <div class="anc-empty-text">No announcements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</div>
         </div>
         <?php endif; ?>
     </div>
@@ -541,11 +442,11 @@ function timeAgo($datetime) {
 </main>
 
 <!-- ════ CREATE ANNOUNCEMENT MODAL ════ -->
-<div id="createAnnouncementModal" class="modal-backdrop" style="align-items:flex-start; overflow-y:auto; padding:24px 10px;" onclick="if(event.target===this)closeCreateModal()">
-    <div class="modal-box" style="max-width:580px; width:95%; max-height:calc(100vh - 48px); overflow-y:auto; border-radius:18px; padding:24px; margin:auto;">
-        <div class="modal-header" style="margin-bottom:16px; padding-bottom:12px;">
-            <h4 style="font-size:16px; font-weight:800; color:#06251b; display:flex; align-items:center; gap:8px;">
-                <i class="bi bi-megaphone-fill" style="color:#ffc107;"></i>
+<div id="createAnnouncementModal" class="modal-backdrop modal-backdrop--top" onclick="if(event.target===this)closeCreateModal()">
+    <div class="modal-box modal-box--scroll modal-box--580" >
+        <div class="modal-header modal-header--tight">
+            <h4 class="modal-title">
+                <i class="bi bi-megaphone-fill clr-amber-icon"></i>
                 <span>Broadcast New Announcement</span>
             </h4>
             <button type="button" class="modal-close" onclick="closeCreateModal()"><i class="bi bi-x-lg"></i></button>
@@ -555,17 +456,17 @@ function timeAgo($datetime) {
             <input type="hidden" name="create_announcement" value="1">
             <input type="hidden" id="selectedUserId" name="target_user_id" value="">
 
-            <div class="form-group" style="margin-bottom:12px;">
-                <label class="form-label" style="display:block; font-size:12px; font-weight:700; color:#06251b; margin-bottom:5px;">
-                    Announcement Title <span style="color:#c23b3b;">*</span>
+            <div class="anc-form-group">
+                <label class="anc-form-label">
+                    Announcement Title <span class="anc-required">*</span>
                 </label>
-                <input type="text" name="title" required placeholder="e.g., Scheduled System Maintenance or Bidding Updates" class="form-input" style="width:100%; padding:9px 12px; border:1px solid #d4e0d8; border-radius:10px; font-size:13px;">
+                <input type="text" name="title" required placeholder="e.g., Scheduled System Maintenance or Bidding Updates" class="anc-form-input">
             </div>
 
             <!-- Target audience selection with tiles & icons -->
-            <div class="form-group" style="margin-bottom:12px;">
-                <label class="form-label" style="display:block; font-size:12px; font-weight:700; color:#06251b; margin-bottom:5px;">
-                    Target Audience <span style="color:#c23b3b;">*</span>
+            <div class="anc-form-group">
+                <label class="anc-form-label">
+                    Target Audience <span class="anc-required">*</span>
                 </label>
                 <div class="anc-target-tiles">
                     <div>
@@ -593,11 +494,11 @@ function timeAgo($datetime) {
             </div>
 
             <!-- Specific Role Selection -->
-            <div class="form-group" id="roleSelectBlock" style="display:none; margin-bottom:12px;">
-                <label class="form-label" style="display:block; font-size:12px; font-weight:700; color:#06251b; margin-bottom:5px;">
-                    Select Role <span style="color:#c23b3b;">*</span>
+            <div class="anc-form-group hide" id="roleSelectBlock">
+                <label class="anc-form-label">
+                    Select Role <span class="anc-required">*</span>
                 </label>
-                <select name="target_role" id="targetRoleSelect" class="form-select" style="width:100%; padding:9px 12px; border:1px solid #d4e0d8; border-radius:10px; font-size:13px; background:#fff;">
+                <select name="target_role" id="targetRoleSelect" class="anc-form-input anc-form-input--select">
                     <option value="bidder">Bidders Only</option>
                     <option value="admin">Administrators Only</option>
                     <option value="user">Normal Users Only</option>
@@ -606,16 +507,16 @@ function timeAgo($datetime) {
             </div>
 
             <!-- Direct User Search & Selection Block -->
-            <div class="form-group" id="userPickerBlock" style="display:none; margin-bottom:12px;">
-                <label class="form-label" style="display:block; font-size:12px; font-weight:700; color:#06251b; margin-bottom:5px;">
-                    Select Specific User <span style="color:#c23b3b;">*</span>
+            <div class="anc-form-group hide" id="userPickerBlock">
+                <label class="anc-form-label">
+                    Select Specific User <span class="anc-required">*</span>
                 </label>
                 <div class="anc-user-picker-box">
                     <div class="anc-picker-search">
-                        <i class="bi bi-search" style="color:#88968d;"></i>
+                        <i class="bi bi-search"></i>
                         <input type="text" id="userSearchField" placeholder="Search by name, username, or role..." oninput="filterUserPicker(this.value)">
                     </div>
-                    <div class="anc-user-list-scroll" id="userPickerList" style="max-height:130px; overflow-y:auto;">
+                    <div class="anc-user-list-scroll" id="userPickerList">
                         <?php foreach($all_users as $u): ?>
                             <div class="anc-user-option" data-id="<?= $u['user_id'] ?>" data-search="<?= strtolower(htmlspecialchars($u['firstname'].' '.$u['lastname'].' '.$u['username'].' '.$u['role'])) ?>" onclick="selectUserForAnnouncement(<?= $u['user_id'] ?>, '<?= htmlspecialchars(addslashes($u['firstname'].' '.$u['lastname'])) ?>', this)">
                                 <div>
@@ -627,22 +528,22 @@ function timeAgo($datetime) {
                         <?php endforeach; ?>
                     </div>
                 </div>
-                <div id="selectedUserBanner" style="display:none; margin-top:6px; font-size:12px; font-weight:700; color:#06251b; background:#e8f5e9; padding:6px 12px; border-radius:8px; border:1px solid #c8e6c9;">
-                    <i class="bi bi-check-circle-fill" style="color:#1f7a3d;"></i> Selected: <span id="selectedUserName"></span>
+                <div id="selectedUserBanner" class="anc-selected-banner">
+                    <i class="bi bi-check-circle-fill"></i> Selected: <span id="selectedUserName"></span>
                 </div>
             </div>
 
             <!-- Announcement message -->
-            <div class="form-group" style="margin-bottom:16px;">
-                <label class="form-label" style="display:block; font-size:12px; font-weight:700; color:#06251b; margin-bottom:5px;">
-                    Announcement Message <span style="color:#c23b3b;">*</span>
+            <div class="anc-form-group anc-form-group--tight">
+                <label class="anc-form-label">
+                    Announcement Message <span class="anc-required">*</span>
                 </label>
-                <textarea name="message" rows="3" required placeholder="Write the complete announcement text..." class="form-input" style="width:100%; padding:9px 12px; border:1px solid #d4e0d8; border-radius:10px; font-size:13px; resize:vertical; font-family:inherit;"></textarea>
+                <textarea name="message" rows="3" required placeholder="Write the complete announcement text..." class="anc-form-input anc-form-input--textarea"></textarea>
             </div>
 
-            <div style="display:flex; justify-content:flex-end; gap:10px; padding-top:4px; border-top:1px solid #eaeeec; margin-top:4px;">
-                <button type="button" onclick="closeCreateModal()" style="padding:10px 20px; background:#fff; border:1.5px solid #d4e0d8; border-radius:9px; font-size:13px; font-weight:600; color:#4a5e54; cursor:pointer; font-family:'Poppins',sans-serif;">Cancel</button>
-                <button type="submit" style="padding:10px 24px; background:#06251b; color:#ffc107; border:none; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; font-family:'Poppins',sans-serif; display:inline-flex; align-items:center; gap:7px;">
+            <div class="anc-form-footer">
+                <button type="button" onclick="closeCreateModal()" class="anc-btn-cancel">Cancel</button>
+                <button type="submit" class="anc-btn-submit">
                     <i class="bi bi-send-fill"></i> Publish Announcement
                 </button>
             </div>
@@ -651,31 +552,31 @@ function timeAgo($datetime) {
 </div>
 
 <!-- ════ VIEW ANNOUNCEMENT DETAIL MODAL ════ -->
-<div id="viewAnnouncementModal" class="modal-backdrop" style="align-items:flex-start; overflow-y:auto; padding:24px 10px;" onclick="if(event.target===this)closeViewModal()">
-    <div class="modal-box" style="max-width:540px; width:95%; max-height:calc(100vh - 48px); overflow-y:auto; border-radius:18px; padding:24px; margin:auto;">
-        <div class="modal-header" style="margin-bottom:16px; padding-bottom:12px;">
-            <h4 style="font-size:16px; font-weight:800; color:#06251b; display:flex; align-items:center; gap:8px;">
-                <i class="bi bi-megaphone-fill" style="color:#e67e22;"></i>
+<div id="viewAnnouncementModal" class="modal-backdrop modal-backdrop--top" onclick="if(event.target===this)closeViewModal()">
+    <div class="modal-box modal-box--scroll modal-box--540">
+        <div class="modal-header modal-header--tight">
+            <h4 class="modal-title">
+                <i class="bi bi-megaphone-fill clr-amber-view"></i>
                 <span id="vaTitle">Announcement Details</span>
             </h4>
             <button type="button" class="modal-close" onclick="closeViewModal()"><i class="bi bi-x-lg"></i></button>
         </div>
 
-        <div style="margin-bottom:14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div class="anc-view-meta">
             <span id="vaBadge" class="sp-status-pill"><i class="bi bi-globe"></i> Broadcast</span>
-            <span id="vaDate" style="font-size:12px; color:#88968d; font-weight:600;"></span>
-            <span id="vaAuthor" style="font-size:12px; color:#88968d; margin-left:auto;"></span>
+            <span id="vaDate" class="anc-view-date"></span>
+            <span id="vaAuthor" class="anc-view-author"></span>
         </div>
 
-        <div id="vaMessage" style="background:#f7faf8; border:1px solid #eaeeec; border-radius:12px; padding:16px; font-size:13px; color:#2d3a32; line-height:1.6; white-space:pre-wrap; max-height:260px; overflow-y:auto;">
+        <div id="vaMessage" class="anc-view-message">
         </div>
 
-        <div style="margin-top:14px; font-size:11.5px; color:#88968d; display:flex; align-items:center; gap:6px;">
+        <div class="anc-view-reads">
             <i class="bi bi-eye"></i> <span id="vaReads">0</span> users have viewed this notification
         </div>
 
-        <div style="display:flex; justify-content:flex-end; margin-top:18px; padding-top:14px; border-top:1px solid #eaeeec;">
-            <button type="button" onclick="closeViewModal()" style="padding:10px 24px; background:#06251b; color:#ffc107; border:none; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; font-family:'Poppins',sans-serif; display:inline-flex; align-items:center; gap:7px;">
+        <div class="anc-form-footer anc-form-footer--view">
+            <button type="button" onclick="closeViewModal()" class="anc-btn-submit">
                 <i class="bi bi-x-lg"></i> Close
             </button>
         </div>
@@ -683,23 +584,23 @@ function timeAgo($datetime) {
 </div>
 
 <!-- ════ CONFIRM DELETE MODAL ════ -->
-<div id="deleteConfirmModal" class="modal-backdrop" style="align-items:center; overflow-y:auto; padding:20px 10px;" onclick="if(event.target===this)closeDeleteModal()">
-    <div class="modal-box" style="max-width:440px; width:95%; max-height:calc(100vh - 40px); overflow-y:auto; border-radius:18px; padding:24px; text-align:center; margin:auto;">
-        <div style="width:50px; height:50px; border-radius:50%; background:#ffebee; color:#c62828; font-size:24px; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+<div id="deleteConfirmModal" class="modal-backdrop modal-backdrop--center" onclick="if(event.target===this)closeDeleteModal()">
+    <div class="modal-box modal-box--scroll modal-box--scroll-sm modal-box--420 text-center">
+        <div class="anc-del-icon">
             <i class="bi bi-trash-fill"></i>
         </div>
-        <h4 style="font-size:16px; font-weight:800; color:#06251b; margin-bottom:8px;">Delete Announcement?</h4>
-        <p style="font-size:12.5px; color:#6c776e; margin-bottom:14px;">Are you sure you want to permanently delete this announcement? Recipients will no longer see it.</p>
-        
-        <div id="delTitlePreview" style="background:#f7faf8; border:1px solid #eaeeec; border-radius:10px; padding:10px 14px; font-size:13px; font-weight:700; color:#06251b; margin-bottom:20px;">
+        <h4 class="anc-del-title">Delete Announcement?</h4>
+        <p class="anc-del-desc">Are you sure you want to permanently delete this announcement? Recipients will no longer see it.</p>
+
+        <div id="delTitlePreview" class="anc-del-preview">
         </div>
 
         <form method="POST" action="announcements.php">
             <input type="hidden" name="delete_announcement" value="1">
             <input type="hidden" id="delAnnouncementId" name="announcement_id" value="">
-            <div style="display:flex; justify-content:center; gap:12px; padding-top:4px;">
-                <button type="button" onclick="closeDeleteModal()" style="padding:10px 20px; background:#fff; border:1.5px solid #d4e0d8; border-radius:9px; font-size:13px; font-weight:600; color:#4a5e54; cursor:pointer; font-family:'Poppins',sans-serif;">Cancel</button>
-                <button type="submit" style="padding:10px 24px; background:#c62828; color:#fff; border:none; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; font-family:'Poppins',sans-serif; display:inline-flex; align-items:center; gap:7px;">
+            <div class="anc-form-footer anc-form-footer--center">
+                <button type="button" onclick="closeDeleteModal()" class="anc-btn-cancel">Cancel</button>
+                <button type="submit" class="anc-btn-delete">
                     <i class="bi bi-trash"></i> Delete
                 </button>
             </div>
@@ -720,8 +621,8 @@ function timeAgo($datetime) {
     }
 
     function handleTargetChange(type) {
-        document.getElementById('roleSelectBlock').style.display = type === 'role' ? 'block' : 'none';
-        document.getElementById('userPickerBlock').style.display = type === 'user' ? 'block' : 'none';
+        document.getElementById('roleSelectBlock').classList.toggle('hide', type !== 'role');
+        document.getElementById('userPickerBlock').classList.toggle('hide', type !== 'user');
     }
 
     function filterUserPicker(query) {
@@ -729,14 +630,14 @@ function timeAgo($datetime) {
         const options = document.querySelectorAll('#userPickerList .anc-user-option');
         options.forEach(opt => {
             const str = opt.getAttribute('data-search') || '';
-            opt.style.display = str.includes(q) ? 'flex' : 'none';
+            opt.classList.toggle('hide', !str.includes(q));
         });
     }
 
     function selectUserForAnnouncement(userId, userName, el) {
         document.getElementById('selectedUserId').value = userId;
         document.getElementById('selectedUserName').textContent = userName;
-        document.getElementById('selectedUserBanner').style.display = 'block';
+        document.getElementById('selectedUserBanner').classList.add('show');
         document.querySelectorAll('#userPickerList .anc-user-option').forEach(o => o.classList.remove('selected'));
         if (el) el.classList.add('selected');
     }
@@ -761,29 +662,27 @@ function timeAgo($datetime) {
         document.getElementById('vaReads').textContent = data.read_count || 0;
 
         let badgeHtml = '<i class="bi bi-globe"></i> Broadcast (All)';
-        let pillBg = '#E7EEFE';
-        let pillFg = '#1565c0';
+        let pillMod = 'all';
 
         if (data.target_type === 'role') {
             const r = data.target_role;
             if (r === 'bidder') {
-                pillBg = '#FCF1CF'; pillFg = '#C99A1D'; badgeHtml = '<i class="bi bi-person-badge"></i> ROLE: BIDDERS';
+                pillMod = 'bidders'; badgeHtml = '<i class="bi bi-person-badge"></i> ROLE: BIDDERS';
             } else if (r === 'admin') {
-                pillBg = '#E4F5EA'; pillFg = '#219653'; badgeHtml = '<i class="bi bi-shield-check"></i> ROLE: ADMINS';
+                pillMod = 'admins'; badgeHtml = '<i class="bi bi-shield-check"></i> ROLE: ADMINS';
             } else if (r === 'user') {
-                pillBg = '#F3E5F5'; pillFg = '#7b1fa2'; badgeHtml = '<i class="bi bi-people"></i> ROLE: USERS';
+                pillMod = 'users'; badgeHtml = '<i class="bi bi-people"></i> ROLE: USERS';
             } else if (r === 'superadmin') {
-                pillBg = '#E0F2F1'; pillFg = '#004D40'; badgeHtml = '<i class="bi bi-person-gear"></i> ROLE: SUPERADMINS';
+                pillMod = 'superadmin'; badgeHtml = '<i class="bi bi-person-gear"></i> ROLE: SUPERADMINS';
             }
         } else if (data.target_type === 'user') {
-            pillBg = '#EDE7F6'; pillFg = '#512da8';
+            pillMod = 'direct';
             badgeHtml = `<i class="bi bi-person"></i> Direct to User`;
         }
 
         const badgeEl = document.getElementById('vaBadge');
         badgeEl.innerHTML = badgeHtml;
-        badgeEl.style.background = pillBg;
-        badgeEl.style.color = pillFg;
+        badgeEl.className = `sp-status-pill anc-target-pill--${pillMod}`;
 
         document.getElementById('viewAnnouncementModal').classList.add('open');
     }

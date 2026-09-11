@@ -191,319 +191,8 @@ $mode_label = procurement_mode_label($procurement['procurement_mode'] ?? '');
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
-    <style>
-        * { box-sizing: border-box; }
-        .dash-content { max-width: 100%; overflow-x: hidden; }
-
-        /* ── Nav Bar ── */
-        .vp-nav-bar {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
-        }
-        .vp-breadcrumbs {
-            display: flex; align-items: center; gap: 6px;
-            font-size: 12px; color: #88968d; font-weight: 600;
-        }
-        .vp-breadcrumbs a {
-            color: #1f7a3d; text-decoration: none;
-            display: inline-flex; align-items: center; gap: 4px; transition: color .15s;
-        }
-        .vp-breadcrumbs a:hover { text-decoration: underline; color: #06251b; }
-        .vp-back-link {
-            display: inline-flex; align-items: center; gap: 6px;
-            color: #06251b; font-size: 12.5px; font-weight: 700;
-            background: #ffffff; border: 1px solid #eaeeec;
-            padding: 7px 14px; border-radius: 10px; text-decoration: none;
-            transition: all .2s ease; box-shadow: 0 1px 3px rgba(0,0,0,.02);
-        }
-        .vp-back-link:hover { background: #06251b; color: #ffc107; border-color: #06251b; }
-
-        /* ── Hero ── */
-        .vp-hero-card {
-            background: linear-gradient(135deg, #06251b 0%, #0c3d2c 60%, #14593f 100%);
-            border-radius: 20px; padding: 26px 30px; color: #fff;
-            position: relative; overflow: hidden;
-            box-shadow: 0 8px 24px rgba(6,37,27,.16);
-            margin-bottom: 24px; border: 1px solid rgba(255,255,255,.08);
-        }
-        .vp-hero-card::after {
-            content: ''; position: absolute; top: -50px; right: -50px;
-            width: 240px; height: 240px;
-            background: radial-gradient(circle, rgba(255,193,7,.14) 0%, rgba(255,255,255,0) 70%);
-            border-radius: 50%; pointer-events: none;
-        }
-        .vp-hero-top {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
-        }
-        .vp-hero-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .hero-pill {
-            font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;
-            display: inline-flex; align-items: center; gap: 5px; letter-spacing: .3px;
-        }
-        .hero-pill.ref {
-            background: rgba(255,255,255,.12); color: #fff;
-            border: 1px solid rgba(255,255,255,.2);
-        }
-        .hero-pill.mode {
-            background: rgba(255,193,7,.2); border: 1px solid rgba(255,193,7,.4); color: #ffc107;
-        }
-        .hero-pill.open {
-            background: rgba(33,150,83,.25); border: 1px solid rgba(33,150,83,.5); color: #81c784;
-        }
-        .hero-pill.urgent {
-            background: rgba(235,87,87,.25); border: 1px solid rgba(235,87,87,.5); color: #ff8a80;
-            animation: pulseUrgent 2s infinite;
-        }
-        @keyframes pulseUrgent { 0%,100%{opacity:1} 50%{opacity:.75} }
-        .vp-hero-title {
-            font-size: 22px; font-weight: 800; color: #fff;
-            line-height: 1.35; margin-bottom: 18px; letter-spacing: -.2px;
-        }
-        .vp-hero-metrics {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 12px;
-        }
-        .vp-hero-metric-item {
-            background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
-            border-radius: 14px; padding: 12px 16px;
-        }
-        .vp-hero-metric-lbl {
-            font-size: 10px; font-weight: 700; color: #d1e5db;
-            text-transform: uppercase; letter-spacing: .4px;
-            margin-bottom: 4px; display: flex; align-items: center; gap: 5px;
-        }
-        .vp-hero-metric-lbl i { color: #ffc107; }
-        .vp-hero-metric-val {
-            font-size: 16px; font-weight: 800; color: #fff;
-            font-family: 'Space Grotesk', sans-serif;
-        }
-        .vp-hero-metric-val.gold { color: #ffc107; }
-
-        /* ── Layout ── */
-        .vp-grid-layout {
-            display: grid; grid-template-columns: 1.7fr 1fr;
-            gap: 24px; align-items: start; margin-bottom: 30px;
-        }
-        @media (max-width: 1040px) { .vp-grid-layout { grid-template-columns: 1fr; } }
-        .vp-left-col, .vp-right-col { min-width: 0; }
-
-        /* ── Error Banner ── */
-        .sq-error-banner {
-            background: #fdf2f2; border: 1px solid #f8d7da;
-            border-left: 4px solid #dc3545; border-radius: 14px;
-            padding: 16px 20px; margin-bottom: 22px;
-            display: flex; align-items: flex-start; gap: 14px;
-            color: #842029; box-shadow: 0 2px 8px rgba(220,53,69,.06);
-        }
-        .sq-error-banner i { font-size: 20px; color: #dc3545; flex-shrink: 0; margin-top: 1px; }
-        .sq-error-banner ul { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; line-height: 1.6; }
-
-        /* ── Step Card ── */
-        .submit-step-card {
-            background: #fff; border: 1px solid #eaeeec; border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03), 0 10px 24px -14px rgba(16,36,26,.08);
-            margin-bottom: 22px; overflow: hidden; transition: border-color .2s;
-        }
-        .submit-step-card:focus-within { border-color: #1f7a3d; }
-        .step-card-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 18px 22px; border-bottom: 1px solid #f0f4f2;
-            background: #fafcfb; gap: 14px; flex-wrap: wrap;
-        }
-        .step-header-left { display: flex; align-items: center; gap: 14px; flex: 1 1 auto; }
-        .step-badge {
-            width: 36px; height: 36px; border-radius: 10px;
-            background: #06251b; color: #ffc107;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 15px; font-weight: 800; font-family: 'Space Grotesk', sans-serif;
-            flex-shrink: 0; box-shadow: 0 2px 6px rgba(6,37,27,.15);
-        }
-        .step-title-text h4 { font-size: 15px; font-weight: 800; color: #06251b; margin: 0; }
-        .step-title-text p { font-size: 12px; color: #6c776e; margin: 3px 0 0; }
-        .step-card-body { padding: 22px; }
-
-        /* Lot Select Grid (same as submit_bid.php) */
-        .lots-quick-btns { display: flex; gap: 8px; }
-        .btn-quick-toggle {
-            background: #f0f4f2; border: 1px solid #dbe2df;
-            color: #06251b; font-size: 11px; font-weight: 700;
-            padding: 4px 10px; border-radius: 8px; cursor: pointer; transition: all .15s;
-        }
-        .btn-quick-toggle:hover { background: #06251b; color: #ffc107; border-color: #06251b; }
-        .lots-select-info {
-            font-size: 12px; font-weight: 600; color: #55665a;
-            display: flex; align-items: center; gap: 6px; margin-bottom: 14px;
-        }
-        .lots-select-info strong { color: #06251b; }
-        .sb-lot-cards-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 14px;
-        }
-        .sb-lot-card {
-            background: #fafcfb; border: 2px solid #e4eae6; border-radius: 14px;
-            padding: 16px; cursor: pointer; transition: all .2s; position: relative;
-            display: flex; flex-direction: column; user-select: none;
-        }
-        .sb-lot-card:hover { border-color: #b0c9bb; background: #f4faf6; transform: translateY(-2px); }
-        .sb-lot-card.selected { background: #f2f9f4; border-color: #1f7a3d; box-shadow: 0 4px 14px rgba(31,122,61,.12); }
-        .sb-lot-card input[type="checkbox"] { position: absolute; opacity: 0; pointer-events: none; }
-        .sb-lot-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
-        .sb-lot-badge {
-            background: #e0ece4; color: #06251b; font-size: 11px; font-weight: 800;
-            padding: 3px 8px; border-radius: 6px; font-family: 'Space Grotesk', sans-serif;
-        }
-        .sb-lot-card.selected .sb-lot-badge { background: #1f7a3d; color: #fff; }
-        .sb-lot-checkbox-ui {
-            width: 22px; height: 22px; border-radius: 6px; border: 2px solid #cfd8d3;
-            background: #fff; display: flex; align-items: center; justify-content: center;
-            font-size: 13px; color: #fff; transition: all .15s;
-        }
-        .sb-lot-card.selected .sb-lot-checkbox-ui { background: #1f7a3d; border-color: #1f7a3d; }
-        .sb-lot-card-title { font-size: 13.5px; font-weight: 700; color: #06251b; line-height: 1.4; margin-bottom: 12px; flex-grow: 1; }
-        .sb-lot-card-bottom {
-            display: flex; align-items: center; justify-content: space-between;
-            border-top: 1px solid #edf1ee; padding-top: 10px; font-size: 12px;
-        }
-        .sb-lot-abc-lbl { font-size: 10.5px; font-weight: 700; color: #88968d; text-transform: uppercase; }
-        .sb-lot-abc-val { font-size: 13px; font-weight: 800; color: #1f7a3d; font-family: 'Space Grotesk', sans-serif; }
-
-        /* ── Quotation Upload per Lot ── */
-        .sq-lot-upload-list { display: flex; flex-direction: column; gap: 16px; }
-        .sq-lot-upload-item {
-            background: #fff; border: 1px solid #e2e9e5; border-radius: 14px; overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,.02);
-        }
-        .sq-lot-upload-item.hidden { display: none !important; }
-        .sq-lot-upload-header {
-            background: #f7faf8; padding: 12px 18px; border-bottom: 1px solid #eaeeec;
-            display: flex; align-items: center; justify-content: space-between; gap: 10px;
-        }
-        .sq-lot-upload-title {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 13.5px; font-weight: 800; color: #06251b;
-        }
-        .sq-lot-num-badge {
-            background: #06251b; color: #ffc107; font-size: 10.5px; font-weight: 800;
-            padding: 2px 7px; border-radius: 5px; font-family: 'Space Grotesk', sans-serif;
-        }
-        .sq-lot-upload-body { padding: 16px 18px; }
-        .sq-upload-zone {
-            background: #fbfdfc; border: 2px dashed #cfdbd4; border-radius: 12px;
-            padding: 20px 16px; text-align: center; cursor: pointer; transition: all .2s;
-            display: flex; flex-direction: column; align-items: center; gap: 8px;
-        }
-        .sq-upload-zone:hover, .sq-upload-zone.has-file { border-color: #1f7a3d; background: #f4faf6; }
-        .sq-upload-zone-icon {
-            width: 44px; height: 44px; border-radius: 12px; background: #eef7f1;
-            color: #1f7a3d; display: flex; align-items: center; justify-content: center; font-size: 20px;
-        }
-        .sq-upload-zone-title { font-size: 13.5px; font-weight: 700; color: #06251b; }
-        .sq-upload-zone-sub { font-size: 11.5px; color: #6c776e; }
-        .sq-file-preview {
-            display: none; align-items: center; gap: 10px; margin-top: 10px;
-            background: #f2f9f4; border: 1px solid #c8e6c9; border-radius: 10px; padding: 10px 14px;
-        }
-        .sq-file-preview.visible { display: flex; }
-        .sq-file-preview i { font-size: 20px; color: #1f7a3d; flex-shrink: 0; }
-        .sq-file-preview-name { font-size: 12.5px; font-weight: 700; color: #06251b; flex: 1; word-break: break-all; }
-        .sq-file-preview-size { font-size: 11px; color: #6c776e; }
-        .sq-remove-file {
-            width: 22px; height: 22px; border-radius: 6px; border: none;
-            background: #ffebee; color: #c23b3b; cursor: pointer; display: flex;
-            align-items: center; justify-content: center; font-size: 12px; transition: all .15s;
-        }
-        .sq-remove-file:hover { background: #c23b3b; color: #fff; }
-        .btn-browse-file {
-            background: #06251b; color: #ffc107; font-size: 12px; font-weight: 700;
-            padding: 7px 16px; border-radius: 8px; display: inline-flex;
-            align-items: center; gap: 6px; margin-top: 4px; border: none;
-            cursor: pointer; transition: all .15s;
-        }
-        .btn-browse-file:hover { background: #144937; color: #fff; }
-        .visually-hidden-input {
-            position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none;
-        }
-
-        /* ── No Lots Placeholder ── */
-        .sq-no-lots-placeholder {
-            background: #fbfdfc; border: 2px dashed #dae3de; border-radius: 14px;
-            padding: 32px 20px; text-align: center; color: #6c776e;
-            display: flex; flex-direction: column; align-items: center; gap: 8px;
-        }
-        .sq-no-lots-placeholder i { font-size: 32px; color: #88968d; }
-
-        /* ── Info Note ── */
-        .sq-info-note {
-            background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #ffc107;
-            border-radius: 12px; padding: 14px 16px;
-            display: flex; align-items: flex-start; gap: 12px;
-            font-size: 12.5px; color: #78350f; margin-bottom: 20px;
-        }
-        .sq-info-note i { font-size: 16px; color: #ffc107; flex-shrink: 0; margin-top: 1px; }
-
-        /* ── Right Panel / Summary ── */
-        .sq-summary-card {
-            background: #fff; border: 1px solid #eaeeec; border-radius: 18px;
-            box-shadow: 0 1px 2px rgba(16,36,26,.03);
-            overflow: hidden; margin-bottom: 20px;
-        }
-        .sq-summary-head {
-            background: #fafcfb; border-bottom: 1px solid #f0f4f2;
-            padding: 16px 20px; display: flex; align-items: center; gap: 10px;
-        }
-        .sq-summary-head i { font-size: 18px; color: #06251b; }
-        .sq-summary-head-title { font-size: 14px; font-weight: 800; color: #06251b; }
-        .sq-summary-body { padding: 18px 20px; }
-        .sq-stat-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 8px 0; border-bottom: 1px solid #f4f6f5; font-size: 12.5px;
-        }
-        .sq-stat-row:last-child { border-bottom: none; }
-        .sq-stat-lbl { color: #6c776e; font-weight: 600; }
-        .sq-stat-val { color: #06251b; font-weight: 800; text-align: right; }
-        .sq-stat-val.gold { color: #b78103; }
-        .sq-selected-lots-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
-        .sq-sel-lot-tag {
-            background: #f2f9f4; border: 1px solid #c8e6c9; border-radius: 8px;
-            padding: 7px 12px; font-size: 12px; font-weight: 700; color: #1f7a3d;
-            display: flex; align-items: center; gap: 6px;
-        }
-        .sq-no-sel-msg { font-size: 12px; color: #88968d; font-style: italic; }
-
-        /* ── Submit Button ── */
-        .sq-submit-wrap { text-align: center; padding: 6px 0 0; }
-        .btn-submit-quotation {
-            width: 100%; padding: 14px 20px; background: #06251b; color: #ffc107;
-            font-size: 14px; font-weight: 800; border: none; border-radius: 14px;
-            cursor: pointer; transition: all .2s; display: flex; align-items: center;
-            justify-content: center; gap: 8px;
-        }
-        .btn-submit-quotation:hover { background: #144937; color: #fff; }
-        .btn-submit-quotation:disabled { opacity: .5; cursor: not-allowed; }
-        .sq-submit-note {
-            font-size: 11px; color: #88968d; margin-top: 8px; line-height: 1.5;
-        }
-
-        /* ── Procurement Info Card ── */
-        .sq-proc-info-card {
-            background: #fff; border: 1px solid #eaeeec; border-radius: 18px;
-            overflow: hidden; box-shadow: 0 1px 2px rgba(16,36,26,.03);
-        }
-        .sq-proc-info-head {
-            background: #fafcfb; border-bottom: 1px solid #f0f4f2;
-            padding: 16px 20px; display: flex; align-items: center; gap: 10px;
-        }
-        .sq-proc-info-head-title { font-size: 14px; font-weight: 800; color: #06251b; }
-        .sq-proc-info-body { padding: 18px 20px; }
-        .sq-info-field { margin-bottom: 14px; }
-        .sq-info-field:last-child { margin-bottom: 0; }
-        .sq-info-field-lbl { font-size: 10.5px; font-weight: 700; color: #88968d; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
-        .sq-info-field-val { font-size: 13px; font-weight: 700; color: #06251b; }
-        .sq-mode-badge {
-            display: inline-flex; align-items: center; gap: 5px;
-            background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px;
-            color: #b78103; font-size: 12px; font-weight: 700; padding: 4px 10px;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/bidder-submit-quotation.css">
 </head>
 <body class="dash-body">
 
@@ -526,7 +215,7 @@ include("components/topbar.php");
             <span>/</span>
             <a href="view_procurement.php?id=<?= $procurement_id ?>"><?= htmlspecialchars(mb_strimwidth($procurement['title'], 0, 30, '...')) ?></a>
             <span>/</span>
-            <span style="color:#06251b;">Submit Quotation</span>
+            <span class="vp-breadcrumbs-current">Submit Quotation</span>
         </div>
         <a href="view_procurement.php?id=<?= $procurement_id ?>" class="vp-back-link">
             <i class="bi bi-arrow-left"></i> Back to Procurement
@@ -553,8 +242,8 @@ include("components/topbar.php");
                 <?php endif; ?>
             </div>
             <div>
-                <span style="font-size:11px; color:#d1e5db; font-weight:600; letter-spacing:.3px;">
-                    <i class="bi bi-file-earmark-text-fill" style="color:#ffc107;"></i> Quotation Submission
+                <span class="hero-note">
+                    <i class="bi bi-file-earmark-text-fill clr-gold"></i> Quotation Submission
                 </span>
             </div>
         </div>
@@ -570,7 +259,7 @@ include("components/topbar.php");
             </div>
             <div class="vp-hero-metric-item">
                 <div class="vp-hero-metric-lbl"><i class="bi bi-hourglass-split"></i> Submission Deadline</div>
-                <div class="vp-hero-metric-val" style="font-size:14px;"><?= $deadline_text ?></div>
+                <div class="vp-hero-metric-val vp-hero-metric-val--sm"><?= $deadline_text ?></div>
             </div>
         </div>
     </div>
@@ -616,7 +305,7 @@ include("components/topbar.php");
                         <div class="step-header-left">
                             <div class="step-badge">1</div>
                             <div class="step-title-text">
-                                <h4>Select Lots to Quote On <span style="color:#e53935;">*</span></h4>
+                                <h4>Select Lots to Quote On <span class="required-mark">*</span></h4>
                                 <p>Choose the lots you want to submit a price quotation for.</p>
                             </div>
                         </div>
@@ -661,7 +350,7 @@ include("components/topbar.php");
                         <div class="step-header-left">
                             <div class="step-badge">2</div>
                             <div class="step-title-text">
-                                <h4>Upload Quotation Documents <span style="color:#e53935;">*</span></h4>
+                                <h4>Upload Quotation Documents <span class="required-mark">*</span></h4>
                                 <p>One quotation document per lot. Accepted: PDF, DOC, DOCX, XLS, XLSX, PNG, JPG (max 20 MB each).</p>
                             </div>
                         </div>
@@ -671,8 +360,8 @@ include("components/topbar.php");
                         <!-- Placeholder when no lots are selected yet -->
                         <div id="noLotsPlaceholder" class="sq-no-lots-placeholder">
                             <i class="bi bi-arrow-up-circle"></i>
-                            <strong style="color:#06251b; font-size:13px;">Select lots above to upload quotation documents</strong>
-                            <span style="font-size:12px;">Each selected lot will appear here with its own upload area.</span>
+                            <strong class="sq-placeholder-strong">Select lots above to upload quotation documents</strong>
+                            <span class="sq-placeholder-sub">Each selected lot will appear here with its own upload area.</span>
                         </div>
 
                         <!-- Per-lot upload zones (shown/hidden by JS) -->
@@ -684,7 +373,7 @@ include("components/topbar.php");
                                             <span class="sq-lot-num-badge">Lot <?= $lot['lot_number'] ?></span>
                                             <?= htmlspecialchars($lot['lot_title']) ?>
                                         </div>
-                                        <span style="font-size:11px; color:#88968d;">₱<?= number_format((float)$lot['abc'], 2) ?> ABC</span>
+                                        <span class="sq-lot-abc-note">₱<?= number_format((float)$lot['abc'], 2) ?> ABC</span>
                                     </div>
                                     <div class="sq-lot-upload-body">
                                         <div class="sq-upload-zone" id="zone-<?= $lot['id'] ?>"
@@ -725,7 +414,7 @@ include("components/topbar.php");
                 </div>
 
                 <!-- ── Submit Button (mobile visible, also mirrored in right panel) ── -->
-                <div class="sq-submit-wrap d-md-none" style="margin-bottom:24px;">
+                <div class="sq-submit-wrap d-md-none sq-submit-wrap--mobile">
                     <button type="submit" name="submit_quotation" id="submitBtn" class="btn-submit-quotation" disabled>
                         <i class="bi bi-send-fill"></i> Submit Quotation
                     </button>
@@ -762,14 +451,14 @@ include("components/topbar.php");
                     </div>
                     <div class="sq-stat-row">
                         <span class="sq-stat-lbl">Encryption</span>
-                        <span class="sq-stat-val" style="color:#6c776e;">None Required</span>
+                        <span class="sq-stat-val sq-stat-val--muted">None Required</span>
                     </div>
                     <div class="sq-stat-row">
                         <span class="sq-stat-lbl">Deadline</span>
-                        <span class="sq-stat-val" style="font-size:11.5px;"><?= $deadline_text ?></span>
+                        <span class="sq-stat-val sq-stat-val--sm"><?= $deadline_text ?></span>
                     </div>
-                    <div style="margin-top:14px;">
-                        <div style="font-size:10.5px; font-weight:700; color:#88968d; text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px;">Selected Lots</div>
+                    <div class="sq-selected-lots-wrap">
+                        <div class="sq-selected-lots-label">Selected Lots</div>
                         <div class="sq-selected-lots-list" id="selectedLotsList">
                             <span class="sq-no-sel-msg">No lots selected yet.</span>
                         </div>
@@ -789,9 +478,9 @@ include("components/topbar.php");
             </div>
 
             <!-- Procurement Info Card -->
-            <div class="sq-proc-info-card" style="margin-top:20px;">
+            <div class="sq-proc-info-card sq-proc-info-card--spaced">
                 <div class="sq-proc-info-head">
-                    <i class="bi bi-info-circle-fill" style="color:#06251b; font-size:18px;"></i>
+                    <i class="bi bi-info-circle-fill"></i>
                     <div class="sq-proc-info-head-title">Procurement Info</div>
                 </div>
                 <div class="sq-proc-info-body">
@@ -802,14 +491,14 @@ include("components/topbar.php");
                     <?php if (!empty($procurement['description'])): ?>
                     <div class="sq-info-field">
                         <div class="sq-info-field-lbl">Description</div>
-                        <div class="sq-info-field-val" style="font-weight:400; font-size:12px; color:#55665a; line-height:1.6;">
+                        <div class="sq-info-field-val sq-info-field-val--desc">
                             <?= nl2br(htmlspecialchars($procurement['description'])) ?>
                         </div>
                     </div>
                     <?php endif; ?>
                     <div class="sq-info-field">
                         <div class="sq-info-field-lbl">Budget (ABC)</div>
-                        <div class="sq-info-field-val" style="color:#1f7a3d;">₱<?= number_format($procurement['abc'], 2) ?></div>
+                        <div class="sq-info-field-val sq-info-field-val--accent">₱<?= number_format($procurement['abc'], 2) ?></div>
                     </div>
                     <div class="sq-info-field">
                         <div class="sq-info-field-lbl">Procurement Mode</div>

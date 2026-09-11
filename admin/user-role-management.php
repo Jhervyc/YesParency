@@ -186,6 +186,8 @@ $users = $stmt->get_result();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/pages/admin-user-role-management.css">
 </head>
 <body class="dash-body">
 
@@ -218,8 +220,8 @@ $users = $stmt->get_result();
         <div class="sad-section-label">Summary</div>
         <div class="ap2-stats ap2-stats-4">
             <div class="ap2-stat">
-                <div class="ap2-ring" style="background:conic-gradient(#06251b 0% 100%, #e7ece9 0%);">
-                    <div class="ap2-ring-inner"><i class="bi bi-people" style="color:#06251b;"></i></div>
+                <div class="ap2-ring" style="--ring-color:#06251b; --pct:100%;">
+                    <div class="ap2-ring-inner"><i class="bi bi-people clr-dark"></i></div>
                 </div>
                 <div class="ap2-stat-text">
                     <div class="ap2-stat-num"><?= $total_users ?></div>
@@ -227,8 +229,8 @@ $users = $stmt->get_result();
                 </div>
             </div>
             <div class="ap2-stat">
-                <div class="ap2-ring" style="background:conic-gradient(#43a047 0% <?= $total_users > 0 ? round($total_admins/$total_users*100) : 0 ?>%, #e7ece9 0%);">
-                    <div class="ap2-ring-inner"><i class="bi bi-shield-check" style="color:#43a047;"></i></div>
+                <div class="ap2-ring" style="--ring-color:#43a047; --pct:<?= $total_users > 0 ? round($total_admins/$total_users*100) : 0 ?>%;">
+                    <div class="ap2-ring-inner"><i class="bi bi-shield-check clr-green"></i></div>
                 </div>
                 <div class="ap2-stat-text">
                     <div class="ap2-stat-num"><?= $total_admins ?></div>
@@ -236,8 +238,8 @@ $users = $stmt->get_result();
                 </div>
             </div>
             <div class="ap2-stat">
-                <div class="ap2-ring" style="background:conic-gradient(#f9a825 0% <?= $total_users > 0 ? round($total_bidders/$total_users*100) : 0 ?>%, #e7ece9 0%);">
-                    <div class="ap2-ring-inner"><i class="bi bi-person-badge" style="color:#f9a825;"></i></div>
+                <div class="ap2-ring" style="--ring-color:#f9a825; --pct:<?= $total_users > 0 ? round($total_bidders/$total_users*100) : 0 ?>%;">
+                    <div class="ap2-ring-inner"><i class="bi bi-person-badge clr-amber"></i></div>
                 </div>
                 <div class="ap2-stat-text">
                     <div class="ap2-stat-num"><?= $total_bidders ?></div>
@@ -245,8 +247,8 @@ $users = $stmt->get_result();
                 </div>
             </div>
             <div class="ap2-stat">
-                <div class="ap2-ring" style="background:conic-gradient(#1565c0 0% <?= $total_users > 0 ? round($total_normal/$total_users*100) : 0 ?>%, #e7ece9 0%);">
-                    <div class="ap2-ring-inner"><i class="bi bi-person" style="color:#1565c0;"></i></div>
+                <div class="ap2-ring" style="--ring-color:#1565c0; --pct:<?= $total_users > 0 ? round($total_normal/$total_users*100) : 0 ?>%;">
+                    <div class="ap2-ring-inner"><i class="bi bi-person clr-blue"></i></div>
                 </div>
                 <div class="ap2-stat-text">
                     <div class="ap2-stat-num"><?= $total_normal ?></div>
@@ -256,8 +258,8 @@ $users = $stmt->get_result();
         </div>
 
         <!-- Directory card -->
-        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
-            <button type="button" class="ap2-go-btn" onclick="openCreateAdminModal()" style="gap:7px;">
+        <div class="directory-toolbar">
+            <button type="button" class="ap2-go-btn ap2-go-btn--gap" onclick="openCreateAdminModal()">
                 <i class="bi bi-person-plus-fill"></i> Create Admin Account
             </button>
         </div>
@@ -268,7 +270,7 @@ $users = $stmt->get_result();
             </div>
 
             <!-- Search + filter controls -->
-            <form method="GET" action="" class="ap2-controls" style="margin-bottom: 16px;">
+            <form method="GET" action="" class="ap2-controls mb-16">
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
                     <input type="text" name="search"
@@ -299,7 +301,7 @@ $users = $stmt->get_result();
 
             <!-- User rows -->
             <?php if ($total_shown === 0): ?>
-                <div class="empty-state" style="padding:40px;">
+                <div class="empty-state empty-state--lg">
                     <i class="bi bi-people"></i>
                     <p>No users found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</p>
                 </div>
@@ -315,9 +317,9 @@ $users = $stmt->get_result();
                 <div class="ap2-user-row">
 
                     <div class="ap2-who-cell">
-                        <div class="ap2-avatar ap2-avatar--<?= $user['role'] ?>" style="overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                        <div class="ap2-avatar ap2-avatar--<?= $user['role'] ?> avatar-cover">
                             <?php if (!empty($userAvatarUrl)): ?>
-                                <img src="<?= htmlspecialchars($userAvatarUrl) ?>" alt="<?= htmlspecialchars($initials) ?>" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+                                <img src="<?= htmlspecialchars($userAvatarUrl) ?>" alt="<?= htmlspecialchars($initials) ?>">
                             <?php else: ?>
                                 <?= htmlspecialchars($initials) ?>
                             <?php endif; ?>
@@ -360,7 +362,7 @@ $users = $stmt->get_result();
                 <?php endwhile; ?>
             <?php endif; ?>
 
-            <div class="ap2-card-foot" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+            <div class="ap2-card-foot ap2-card-foot--flex">
                 <div>
                     Showing <strong><?= min($total_shown, $offset+1) ?></strong>–<strong><?= min($total_shown, $offset+$per_page) ?></strong>
                     of <strong><?= number_format($total_shown) ?></strong> result<?= $total_shown !== 1 ? 's' : '' ?>
@@ -389,94 +391,83 @@ $users = $stmt->get_result();
 <!-- CREATE ADMIN MODAL        -->
 <!-- ========================= -->
 <div id="createAdminModal" class="modal-backdrop">
-    <div class="urm-modal" style="max-width:520px;">
+    <div class="urm-modal modal-wide">
         <button class="urm-modal-close" onclick="closeCreateAdminModal()" aria-label="Close">
             <i class="bi bi-x-lg"></i>
         </button>
 
-        <div class="urm-modal-icon-wrap" style="justify-content:flex-start; padding-bottom:4px;">
-            <div class="urm-modal-icon" style="background:#e8f5e9; color:#1f7a3d;">
+        <div class="urm-modal-icon-wrap modal-icon-wrap--left">
+            <div class="urm-modal-icon modal-icon--green">
                 <i class="bi bi-person-plus-fill"></i>
             </div>
         </div>
 
-        <div class="urm-modal-text" style="text-align:left;">
+        <div class="urm-modal-text modal-text--left">
             <h3>Create Admin Account</h3>
             <p>Fill in the details below to create a new administrator account.</p>
         </div>
 
-        <form method="POST" action="user-role-management.php" id="createAdminForm" style="padding:0 4px;">
+        <form method="POST" action="user-role-management.php" id="createAdminForm" class="modal-form-pad">
             <input type="hidden" name="create_admin" value="1">
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div class="urmf-field-row-2">
                 <div>
-                    <label style="font-size:11.5px; font-weight:700; color:#55665a; display:block; margin-bottom:5px;">First Name <span style="color:#dc2626;">*</span></label>
-                    <div style="position:relative;">
-                        <i class="bi bi-person" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#88968d; font-size:13px; pointer-events:none;"></i>
-                        <input type="text" name="firstname" required placeholder="Juan"
-                            style="width:100%; padding:9px 12px 9px 32px; border:1.5px solid #d4e0d8; border-radius:9px; font-size:12.5px; font-family:'Poppins',sans-serif; color:#1a1a1a; outline:none; box-sizing:border-box; transition:border-color .15s;"
-                            onfocus="this.style.borderColor='#1f7a3d'" onblur="this.style.borderColor='#d4e0d8'">
+                    <label class="urmf-label">First Name <span class="urmf-required">*</span></label>
+                    <div class="urmf-input-wrap">
+                        <i class="bi bi-person urmf-input-icon"></i>
+                        <input type="text" name="firstname" required placeholder="Juan" class="urmf-input">
                     </div>
                 </div>
                 <div>
-                    <label style="font-size:11.5px; font-weight:700; color:#55665a; display:block; margin-bottom:5px;">Last Name <span style="color:#dc2626;">*</span></label>
-                    <div style="position:relative;">
-                        <i class="bi bi-person" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#88968d; font-size:13px; pointer-events:none;"></i>
-                        <input type="text" name="lastname" required placeholder="dela Cruz"
-                            style="width:100%; padding:9px 12px 9px 32px; border:1.5px solid #d4e0d8; border-radius:9px; font-size:12.5px; font-family:'Poppins',sans-serif; color:#1a1a1a; outline:none; box-sizing:border-box; transition:border-color .15s;"
-                            onfocus="this.style.borderColor='#1f7a3d'" onblur="this.style.borderColor='#d4e0d8'">
+                    <label class="urmf-label">Last Name <span class="urmf-required">*</span></label>
+                    <div class="urmf-input-wrap">
+                        <i class="bi bi-person urmf-input-icon"></i>
+                        <input type="text" name="lastname" required placeholder="dela Cruz" class="urmf-input">
                     </div>
                 </div>
             </div>
 
-            <div style="margin-bottom:12px;">
-                <label style="font-size:11.5px; font-weight:700; color:#55665a; display:block; margin-bottom:5px;">Username <span style="color:#dc2626;">*</span></label>
-                <div style="position:relative;">
-                    <i class="bi bi-at" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#88968d; font-size:13px; pointer-events:none;"></i>
-                    <input type="text" name="username" required placeholder="juandelacruz"
-                        style="width:100%; padding:9px 12px 9px 32px; border:1.5px solid #d4e0d8; border-radius:9px; font-size:12.5px; font-family:'Poppins',sans-serif; color:#1a1a1a; outline:none; box-sizing:border-box; transition:border-color .15s;"
-                        onfocus="this.style.borderColor='#1f7a3d'" onblur="this.style.borderColor='#d4e0d8'">
+            <div class="urmf-field-group">
+                <label class="urmf-label">Username <span class="urmf-required">*</span></label>
+                <div class="urmf-input-wrap">
+                    <i class="bi bi-at urmf-input-icon"></i>
+                    <input type="text" name="username" required placeholder="juandelacruz" class="urmf-input">
                 </div>
             </div>
 
-            <div style="margin-bottom:12px;">
-                <label style="font-size:11.5px; font-weight:700; color:#55665a; display:block; margin-bottom:5px;">Email Address <span style="color:#dc2626;">*</span></label>
-                <div style="position:relative;">
-                    <i class="bi bi-envelope" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#88968d; font-size:13px; pointer-events:none;"></i>
-                    <input type="email" name="email" required placeholder="juan@slsu.edu.ph"
-                        style="width:100%; padding:9px 12px 9px 32px; border:1.5px solid #d4e0d8; border-radius:9px; font-size:12.5px; font-family:'Poppins',sans-serif; color:#1a1a1a; outline:none; box-sizing:border-box; transition:border-color .15s;"
-                        onfocus="this.style.borderColor='#1f7a3d'" onblur="this.style.borderColor='#d4e0d8'">
+            <div class="urmf-field-group">
+                <label class="urmf-label">Email Address <span class="urmf-required">*</span></label>
+                <div class="urmf-input-wrap">
+                    <i class="bi bi-envelope urmf-input-icon"></i>
+                    <input type="email" name="email" required placeholder="juan@slsu.edu.ph" class="urmf-input">
                 </div>
             </div>
 
-            <div style="margin-bottom:12px;">
-                <label style="font-size:11.5px; font-weight:700; color:#55665a; display:block; margin-bottom:5px;">Password <span style="color:#dc2626;">*</span></label>
-                <div style="position:relative;">
-                    <i class="bi bi-lock" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#88968d; font-size:13px; pointer-events:none;"></i>
-                    <input type="password" name="password" id="createAdminPw" required placeholder="Min. 8 characters"
-                        style="width:100%; padding:9px 36px 9px 32px; border:1.5px solid #d4e0d8; border-radius:9px; font-size:12.5px; font-family:'Poppins',sans-serif; color:#1a1a1a; outline:none; box-sizing:border-box; transition:border-color .15s;"
-                        onfocus="this.style.borderColor='#1f7a3d'" onblur="this.style.borderColor='#d4e0d8'">
-                    <button type="button" onclick="toggleCreatePw()" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#88968d; cursor:pointer; font-size:14px; padding:2px; display:flex; align-items:center;">
+            <div class="urmf-field-group">
+                <label class="urmf-label">Password <span class="urmf-required">*</span></label>
+                <div class="urmf-input-wrap">
+                    <i class="bi bi-lock urmf-input-icon"></i>
+                    <input type="password" name="password" id="createAdminPw" required placeholder="Min. 8 characters" class="urmf-input urmf-input--pw">
+                    <button type="button" onclick="toggleCreatePw()" class="urmf-pw-toggle">
                         <i class="bi bi-eye" id="createAdminPwIcon"></i>
                     </button>
                 </div>
             </div>
 
-            <div style="margin-bottom:20px;">
-                <label style="font-size:11.5px; font-weight:700; color:#55665a; display:block; margin-bottom:5px;">
-                    <i class="bi bi-shield-check" style="color:#43a047;"></i> Admin Role <span style="color:#dc2626;">*</span>
+            <div class="urmf-field-group--lg">
+                <label class="urmf-label">
+                    <i class="bi bi-shield-check urmf-role-icon"></i> Admin Role <span class="urmf-required">*</span>
                 </label>
-                <select name="admin_type"
-                    style="width:100%; padding:9px 12px; border:1.5px solid #d4e0d8; border-radius:9px; font-size:12.5px; font-family:'Poppins',sans-serif; color:#06251b; background:#f7faf8; cursor:pointer; outline:none; box-sizing:border-box;">
+                <select name="admin_type" class="urmf-select">
                     <option value="SECRETARIAT">Secretariat — Full Access</option>
                     <option value="BAC">BAC — Limited Access</option>
                     <option value="TWG">TWG — Limited Access</option>
                 </select>
             </div>
 
-            <div class="urm-modal-actions" style="padding:0; border:none;">
+            <div class="urm-modal-actions modal-actions--flush">
                 <button type="button" onclick="closeCreateAdminModal()" class="urm-btn-cancel">Cancel</button>
-                <button type="submit" class="urm-btn-confirm" style="background:#1f7a3d;">
+                <button type="submit" class="urm-btn-confirm confirm-btn--promote">
                     <i class="bi bi-person-plus-fill"></i> Create Account
                 </button>
             </div>
@@ -507,11 +498,11 @@ $users = $stmt->get_result();
             <p id="modalDesc">Are you sure?</p>
             <div class="urm-modal-user-pill" id="modalUserPill"></div>
             <!-- Admin role selector (shown only for promote) -->
-            <div id="adminRoleField" style="display:none; margin-top:14px; text-align:left;">
-                <label style="font-size:12px; font-weight:700; color:#55665a; display:block; margin-bottom:6px;">
-                    <i class="bi bi-shield-check" style="color:#43a047;"></i> Assign Admin Role
+            <div id="adminRoleField" class="admin-role-field hide">
+                <label class="urmf-label urmf-label--md">
+                    <i class="bi bi-shield-check urmf-role-icon"></i> Assign Admin Role
                 </label>
-                <select id="adminTypeSelect" style="width:100%; padding:9px 12px; border:1px solid #d0d9d3; border-radius:10px; font-size:13px; font-weight:600; color:#06251b; background:#f7faf8; cursor:pointer;">
+                <select id="adminTypeSelect" class="urm-role-select">
                     <option value="SECRETARIAT">Secretariat — Full Access</option>
                     <option value="BAC">BAC — Limited Access</option>
                     <option value="TWG">TWG — Limited Access</option>
@@ -532,7 +523,7 @@ $users = $stmt->get_result();
 </div>
 
 <!-- Hidden form submitted by modal -->
-<form id="actionForm" method="POST" action="" style="display:none;">
+<form id="actionForm" method="POST" action="" class="hide">
     <input type="hidden" id="actionUserId" name="user_id">
     <input type="hidden" id="actionType"   name="" value="1">
     <input type="hidden" id="actionAdminType" name="admin_type" value="SECRETARIAT">
@@ -598,44 +589,37 @@ $users = $stmt->get_result();
 
         const cfg = {
             promote: {
-                icon:    'bi-person-up',
-                color:   '#43a047',
-                bg:      '#e8f5e9',
-                title:   'Promote to Administrator',
-                desc:    'Select a role and confirm. The user will gain admin access based on the assigned role.',
-                btnTx:   'Yes, Promote',
-                name:    'promote_user',
+                icon:  'bi-person-up',
+                title: 'Promote to Administrator',
+                desc:  'Select a role and confirm. The user will gain admin access based on the assigned role.',
+                btnTx: 'Yes, Promote',
+                name:  'promote_user',
             },
             demote: {
-                icon:    'bi-person-down',
-                color:   '#e67e22',
-                bg:      '#fff3e0',
-                title:   'Demote to User',
-                desc:    'This user will lose all administrator privileges.',
-                btnTx:   'Yes, Demote',
-                name:    'demote_user',
+                icon:  'bi-person-down',
+                title: 'Demote to User',
+                desc:  'This user will lose all administrator privileges.',
+                btnTx: 'Yes, Demote',
+                name:  'demote_user',
             },
             delete: {
-                icon:    'bi-trash3',
-                color:   '#e53935',
-                bg:      '#ffebee',
-                title:   'Delete Account',
-                desc:    'This will permanently delete the account. This cannot be undone.',
-                btnTx:   'Yes, Delete',
-                name:    'delete_user',
+                icon:  'bi-trash3',
+                title: 'Delete Account',
+                desc:  'This will permanently delete the account. This cannot be undone.',
+                btnTx: 'Yes, Delete',
+                name:  'delete_user',
             },
         };
 
         const c = cfg[action];
 
-        iconWrap.style.background = c.bg;
-        iconWrap.style.color      = c.color;
+        iconWrap.className        = `urm-modal-icon confirm-icon--${action}`;
         iconEl.className          = `bi ${c.icon}`;
         title.textContent         = c.title;
         desc.textContent          = c.desc;
         pill.textContent          = `${fullName}  ·  @${username}`;
         btn.textContent           = c.btnTx;
-        btn.style.background      = c.color;
+        btn.className             = `urm-btn-confirm confirm-btn--${action}`;
 
         document.getElementById('actionUserId').value = userId;
         typeInput.name  = c.name;
@@ -643,11 +627,11 @@ $users = $stmt->get_result();
 
         // Show role selector only for promote
         if (action === 'promote') {
-            roleField.style.display = 'block';
+            roleField.classList.remove('hide');
             adminTypeSel.value = 'SECRETARIAT';
             document.getElementById('actionAdminType').value = 'SECRETARIAT';
         } else {
-            roleField.style.display = 'none';
+            roleField.classList.add('hide');
         }
 
         modal.classList.add('open');
@@ -661,7 +645,7 @@ $users = $stmt->get_result();
         // Sync role selector to hidden input before submitting
         const adminTypeSel = document.getElementById('adminTypeSelect');
         const adminTypeInput = document.getElementById('actionAdminType');
-        if (document.getElementById('adminRoleField').style.display !== 'none') {
+        if (!document.getElementById('adminRoleField').classList.contains('hide')) {
             adminTypeInput.value = adminTypeSel.value;
         }
         document.getElementById('actionForm').submit();

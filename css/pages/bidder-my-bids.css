@@ -1,0 +1,705 @@
+/* ==========================================================================
+   pages/bidder-my-bids.css — styles specific to bidder/my_bids.php.
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css. Most of this page's chrome — .ap2-stats/.ap2-ring
+   donut cards, .proc-table-panel, .filter-bar, .ap2-search-field,
+   .ap2-filter-btn, .filter-dropdowns, .empty-state, .toast-alert — comes
+   from dashboard.css's still-shared sections, not redefined here.
+
+   Note: .vp-back-link and .ap2-go-btn ALSO already exist in dashboard.css
+   with different values (plain text link / smaller padding) than this
+   page's pill-button versions below — another pre-existing duplicate-
+   definition case, kept as this page's own copy for now rather than
+   reconciled, same reasoning as the .proc-table-panel/.modal-* notes on
+   the procurement-list pages.
+   ========================================================================== */
+
+.dash-content {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* ── Small utilities used throughout this page ── */
+.page-header--split {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.mb-20 { margin-bottom: 20px; }
+.mb-24 { margin-bottom: 24px; }
+.clr-amber { color: #d97706; }
+.clr-emerald { color: #059669; }
+.clr-forest { color: #1f7a3d; }
+.clr-blue { color: #2F6FED; }
+.text-italic-muted {
+    font-size: 12px;
+    color: #88968d;
+    font-style: italic;
+}
+
+/* dashboard.css's shared .ap2-ring has no background of its own — every
+   page that uses it currently sets `style="background:conic-gradient(...)"`
+   inline. This page instead supplies --ring-color/--pct custom properties
+   and the gradient shape lives here; purely additive to the shared rule
+   (dashboard.css sets no background), so other .ap2-ring consumers that
+   still use inline styles are unaffected — inline always wins anyway. */
+.ap2-ring {
+    background: conic-gradient(var(--ring-color, #06251b) 0% var(--pct, 100%), #e7ece9 0%);
+}
+
+.ap2-ring-inner i {
+    color: var(--ring-color, #06251b);
+}
+
+.filter-status-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.sort-select {
+    border: 1.5px solid #eaeeec;
+    background: #eef2f0;
+    color: #16241d;
+    font-family: 'Poppins', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 9px;
+    outline: none;
+    cursor: pointer;
+    min-width: 140px;
+}
+
+.vp-back-link--flush {
+    text-decoration: none;
+}
+
+.vp-back-link--sm {
+    font-size: 12px;
+    padding: 6px 12px;
+}
+
+.dropdown-actions-links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.empty-state--pad {
+    padding: 48px 24px;
+    text-align: center;
+}
+
+.empty-state-icon {
+    font-size: 36px;
+    color: #88968d;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.empty-state-icon--sm {
+    font-size: 32px;
+}
+
+.empty-state-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #06251b;
+    margin-bottom: 4px;
+}
+
+.empty-state-desc {
+    font-size: 12px;
+    color: #6c776e;
+    margin-bottom: 16px;
+}
+
+.bids-list-container {
+    padding: 0 16px 16px;
+}
+
+.quotation-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    color: #b78103;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.bid-copy-icon {
+    font-size: 9px;
+    opacity: 0.7;
+}
+
+.bid-doc-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* Fixed-position toast alerts (session + copy notifications) */
+.fixed-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-weight: 700;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fixed-toast--success {
+    background: #06251b;
+    color: #ffc107;
+}
+
+.fixed-toast--error {
+    background: #c23b3b;
+    color: #ffffff;
+}
+
+/* ── vp-back-link (page's own pill-button version) ── */
+.vp-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #06251b;
+    font-size: 12.5px;
+    font-weight: 700;
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    padding: 7px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all .2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.vp-back-link:hover {
+    background: #06251b;
+    color: #ffc107;
+    border-color: #06251b;
+}
+
+/* ── Section Label (matching audit_trail.php) ── */
+.sad-section-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #88968d;
+    margin-bottom: 10px;
+}
+
+/* ── Dropdown / Module Select ── */
+.module-select-wrap select {
+    border: 1.5px solid #eaeeec;
+    background: #eef2f0;
+    color: #16241d;
+    font-family: 'Poppins', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 9px;
+    outline: none;
+    cursor: pointer;
+    transition: all .15s;
+}
+
+.module-select-wrap select:focus {
+    border-color: #06251b;
+    background: #fff;
+}
+
+.ap2-go-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: #ffc107;
+    color: #16241d;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 12.5px;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+}
+
+.ap2-go-btn:hover {
+    background: #e6ac00;
+    color: #06251b;
+}
+
+/* ── Collapsible Bid Row Accordion ── */
+.bid-accordion-item {
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(16, 36, 26, .02);
+    transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bid-accordion-item:hover {
+    border-color: #c4d7cc;
+    box-shadow: 0 4px 12px rgba(6, 37, 27, 0.05);
+}
+
+.bid-accordion-item.is-open {
+    border-color: #06251b;
+    box-shadow: 0 4px 16px rgba(6, 37, 27, 0.08);
+}
+
+/* Compact Header Row (Clickable) */
+.bid-row-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px 14px 22px;
+    cursor: pointer;
+    user-select: none;
+    gap: 14px;
+    background: #ffffff;
+    transition: background .15s ease;
+}
+
+.bid-row-header:hover {
+    background: #fafcfb;
+}
+
+.bid-row-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.bid-row-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+/* Status color pairs — mirror the $status_config PHP array's
+   iconBg/iconFg and badge_bg/badge_fg values as classes instead of
+   PHP-built inline style strings. */
+.bid-row-avatar--pending   { background: #fffbeb; color: #d97706; }
+.bid-row-avatar--submitted { background: #ecfdf5; color: #059669; }
+.bid-row-avatar--opened    { background: #eff6ff; color: #2563eb; }
+.bid-row-avatar--awarded   { background: #f0fdf4; color: #15803d; }
+.bid-row-avatar--rejected  { background: #fef2f2; color: #dc2626; }
+.bid-row-avatar--default   { background: #f0f4f2; color: #06251b; }
+
+.bid-status-pill--pending   { background: #fef3c7; color: #92400e; }
+.bid-status-pill--submitted { background: #d1fae5; color: #065f46; }
+.bid-status-pill--opened    { background: #E7EEFE; color: #1e40af; }
+.bid-status-pill--awarded   { background: #e4f5ea; color: #1f7a3d; }
+.bid-status-pill--rejected  { background: #fee2e2; color: #991b1b; }
+.bid-status-pill--default   { background: #EEF0ED; color: #8B958E; }
+
+.bid-row-info {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.bid-row-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 3px;
+}
+
+.bid-row-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #06251b;
+    text-decoration: none;
+    transition: color .15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 520px;
+    display: inline-block;
+}
+
+.bid-row-title:hover {
+    color: #1f7a3d;
+    text-decoration: underline;
+}
+
+.bid-ref-tag {
+    background: #f0f4f2;
+    color: #06251b;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-family: 'Space Grotesk', sans-serif;
+    cursor: pointer;
+    transition: all .15s;
+    flex-shrink: 0;
+}
+
+.bid-ref-tag:hover {
+    background: #06251b;
+    color: #ffc107;
+}
+
+.bid-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 11.5px;
+    color: #88968d;
+    flex-wrap: wrap;
+}
+
+.bid-row-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.bid-row-meta strong {
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+.bid-row-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.bid-status-pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.bid-toggle-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #f0f4f2;
+    color: #06251b;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .2s ease;
+    flex-shrink: 0;
+}
+
+.bid-toggle-btn:hover {
+    background: #06251b;
+    color: #ffc107;
+}
+
+.bid-accordion-item.is-open .bid-toggle-btn {
+    background: #06251b;
+    color: #ffc107;
+    transform: rotate(180deg);
+}
+
+/* Collapsible Dropdown Content Body */
+.bid-dropdown-content {
+    display: none;
+    padding: 0 20px 20px 22px;
+    border-top: 1px dashed #e8eee9;
+    background: #fafcfb;
+    animation: fadeInDropdown .25s ease;
+}
+
+.bid-accordion-item.is-open .bid-dropdown-content {
+    display: block;
+}
+
+@keyframes fadeInDropdown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.bid-dropdown-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.bid-panel-box {
+    background: #ffffff;
+    border: 1px solid #edf1ee;
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.bid-panel-head {
+    font-size: 11px;
+    font-weight: 700;
+    color: #88968d;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    min-width: 0;
+}
+
+.bid-panel-head strong {
+    color: #06251b;
+}
+
+/* Lots List */
+.bid-lot-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.bid-lot-item {
+    background: #fafcfb;
+    border: 1px solid #eaeeec;
+    border-radius: 8px;
+    padding: 7px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12px;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.bid-lot-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 0;
+    overflow: hidden;
+}
+
+.bid-lot-badge {
+    background: #eef7f1;
+    color: #1f7a3d;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Space Grotesk', sans-serif;
+    flex-shrink: 0;
+}
+
+.bid-lot-title {
+    font-weight: 600;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1 1 auto;
+    display: block;
+}
+
+.bid-lot-abc {
+    font-weight: 800;
+    color: #1f7a3d;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Docs List */
+.bid-doc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.bid-doc-item {
+    background: #fafcfb;
+    border: 1px solid #eaeeec;
+    border-radius: 8px;
+    padding: 7px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11.5px;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.bid-doc-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 0;
+    overflow: hidden;
+}
+
+.bid-doc-name {
+    font-weight: 600;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1 1 auto;
+    display: block;
+}
+
+.bid-sealed-badge {
+    background: #eef7f1;
+    color: #1f7a3d;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.bid-receipt-view-btn {
+    background: #f0f4f2;
+    color: #06251b;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all .15s;
+    flex-shrink: 0;
+}
+
+.bid-receipt-view-btn:hover {
+    background: #06251b;
+    color: #ffc107;
+}
+
+/* Dropdown Action Bar */
+.bid-dropdown-actions {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #edf1ee;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.bid-dropdown-meta {
+    font-size: 12px;
+    color: #6c776e;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.bid-dropdown-meta strong {
+    color: #06251b;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* Quick collapse toggle button */
+.btn-toggle-all {
+    background: none;
+    border: none;
+    color: #1f7a3d;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all .15s;
+}
+
+.btn-toggle-all:hover {
+    background: #eef7f1;
+    text-decoration: underline;
+}
+
+/* ════════════════════════════════
+   MOBILE-FIRST RESPONSIVE
+   ════════════════════════════════ */
+
+@media (max-width: 860px) {
+    .bid-dropdown-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .bid-row-header {
+        flex-wrap: wrap;
+    }
+
+    .bid-row-right {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

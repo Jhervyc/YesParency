@@ -1,0 +1,168 @@
+/* ==========================================================================
+   pages/admin-bid-session-list.css — styles specific to
+   admin/bid-session-list.php.
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css. Standard mobile breakpoints/utilities live in
+   ../responsive.css (loaded before this file).
+
+   Note: this page's original embedded <style> block duplicated a lot of
+   rules that already exist identically in the shared dashboard.css
+   (.proc-table-panel, .proc-table*, .proc-ref-cell, .proc-title-cell,
+   .proc-mode-tag, .proc-abc-cell, .proc-deadline-cell, .btn-view/.btn-open/
+   .btn-schedule, .ap2-search-field, .ap2-go-btn, .table-foot, .pagination,
+   .page-link, .urm-modal*) — those were dropped here rather than
+   re-declared. Only this page's genuinely unique classes are kept below.
+
+   Duplicate-but-different note: .vp-back-link and .ap2-filter-btn ARE
+   redeclared here with different values than dashboard.css's shared
+   versions (this page's back-link is a bordered pill-button, the shared
+   one is a plain text link; this page's filter-btn has different
+   border/font colors and an amber active state). Kept as this page's own
+   override — this file loads after dashboard.css so it wins on equal
+   specificity.
+   ========================================================================== */
+
+/* ── Small color/utilities ── */
+.clr-dark { color: #06251b; }
+.clr-forest { color: #1f7a3d; }
+.hash-icon { color: #88968d; font-size: 10px; }
+.stream-icon-tiny { font-size: 9px; }
+.status-icon-tiny { font-size: 9px; }
+.deadline-tba { color: #c7d2cb; }
+.col-ref-th { width: 130px; }
+.col-actions-th { text-align: right; min-width: 100px; }
+.filter-bar { padding: 16px 20px; border-bottom: 1px solid #f0f4f2; background: #fafcfb; }
+.filter-form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filter-pills-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.proc-title-specs { font-size: 10.5px; color: #88968d; margin-top: 2px; }
+.invited-cell { font-size: 12px; color: #55665a; font-weight: 600; }
+.invited-icon { color: #88968d; }
+.results-empty { padding: 48px 20px; text-align: center; color: #88968d; }
+.results-empty-icon { font-size: 32px; color: #c7d2cb; display: block; margin-bottom: 8px; }
+.results-empty-title { font-size: 13px; font-weight: 700; }
+.table-scroll { overflow-x: auto; }
+.proc-action-btn--disabled { background: #f0f4f2; color: #88968d; cursor: not-allowed; opacity: .6; }
+
+/* ── Breadcrumb & Top Bar ── */
+.vp-nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+.vp-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #88968d;
+    font-weight: 600;
+}
+.vp-breadcrumbs a {
+    color: #1f7a3d;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color .15s;
+}
+.vp-breadcrumbs a:hover { text-decoration: underline; color: #06251b; }
+.vp-breadcrumbs-current { color: #06251b; }
+
+.vp-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #06251b;
+    font-size: 12.5px;
+    font-weight: 700;
+    background: #fff;
+    border: 1px solid #eaeeec;
+    padding: 7px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all .2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .02);
+}
+.vp-back-link:hover { background: #06251b; color: #ffc107; border-color: #06251b; }
+
+/* ── Status pills ── */
+.session-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.pill-live      { background: #fee2e2; color: #dc2626; animation: pulseLive 1.8s infinite; }
+.pill-scheduled { background: #fef3c7; color: #d97706; }
+.pill-ended     { background: #e0f2f1; color: #00796b; }
+
+@keyframes pulseLive { 0%, 100% { opacity: 1; } 50% { opacity: .65; } }
+
+/* ── Search + filter bar (page-specific overrides) ── */
+.ap2-filter-btn {
+    background: #eef2f0;
+    border: 1.5px solid #e0e8e4;
+    color: #06251b;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all .15s;
+    font-family: 'Poppins', sans-serif;
+    white-space: nowrap;
+}
+.ap2-filter-btn:hover, .ap2-filter-btn.active {
+    background: #06251b;
+    color: #ffc107;
+    border-color: #06251b;
+}
+
+/* ── Open Now modal extras ── */
+.modal-wide { max-width: 520px; width: 100%; }
+.urm-modal-icon--green { background: #e8f5e9; color: #1f7a3d; }
+.stream-path-box {
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f0f4f2;
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #55665a;
+}
+.stream-path-box code { font-size: 11.5px; color: #06251b; }
+.stream-preview-box {
+    margin: 0 0 20px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+    aspect-ratio: 16 / 9;
+    display: none;
+}
+.stream-preview-box iframe { width: 100%; height: 100%; border: none; }
+.stream-empty-box {
+    margin: 0 0 20px;
+    background: #f7faf8;
+    border: 1.5px dashed #cfdbd4;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    color: #88968d;
+    font-size: 12.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+}
+.stream-empty-icon { font-size: 20px; color: #c7d2cb; }
+.urm-btn-confirm--green { background: #1f7a3d; }

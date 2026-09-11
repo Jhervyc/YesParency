@@ -1,0 +1,153 @@
+/* ==========================================================================
+   pages/admin-user-role-management.css — styles specific to
+   admin/user-role-management.php.
+   The dashboard shell (sidebar, topbar, box-sizing reset) lives in
+   ../dashboard-shell.css. Standard mobile breakpoints/utilities live in
+   ../responsive.css (loaded before this file). Shared dashboard components
+   (.ap2-stats, .ap2-stat, .ap2-ring, .ap2-card, .ap2-controls,
+   .ap2-search-field, .ap2-filters, .ap2-filter-btn, .ap2-go-btn,
+   .ap2-table-head, .ap2-user-row, .ap2-who-cell, .ap2-avatar,
+   .ap2-user-text, .ap2-badge, .ap2-action-cell, .ap2-action-btn,
+   .ap2-promote/.ap2-demote, .ap2-self-label, .ap2-card-foot, .pagination,
+   .page-link, .empty-state, .modal-backdrop, .urm-modal*) already live in
+   ../../dashboard.css — this file only adds the classes genuinely unique
+   to this page (mainly the Create Admin form fields and the
+   promote/demote/delete confirm-modal color variants).
+   ========================================================================== */
+
+.hide { display: none; }
+
+/* ── Small color/utilities ── */
+.clr-dark  { color: #06251b; }
+.clr-green { color: #43a047; }
+.clr-amber { color: #f9a825; }
+.clr-blue  { color: #1565c0; }
+.avatar-cover { overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.avatar-cover img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.mb-16 { margin-bottom: 16px; }
+.empty-state--lg { padding: 40px; }
+
+/* .ap2-ring/.ap2-ring-inner shells come from the shared dashboard.css;
+   this page adds the dynamic conic-gradient background via custom props
+   instead of inline per-instance backgrounds. */
+.ap2-ring {
+    background: conic-gradient(var(--ring-color, #06251b) 0% var(--pct, 100%), #e7ece9 0%);
+}
+
+.directory-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+}
+.ap2-go-btn--gap { gap: 7px; }
+
+.ap2-card-foot--flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* ── Create Admin modal ── */
+.modal-wide { max-width: 520px; }
+.modal-icon-wrap--left { justify-content: flex-start; padding-bottom: 4px; }
+.modal-icon--green { background: #e8f5e9; color: #1f7a3d; }
+.modal-text--left { text-align: left; }
+.modal-form-pad { padding: 0 4px; }
+.modal-actions--flush { padding: 0; border: none; }
+
+.urmf-field-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.urmf-field-group { margin-bottom: 12px; }
+.urmf-field-group--lg { margin-bottom: 20px; }
+.urmf-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #55665a;
+    display: block;
+    margin-bottom: 5px;
+}
+.urmf-label--md { font-size: 12px; margin-bottom: 6px; }
+.urmf-required { color: #dc2626; }
+.urmf-role-icon { color: #43a047; }
+
+.urmf-input-wrap { position: relative; }
+.urmf-input-icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #88968d;
+    font-size: 13px;
+    pointer-events: none;
+}
+.urmf-input {
+    width: 100%;
+    padding: 9px 12px 9px 32px;
+    border: 1.5px solid #d4e0d8;
+    border-radius: 9px;
+    font-size: 12.5px;
+    font-family: 'Poppins', sans-serif;
+    color: #1a1a1a;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color .15s;
+}
+.urmf-input:focus { border-color: #1f7a3d; }
+.urmf-input--pw { padding-right: 36px; }
+
+.urmf-pw-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #88968d;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+}
+
+.urmf-select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid #d4e0d8;
+    border-radius: 9px;
+    font-size: 12.5px;
+    font-family: 'Poppins', sans-serif;
+    color: #06251b;
+    background: #f7faf8;
+    cursor: pointer;
+    outline: none;
+    box-sizing: border-box;
+}
+
+/* Confirm modal — promote/demote/delete role selector */
+.urm-role-select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #d0d9d3;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #06251b;
+    background: #f7faf8;
+    cursor: pointer;
+}
+.admin-role-field { margin-top: 14px; text-align: left; }
+
+/* Confirm modal icon/button color variants (promote/demote/delete) */
+.confirm-icon--promote { background: #e8f5e9; color: #43a047; }
+.confirm-icon--demote  { background: #fff3e0; color: #e67e22; }
+.confirm-icon--delete  { background: #ffebee; color: #e53935; }
+.confirm-btn--promote  { background: #43a047; }
+.confirm-btn--demote   { background: #e67e22; }
+.confirm-btn--delete   { background: #e53935; }

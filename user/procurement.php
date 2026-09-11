@@ -162,6 +162,7 @@ $stat_urgent    = (int)($stat_urgent_res ? $stat_urgent_res->fetch_row()[0] : 0)
     <!-- Dashboard styles -->
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
+    <link rel="stylesheet" href="../css/responsive.css">
     <link rel="stylesheet" href="../css/pages/user-procurement.css">
 </head>
 <body class="dash-body">
