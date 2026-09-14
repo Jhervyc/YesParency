@@ -44,23 +44,31 @@ body.dash-body {
    SIDEBAR
 ========================================================= */
 
+:root {
+    --sb-width: 250px;
+    --sb-width-collapsed: 68px;
+    --sb-gap: 14px;
+    --sb-radius: 22px;
+}
+
 .sidebar {
-    width: 250px;
-    height: 100vh;
+    width: var(--sb-width);
+    height: calc(100vh - var(--sb-gap) * 2);
     background: #06251b;
     display: flex;
     flex-direction: column;
     position: fixed;
-    top: 0;
-    left: 0;
+    top: var(--sb-gap);
+    left: var(--sb-gap);
     z-index: 200;
     transition: width .25s ease, transform .25s ease;
-    border-right: 3px solid #ffc107;
+    border-radius: var(--sb-radius);
+    box-shadow: 0 12px 36px rgba(6, 37, 27, .28), 0 2px 8px rgba(0, 0, 0, .08);
     overflow: hidden;
 }
 
 .sidebar-collapsed .sidebar {
-    width: 68px;
+    width: var(--sb-width-collapsed);
 }
 
 /* Brand */
@@ -131,16 +139,17 @@ body.dash-body {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 11px 20px;
+    margin: 2px 12px;
+    padding: 11px 14px;
     color: rgba(255, 255, 255, .65);
     text-decoration: none;
     font-size: 13.5px;
     font-weight: 500;
+    border-radius: 12px;
     transition: .2s;
     white-space: nowrap;
     overflow: hidden;
     position: relative;
-    border-left: 3px solid transparent;
 }
 
 .nav-item i {
@@ -151,15 +160,19 @@ body.dash-body {
 }
 
 .nav-item:hover {
-    background: rgba(255, 255, 255, .06);
+    background: rgba(255, 255, 255, .08);
     color: #fff;
 }
 
 .nav-item.active {
-    background: rgba(255, 193, 7, .1);
-    color: #ffc107;
-    border-left-color: #ffc107;
+    background: #ffc107;
+    color: #06251b;
     font-weight: 600;
+    box-shadow: 0 4px 14px rgba(255, 193, 7, .35);
+}
+
+.nav-item.active i {
+    color: #06251b;
 }
 
 .nav-item span {
@@ -217,7 +230,7 @@ body.dash-body {
     padding: 9px 12px;
     background: rgba(255, 82, 82, .1);
     border: 1px solid rgba(255, 82, 82, .2);
-    border-radius: 8px;
+    border-radius: 12px;
     color: #ff7070;
     font-size: 13px;
     font-weight: 600;
@@ -244,7 +257,7 @@ body.dash-body {
 }
 
 .sidebar-collapsed .sidebar-brand { justify-content: center; padding: 20px 14px; }
-.sidebar-collapsed .nav-item      { justify-content: center; padding: 12px; }
+.sidebar-collapsed .nav-item      { justify-content: center; margin: 2px 10px; padding: 12px; }
 .sidebar-collapsed .sidebar-footer { padding: 12px; }
 .sidebar-collapsed .sidebar-user  { justify-content: center; }
 .sidebar-collapsed .btn-logout    { justify-content: center; padding: 9px; }
@@ -256,21 +269,22 @@ body.dash-body {
 .topbar {
     height: 64px;
     background: #fff;
-    border-bottom: 1px solid #e8ede9;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 28px;
+    padding: 0 24px;
     position: fixed;
-    top: 0;
-    left: 250px;
-    right: 0;
+    top: var(--sb-gap);
+    left: calc(var(--sb-width) + var(--sb-gap) * 2);
+    right: var(--sb-gap);
     z-index: 100;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(6, 37, 27, .08), 0 1px 4px rgba(0, 0, 0, .04);
     transition: left .25s ease;
     box-sizing: border-box;
 }
 
-.sidebar-collapsed .topbar { left: 68px; }
+.sidebar-collapsed .topbar { left: calc(var(--sb-width-collapsed) + var(--sb-gap) * 2); }
 
 .topbar-left {
     display: flex;
@@ -684,15 +698,15 @@ body.dash-body {
 ========================================================= */
 
 .dash-main {
-    margin-left: 250px;
-    padding-top: 64px;
+    margin-left: calc(var(--sb-width) + var(--sb-gap));
+    padding-top: calc(64px + var(--sb-gap) * 2);
     min-height: 100vh;
     transition: margin-left .25s ease;
     /* no width — let it naturally fill the remaining space */
 }
 
 .sidebar-collapsed .dash-main {
-    margin-left: 68px;
+    margin-left: calc(var(--sb-width-collapsed) + var(--sb-gap));
 }
 
 .dash-content {
@@ -731,7 +745,7 @@ body.dash-body {
     .sidebar,
     .sidebar-collapsed .sidebar {
         width: 250px;
-        transform: translateX(-100%);
+        transform: translateX(calc(-100% - var(--sb-gap)));
     }
 
     .sidebar.mobile-open {
@@ -740,7 +754,7 @@ body.dash-body {
 
     .topbar,
     .sidebar-collapsed .topbar {
-        left: 0;
+        left: var(--sb-gap);
     }
 
     .dash-main,
