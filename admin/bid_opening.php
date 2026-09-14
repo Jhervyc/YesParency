@@ -51,10 +51,11 @@ if ($can_manage && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['open_n
 }
 
 // ── Filters & Pagination ───────────────────────────────────────────────────
-$search      = isset($_GET['search']) ? trim($_GET['search']) : '';
-$mode_filter = isset($_GET['mode'])   ? trim($_GET['mode'])   : 'all';
-$sort        = isset($_GET['sort']) && in_array($_GET['sort'], ['closing_asc','closing_desc','abc_desc','abc_asc','newest'])
-               ? $_GET['sort'] : 'closing_asc';
+$search        = isset($_GET['search']) ? trim($_GET['search']) : '';
+$status_filter = isset($_GET['status']) && in_array($_GET['status'], ['open','closed'])
+                 ? $_GET['status'] : 'all';
+$sort          = isset($_GET['sort']) && in_array($_GET['sort'], ['closing_asc','closing_desc','abc_desc','abc_asc','newest'])
+                 ? $_GET['sort'] : 'closing_asc';
 $page        = max(1, (int)($_GET['page'] ?? 1));
 $per_page    = 12;
 $offset      = ($page - 1) * $per_page;
@@ -87,24 +88,23 @@ $scheduled_res = $conn->query("
 ");
 $scheduled_sessions = $scheduled_res ? $scheduled_res->fetch_all(MYSQLI_ASSOC) : [];
 
-// ── Available procurement modes for dropdown ───────────────────────────────
-$modes_res   = $conn->query("SELECT DISTINCT procurement_mode FROM procurements WHERE status = 'open' AND procurement_mode IS NOT NULL AND procurement_mode != '' ORDER BY procurement_mode ASC");
-$avail_modes = [];
-if ($modes_res) while ($mr = $modes_res->fetch_assoc()) $avail_modes[] = $mr['procurement_mode'];
-
 // ── Set of procurement IDs that already have a session (any status) ────────
 $scheduled_proc_ids = [];
 $sp_res = $conn->query("SELECT DISTINCT procurement_id FROM bid_opening_sessions");
 if ($sp_res) while ($sp = $sp_res->fetch_row()) $scheduled_proc_ids[] = (int)$sp[0];
 
-// ── Query for procurement table (open only) ────────────────────────────────
-$where_parts = ["p.status = 'open'"];
+// ── Query for procurement table (open, plus closed procurements that were
+//    never scheduled/opened — i.e. no bid_opening_sessions record) ──────────
+$where_parts = ["(p.status = 'open' OR (p.status = 'closed' AND NOT EXISTS (
+    SELECT 1 FROM bid_opening_sessions bos WHERE bos.procurement_id = p.id
+)))"];
 $params      = [];
 $types       = '';
 
-if ($mode_filter !== 'all' && $mode_filter !== '') {
-    $where_parts[] = "p.procurement_mode = ?";
-    $params[] = $mode_filter; $types .= 's';
+if ($status_filter === 'open') {
+    $where_parts[] = "p.status = 'open'";
+} elseif ($status_filter === 'closed') {
+    $where_parts[] = "p.status = 'closed'";
 }
 if ($search !== '') {
     $like = '%' . $search . '%';
@@ -329,7 +329,7 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
     </div>
 
     <!-- ── Procurement Table ──────────────────────────────────────────────── -->
-    <div class="sad-section-label">Open Procurements</div>
+    <div class="sad-section-label">Procurements Available for Scheduling</div>
     <div class="proc-table-panel">
 
         <!-- Search + Filter bar -->
@@ -340,15 +340,18 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
                     <i class="bi bi-search"></i>
                     <input type="text" name="search" placeholder="Search title or ref…" value="<?= htmlspecialchars($search) ?>">
                 </div>
+                <div class="filter-status-group">
+                    <?php
+                    $status_tabs = ['all'=>'All','open'=>'Open','closed'=>'Closed'];
+                    foreach ($status_tabs as $val => $label):
+                    ?>
+                        <button type="submit" name="status" value="<?= $val ?>"
+                                class="ap2-filter-btn <?= $status_filter === $val ? 'active' : '' ?>">
+                            <?= $label ?>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
                 <div class="filter-dropdowns">
-                    <select name="mode" onchange="document.getElementById('procFilterForm').submit();">
-                        <option value="all">All Modes</option>
-                        <?php foreach ($avail_modes as $m): ?>
-                        <option value="<?= htmlspecialchars($m) ?>" <?= $mode_filter === $m ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($m) ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
                     <select id="sortSelect" onchange="document.getElementById('hiddenSort').value=this.value; document.getElementById('procFilterForm').submit();">
                         <option value="closing_asc"  <?= $sort==='closing_asc'  ? 'selected':'' ?>>Closing Soonest</option>
                         <option value="closing_desc" <?= $sort==='closing_desc' ? 'selected':'' ?>>Closing Latest</option>
@@ -443,11 +446,11 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
         <div class="table-foot">
             <div>
                 Showing <?= min($total_shown, $offset+1) ?>–<?= min($total_shown, $offset+$per_page) ?>
-                of <?= number_format($total_shown) ?> open procurement<?= $total_shown != 1 ? 's' : '' ?>
+                of <?= number_format($total_shown) ?> procurement<?= $total_shown != 1 ? 's' : '' ?>
                 <?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>
             </div>
             <?php if ($total_pages > 1):
-                $qs = array_filter(['search'=>$search,'mode'=>$mode_filter!=='all'?$mode_filter:null,'sort'=>$sort!=='closing_asc'?$sort:null]);
+                $qs = array_filter(['search'=>$search,'status'=>$status_filter!=='all'?$status_filter:null,'sort'=>$sort!=='closing_asc'?$sort:null]);
                 $qstr = $qs ? '&'.http_build_query($qs) : '';
             ?>
             <div class="pagination">

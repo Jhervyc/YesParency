@@ -186,16 +186,18 @@ $logs_data = [];
                     </button>
                     <?php endforeach; ?>
                 </div>
-                <select name="module" class="filter-dropdowns" onchange="document.getElementById('auditFilterForm').submit()">
-                    <option value="all" <?= $module_filter==='all'?'selected':'' ?>>All Modules</option>
-                    <option value="procurements" <?= $module_filter==='procurements'?'selected':'' ?>>Procurements</option>
-                    <option value="bids" <?= $module_filter==='bids'?'selected':'' ?>>Bids</option>
-                    <option value="lots" <?= $module_filter==='lots'?'selected':'' ?>>Lots</option>
-                    <option value="users" <?= $module_filter==='users'?'selected':'' ?>>Users</option>
-                    <option value="announcements" <?= $module_filter==='announcements'?'selected':'' ?>>Announcements</option>
-                    <option value="settings" <?= $module_filter==='settings'?'selected':'' ?>>Settings</option>
-                    <option value="bid_opening" <?= $module_filter==='bid_opening'?'selected':'' ?>>Bid Opening</option>
-                </select>
+                <div class="filter-dropdowns">
+                    <select name="module" onchange="document.getElementById('auditFilterForm').submit()">
+                        <option value="all" <?= $module_filter==='all'?'selected':'' ?>>All Modules</option>
+                        <option value="procurements" <?= $module_filter==='procurements'?'selected':'' ?>>Procurements</option>
+                        <option value="bids" <?= $module_filter==='bids'?'selected':'' ?>>Bids</option>
+                        <option value="lots" <?= $module_filter==='lots'?'selected':'' ?>>Lots</option>
+                        <option value="users" <?= $module_filter==='users'?'selected':'' ?>>Users</option>
+                        <option value="announcements" <?= $module_filter==='announcements'?'selected':'' ?>>Announcements</option>
+                        <option value="settings" <?= $module_filter==='settings'?'selected':'' ?>>Settings</option>
+                        <option value="bid_opening" <?= $module_filter==='bid_opening'?'selected':'' ?>>Bid Opening</option>
+                    </select>
+                </div>
                 <button type="submit" class="ap2-go-btn"><i class="bi bi-search"></i> Search</button>
             </form>
         </div>

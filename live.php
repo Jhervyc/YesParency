@@ -1263,6 +1263,14 @@ function refreshLots() {
     ['session_started','phase_changed','session_ended'].forEach(ev => {
         channel.bind(ev, function(data) {
             if (data && data.session_id && data.session_id != SESSION_ID) return;
+
+            // Session concluded — reload the page so the video player fully
+            // tears down (stops the iframe/stream) instead of lingering.
+            if (ev === 'session_ended') {
+                location.reload();
+                return;
+            }
+
             // Re-fetch session status from DB and update UI
             fetch(`live_chat_api.php?action=session_status&session_id=${SESSION_ID}`)
             .then(r => r.json())
@@ -1303,7 +1311,13 @@ function heartbeat() {
     // Session status
     fetch(`live_chat_api.php?action=session_status&session_id=${SESSION_ID}`)
     .then(r => r.json())
-    .then(d => { if (d.status) updateStageUI(d.status); })
+    .then(d => {
+        if (!d.status) return;
+        // Session concluded since our last check (missed Pusher event) —
+        // reload so the video player fully tears down.
+        if (d.status === 'ended') { location.reload(); return; }
+        updateStageUI(d.status);
+    })
     .catch(() => {});
 
     // Chat messages (fallback only — Pusher handles this in real time)

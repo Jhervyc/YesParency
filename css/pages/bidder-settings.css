@@ -35,25 +35,31 @@
 .settings-tabs-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 24px;
-    border-bottom: 2px solid #eef2f0;
-    padding-bottom: 2px;
+    gap: 4px;
+    background: #ffffff;
+    border: 1px solid #eaeeec;
+    border-radius: 14px;
+    padding: 6px;
+    margin-bottom: 28px;
+    width: fit-content;
+    box-shadow: 0 1px 4px rgba(16,36,26,.04);
 }
 
 .stab-btn {
-    background: transparent;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 12px 12px 0 0;
-    font-size: 13.5px;
-    font-weight: 700;
-    color: #63736a;
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    transition: all .15s ease;
+    gap: 7px;
+    padding: 9px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    color: #55665a;
+    background: transparent;
+    transition: all .18s ease;
+    white-space: nowrap;
     text-decoration: none;
 }
 

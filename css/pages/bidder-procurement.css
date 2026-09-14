@@ -789,31 +789,9 @@
     box-shadow: 0 0 0 3px rgba(31, 122, 61, 0.08);
 }
 
-.ap2-filter-btn {
-    padding: 8px 14px;
-    border: 1.5px solid #e0e8e4;
-    border-radius: 9px;
-    background: #fafcfb;
-    color: #55665a;
-    font-family: 'Poppins', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .15s;
-    white-space: nowrap;
-}
-
-.ap2-filter-btn:hover {
-    border-color: #06251b;
-    color: #06251b;
-}
-
-.ap2-filter-btn.active {
-    background: #06251b;
-    color: #ffc107;
-    border-color: #06251b;
-    font-weight: 700;
-}
+/* .ap2-filter-btn intentionally not redefined here — falls back to the
+   shared dashboard.css rule so this page's status filter buttons match
+   bidder/my_bids.php's. */
 
 .proc-module-select {
     flex-shrink: 0;

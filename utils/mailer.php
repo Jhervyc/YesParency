@@ -445,7 +445,7 @@ function notify_bid_verified(mysqli $conn, int $bidId): bool
 
     $stmt = $conn->prepare("
         SELECT b.id AS bid_id, b.submission_date,
-               p.title AS proc_title, p.philgeps_ref_no,
+               p.title AS proc_title, p.slsu_ref_no AS philgeps_ref_no,
                u.user_id, u.firstname, u.lastname, u.email,
                bp.business_name
         FROM bids b
@@ -495,7 +495,7 @@ function notify_bid_rejected(mysqli $conn, int $bidId, ?string $reason = null): 
 
     $stmt = $conn->prepare("
         SELECT b.id AS bid_id,
-               p.title AS proc_title, p.philgeps_ref_no,
+               p.title AS proc_title, p.slsu_ref_no AS philgeps_ref_no,
                u.user_id, u.firstname, u.lastname, u.email,
                bp.business_name
         FROM bids b
@@ -547,7 +547,7 @@ function notify_bid_session_scheduled(mysqli $conn, int $sessionId): array
     // Fetch session and procurement details
     $stmt = $conn->prepare("
         SELECT bos.id AS session_id, bos.title AS session_title, bos.stream_path,
-               p.title AS proc_title, p.philgeps_ref_no, p.opening_date
+               p.title AS proc_title, p.slsu_ref_no AS philgeps_ref_no, p.opening_date
         FROM bid_opening_sessions bos
         JOIN procurements p ON bos.procurement_id = p.id
         WHERE bos.id = ?
@@ -626,7 +626,7 @@ function notify_bid_session_concluded(mysqli $conn, int $sessionId): array
     // Fetch session and procurement
     $stmt = $conn->prepare("
         SELECT bos.id AS session_id, bos.created_by,
-               p.title AS proc_title, p.philgeps_ref_no
+               p.title AS proc_title, p.slsu_ref_no AS philgeps_ref_no
         FROM bid_opening_sessions bos
         JOIN procurements p ON bos.procurement_id = p.id
         WHERE bos.id = ?
@@ -720,7 +720,7 @@ function notify_lot_awarded(mysqli $conn, int $lotId, int $bidLotId, float $awar
     $stmt = $conn->prepare("
         SELECT bl.id AS bid_lot_id, bl.lot_id,
                l.lot_number, l.lot_title,
-               p.title AS proc_title, p.philgeps_ref_no,
+               p.title AS proc_title, p.slsu_ref_no AS philgeps_ref_no,
                u.user_id, u.firstname, u.lastname, u.email,
                bp.business_name
         FROM bid_lots bl

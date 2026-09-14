@@ -67,7 +67,7 @@ try{
     require_once __DIR__ . '/../utils/mailer.php';
     notify_bidder_rejected($conn, $userId);
 
-    header("Location: account-management.php");
+    header("Location: bidder-profile.php?id=" . $userId);
     exit();
 
 }catch(Exception $e){
