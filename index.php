@@ -96,60 +96,6 @@ if (isset($conn) && $conn instanceof mysqli) {
     if ($s3) { $total_awarded = (int)$s3->fetch_assoc()['cnt']; }
 }
 
-// Fallback seed items if database has fewer than 3 items
-if (count($ranked_openings) < 3) {
-    $fallback_items = [
-        [
-            'id' => 101,
-            'slsu_ref_no' => 'SLSU-BAC-2026-003',
-            'title' => 'Supply and Delivery of Science Laboratory Testing Equipment',
-            'procurement_mode' => 'Public Bidding',
-            'abc' => 2450000.00,
-            'posting_date' => date('Y-m-d', strtotime('-5 days')),
-            'closing_date' => date('Y-m-d H:i:s', strtotime('+2 days 09:00:00')),
-            'opening_date' => date('Y-m-d H:i:s', strtotime('+2 days 10:00:00')),
-            'status' => 'open',
-            'lots_count' => 2
-        ],
-        [
-            'id' => 102,
-            'slsu_ref_no' => 'SLSU-BAC-2026-007',
-            'title' => 'Construction of Modern Multi-Purpose Academic Center',
-            'procurement_mode' => 'Public Bidding',
-            'abc' => 18750000.00,
-            'posting_date' => date('Y-m-d', strtotime('-3 days')),
-            'closing_date' => date('Y-m-d H:i:s', strtotime('+5 days 13:00:00')),
-            'opening_date' => date('Y-m-d H:i:s', strtotime('+5 days 14:00:00')),
-            'status' => 'open',
-            'lots_count' => 1
-        ],
-        [
-            'id' => 103,
-            'slsu_ref_no' => 'SLSU-BAC-2026-011',
-            'title' => 'Supply, Delivery & Configuration of Campus ICT Infrastructure',
-            'procurement_mode' => 'Competitive Bidding',
-            'abc' => 3200000.00,
-            'posting_date' => date('Y-m-d', strtotime('-1 days')),
-            'closing_date' => date('Y-m-d H:i:s', strtotime('+9 days 11:30:00')),
-            'opening_date' => date('Y-m-d H:i:s', strtotime('+9 days 13:30:00')),
-            'status' => 'open',
-            'lots_count' => 3
-        ]
-    ];
-
-    foreach ($fallback_items as $fb) {
-        if (count($ranked_openings) < 3) {
-            $ranked_openings[] = $fb;
-        }
-        if (count($all_schedules) < 4) {
-            $all_schedules[] = $fb;
-        }
-    }
-}
-
-if ($total_active_procurements === 0) $total_active_procurements = count($all_schedules);
-if ($total_suppliers === 0) $total_suppliers = 48;
-if ($total_awarded === 0) $total_awarded = 76;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -295,15 +241,18 @@ if ($total_awarded === 0) $total_awarded = 76;
                         <p>Nearest public opening schedules</p>
                     </div>
                 </div>
-                <div class="ranking-live-pill">
-                    <span class="ranking-pulse-dot"></span> LIVE QUEUE
-                </div>
             </div>
 
+            <?php if (empty($ranked_openings)): ?>
+                <div class="ranking-empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>There's currently no procurement.</p>
+                </div>
+            <?php else: ?>
             <div class="ranked-items-list">
-                <?php 
+                <?php
                 $rank = 1;
-                foreach ($ranked_openings as $item): 
+                foreach ($ranked_openings as $item):
                     $medalClass = 'rank-default';
                     if ($rank === 1) $medalClass = 'rank-1';
                     elseif ($rank === 2) $medalClass = 'rank-2';
@@ -346,6 +295,7 @@ if ($total_awarded === 0) $total_awarded = 76;
                     View All Procurement <i class="bi bi-arrow-right icon-14"></i>
                 </a>
             </div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
 
@@ -408,12 +358,17 @@ if ($total_awarded === 0) $total_awarded = 76;
         </p>
     </div>
 
+    <?php if (empty($ranked_openings)): ?>
+        <div class="schedule-empty-state">
+            <i class="bi bi-inbox"></i>
+            <p>There's currently no procurement.</p>
+        </div>
+    <?php else: ?>
     <div class="schedule-grid">
         <?php foreach (array_slice($ranked_openings, 0, 3) as $sched):
             $statusStr = strtolower($sched['status'] ?? 'open');
             $openDate  = !empty($sched['opening_date'])  ? date('M d, Y · g:i A', strtotime($sched['opening_date']))  : 'To Be Announced';
             $closeDate = !empty($sched['closing_date'])  ? date('M d, Y · g:i A', strtotime($sched['closing_date'])) : 'Not Specified';
-            $isFallback = ($sched['id'] >= 101 && $sched['id'] <= 103);
         ?>
         <div class="schedule-card">
             <div>
@@ -443,19 +398,14 @@ if ($total_awarded === 0) $total_awarded = 76;
                     <div class="schedule-abc-label">Approved Budget (ABC)</div>
                     <div class="schedule-abc-val">₱ <?= number_format((float)$sched['abc'], 2) ?></div>
                 </div>
-                <?php if ($isFallback): ?>
-                    <a href="login.php" class="btn-schedule-action">
-                        <i class="bi bi-box-arrow-in-right"></i> View Details
-                    </a>
-                <?php else: ?>
-                    <a href="bid_view.php?id=<?= (int)$sched['id'] ?>" class="btn-schedule-action">
-                        <i class="bi bi-eye"></i> View Details
-                    </a>
-                <?php endif; ?>
+                <a href="bid_view.php?id=<?= (int)$sched['id'] ?>" class="btn-schedule-action">
+                    <i class="bi bi-eye"></i> View Details
+                </a>
             </div>
         </div>
         <?php endforeach; ?>
     </div>
+    <?php endif; ?>
 
     <!-- View All CTA -->
     <div class="schedule-cta-wrap">
@@ -476,7 +426,7 @@ if ($total_awarded === 0) $total_awarded = 76;
         <div class="about-text-card">
             <h2>Integrity, Accountability, and Digital Transparency</h2>
             <p>
-                YesParency is the official online procurement transparency platform of <strong>Southern Luzon State University (SLSU)</strong>. Developed to uphold Republic Act No. 9184 (Government Procurement Reform Act), the system provides seamless public disclosure and cryptographic security across all procurement lifecycle stages.
+                YesParency is the official online procurement transparency platform of <strong>Southern Luzon State University (SLSU)</strong>. It gives the public a clear, verifiable view into every stage of the bidding process — from posting to opening to award.
             </p>
 
             <div class="about-features-list">

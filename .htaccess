@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# 1. Redirect external requests from /page.php to /page (canonical clean URLs)
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /([^\ ]+)\.php\ HTTP/ [NC]
+RewriteRule ^%1$ /%1 [R=301,L]
+
+# 2. Internally map requests without an extension to the corresponding .php file
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.php -f
+RewriteRule ^(.*)$ $1.php [L]

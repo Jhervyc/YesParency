@@ -483,7 +483,7 @@ include("components/topbar.php");
 <?php endif; ?>
 
 <!-- Copy Notification Toast -->
-<div id="copyToast" class="fixed-toast fixed-toast--success" hidden>
+<div id="copyToast" class="fixed-toast fixed-toast--success" style="display: none;">
     <i class="bi bi-check-circle-fill"></i> <span id="copyToastMsg">Copied!</span>
 </div>
 
