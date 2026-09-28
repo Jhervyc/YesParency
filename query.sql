@@ -251,13 +251,25 @@ CREATE TABLE bid_lots (
 CREATE TABLE bid_documents (
     id INT AUTO_INCREMENT PRIMARY KEY,
     bid_id INT NOT NULL,
+    lot_id INT NULL, -- NULL for bid-wide docs (e.g. receipt); set for per-lot eligibility/financial docs
     document_type ENUM('eligibility', 'financial', 'qoutation', 'other') DEFAULT 'other',
     document_name VARCHAR(255) NOT NULL,
     file_path VARCHAR(255) NOT NULL,
     uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (bid_id) REFERENCES bids(id) ON DELETE CASCADE
+    FOREIGN KEY (bid_id) REFERENCES bids(id) ON DELETE CASCADE,
+    FOREIGN KEY (lot_id) REFERENCES lots(id) ON DELETE CASCADE,
+    INDEX idx_bid_lot_doctype (bid_id, lot_id, document_type)
 );
+
+-- Migration for an existing database (bid_documents already created without lot_id):
+-- ALTER TABLE bid_documents
+--   ADD COLUMN lot_id INT NULL AFTER bid_id,
+--   ADD FOREIGN KEY (lot_id) REFERENCES lots(id) ON DELETE CASCADE,
+--   ADD INDEX idx_bid_lot_doctype (bid_id, lot_id, document_type);
+-- NOTE: existing rows for bidders who submitted on multiple lots will have
+-- lot_id = NULL and cannot be retroactively attributed to a specific lot;
+-- only new submissions after this migration will be correctly scoped.
 
 -- ALTER TABLE bid_documents
 -- MODIFY COLUMN document_type ENUM(

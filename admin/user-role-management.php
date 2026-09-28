@@ -52,60 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_admin'])) {
     exit();
 }
 
-// Handle promote to admin
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['promote_user'])) {
-    $target_id  = intval($_POST['user_id']);
-    $admin_type = isset($_POST['admin_type']) && in_array($_POST['admin_type'], ['BAC', 'TWG', 'SECRETARIAT'])
-                  ? $_POST['admin_type'] : 'SECRETARIAT';
-
-    if ($target_id === intval($_SESSION['user_id'])) {
-        $_SESSION['alert_msg']  = "You cannot change your own role.";
-        $_SESSION['alert_type'] = "error";
-    } else {
-        $stmt = $conn->prepare("UPDATE users SET role = 'admin' WHERE user_id = ? AND role != 'superadmin'");
-        $stmt->bind_param("i", $target_id);
-        if ($stmt->execute() && $stmt->affected_rows > 0) {
-            // Upsert admin_type into admin_roles
-            $role_stmt = $conn->prepare("INSERT INTO admin_roles (user_id, admin_type) VALUES (?, ?) ON DUPLICATE KEY UPDATE admin_type = VALUES(admin_type)");
-            $role_stmt->bind_param("is", $target_id, $admin_type);
-            $role_stmt->execute();
-            $role_stmt->close();
-            $_SESSION['alert_msg']  = "User promoted to Administrator ({$admin_type}).";
-            $_SESSION['alert_type'] = "success";
-        } else {
-            $_SESSION['alert_msg']  = "Could not promote user. They may already be an admin or superadmin.";
-            $_SESSION['alert_type'] = "error";
-        }
-        $stmt->close();
-    }
-    $qs = http_build_query(array_filter(['search' => $_POST['search'] ?? '', 'role' => $_POST['role'] ?? '']));
-    header("Location: user-role-management.php" . ($qs ? "?$qs" : ""));
-    exit();
-}
-
-// Handle demote back to user
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['demote_user'])) {
-    $target_id = intval($_POST['user_id']);
-    if ($target_id === intval($_SESSION['user_id'])) {
-        $_SESSION['alert_msg']  = "You cannot change your own role.";
-        $_SESSION['alert_type'] = "error";
-    } else {
-        $stmt = $conn->prepare("UPDATE users SET role = 'user' WHERE user_id = ? AND role = 'admin'");
-        $stmt->bind_param("i", $target_id);
-        if ($stmt->execute() && $stmt->affected_rows > 0) {
-            $_SESSION['alert_msg']  = "Administrator demoted back to User.";
-            $_SESSION['alert_type'] = "success";
-        } else {
-            $_SESSION['alert_msg']  = "Could not demote user.";
-            $_SESSION['alert_type'] = "error";
-        }
-        $stmt->close();
-    }
-    $qs = http_build_query(array_filter(['search' => $_POST['search'] ?? '', 'role' => $_POST['role'] ?? '']));
-    header("Location: user-role-management.php" . ($qs ? "?$qs" : ""));
-    exit();
-}
-
 // Handle delete account
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
     $target_id = intval($_POST['user_id']);
@@ -205,7 +151,7 @@ $users = $stmt->get_result();
         <!-- Page heading -->
         <div class="page-header">
             <h2>User & Role Management</h2>
-            <p>Search users, promote to Administrator, demote, or delete accounts.</p>
+            <p>Search users and manage accounts.</p>
         </div>
 
         <!-- Toast -->
@@ -337,18 +283,6 @@ $users = $stmt->get_result();
                     <?php if ($isSelf): ?>
                         <span class="ap2-self-label">You</span>
                     <?php else: ?>
-
-                        <?php if ($user['role'] !== 'admin'): ?>
-                            <button type="button" class="ap2-action-btn ap2-promote"
-                                    onclick="openConfirm('promote', <?= $user['user_id'] ?>, '<?= $safeFullName ?>', '<?= $safeUsername ?>')">
-                                <i class="bi bi-person-up"></i> Promote
-                            </button>
-                        <?php else: ?>
-                            <button type="button" class="ap2-action-btn ap2-demote"
-                                    onclick="openConfirm('demote', <?= $user['user_id'] ?>, '<?= $safeFullName ?>', '<?= $safeUsername ?>')">
-                                <i class="bi bi-person-down"></i> Demote
-                            </button>
-                        <?php endif; ?>
 
                         <button type="button" class="ap2-action-btn ap2-delete"
                                 onclick="openConfirm('delete', <?= $user['user_id'] ?>, '<?= $safeFullName ?>', '<?= $safeUsername ?>')">
@@ -497,17 +431,6 @@ $users = $stmt->get_result();
             <h3 id="modalTitle">Confirm Action</h3>
             <p id="modalDesc">Are you sure?</p>
             <div class="urm-modal-user-pill" id="modalUserPill"></div>
-            <!-- Admin role selector (shown only for promote) -->
-            <div id="adminRoleField" class="admin-role-field hide">
-                <label class="urmf-label urmf-label--md">
-                    <i class="bi bi-shield-check urmf-role-icon"></i> Assign Admin Role
-                </label>
-                <select id="adminTypeSelect" class="urm-role-select">
-                    <option value="SECRETARIAT">Secretariat — Full Access</option>
-                    <option value="BAC">BAC — Limited Access</option>
-                    <option value="TWG">TWG — Limited Access</option>
-                </select>
-            </div>
         </div>
 
         <!-- Actions -->
@@ -526,7 +449,6 @@ $users = $stmt->get_result();
 <form id="actionForm" method="POST" action="" class="hide">
     <input type="hidden" id="actionUserId" name="user_id">
     <input type="hidden" id="actionType"   name="" value="1">
-    <input type="hidden" id="actionAdminType" name="admin_type" value="SECRETARIAT">
     <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
     <input type="hidden" name="role"   value="<?= htmlspecialchars($role_filter) ?>">
 </form>
@@ -550,8 +472,6 @@ $users = $stmt->get_result();
     }
 
     const actionColors = {
-        promote: '#43a047',
-        demote:  '#e67e22',
         delete:  '#e53935',
     };
 
@@ -584,24 +504,8 @@ $users = $stmt->get_result();
         const pill          = document.getElementById('modalUserPill');
         const btn           = document.getElementById('modalConfirmBtn');
         const typeInput     = document.getElementById('actionType');
-        const roleField     = document.getElementById('adminRoleField');
-        const adminTypeSel  = document.getElementById('adminTypeSelect');
 
         const cfg = {
-            promote: {
-                icon:  'bi-person-up',
-                title: 'Promote to Administrator',
-                desc:  'Select a role and confirm. The user will gain admin access based on the assigned role.',
-                btnTx: 'Yes, Promote',
-                name:  'promote_user',
-            },
-            demote: {
-                icon:  'bi-person-down',
-                title: 'Demote to User',
-                desc:  'This user will lose all administrator privileges.',
-                btnTx: 'Yes, Demote',
-                name:  'demote_user',
-            },
             delete: {
                 icon:  'bi-trash3',
                 title: 'Delete Account',
@@ -625,15 +529,6 @@ $users = $stmt->get_result();
         typeInput.name  = c.name;
         typeInput.value = '1';
 
-        // Show role selector only for promote
-        if (action === 'promote') {
-            roleField.classList.remove('hide');
-            adminTypeSel.value = 'SECRETARIAT';
-            document.getElementById('actionAdminType').value = 'SECRETARIAT';
-        } else {
-            roleField.classList.add('hide');
-        }
-
         modal.classList.add('open');
     }
 
@@ -642,12 +537,6 @@ $users = $stmt->get_result();
     }
 
     document.getElementById('modalConfirmBtn').addEventListener('click', () => {
-        // Sync role selector to hidden input before submitting
-        const adminTypeSel = document.getElementById('adminTypeSelect');
-        const adminTypeInput = document.getElementById('actionAdminType');
-        if (!document.getElementById('adminRoleField').classList.contains('hide')) {
-            adminTypeInput.value = adminTypeSel.value;
-        }
         document.getElementById('actionForm').submit();
     });
 

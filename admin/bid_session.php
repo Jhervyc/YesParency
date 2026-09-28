@@ -815,7 +815,8 @@ const STATE = {
     lots: {}, // lotId -> { stage: 'eligibility'|'financial', bidders: [], done: { eligibility: [], financial: [] } }
     awards: [],
 };
-const openedDocs = {}; // docId -> { data_url, mime, file_name }
+const openedDocs = {}; // `${lotId}:${docId}` -> { data_url, mime, file_name }
+function odKey(lotId, docId){ return `${lotId}:${docId}`; }
 
 // Pending modal context
 let pw_stage, pw_lotId, pw_bidderId, pw_bidId, pw_files;
@@ -1376,16 +1377,16 @@ function selectBidderTab(lotId, stage, bidder, actBar, fileArea){
         if(signingDone){
             (async ()=>{
                 for(const f of files){
-                    if(openedDocs[f.id]) continue;
+                    if(openedDocs[odKey(lotId, f.id)]) continue;
                     const res = await post({ action:'decrypt_file', doc_id:f.id, session_id:SESSION_ID });
-                    if(res.success) openedDocs[f.id] = { data_url:res.data_url, mime:res.mime, file_name:res.file_name };
+                    if(res.success) openedDocs[odKey(lotId, f.id)] = { data_url:res.data_url, mime:res.mime, file_name:res.file_name };
                 }
-                renderFiles(fileArea, files, quorum);
+                renderFiles(fileArea, files, quorum, lotId);
                 const chkBtn = document.getElementById(`btn-chk-${bidder.bidder_id}`);
                 if(chkBtn) chkBtn.classList.add('ready');
             })();
         } else {
-            renderFiles(fileArea, files, quorum);
+            renderFiles(fileArea, files, quorum, lotId);
         }
 
         _renderActionButtons(bidder, stage, lotId, files, quorum);
@@ -1471,7 +1472,7 @@ function _renderActionButtons(bidder, stage, lotId, files, quorum){
     }
 }
 
-function renderFiles(area, files, quorum){
+function renderFiles(area, files, quorum, lotId){
     area.innerHTML = '';
 
     // Quorum status bar
@@ -1501,7 +1502,7 @@ function renderFiles(area, files, quorum){
     }
 
     files.forEach(f=>{
-        const opened = !!openedDocs[f.id];
+        const opened = !!openedDocs[odKey(lotId, f.id)];
         const ext = (f.display_name||'').split('.').pop().toLowerCase();
         const icon = ext==='pdf'?'bi-file-earmark-pdf':['jpg','jpeg','png','gif','webp'].includes(ext)?'bi-file-earmark-image':'bi-file-earmark-text';
         const row = mkEl('div','file-row');
@@ -1513,7 +1514,7 @@ function renderFiles(area, files, quorum){
                 <div class="f-meta">${esc(f.uploaded_at)}</div>
             </div>
             <button class="btn-view${opened?' active':''}" id="vbtn-${f.id}"
-                onclick="viewDoc(${f.id})" title="${opened?'View document':'Quorum not reached yet'}">
+                onclick="viewDoc(${lotId},${f.id})" title="${opened?'View document':'Quorum not reached yet'}">
                 <i class="bi bi-eye"></i> View
             </button>
         `;
@@ -1595,9 +1596,9 @@ function doOpenFiles(){
             const files = fd.files || [];
             for(const f of files){
                 const res = await post({ action:'decrypt_file', doc_id:f.id, session_id:SESSION_ID });
-                if(res.success) openedDocs[f.id] = { data_url:res.data_url, mime:res.mime, file_name:res.file_name };
+                if(res.success) openedDocs[odKey(lotId, f.id)] = { data_url:res.data_url, mime:res.mime, file_name:res.file_name };
             }
-            renderFiles(fileArea, files, { quorum_reached:true, sig_count:1, required:1, signing_status:'done' });
+            renderFiles(fileArea, files, { quorum_reached:true, sig_count:1, required:1, signing_status:'done' }, lotId);
         }
 
         // Replace only the "Open Now" button — leave checklist intact
@@ -1727,7 +1728,7 @@ function doPwConfirm(){
                 ok = false;
                 break;
             }
-            openedDocs[f.id] = { data_url:res.data_url, mime:res.mime, file_name:res.file_name };
+            openedDocs[odKey(pw_lotId, f.id)] = { data_url:res.data_url, mime:res.mime, file_name:res.file_name };
         }
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-unlock-fill"></i> Open Files';
@@ -1748,8 +1749,8 @@ function _markFilesOpened(bidderId, bidId, lotId, stage, files){
     if(chkBtn) chkBtn.classList.add('ready');
 }
 
-function viewDoc(docId){
-    const e = openedDocs[docId];
+function viewDoc(lotId, docId){
+    const e = openedDocs[odKey(lotId, docId)];
     if(!e) return;
     document.getElementById('fvTitle').textContent = e.file_name || 'Document';
     const c = document.getElementById('fvContent');
@@ -2371,7 +2372,7 @@ function _conclusionFileList(bidderId, lotId, phase){
             const files = d.files || [];
             if(!files.length){ el.innerHTML = '<span class="fz-11 t-gray">No documents.</span>'; return; }
             el.innerHTML = files.map(f => {
-                const opened = !!openedDocs[f.id];
+                const opened = !!openedDocs[odKey(lotId, f.id)];
                 const ext = (f.display_name||'').split('.').pop().toLowerCase();
                 const icon = ext==='pdf' ? 'bi-file-earmark-pdf'
                            : ['jpg','jpeg','png','gif','webp'].includes(ext) ? 'bi-file-earmark-image'
@@ -2379,7 +2380,7 @@ function _conclusionFileList(bidderId, lotId, phase){
                 return `<div class="list-row-sm">
                     <i class="bi ${esc(icon)} t-muted fz-13 shrink-0"></i>
                     <span class="flex-1 fz-11-5 t-dark truncate">${esc(f.display_name)}</span>
-                    <button class="btn-view${opened?' active':''}" onclick="viewDoc(${f.id})"
+                    <button class="btn-view${opened?' active':''}" onclick="viewDoc(${lotId},${f.id})"
                         class="fz-11 pad-3-10"
                         title="${opened?'View document':'File not yet decrypted'}">
                         <i class="bi bi-eye"></i> View
@@ -2389,11 +2390,11 @@ function _conclusionFileList(bidderId, lotId, phase){
             // Trigger silent decrypt for any not yet in cache
             (async ()=>{
                 for(const f of files){
-                    if(openedDocs[f.id]) continue;
+                    if(openedDocs[odKey(lotId, f.id)]) continue;
                     const res = await post({ action:'decrypt_file', doc_id:f.id, session_id:SESSION_ID });
                     if(res.success){
-                        openedDocs[f.id] = { data_url:res.data_url, mime:res.mime, file_name:res.file_name };
-                        const vbtn = el.querySelector(`button[onclick="viewDoc(${f.id})"]`);
+                        openedDocs[odKey(lotId, f.id)] = { data_url:res.data_url, mime:res.mime, file_name:res.file_name };
+                        const vbtn = el.querySelector(`button[onclick="viewDoc(${lotId},${f.id})"]`);
                         if(vbtn){ vbtn.classList.add('active'); vbtn.title='View document'; }
                     }
                 }
@@ -2687,7 +2688,7 @@ function _silentRefreshQuorum(lotId, stage){
         if(!btns) return;
         _renderActionButtons(activeBidder, stage, lotId, fd.files || [], qd);
         const fileArea = document.querySelector('#lot-bidder-area .files-pane');
-        if(fileArea && (fd.files || []).length > 0) renderFiles(fileArea, fd.files, qd);
+        if(fileArea && (fd.files || []).length > 0) renderFiles(fileArea, fd.files, qd, lotId);
     }).catch(function(){});
 }
 

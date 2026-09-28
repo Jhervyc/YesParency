@@ -69,8 +69,7 @@ if ($action === 'bidders') {
         $doc_type = $phase === 'financial' ? 'financial' : 'eligibility';
         $fc = $conn->prepare("
             SELECT COUNT(*) FROM bid_documents bd
-            JOIN bid_lots bl2 ON bl2.bid_id = bd.bid_id
-            WHERE bd.bid_id = ? AND bl2.lot_id = ? AND bd.document_type = ?
+            WHERE bd.bid_id = ? AND bd.lot_id = ? AND bd.document_type = ?
         ");
         $fc->bind_param("iis", $b['bid_id'], $lot_id, $doc_type);
         $fc->execute();
@@ -110,9 +109,8 @@ if ($action === 'files') {
                b.id AS bid_id
         FROM bid_documents bd
         JOIN bids b     ON b.id = bd.bid_id
-        JOIN bid_lots bl ON bl.bid_id = b.id
         WHERE b.bidder_id = ?
-          AND bl.lot_id   = ?
+          AND bd.lot_id   = ?
           AND bd.document_type = ?
         ORDER BY bd.uploaded_at ASC
     ");
@@ -275,7 +273,7 @@ if ($action === 'decrypt_file') {
     }
 
     // Fetch document
-    $doc_stmt = $conn->prepare("SELECT file_path, document_type, document_name FROM bid_documents WHERE id = ?");
+    $doc_stmt = $conn->prepare("SELECT bid_id, lot_id, file_path, document_type, document_name FROM bid_documents WHERE id = ?");
     $doc_stmt->bind_param("i", $doc_id);
     $doc_stmt->execute();
     $doc = $doc_stmt->get_result()->fetch_assoc();
@@ -283,6 +281,26 @@ if ($action === 'decrypt_file') {
 
     if (!$doc) {
         echo json_encode(['success' => false, 'message' => 'Document not found.']); exit();
+    }
+
+    // Server-side gate: a lot-scoped doc may only be decrypted once that lot's
+    // phase has actually reached an "opened" (quorum-signed) state — prevents
+    // opening a document via a stale/guessed doc_id before its lot is unsealed.
+    if (!empty($doc['lot_id']) && in_array($doc['document_type'], ['eligibility', 'financial'], true)) {
+        $status_col = $doc['document_type'] === 'financial' ? 'financial_status' : 'eligibility_status';
+        $bl_stmt = $conn->prepare("SELECT $status_col AS status FROM bid_lots WHERE bid_id = ? AND lot_id = ?");
+        $bl_stmt->bind_param("ii", $doc['bid_id'], $doc['lot_id']);
+        $bl_stmt->execute();
+        $bl_row = $bl_stmt->get_result()->fetch_assoc();
+        $bl_stmt->close();
+
+        $opened_statuses = $doc['document_type'] === 'financial'
+            ? ['opened', 'qualified', 'non_compliant']
+            : ['opened', 'eligible', 'disqualified'];
+
+        if (!$bl_row || !in_array($bl_row['status'], $opened_statuses, true)) {
+            echo json_encode(['success' => false, 'message' => 'This lot has not been opened yet.']); exit();
+        }
     }
 
     $abs_path = realpath(dirname(__DIR__) . '/' . ltrim(str_replace('../', '', $doc['file_path']), '/'));

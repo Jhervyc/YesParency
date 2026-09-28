@@ -147,9 +147,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_bid'])) {
             }
             $lot_bid_stmt->close();
 
-            $doc_stmt = $conn->prepare("INSERT INTO bid_documents (bid_id, document_type, document_name, file_path) VALUES (?, ?, ?, ?)");
+            $doc_stmt = $conn->prepare("INSERT INTO bid_documents (bid_id, lot_id, document_type, document_name, file_path) VALUES (?, ?, ?, ?, ?)");
+            $doc_lot_id = null;
 
-            // 1. Process Receipt File
+            // 1. Process Receipt File (bid-wide, not tied to a specific lot)
             $receipt_file = $_FILES['bid_receipt'];
             $receipt_ext = strtolower(pathinfo($receipt_file['name'], PATHINFO_EXTENSION));
             $receipt_target = $upload_dir . "receipt_bid_" . $bid_id . "_" . time() . "." . $receipt_ext;
@@ -158,7 +159,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_bid'])) {
                 $uploaded_file_paths[] = $receipt_target;
                 $doc_type = 'other';
                 $orig_name = "Receipt - " . basename($receipt_file['name']);
-                $doc_stmt->bind_param("isss", $bid_id, $doc_type, $orig_name, $receipt_target);
+                $doc_lot_id = null;
+                $doc_stmt->bind_param("iisss", $bid_id, $doc_lot_id, $doc_type, $orig_name, $receipt_target);
                 $doc_stmt->execute();
             } else {
                 throw new Exception("Failed to save Bid Receipt.");
@@ -189,7 +191,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_bid'])) {
                                 if ($result['success']) {
                                     $uploaded_file_paths[] = $target;
                                     $display_name = ucfirst($doc_type) . " ({$orig_filename})";
-                                    $doc_stmt->bind_param("isss", $bid_id, $doc_type, $display_name, $target);
+                                    $doc_lot_id = $clean_lot_id;
+                                    $doc_stmt->bind_param("iisss", $bid_id, $doc_lot_id, $doc_type, $display_name, $target);
                                     $doc_stmt->execute();
                                 } else {
                                     throw new Exception($result['message']);
