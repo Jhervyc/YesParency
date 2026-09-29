@@ -4,7 +4,7 @@ include("utils/protect-secretariat.php");
 
 // ── Status filter ────────────────────────────────────────────────────────────
 $status_filter = isset($_GET['status']) ? strtolower(trim($_GET['status'])) : 'all';
-$valid_statuses = ['draft', 'open', 'closed', 'awarded'];
+$valid_statuses = ['draft', 'open', 'closed', 'awarded', 'opened'];
 if ($status_filter !== 'all' && !in_array($status_filter, $valid_statuses)) {
     $status_filter = 'all';
 }
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_procurement'])
 
 // ── Stats for donut ───────────────────────────────────────────────────────────
 $counts = [];
-foreach (['draft','open','closed','awarded'] as $s) {
+foreach (['draft','open','closed','awarded','opened'] as $s) {
     $r = $conn->query("SELECT COUNT(*) FROM procurements WHERE status = '$s'");
     $counts[$s] = intval($r->fetch_row()[0]);
 }
@@ -71,7 +71,7 @@ $total_proc = array_sum($counts);
 function pct2($part, $total) { return $total > 0 ? round($part / $total * 100) : 0; }
 
 // Build conic gradient dynamically
-$colors = ['draft' => '#8B958E', 'open' => '#219653', 'closed' => '#2F6FED', 'awarded' => '#F0B92E'];
+$colors = ['draft' => '#8B958E', 'open' => '#219653', 'closed' => '#2F6FED', 'awarded' => '#F0B92E', 'opened' => '#F0B92E'];
 $grad = '';
 $cur = 0;
 foreach ($counts as $s => $cnt) {
@@ -184,6 +184,7 @@ $result = mysqli_stmt_get_result($stmt);
                     'open'    => 'Open',
                     'closed'  => 'Closed',
                     'awarded' => 'Awarded',
+                    'opened'  => 'Opened',
                 ];
                 foreach ($legend as $key => $label):
                     $cnt = $counts[$key];
@@ -223,7 +224,7 @@ $result = mysqli_stmt_get_result($stmt);
                 </div>
                 <div class="filter-status-group">
                     <?php
-                    $tabs = ['all'=>'All','draft'=>'Draft','open'=>'Open','closed'=>'Closed','awarded'=>'Awarded'];
+                    $tabs = ['all'=>'All','draft'=>'Draft','open'=>'Open','closed'=>'Closed','awarded'=>'Awarded','opened'=>'Opened'];
                     foreach ($tabs as $val => $label):
                     ?>
                         <button type="submit" name="status" value="<?= $val ?>"
@@ -254,7 +255,7 @@ $result = mysqli_stmt_get_result($stmt);
                 <tbody>
                 <?php while ($row = mysqli_fetch_assoc($result)):
                     $cs = strtolower($row['status']);
-                    $stClass = match($cs) { 'open'=>'status-open','closed'=>'status-closed','awarded'=>'status-awarded', default=>'status-draft' };
+                    $stClass = match($cs) { 'open'=>'status-open','closed'=>'status-closed','awarded'=>'status-awarded','opened'=>'status-awarded', default=>'status-draft' };
                 ?>
                 <tr>
                     <td class="proc-ref-cell">

@@ -40,7 +40,7 @@ if (isset($conn) && $conn instanceof mysqli) {
                (SELECT COUNT(*) FROM bids b WHERE b.procurement_id = p.id) AS bid_count
         FROM bid_opening_sessions bos
         JOIN procurements p ON bos.procurement_id = p.id
-        WHERE bos.status IN ('started','eligibility','financial','awarding')
+        WHERE bos.status IN ('started','eligibility','financial','offered')
         ORDER BY bos.started_at DESC
         LIMIT 1
     ");
@@ -92,7 +92,7 @@ if (isset($conn) && $conn instanceof mysqli) {
     $s2 = $conn->query("SELECT COUNT(*) AS cnt FROM users WHERE role IN ('bidder', 'user')");
     if ($s2) { $total_suppliers = (int)$s2->fetch_assoc()['cnt']; }
 
-    $s3 = $conn->query("SELECT COUNT(*) AS cnt FROM procurements WHERE status = 'awarded'");
+    $s3 = $conn->query("SELECT COUNT(*) AS cnt FROM procurements WHERE status IN ('awarded','opened')");
     if ($s3) { $total_awarded = (int)$s3->fetch_assoc()['cnt']; }
 }
 
@@ -153,9 +153,9 @@ if (isset($conn) && $conn instanceof mysqli) {
 
         <!-- Right: Live Session OR Closest Bid Openings -->
         <?php if ($live_session_hero): 
-            $phase_labels = ['started'=>'Opening Started','eligibility'=>'Eligibility Phase','financial'=>'Financial Phase','awarding'=>'Awarding Phase'];
+            $phase_labels = ['started'=>'Opening Started','eligibility'=>'Eligibility Phase','financial'=>'Financial Phase','offered'=>'Recording Offered Bids'];
             $phase = $phase_labels[$live_session_hero['session_status']] ?? ucfirst($live_session_hero['session_status']);
-            $phase_steps = ['started'=>0,'eligibility'=>1,'financial'=>2,'awarding'=>3];
+            $phase_steps = ['started'=>0,'eligibility'=>1,'financial'=>2,'offered'=>3];
             $cur_step = $phase_steps[$live_session_hero['session_status']] ?? 0;
         ?>
         <div class="hero-ranking-card hero-ranking-card--live">
@@ -192,7 +192,7 @@ if (isset($conn) && $conn instanceof mysqli) {
             <!-- Phase stepper -->
             <div class="phase-stepper">
                 <?php
-                $steps = ['Eligibility','Financial','Awarding'];
+                $steps = ['Eligibility','Financial','Offered Bids'];
                 foreach ($steps as $i => $s):
                     $done    = $cur_step > $i + 1;
                     $current = $cur_step == $i + 1;
@@ -331,8 +331,8 @@ if (isset($conn) && $conn instanceof mysqli) {
                 <i class="bi bi-award"></i>
             </div>
             <div class="stat-card-num"><?= $total_awarded ?></div>
-            <div class="stat-card-title">Awarded Contracts</div>
-            <div class="stat-card-sub">Publicly disclosed awards</div>
+            <div class="stat-card-title">Opened Contracts</div>
+            <div class="stat-card-sub">Publicly disclosed results</div>
         </div>
 
         <div class="stat-card-item">

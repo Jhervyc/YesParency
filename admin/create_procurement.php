@@ -281,8 +281,6 @@
                                     <select id="procurement_mode" name="procurement_mode" required>
                                         <option value="" disabled <?= empty($_POST['procurement_mode']) ? 'selected' : '' ?>>-- Select Procurement Mode --</option>
                                         <option value="Public Bidding" <?= (($_POST['procurement_mode'] ?? '') === 'Public Bidding') ? 'selected' : '' ?>>Public Bidding (Competitive)</option>
-                                        <option value="Shopping" <?= (($_POST['procurement_mode'] ?? '') === 'Shopping') ? 'selected' : '' ?>>Shopping (Sec. 52)</option>
-                                        <option value="Small Value Procurement" <?= (($_POST['procurement_mode'] ?? '') === 'Small Value Procurement') ? 'selected' : '' ?>>Small Value Procurement (SVP)</option>
                                     </select>
                                     <i class="bi bi-briefcase input-icon"></i>
                                 </div>

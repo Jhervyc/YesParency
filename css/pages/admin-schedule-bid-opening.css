@@ -95,6 +95,9 @@
 .hero-pill.open {
     background: rgba(33,150,83,.25); border: 1px solid rgba(33,150,83,.5); color: #81c784;
 }
+.hero-pill.closed {
+    background: rgba(47,111,237,.2); border: 1px solid rgba(47,111,237,.4); color: #90b4f7;
+}
 .hero-pill.locked {
     background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); color: #d1e5db;
     font-size: 10.5px;

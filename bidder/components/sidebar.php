@@ -10,7 +10,7 @@ $active = $active_nav ?? $current_script;
 
 // Active state detection
 $is_dashboard_active     = ($active === 'dashboard.php' || $active === 'dashboard');
-$is_procurement_active   = in_array($active, ['procurement.php', 'view_procurement.php', 'submit_bid.php', 'submit_quotation.php', 'procurement']);
+$is_procurement_active   = in_array($active, ['procurement.php', 'view_procurement.php', 'submit_bid.php', 'procurement']);
 $is_bids_active          = in_array($active, ['my_bids.php', 'my_bids']);
 $is_bid_opening_active   = in_array($active, ['bid_opening.php', 'bid-session-list.php', 'bid_opening']);
 $is_notifications_active = in_array($active, ['notification.php', 'notifications.php', 'notification']);

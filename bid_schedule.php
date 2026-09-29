@@ -15,7 +15,7 @@ if (isset($_SESSION['user_id'], $_SESSION['role'])) {
 }
 
 // ── Filters ───────────────────────────────────────────────────────────────────
-$filter  = in_array($_GET['filter'] ?? '', ['all','open','closed','awarded']) ? ($_GET['filter']) : 'all';
+$filter  = in_array($_GET['filter'] ?? '', ['all','open','closed','awarded','opened']) ? ($_GET['filter']) : 'all';
 $sort    = ($_GET['sort'] ?? '') === 'closing' ? 'closing' : 'default';
 $filter_mode = trim($_GET['mode'] ?? '');
 $search  = trim($_GET['search'] ?? '');
@@ -31,7 +31,7 @@ if (isset($conn) && $conn instanceof mysqli) {
                p.title AS proc_title, p.slsu_ref_no, p.abc
         FROM bid_opening_sessions bos
         JOIN procurements p ON bos.procurement_id = p.id
-        WHERE bos.status IN ('started', 'eligibility','financial','awarding')
+        WHERE bos.status IN ('started', 'eligibility','financial')
         ORDER BY bos.started_at DESC
         LIMIT 1
     ");
@@ -75,7 +75,7 @@ if (isset($conn) && $conn instanceof mysqli) {
     // Order
     $order_sql = $sort === 'closing'
         ? "ORDER BY CASE WHEN p.closing_date >= NOW() THEN 0 ELSE 1 END ASC, p.closing_date ASC"
-        : "ORDER BY CASE p.status WHEN 'open' THEN 1 WHEN 'closed' THEN 2 WHEN 'awarded' THEN 3 ELSE 4 END ASC, p.opening_date ASC, p.id DESC";
+        : "ORDER BY CASE p.status WHEN 'open' THEN 1 WHEN 'closed' THEN 2 WHEN 'awarded' THEN 3 WHEN 'opened' THEN 3 ELSE 4 END ASC, p.opening_date ASC, p.id DESC";
 
     // Rows
     $lp = array_merge($params, [$per_page, $offset]);
@@ -160,7 +160,7 @@ $total_pages = $total_pages ?? 1;
 
         <!-- Status -->
         <div class="filter-status-group">
-            <?php foreach (['all'=>'All','open'=>'Open','closed'=>'Closed','awarded'=>'Awarded'] as $v => $l): ?>
+            <?php foreach (['all'=>'All','open'=>'Open','closed'=>'Closed','awarded'=>'Awarded','opened'=>'Opened'] as $v => $l): ?>
             <button type="button" class="filter-btn <?= $filter === $v ? 'active' : '' ?>"
                 onclick="document.getElementById('hiddenFilter').value='<?= $v ?>'; document.getElementById('filterForm').submit();">
                 <?= $l ?>
@@ -226,12 +226,14 @@ $total_pages = $total_pages ?? 1;
                         'open'    => 'spill-open',
                         'closed'  => 'spill-closed',
                         'awarded' => 'spill-awarded',
+                        'opened'  => 'spill-awarded',
                         default   => 'spill-other',
                     };
                     $pillIcon = match($ps) {
                         'open'    => 'bi-door-open',
                         'closed'  => 'bi-lock',
                         'awarded' => 'bi-trophy',
+                        'opened'  => 'bi-unlock',
                         default   => 'bi-circle',
                     };
                 ?>

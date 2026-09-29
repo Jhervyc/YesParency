@@ -164,12 +164,11 @@ YesParency/
 │   ├── procurement-view.php
 │   ├── bid_opening.php         # Bid opening management hub
 │   ├── bid_session.php         # Live bid opening session room
-│   ├── bid_session_api.php     # ⭐ All bid session actions (AJAX) — signing, awarding, ending
+│   ├── bid_session_api.php     # ⭐ All bid session actions (AJAX) — signing, evaluation, ending
 │   ├── bid-session-list.php
 │   ├── schedule_bid_opening.php
 │   ├── bid_submissions.php
 │   ├── bid-submission-view.php
-│   ├── quotation_management.php
 │   ├── checklist_pdf.php       # DomPDF bid opening checklist report
 │   ├── account-management.php  # Bidder account management
 │   ├── approve_bidder.php
@@ -194,7 +193,6 @@ YesParency/
 │   ├── procurement.php
 │   ├── view_procurement.php
 │   ├── submit_bid.php
-│   ├── submit_quotation.php
 │   ├── my_bids.php
 │   ├── bid_opening.php         # Bidder view of bid opening
 │   ├── bid-session-list.php
@@ -379,7 +377,7 @@ Bids:    submitted → opened → pending → awarded / rejected
 ## 8. Bid Opening Lifecycle
 
 ```
-Session statuses: scheduled → started → eligibility → financial → awarding → ended
+Session statuses: scheduled → started → eligibility → financial → ended
 
 1. Secretariat creates session (schedule_bid_opening.php)
    → bid_opening_sessions row inserted, status='scheduled'
@@ -403,18 +401,20 @@ Session statuses: scheduled → started → eligibility → financial → awardi
 6. Evaluation phases: eligibility → financial
    → bid_lots.eligibility_status, bid_lots.financial_status updated
 
-7. Awarding (bid_session_api.php — action=award_lot)
-   → awards row inserted
-   → lot.status='awarded'
-   → bid.status='awarded' for winner
-
-8. End session (bid_session_api.php — action=end_session)
+7. End session (bid_session_api.php — action=end_session)
    → session.status='ended'
-   → Remaining pending lots → status='failed'
-   → Non-awarded bids → status='rejected'
-   → procurement status → 'awarded' (if any lot awarded) or 'closed'
+   → Remaining pending lots (this session made no award/fail decision) → status='opened'
+   → bids.status is left untouched — no forced award/reject at conclusion
+   → procurement status → 'opened'
    → Email notification to all participants
 ```
+
+Note: the live bid-opening session no longer has an "awarding" step — declaring a
+winning bidder is out of scope for this flow. The separate "quotation" flow for
+Small Value Procurement / Shopping procurements (`admin/quotation_management.php`,
+`bidder/submit_quotation.php`) has been removed entirely — every procurement now
+goes through this same `submit_bid.php` → `bid_session.php` flow regardless of
+procurement mode.
 
 **Key file:** `admin/bid_session_api.php` — all session actions are AJAX POST to this file with `$_POST['action']`
 
@@ -425,7 +425,7 @@ Session statuses: scheduled → started → eligibility → financial → awardi
 | File | What It Does |
 |---|---|
 | `query.sql` | Complete DB schema — always check here first for table structure |
-| `admin/bid_session_api.php` | All bid opening session logic — signing, awarding, ending |
+| `admin/bid_session_api.php` | All bid opening session logic — signing, evaluation, ending |
 | `admin/settings.php` | Settings page — Profile/Checklist/Live tabs (all), System Config/Maintenance (superadmin) |
 | `admin/components/sidebar.php` | Role-aware sidebar — read this to understand nav visibility logic |
 | `admin/utils/protect-page.php` | Admin auth guard — allows both `admin` and `superadmin` |

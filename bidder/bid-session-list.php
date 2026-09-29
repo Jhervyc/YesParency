@@ -24,7 +24,7 @@ $params      = [];
 $types       = '';
 
 if ($filter === 'live') {
-    $where_parts[] = "bos.status IN ('eligibility','financial','awarding')";
+    $where_parts[] = "bos.status IN ('eligibility','financial','offered')";
 } elseif ($filter === 'scheduled') {
     $where_parts[] = "bos.status = 'scheduled'";
 } elseif ($filter === 'ended') {
@@ -65,7 +65,7 @@ $list = $conn->prepare("
         CASE bos.status
             WHEN 'eligibility' THEN 1
             WHEN 'financial'   THEN 2
-            WHEN 'awarding'    THEN 3
+            WHEN 'offered'     THEN 3
             WHEN 'scheduled'   THEN 4
             WHEN 'ended'       THEN 5
         END ASC,
@@ -160,7 +160,7 @@ $sessions = $list->get_result();
                 <tbody>
                 <?php while ($row = $sessions->fetch_assoc()):
                     $st = $row['session_status'];
-                    $is_live_status = in_array($st, ['eligibility', 'financial', 'awarding']);
+                    $is_live_status = in_array($st, ['eligibility', 'financial', 'offered']);
 
                     if ($is_live_status) {
                         $pill_class = 'pill-live';

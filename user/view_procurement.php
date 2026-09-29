@@ -102,9 +102,11 @@ if (!empty($procurement['closing_date'])) {
 }
 
 // Status styles
-$status_pill_class = in_array($p_status, ['open','draft','closed','awarded','cancelled'])
-    ? 'status-' . $p_status
-    : 'status-open';
+$status_pill_class = $p_status === 'opened'
+    ? 'status-awarded' // reuse the same concluded-session styling as 'awarded'
+    : (in_array($p_status, ['open','draft','closed','awarded','cancelled'])
+        ? 'status-' . $p_status
+        : 'status-open');
 ?>
 <!DOCTYPE html>
 <html lang="en">

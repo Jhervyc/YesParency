@@ -218,8 +218,8 @@ if (!empty($procurement['closing_date'])) {
     $deadline_text = date('F j, Y · g:i A', $dl_time);
 }
 
-$status_badge_bg = ['open'=>'#e4f5ea', 'draft'=>'#eef0ed', 'closed'=>'#e7eefe', 'awarded'=>'#fcf1cf', 'cancelled'=>'#ffebee'][$p_status] ?? '#eef0ed';
-$status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 'awarded'=>'#b78103', 'cancelled'=>'#c23b3b'][$p_status] ?? '#6c776e';
+$status_badge_bg = ['open'=>'#e4f5ea', 'draft'=>'#eef0ed', 'closed'=>'#e7eefe', 'awarded'=>'#fcf1cf', 'opened'=>'#fcf1cf', 'cancelled'=>'#ffebee'][$p_status] ?? '#eef0ed';
+$status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 'awarded'=>'#b78103', 'opened'=>'#b78103', 'cancelled'=>'#c23b3b'][$p_status] ?? '#6c776e';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -639,7 +639,7 @@ $status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 
                             <i class="bi bi-sliders"></i>
                             <select name="procurement_mode">
                                 <?php
-                                $modes = ['Public Bidding', 'Competitive Bidding', 'Small Value Procurement', 'Shopping', 'Negotiated Procurement', 'Direct Contracting', 'Limited Source Bidding', 'Repeat Order'];
+                                $modes = ['Public Bidding', 'Competitive Bidding', 'Negotiated Procurement', 'Direct Contracting', 'Limited Source Bidding', 'Repeat Order'];
                                 foreach ($modes as $m): ?>
                                     <option value="<?= $m ?>" <?= $procurement['procurement_mode'] === $m ? 'selected' : '' ?>><?= $m ?></option>
                                 <?php endforeach; ?>

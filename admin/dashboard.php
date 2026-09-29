@@ -23,7 +23,7 @@ $total_procs   = (int)($conn->query("SELECT COUNT(*) FROM procurements")->fetch_
 $open_procs    = (int)($conn->query("SELECT COUNT(*) FROM procurements WHERE status = 'open'")->fetch_row()[0] ?? 0);
 $draft_procs   = (int)($conn->query("SELECT COUNT(*) FROM procurements WHERE status = 'draft'")->fetch_row()[0] ?? 0);
 $closed_procs  = (int)($conn->query("SELECT COUNT(*) FROM procurements WHERE status = 'closed'")->fetch_row()[0] ?? 0);
-$awarded_procs = (int)($conn->query("SELECT COUNT(*) FROM procurements WHERE status = 'awarded'")->fetch_row()[0] ?? 0);
+$awarded_procs = (int)($conn->query("SELECT COUNT(*) FROM procurements WHERE status IN ('awarded','opened')")->fetch_row()[0] ?? 0);
 
 // ── Bid stats ───────────────────────────────────────────────────────────────
 $total_bids     = (int)($conn->query("SELECT COUNT(*) FROM bids")->fetch_row()[0] ?? 0);
@@ -193,7 +193,7 @@ include("components/topbar.php");
                         </div>
                         <div class="compact-metric-item">
                             <div class="compact-metric-num metric-num--blue"><?= $awarded_procs ?></div>
-                            <div class="compact-metric-lbl">Awarded</div>
+                            <div class="compact-metric-lbl">Opened</div>
                         </div>
                     </div>
                 </div>

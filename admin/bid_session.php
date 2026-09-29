@@ -66,8 +66,7 @@ $lots_stmt = $conn->prepare("
         COUNT(CASE WHEN bl.eligibility_status = 'eligible' THEN 1 END) AS eligible_bids,
         COUNT(CASE WHEN bl.eligibility_status = 'disqualified' THEN 1 END) AS disq_elig,
         COUNT(CASE WHEN bl.eligibility_status = 'eligible' AND bl.financial_status IN ('pending','opened') THEN 1 END) AS pending_fin,
-        COUNT(CASE WHEN bl.eligibility_status = 'eligible' AND bl.financial_status IN ('qualified','non_compliant') THEN 1 END) AS done_fin,
-        (SELECT COUNT(*) FROM awards a WHERE a.lot_id = l.id) AS is_awarded
+        COUNT(CASE WHEN bl.eligibility_status = 'eligible' AND bl.financial_status IN ('qualified','non_compliant') THEN 1 END) AS done_fin
     FROM lots l
     LEFT JOIN bid_lots bl ON bl.lot_id = l.id
     WHERE l.procurement_id = ?
@@ -79,12 +78,29 @@ $lots_stmt->execute();
 $lots = $lots_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $lots_stmt->close();
 
+// A lot is only "done" once the admin has explicitly submitted Done for it
+// (which advances current_lot_id past it) — never just inferred from having
+// zero bids or nothing left pending, since that would mark bid-less lots
+// done before the session ever reaches them.
+$current_lot_number = null;
+if ($current_lot_id > 0) {
+    foreach ($lots as $l) {
+        if ((int)$l['id'] === $current_lot_id) { $current_lot_number = (int)$l['lot_number']; break; }
+    }
+}
+
 $all_lots_done = !empty($lots);
 foreach ($lots as &$l) {
-    $total  = (int)$l['total_bids'];
-    $p_elig = (int)$l['pending_elig'];
-    $p_fin  = (int)$l['pending_fin'];
-    $l['is_done'] = ($total === 0 || ($p_elig === 0 && $p_fin === 0) || (int)$l['is_awarded'] > 0);
+    if ($st === 'ended') {
+        $l['is_done'] = true;
+    } elseif ($current_lot_id === 0) {
+        // No active lot pointer: either the session hasn't started yet
+        // (nothing done) or every lot has already been explicitly
+        // completed and we're waiting on the "End Session" confirmation.
+        $l['is_done'] = ($st !== 'scheduled');
+    } else {
+        $l['is_done'] = ((int)$l['lot_number'] < $current_lot_number);
+    }
     if (!$l['is_done']) {
         $all_lots_done = false;
     }
@@ -115,8 +131,8 @@ if ($st === 'scheduled') {
 } elseif ($st === 'financial') {
     $lot_txt = $active_lot_db ? ('Lot ' . $active_lot_db['lot_number']) : 'Lot 1';
     $initial_activity_text = "Session in progress · Reviewing {$lot_txt} (Financial Phase)";
-} elseif ($st === 'awarding') {
-    $initial_activity_text = "Awarding phase in progress · Selecting winning bidders per lot.";
+} elseif ($st === 'offered') {
+    $initial_activity_text = "Recording offered bid amounts before concluding the session.";
 } elseif ($st === 'ended') {
     $initial_activity_text = "Bid Opening Session officially concluded and archived.";
 }
@@ -179,8 +195,8 @@ $inv_res->close();
         <?php if ($session['procurement_mode']): ?>
         <span class="ipill mode"><i class="bi bi-tag"></i><?= htmlspecialchars($session['procurement_mode']) ?></span>
         <?php endif; ?>
-        <span class="ipill <?= in_array($st,['eligibility','financial','awarding','started']) ? 'live' : 'sched' ?>" id="heroStatusPill">
-            <i class="bi bi-<?= in_array($st,['eligibility','financial','awarding','started']) ? 'broadcast' : 'clock' ?>"></i>
+        <span class="ipill <?= in_array($st,['eligibility','financial','started','offered']) ? 'live' : 'sched' ?>" id="heroStatusPill">
+            <i class="bi bi-<?= in_array($st,['eligibility','financial','started','offered']) ? 'broadcast' : 'clock' ?>"></i>
             <?= ucfirst($st) ?>
         </span>
     </div>
@@ -204,19 +220,17 @@ $inv_res->close();
     <?php endif; ?>
 </div>
 
-<!-- MASTER TABS: Lot 1 -> Lot 2 -> ... -> Awarding -->
+<!-- MASTER TABS: Lot 1 -> Lot 2 -> ... -> Concluded -->
 <div class="master-tabs-wrap" id="masterTabs">
     <?php foreach ($lots as $i => $lot): ?>
     <div class="master-tab <?= $lot['is_done'] ? 'done' : ($i===0 ? 'active' : 'locked') ?>" id="mtab-<?= $i ?>" onclick="onMasterTabClick(<?= $i ?>)">
         <span class="mtab-num"><?= $lot['lot_number'] ?></span>
         <span>Lot <?= $lot['lot_number'] ?></span>
-        <span class="mtab-badge <?= $lot['is_done'] ? 'done' : '' ?>" id="mtab-badge-<?= $i ?>"><?= $lot['is_done'] ? '<i class="bi bi-check2"></i> Done' : '' ?></span>
     </div>
     <?php endforeach; ?>
-    <div class="master-tab <?= (empty($lots) || $all_lots_done || in_array($st,['awarding','ended'])) ? 'active' : 'locked' ?>" id="mtab-awarding" onclick="onMasterTabClick('awarding')">
-        <i class="bi bi-trophy-fill t-gold"></i>
-        <span>Awarding</span>
-        <span class="mtab-badge" id="mtab-badge-awarding"></span>
+    <div class="master-tab <?= ($st !== 'ended' && ($all_lots_done || $st === 'offered')) ? '' : 'locked' ?> <?= $st === 'offered' ? 'active' : '' ?>" id="mtab-offered" onclick="onMasterTabClick('offered')">
+        <i class="bi bi-cash-coin t-gold"></i>
+        <span>Offered Bids</span>
     </div>
     <div class="master-tab <?= $st === 'ended' ? '' : 'locked' ?>" id="mtab-conclusion" onclick="onMasterTabClick('conclusion')">
         <i class="bi bi-flag-fill t-forest"></i>
@@ -314,8 +328,8 @@ $inv_res->close();
     </div>
 </div>
 
-<!-- ══ AWARDING VIEW (Active for 'awarding' tab) ══ -->
-<div id="awarding-container" class="hide">
+<!-- ══ OFFERED BIDS VIEW ══ -->
+<div id="offered-bids-container" class="hide">
 
     <?php if (!$can_manage): ?>
     <div class="banner-box banner-box--amber mb-16">
@@ -323,8 +337,8 @@ $inv_res->close();
             <i class="bi bi-hourglass-split"></i>
         </div>
         <div>
-            <div class="fz-13-5 fw-8 t-warndark">Awarding in Progress</div>
-            <div class="fz-12 t-warnmid mt-2">The Secretariat is currently declaring winners for each lot. Results will appear below once finalized.</div>
+            <div class="fz-13-5 fw-8 t-warndark">Recording Offered Bids</div>
+            <div class="fz-12 t-warnmid mt-2">The Secretariat is recording each bidder's offered amount before concluding the session.</div>
         </div>
     </div>
     <?php endif; ?>
@@ -333,28 +347,33 @@ $inv_res->close();
         <div class="award-head">
             <div class="flexc gap-10">
                 <div class="notice-icon notice-icon--fs18 notice-icon--teal-lt">
-                    <i class="bi bi-trophy-fill"></i>
+                    <i class="bi bi-cash-coin"></i>
                 </div>
                 <div>
-                    <div class="fz-15 fw-8 t-dark">Awarding Phase</div>
-                    <div class="fz-11-5 t-muted">Select and declare winning bidders for each lot</div>
+                    <div class="fz-15 fw-8 t-dark">Offered Bids</div>
+                    <div class="fz-11-5 t-muted">Record each eligible bidder's total offered bid amount per lot</div>
                 </div>
             </div>
-            <span class="status-pill sp-active" id="awardStatusPill"><i class="bi bi-trophy"></i> Ready to Award</span>
         </div>
 
-        <div id="awarding-lots-list">
+        <div id="offered-bids-list">
             <div class="pad-24 flexcol gap-12">
                 <div class="skel h-60"></div>
                 <div class="skel h-60"></div>
             </div>
         </div>
 
-        <?php if ($can_manage && $st !== 'ended'): ?>
+        <?php if ($can_manage): ?>
         <div class="panel-footer panel-footer--end">
             <button class="btn-end-session" onclick="openEndSessionModal()">
                 <i class="bi bi-check2-all"></i> Conclude &amp; End Session
             </button>
+        </div>
+        <?php else: ?>
+        <div class="panel-footer panel-footer--end">
+            <span class="status-chip status-chip--amber status-chip--lg">
+                <i class="bi bi-hourglass-split"></i> Waiting for Secretariat to conclude…
+            </span>
         </div>
         <?php endif; ?>
     </div>
@@ -411,11 +430,9 @@ $inv_res->close();
     <div class="sb-body">
         <?php
         $step1_done   = ($st !== 'scheduled');
-        $step2_done   = ($all_lots_done || in_array($st, ['awarding','ended']));
+        $step2_done   = ($all_lots_done || $st === 'offered' || $st === 'ended');
         $step2_active = (in_array($st, ['started','eligibility','financial']) && !$step2_done);
         $step3_done   = ($st === 'ended');
-        $step3_active = ($st === 'awarding');
-        $step4_done   = ($st === 'ended');
         ?>
         <div class="ms-list">
 
@@ -443,25 +460,13 @@ $inv_res->close();
 
             <div class="ms-connector"></div>
 
-            <div class="ms-item" id="ms-step-award">
-                <div class="ms-dot <?= $step3_done ? 'ms-done' : ($step3_active ? 'ms-active' : 'ms-pending') ?>">
-                    <i class="bi <?= $step3_done ? 'bi-check2' : 'bi-trophy' ?>"></i>
-                </div>
-                <div class="ms-text">
-                    <div class="ms-label">Awarding Phase</div>
-                    <div class="ms-desc">Winner declaration per lot</div>
-                </div>
-            </div>
-
-            <div class="ms-connector"></div>
-
             <div class="ms-item" id="ms-step-ended">
-                <div class="ms-dot <?= $step4_done ? 'ms-done' : 'ms-pending' ?>">
+                <div class="ms-dot <?= $step3_done ? 'ms-done' : 'ms-pending' ?>">
                     <i class="bi bi-check2-all"></i>
                 </div>
                 <div class="ms-text">
                     <div class="ms-label">Session Concluded</div>
-                    <div class="ms-desc">All lots awarded and archived</div>
+                    <div class="ms-desc">All lots opened and archived</div>
                 </div>
             </div>
 
@@ -717,55 +722,6 @@ $inv_res->close();
     </div>
 </div>
 
-<!-- ══ AWARD CONFIRMATION MODAL ══ -->
-<div class="bsm-bg" id="awardModal" onclick="if(event.target===this)closeAwardModal()">
-    <div class="bsm">
-        <div class="bsm-head">
-            <h4><i class="bi bi-trophy-fill t-gold"></i> Confirm Winning Bidder</h4>
-            <button class="bsm-x" onclick="closeAwardModal()"><i class="bi bi-x-lg"></i></button>
-        </div>
-        <div class="bsm-body">
-            <p class="fz-13 fw-7 t-dark mb-8">Declare Winner for <span id="awardLotTitle">Lot</span>?</p>
-            <p class="fz-12-5 t-graphite mb-6">Winner: <strong id="awardBidderName" class="t-dark"></strong></p>
-            <p class="fz-12-5 t-graphite mb-12">Awarded Amount: <strong id="awardDisplayAmount" class="t-teal font-sg"></strong></p>
-            <div class="notice-box notice-box--amber">
-                <i class="bi bi-info-circle-fill t-amberdark shrink-0"></i>
-                This will officially record the winning award for this lot.
-            </div>
-        </div>
-        <div class="bsm-foot">
-            <button class="btn-cancel" onclick="closeAwardModal()">Cancel</button>
-            <button class="btn-confirm" id="awardConfirmBtn" onclick="doAwardConfirm()">
-                <i class="bi bi-trophy-fill"></i> Confirm Award
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- ══ FAIL LOT CONFIRMATION MODAL ══ -->
-<div class="bsm-bg" id="failLotModal" onclick="if(event.target===this)closeFailLotModal()">
-    <div class="bsm">
-        <div class="bsm-head">
-            <h4><i class="bi bi-x-circle-fill t-red"></i> Mark Lot as Failed</h4>
-            <button class="bsm-x" onclick="closeFailLotModal()"><i class="bi bi-x-lg"></i></button>
-        </div>
-        <div class="bsm-body">
-            <p class="fz-13-5 fw-7 t-dark mb-8">Mark <span id="failLotTitle">Lot</span> as Failed / No Award?</p>
-            <p class="fz-12-5 t-graphite mb-12">This will record that no winner was declared for this lot. All bids will be marked as rejected.</p>
-            <div class="notice-box notice-box--red">
-                <i class="bi bi-exclamation-triangle-fill t-red shrink-0"></i>
-                This action can be reviewed but cannot be automatically undone.
-            </div>
-        </div>
-        <div class="bsm-foot">
-            <button class="btn-cancel" onclick="closeFailLotModal()">Cancel</button>
-            <button class="btn-confirm btn-confirm--red" id="failLotConfirmBtn" onclick="doFailLot()">
-                <i class="bi bi-x-circle-fill"></i> Confirm — No Award
-            </button>
-        </div>
-    </div>
-</div>
-
 <!-- ══ END SESSION CONFIRMATION MODAL ══ -->
 <div class="bsm-bg" id="endSessionModal" onclick="if(event.target===this)closeEndSessionModal()">
     <div class="bsm">
@@ -809,11 +765,10 @@ let   SIGNING_STATUS  = '<?= $signing_st ?>';
 
 // ── State Management ──────────────────────────────────────────────────────
 const STATE = {
-    currentTab: 0, // 0..N-1 for lots, or 'awarding'
+    currentTab: 0, // 0..N-1 for lots, or 'conclusion'
     activeLotIdx: 0,
     doneLotIndices: [],
     lots: {}, // lotId -> { stage: 'eligibility'|'financial', bidders: [], done: { eligibility: [], financial: [] } }
-    awards: [],
 };
 const openedDocs = {}; // `${lotId}:${docId}` -> { data_url, mime, file_name }
 function odKey(lotId, docId){ return `${lotId}:${docId}`; }
@@ -821,7 +776,6 @@ function odKey(lotId, docId){ return `${lotId}:${docId}`; }
 // Pending modal context
 let pw_stage, pw_lotId, pw_bidderId, pw_bidId, pw_files;
 let el_bidId, el_bidderName, el_lotId, el_bidderId, el_phase, el_bidLotId;
-let _awardTarget = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function esc(s){ const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; }
@@ -861,8 +815,8 @@ function refreshSessionProgressFromDB(){
                 actEl.textContent = `Session in progress · Reviewing ${lotNum} (Eligibility & Technical Phase)`;
             } else if(data.status === 'financial'){
                 actEl.textContent = `Session in progress · Reviewing ${lotNum} (Financial Phase)`;
-            } else if(data.status === 'awarding'){
-                actEl.textContent = 'Awarding phase in progress · Selecting winning bidders per lot.';
+            } else if(data.status === 'offered'){
+                actEl.textContent = 'Recording offered bid amounts before concluding the session.';
             } else if(data.status === 'ended'){
                 actEl.textContent = 'Bid Opening Session officially concluded and archived.';
             }
@@ -871,7 +825,7 @@ function refreshSessionProgressFromDB(){
         // Update Hero Status Pill
         const pill = document.getElementById('heroStatusPill');
         if(pill){
-            const isLive = ['started','eligibility','financial','awarding'].includes(data.status);
+            const isLive = ['started','eligibility','financial','offered'].includes(data.status);
             pill.className = 'ipill ' + (isLive ? 'live' : 'sched');
             pill.innerHTML = `<i class="bi bi-${isLive ? 'broadcast' : 'clock'}"></i> ${data.status.charAt(0).toUpperCase() + data.status.slice(1)}`;
         }
@@ -883,39 +837,43 @@ function refreshSessionProgressFromDB(){
             if(!isDone) allLotsDone = false;
 
             const t = document.getElementById('mtab-'+i);
-            const b = document.getElementById('mtab-badge-'+i);
-            if(t){
-                if(isDone){
-                    t.classList.add('done');
-                    t.classList.remove('locked');
-                }
-                if(b){
-                    b.className = 'mtab-badge' + (isDone ? ' done' : '');
-                    b.innerHTML = isDone ? '<i class="bi bi-check2"></i> Done' : '';
-                }
+            if(t && isDone){
+                t.classList.add('done');
+                t.classList.remove('locked');
             }
         });
 
-        // Awarding tab unlock state
-        const awardTab = document.getElementById('mtab-awarding');
-        if(awardTab && (allLotsDone || ['awarding','ended'].includes(data.status))){
-            awardTab.classList.remove('locked');
-        }
-
-        // Lock all lot tabs when in awarding or ended phase
-        if(['awarding','ended'].includes(data.status)){
+        // Lock all lot tabs once past the lot-review phase
+        if(data.status === 'offered' || data.status === 'ended'){
             LOTS.forEach((_, i) => {
                 const t = document.getElementById('mtab-'+i);
                 if(t) t.classList.add('locked');
             });
         }
 
-        // Unlock conclusion tab when ended, lock awarding
+        // Unlock the Offered Bids tab once all lots are done — but lock it
+        // back once the session has actually ended, since Conclusion is the
+        // only reachable tab from then on.
+        const oTab = document.getElementById('mtab-offered');
+        if(oTab){
+            if(data.status === 'ended'){
+                oTab.classList.add('locked');
+            } else if(allLotsDone || data.status === 'offered'){
+                oTab.classList.remove('locked');
+            }
+        }
+
+        // Unlock conclusion tab when ended
         if(data.status === 'ended'){
             const cTab = document.getElementById('mtab-conclusion');
             if(cTab) cTab.classList.remove('locked');
-            const awardTab = document.getElementById('mtab-awarding');
-            if(awardTab) awardTab.classList.add('locked');
+        }
+
+        // Viewers sitting on a lot tab get moved to Offered Bids once the
+        // session reaches that phase (mirrors the 'ended' -> conclusion jump).
+        if((data.status === 'offered' || allLotsDone) && typeof STATE.currentTab === 'number'){
+            STATE.activeLotIdx = -1;
+            switchMasterTab('offered');
         }
 
         // Update sidebar milestones from DB
@@ -926,7 +884,6 @@ function refreshSessionProgressFromDB(){
 function updateSidebarMilestones(status, allLotsDone, endedAt){
     const s1 = document.getElementById('ms-step-start');
     const s2 = document.getElementById('ms-step-lots');
-    const s3 = document.getElementById('ms-step-award');
     const s4 = document.getElementById('ms-step-ended');
 
     if(s1){
@@ -936,17 +893,10 @@ function updateSidebarMilestones(status, allLotsDone, endedAt){
     }
 
     if(s2){
-        const done = allLotsDone || ['awarding','ended'].includes(status);
+        const done = allLotsDone || status === 'offered' || status === 'ended';
         const active = ['started','eligibility','financial'].includes(status) && !done;
         s2.querySelector('.ms-dot').className = 'ms-dot ' + (done ? 'ms-done' : (active ? 'ms-active' : 'ms-pending'));
         s2.querySelector('.ms-dot i').className = 'bi ' + (done ? 'bi-check2' : 'bi-layers');
-    }
-
-    if(s3){
-        const done = status === 'ended';
-        const active = status === 'awarding';
-        s3.querySelector('.ms-dot').className = 'ms-dot ' + (done ? 'ms-done' : (active ? 'ms-active' : 'ms-pending'));
-        s3.querySelector('.ms-dot i').className = 'bi ' + (done ? 'bi-check2' : 'bi-trophy');
     }
 
     if(s4){
@@ -982,22 +932,26 @@ function doStartSession(){
 
 // ── Master Tab Navigation ─────────────────────────────────────────────────
 function onMasterTabClick(tab){
-    if(tab === 'awarding'){
-        const awardTab = document.getElementById('mtab-awarding');
-        if(awardTab && awardTab.classList.contains('locked')) return;
-        if(SESSION_STATUS === 'ended') return;
-        switchMasterTab('awarding');
-    } else if(tab === 'conclusion'){
+    if(tab === 'conclusion'){
         const conclusionTab = document.getElementById('mtab-conclusion');
         if(conclusionTab && conclusionTab.classList.contains('locked')) return;
         switchMasterTab('conclusion');
+    } else if(tab === 'offered'){
+        const offeredTab = document.getElementById('mtab-offered');
+        if(offeredTab && offeredTab.classList.contains('locked')) return;
+        // Backed by state, not just the DOM class, so removing 'locked' via
+        // DevTools alone can't get back in once the session has ended —
+        // matches the guard the lot tabs already use.
+        if(SESSION_STATUS === 'ended') return;
+        switchMasterTab('offered');
     } else {
         const idx = parseInt(tab);
         const tabEl = document.getElementById('mtab-'+idx);
-        // Block locked tabs (future lots or awarding-phase lock)
+        // Block locked tabs (future lots)
         if(tabEl && tabEl.classList.contains('locked')) return;
-        // Block lot navigation once in awarding or ended phase
-        if(['awarding','ended'].includes(SESSION_STATUS)) return;
+        // Block lot navigation once the session has ended, or once every lot
+        // is done and we're just on the Offered Bids tab (activeLotIdx = -1)
+        if(SESSION_STATUS === 'ended' || STATE.activeLotIdx === -1) return;
         // Block previous lots — can't go back once a lot is done
         if(idx < STATE.activeLotIdx) return;
         switchMasterTab(idx);
@@ -1015,18 +969,20 @@ function switchMasterTab(tab){
         if(tab === i){
             t.classList.add('active');
             t.classList.remove('locked');
-        } else if(tab === 'awarding' || tab === 'conclusion'){
-            // Lock all lot tabs once in awarding/conclusion phase
+        } else if(tab === 'offered' || tab === 'conclusion'){
+            // Lock all lot tabs once past the lot-review phase
             t.classList.add('locked');
         }
     });
 
-    const awardTab = document.getElementById('mtab-awarding');
-    if(awardTab){
-        awardTab.classList.remove('active');
-        if(tab === 'awarding'){
-            awardTab.classList.add('active');
-            awardTab.classList.remove('locked');
+    const offeredTab = document.getElementById('mtab-offered');
+    if(offeredTab){
+        offeredTab.classList.remove('active');
+        if(tab === 'offered'){
+            offeredTab.classList.add('active');
+            offeredTab.classList.remove('locked');
+        } else if(tab === 'conclusion'){
+            offeredTab.classList.add('locked');
         }
     }
 
@@ -1036,24 +992,21 @@ function switchMasterTab(tab){
         if(tab === 'conclusion'){
             conclusionTab.classList.add('active');
             conclusionTab.classList.remove('locked');
-            // Lock awarding once in conclusion — session is fully ended
-            const awardTab2 = document.getElementById('mtab-awarding');
-            if(awardTab2) awardTab2.classList.add('locked');
         }
     }
 
-    const lotContainer    = document.getElementById('lot-session-container');
-    const awardContainer  = document.getElementById('awarding-container');
+    const lotContainer     = document.getElementById('lot-session-container');
+    const offeredContainer = document.getElementById('offered-bids-container');
     const conclusionContainer = document.getElementById('conclusion-container');
 
-    lotContainer.classList.toggle('hide', tab === 'awarding' || tab === 'conclusion');
-    awardContainer.classList.toggle('hide', tab !== 'awarding');
+    lotContainer.classList.toggle('hide', tab === 'offered' || tab === 'conclusion');
+    offeredContainer.classList.toggle('hide', tab !== 'offered');
     conclusionContainer.classList.toggle('hide', tab !== 'conclusion');
 
-    if(tab === 'awarding'){
-        loadAwarding();
-    } else if(tab === 'conclusion'){
+    if(tab === 'conclusion'){
         loadConclusion();
+    } else if(tab === 'offered'){
+        loadOfferedBids();
     } else {
         STATE.activeLotIdx = tab;
         loadLot(tab);
@@ -2058,7 +2011,7 @@ function openDoneLotModal(){
         if(nextIdx < LOTS.length){
             promptEl.textContent = `This will conclude Lot ${lot.lot_number} and proceed to Lot ${LOTS[nextIdx].lot_number}.`;
         } else {
-            promptEl.textContent = `This is the final lot! You will proceed directly to the Awarding tab.`;
+            promptEl.textContent = `This is the final lot! The session will now be concluded.`;
         }
         document.getElementById('doneLotModal').classList.add('open');
     })
@@ -2083,8 +2036,6 @@ function confirmDoneLot(){
     if(tabEl){
         tabEl.classList.add('done');
         tabEl.classList.remove('active');
-        const badge = document.getElementById('mtab-badge-'+curIdx);
-        if(badge){ badge.className = 'mtab-badge done'; badge.innerHTML = '<i class="bi bi-check2"></i> Done'; }
     }
 
     const nextIdx = curIdx + 1;
@@ -2101,230 +2052,23 @@ function confirmDoneLot(){
         .then(()=>{ refreshSessionProgressFromDB(); });
         switchMasterTab(nextIdx);
     } else {
-        // All lots done — go to awarding
-        const awardTab = document.getElementById('mtab-awarding');
-        if(awardTab) awardTab.classList.remove('locked');
+        // All lots done — move to the Offered Bids tab instead of popping
+        // the End Session modal immediately (avoids stacking two modals
+        // back-to-back). Conclude & End Session now lives on that tab.
         STATE.activeLotIdx = -1; // no active lot
-        post({ action:'set_current_lot', session_id:SESSION_ID, lot_id:0 });
-        post({ action:'start_phase', session_id:SESSION_ID, phase:'awarding' })
+        SESSION_STATUS = 'offered';
+        post({ action:'set_current_lot', session_id:SESSION_ID, lot_id:0 })
+        .then(()=> post({ action:'start_phase', session_id:SESSION_ID, phase:'offered' }))
         .then(()=>{ refreshSessionProgressFromDB(); });
-        switchMasterTab('awarding');
+        const offeredTab = document.getElementById('mtab-offered');
+        if(offeredTab) offeredTab.classList.remove('locked');
+        switchMasterTab('offered');
     }
-}
-
-// ── Awarding Phase ────────────────────────────────────────────────────────
-function loadAwarding(){
-    const list = document.getElementById('awarding-lots-list');
-    list.innerHTML = '<div class="pad-24 flexcol gap-12"><div class="skel h-60"></div><div class="skel h-60"></div></div>';
-
-    Promise.all([
-        get({ action:'get_awards', proc_id:PROC_ID, session_id:SESSION_ID }),
-        Promise.all(LOTS.map(lot => get({ action:'bidders', lot_id:lot.id, phase:'financial', session_id:SESSION_ID })))
-    ]).then(([aData, allBiddersData])=>{
-        const awards     = aData.awards      || [];
-        const failedIds  = (aData.failed_lots || []).map(f => parseInt(f.lot_id));
-        STATE.awards = awards;
-        list.innerHTML = '';
-
-        LOTS.forEach((lot, i)=>{
-            const awarded = awards.find(a => parseInt(a.lot_id) === parseInt(lot.id));
-            const failed  = !awarded && failedIds.includes(parseInt(lot.id));
-            const bidders = (allBiddersData[i] && allBiddersData[i].bidders) ? allBiddersData[i].bidders : [];
-
-            const card = mkEl('div','award-lot-card');
-
-            // ── Card head ──────────────────────────────────────────────
-            const head = mkEl('div','award-lot-head');
-            let headStatus = '';
-            if(awarded)      headStatus = '<span class="award-winner-badge"><i class="bi bi-trophy-fill"></i> Awarded</span>';
-            else if(failed)  headStatus = '<span class="status-pill sp-failed"><i class="bi bi-x-circle-fill"></i> Failed / No Award</span>';
-            else             headStatus = '<span class="fz-11 fw-7 t-muted">Select winning bidder below</span>';
-
-            head.innerHTML = `
-                <div>
-                    <div class="award-lot-title">Lot ${esc(lot.lot_number)}${lot.lot_title ? ' · '+esc(lot.lot_title) : ''}</div>
-                    <div class="fz-11-5 t-graphite">Approved Budget: <strong class="t-forest font-sg">₱${parseFloat(lot.abc||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></div>
-                </div>
-                ${headStatus}
-            `;
-            card.appendChild(head);
-
-            // ── Card body ──────────────────────────────────────────────
-            if(awarded){
-                const box   = mkEl('div','awarded-box');
-                const bName = awarded.business_name || (awarded.firstname + ' ' + awarded.lastname);
-                box.innerHTML = `
-                    <div class="awarded-box-left">
-                        <div class="awarded-box-icon"><i class="bi bi-trophy-fill"></i></div>
-                        <div>
-                            <div class="awarded-box-winner"><i class="bi bi-building"></i> ${esc(bName)}</div>
-                            <div class="awarded-box-amount">Awarded Amount: ₱${parseFloat(awarded.awarded_amount||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} · Date: ${esc(awarded.award_date_fmt||'Today')}</div>
-                        </div>
-                    </div>
-                `;
-                card.appendChild(box);
-
-            } else if(failed){
-                const box = mkEl('div','failed-box');
-                box.innerHTML = `
-                    <div class="failed-box-icon"><i class="bi bi-x-lg"></i></div>
-                    <div>
-                        <div class="failed-box-label">Lot ${esc(lot.lot_number)} — No Award</div>
-                        <div class="failed-box-sub">This lot has been marked as failed. No winner was declared.</div>
-                    </div>
-                `;
-                card.appendChild(box);
-
-            } else if(!bidders.length){
-                card.innerHTML += '<div class="p-empty pad-20"><i class="bi bi-inbox fz-22"></i>No submitted bids for this lot.</div>';
-
-            } else {
-                const bList = mkEl('div','award-bidders-list');
-                bidders.forEach(b=>{
-                    const isDisq = !!b.disqualified;
-                    const bName  = b.business_name || (b.firstname + ' ' + b.lastname);
-                    const ini    = (b.firstname||'').charAt(0).toUpperCase() + (b.lastname||'').charAt(0).toUpperCase();
-
-                    const bCard = mkEl('div','award-bidder-card' + (isDisq ? ' disqualified' : ''));
-                    let actionHtml = '';
-
-                    if(isDisq){
-                        actionHtml = `<span class="disq-badge fz-11 pad-3-8"><i class="bi bi-x-circle-fill"></i> Ineligible / Disqualified</span>`;
-                    } else if(CAN_MANAGE){
-                        actionHtml = `
-                            <div class="award-amount-wrap">
-                                ₱ <input type="number" step="0.01" class="award-amount-input" id="award-amt-${lot.id}-${b.bid_lot_id}" value="${parseFloat(lot.abc||0).toFixed(2)}" placeholder="Amount">
-                            </div>
-                            <button class="btn-select-winner" onclick="openAwardModal(${lot.id}, ${b.bid_lot_id}, '${esc(bName).replace(/'/g,"\\'")}', ${lot.lot_number}, document.getElementById('award-amt-${lot.id}-${b.bid_lot_id}').value)">
-                                <i class="bi bi-trophy-fill"></i> Declare Winner
-                            </button>
-                        `;
-                    } else {
-                        actionHtml = `<span class="status-pill sp-active"><i class="bi bi-check2"></i> Qualified</span>`;
-                    }
-
-                    bCard.innerHTML = `
-                        <div class="award-bidder-info">
-                            <div class="bt-avatar">${b.avatar ? `<img src="../${esc(b.avatar)}" alt="">` : esc(ini)}</div>
-                            <div>
-                                <div class="fz-13 fw-7 t-dark">${esc(bName)}</div>
-                                <div class="fz-11 t-muted">Bid Ref #${esc(b.bid_id)} · ${esc(b.submission_date||'')}</div>
-                            </div>
-                        </div>
-                        <div class="award-bidder-actions">${actionHtml}</div>
-                    `;
-                    bList.appendChild(bCard);
-                });
-                card.appendChild(bList);
-
-                // "Mark as Failed" footer — only for managers when lot is not yet resolved
-                if(CAN_MANAGE){
-                    const failBar = mkEl('div','fail-lot-bar');
-                    failBar.innerHTML = `
-                        <span class="fz-11-5 t-muted">No qualified bidder? Mark this lot as failed instead.</span>
-                        <button class="btn-fail-lot" onclick="openFailLotModal(${lot.id}, ${lot.lot_number})">
-                            <i class="bi bi-x-circle-fill"></i> Mark as Failed / No Award
-                        </button>
-                    `;
-                    card.appendChild(failBar);
-                }
-            }
-
-            list.appendChild(card);
-        });
-    }).catch(()=>{
-        list.innerHTML = '<div class="p-empty"><i class="bi bi-exclamation-circle"></i>Failed to load awarding details.</div>';
-    });
-}
-
-function openAwardModal(lotId, bidLotId, bidderName, lotNumber, amount){
-    _awardTarget = { lotId, bidLotId, bidderName, lotNumber, amount: parseFloat(amount||0) };
-    document.getElementById('awardLotTitle').textContent = 'Lot ' + lotNumber;
-    document.getElementById('awardBidderName').textContent = bidderName;
-    document.getElementById('awardDisplayAmount').textContent = '₱' + parseFloat(amount||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-    document.getElementById('awardModal').classList.add('open');
-}
-function closeAwardModal(){
-    document.getElementById('awardModal').classList.remove('open');
-    _awardTarget = null;
-    _catchUpAfterModal();
-}
-
-// ── Fail Lot Modal ────────────────────────────────────────────────────────
-let _failTarget = null;
-function openFailLotModal(lotId, lotNumber){
-    _failTarget = { lotId, lotNumber };
-    document.getElementById('failLotTitle').textContent = 'Lot ' + lotNumber;
-    document.getElementById('failLotModal').classList.add('open');
-}
-function closeFailLotModal(){
-    document.getElementById('failLotModal').classList.remove('open');
-    _failTarget = null;
-    _catchUpAfterModal();
-}
-function doFailLot(){
-    if(!_failTarget) return;
-    const btn = document.getElementById('failLotConfirmBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Recording…';
-    post({ action:'fail_lot', session_id:SESSION_ID, lot_id:_failTarget.lotId })
-    .then(d => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-x-circle-fill"></i> Confirm — No Award';
-        if(!d.success){ alert(d.message||'Failed to record.'); return; }
-        closeFailLotModal();
-        loadAwarding();
-        refreshSessionProgressFromDB();
-    })
-    .catch(()=>{ btn.disabled=false; btn.innerHTML='<i class="bi bi-x-circle-fill"></i> Confirm — No Award'; });
-}
-
-function doAwardConfirm(){
-    if(!_awardTarget) return;
-    const btn = document.getElementById('awardConfirmBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Recording…';
-
-    post({
-        action: 'award_lot',
-        session_id: SESSION_ID,
-        lot_id: _awardTarget.lotId,
-        bid_lot_id: _awardTarget.bidLotId,
-        awarded_amount: _awardTarget.amount
-    }).then(d=>{
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-trophy-fill"></i> Confirm Award';
-        if(!d.success){ alert(d.message||'Failed to award lot.'); return; }
-        closeAwardModal();
-        loadAwarding();
-        refreshSessionProgressFromDB();
-    }).catch(()=>{
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-trophy-fill"></i> Confirm Award';
-        alert('Network error.');
-    });
 }
 
 // ── Conclude & End Session ────────────────────────────────────────────────
 function openEndSessionModal(){
-    // Guard: all lots must be awarded before ending
-    get({ action:'get_awards', proc_id:PROC_ID, session_id:SESSION_ID })
-    .then(d=>{
-        const awards      = d.awards      || [];
-        const failedLots  = (d.failed_lots || []).map(f => parseInt(f.lot_id));
-        // A lot is resolved if it has an award OR has been marked as failed
-        const unresolvedLots = LOTS.filter(lot =>
-            !awards.find(a => parseInt(a.lot_id) === parseInt(lot.id)) &&
-            !failedLots.includes(parseInt(lot.id))
-        );
-        if(unresolvedLots.length > 0){
-            const items = unresolvedLots.map(l => `Lot ${l.lot_number} — no winner declared and not marked as failed`);
-            openCannotProceedModal('Cannot conclude session yet', items);
-            return;
-        }
-        document.getElementById('endSessionModal').classList.add('open');
-    })
-    .catch(()=>{ openCannotProceedModal('Error', ['Failed to verify award status. Please try again.']); });
+    document.getElementById('endSessionModal').classList.add('open');
 }
 function closeEndSessionModal(){ document.getElementById('endSessionModal').classList.remove('open'); _catchUpAfterModal(); }
 
@@ -2344,11 +2088,9 @@ function doEndSession(){
         closeEndSessionModal();
         SESSION_STATUS = 'ended';
         stopPolling(); // session concluded — no more polling needed
-        // Unlock conclusion tab, lock awarding tab, navigate to conclusion
+        // Unlock conclusion tab, navigate to conclusion
         const cTab = document.getElementById('mtab-conclusion');
         if(cTab) cTab.classList.remove('locked');
-        const aTab = document.getElementById('mtab-awarding');
-        if(aTab) aTab.classList.add('locked');
         switchMasterTab('conclusion');
     }).catch(()=>{
         btn.disabled = false;
@@ -2404,19 +2146,103 @@ function _conclusionFileList(bidderId, lotId, phase){
     return `<div id="${id}" class="pad-2-0"><span class="fz-11 t-gray">Loading…</span></div>`;
 }
 
+// ── Offered Bids Tab ─────────────────────────────────────────────────────
+function loadOfferedBids(){
+    const list = document.getElementById('offered-bids-list');
+    if(!list) return;
+    list.innerHTML = '<div class="pad-24 flexcol gap-12"><div class="skel h-60"></div><div class="skel h-60"></div></div>';
+
+    Promise.all(LOTS.map(lot => get({ action:'bidders', lot_id:lot.id, phase:'financial', session_id:SESSION_ID })))
+    .then(allBiddersData => {
+        list.innerHTML = '';
+
+        LOTS.forEach((lot, i)=>{
+            const bidders = (allBiddersData[i] && allBiddersData[i].bidders) ? allBiddersData[i].bidders : [];
+
+            const card = mkEl('div','award-lot-card');
+
+            const head = mkEl('div','award-lot-head');
+            head.innerHTML = `
+                <div>
+                    <div class="award-lot-title">Lot ${esc(lot.lot_number)}${lot.lot_title ? ' · '+esc(lot.lot_title) : ''}</div>
+                    <div class="fz-11-5 t-graphite">Approved Budget: <strong class="t-forest font-sg">₱${parseFloat(lot.abc||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></div>
+                </div>
+            `;
+            card.appendChild(head);
+
+            if(!bidders.length){
+                const empty = mkEl('div','p-empty pad-20');
+                empty.innerHTML = '<i class="bi bi-inbox fz-22"></i>No submitted bids for this lot.';
+                card.appendChild(empty);
+            } else {
+                const bList = mkEl('div','award-bidders-list');
+                bidders.forEach(b=>{
+                    const isDisq = !!b.disqualified;
+                    const bName  = b.business_name || (b.firstname + ' ' + b.lastname);
+                    const ini    = (b.firstname||'').charAt(0).toUpperCase() + (b.lastname||'').charAt(0).toUpperCase();
+                    const amtVal = (b.total_offered_bid !== null && b.total_offered_bid !== undefined) ? parseFloat(b.total_offered_bid).toFixed(2) : '';
+
+                    const bCard = mkEl('div','award-bidder-card' + (isDisq ? ' disqualified' : ''));
+                    let actionHtml = '';
+
+                    if(isDisq){
+                        actionHtml = `<span class="disq-badge fz-11 pad-3-8"><i class="bi bi-x-circle-fill"></i> Ineligible / Disqualified</span>`;
+                    } else if(CAN_MANAGE){
+                        actionHtml = `
+                            <div class="award-amount-wrap">
+                                ₱ <input type="number" step="0.01" class="award-amount-input" id="offered-amt-${b.bid_lot_id}"
+                                    value="${esc(amtVal)}" placeholder="Amount"
+                                    onchange="saveOfferedBid(${b.bid_lot_id}, this)">
+                            </div>
+                        `;
+                    } else {
+                        actionHtml = `<span class="fz-12 fw-7 t-dark">${amtVal ? '₱'+Number(amtVal).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</span>`;
+                    }
+
+                    bCard.innerHTML = `
+                        <div class="award-bidder-info">
+                            <div class="bt-avatar">${b.avatar ? `<img src="../${esc(b.avatar)}" alt="">` : esc(ini)}</div>
+                            <div>
+                                <div class="fz-13 fw-7 t-dark">${esc(bName)}</div>
+                                <div class="fz-11 t-muted">Bid Ref #${esc(b.bid_id)} · ${esc(b.submission_date||'')}</div>
+                            </div>
+                        </div>
+                        <div class="award-bidder-actions">${actionHtml}</div>
+                    `;
+                    bList.appendChild(bCard);
+                });
+                card.appendChild(bList);
+            }
+
+            list.appendChild(card);
+        });
+    }).catch(()=>{
+        list.innerHTML = '<div class="p-empty"><i class="bi bi-exclamation-circle"></i>Failed to load bidders.</div>';
+    });
+}
+
+function saveOfferedBid(bidLotId, inputEl){
+    const amount = inputEl.value.trim();
+    inputEl.disabled = true;
+    post({ action:'save_offered_bid', session_id:SESSION_ID, bid_lot_id:bidLotId, amount:amount })
+    .then(d=>{
+        inputEl.disabled = false;
+        if(!d.success){ alert(d.message || 'Failed to save amount.'); }
+    })
+    .catch(()=>{
+        inputEl.disabled = false;
+        alert('Network error while saving amount.');
+    });
+}
+
 // ── Conclusion Tab ────────────────────────────────────────────────────────
 function loadConclusion(){
     const body = document.getElementById('conclusion-body');
     if(!body) return;
     body.innerHTML = '<div class="flexcol gap-10"><div class="skel h-80 r-12"></div><div class="skel h-140 r-12"></div><div class="skel h-140 r-12"></div></div>';
 
-    Promise.all([
-        get({ action:'progress',   session_id:SESSION_ID }),
-        get({ action:'get_awards', proc_id:PROC_ID, session_id:SESSION_ID })
-    ]).then(([prog, aData])=>{
-        const awards     = aData.awards      || [];
-        const failedLots = (aData.failed_lots || []).map(f=>parseInt(f.lot_id));
-
+    get({ action:'progress', session_id:SESSION_ID })
+    .then((prog)=>{
         const startedAt = prog.started_at || '—';
         const endedAt   = prog.ended_at   || '—';
 
@@ -2462,55 +2288,23 @@ function loadConclusion(){
         html += `<div class="flexcol gap-10">`;
 
         LOTS.forEach(lot => {
-            const awarded    = awards.find(a => parseInt(a.lot_id) === parseInt(lot.id));
-            const isFailed   = failedLots.includes(parseInt(lot.id));
-            const lotName    = `Lot ${lot.lot_number}${lot.lot_title ? ' · '+lot.lot_title : ''}`;
-
-            if(awarded){
-                const bName = awarded.business_name || (awarded.firstname+' '+awarded.lastname);
-                const amt   = parseFloat(awarded.awarded_amount||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-                html += `
-                <div class="result-box result-box--teal">
-                    <div class="flexc gap-12">
-                        <div class="notice-icon notice-icon--teal-gold"><i class="bi bi-trophy-fill"></i></div>
-                        <div>
-                            <div class="fz-12 fw-8 t-dark">${esc(lotName)}</div>
-                            <div class="fz-12-5 fw-7 t-teal mt-2"><i class="bi bi-building"></i> ${esc(bName)}</div>
-                        </div>
-                    </div>
-                    <div class="ta-right">
-                        <div class="fz-11 t-muted fw-6">Awarded Amount</div>
-                        <div class="fz-14 fw-8 t-forest font-sg">₱${amt}</div>
-                        <div class="fz-10-5 t-muted">${esc(awarded.award_date_fmt||'')}</div>
-                    </div>
-                </div>`;
-            } else if(isFailed){
-                html += `
-                <div class="result-box result-box--red">
-                    <div class="notice-icon notice-icon--red"><i class="bi bi-x-lg"></i></div>
+            const lotName = `Lot ${lot.lot_number}${lot.lot_title ? ' · '+lot.lot_title : ''}`;
+            html += `
+            <div class="result-box result-box--teal">
+                <div class="flexc gap-12">
+                    <div class="notice-icon notice-icon--teal-gold"><i class="bi bi-unlock-fill"></i></div>
                     <div>
-                        <div class="fz-12 fw-8 t-dangerdark">${esc(lotName)}</div>
-                        <div class="fz-11-5 t-danger fw-6 mt-2">No Award — Lot Failed</div>
+                        <div class="fz-12 fw-8 t-dark">${esc(lotName)}</div>
+                        <div class="fz-12-5 fw-7 t-teal mt-2"><i class="bi bi-check2-circle"></i> Opened</div>
                     </div>
-                </div>`;
-            } else {
-                html += `
-                <div class="result-box result-box--gray">
-                    <div class="notice-icon notice-icon--gray"><i class="bi bi-dash"></i></div>
-                    <div>
-                        <div class="fz-12 fw-8 t-charcoal">${esc(lotName)}</div>
-                        <div class="fz-11-5 t-gray fw-6 mt-2">No result recorded</div>
-                    </div>
-                </div>`;
-            }
+                </div>
+            </div>`;
         });
 
         html += `</div>`;
 
         // Summary counts
-        const awardedCount = awards.length;
-        const failedCount  = failedLots.length;
-        const totalLots    = LOTS.length;
+        const totalLots = LOTS.length;
         html += `
         <div class="quorum-summary-bar">
             <div class="flex-1 min-w-80 ta-center">
@@ -2518,12 +2312,8 @@ function loadConclusion(){
                 <div class="fz-11 t-mint fw-6 mt-2">Total Lots</div>
             </div>
             <div class="flex-1 min-w-80 ta-center">
-                <div class="fz-22 fw-8 t-lightgreen font-sg">${awardedCount}</div>
-                <div class="fz-11 t-mint fw-6 mt-2">Awarded</div>
-            </div>
-            <div class="flex-1 min-w-80 ta-center">
-                <div class="fz-22 fw-8 t-lightred font-sg">${failedCount}</div>
-                <div class="fz-11 t-mint fw-6 mt-2">Failed / No Award</div>
+                <div class="fz-22 fw-8 t-lightgreen font-sg">${totalLots}</div>
+                <div class="fz-11 t-mint fw-6 mt-2">Opened</div>
             </div>
         </div>`;
 
@@ -2544,6 +2334,17 @@ function loadConclusion(){
             lotBidders.forEach(({ lot, eligBidders }) => {
                 if(!eligBidders.length) return;
                 const lotName = `Lot ${lot.lot_number}${lot.lot_title ? ' · '+lot.lot_title : ''}`;
+
+                // Rank eligible bidders with a recorded offered amount — lowest
+                // offered amount = Rank 1 (lowest calculated responsive bid).
+                const hasAmount = b => b.total_offered_bid !== null && b.total_offered_bid !== undefined && b.total_offered_bid !== '';
+                const rankable = eligBidders
+                    .filter(b => b.eligibility_status === 'eligible' && hasAmount(b))
+                    .slice()
+                    .sort((a,b) => parseFloat(a.total_offered_bid) - parseFloat(b.total_offered_bid));
+                const rankMap = {};
+                rankable.forEach((b, idx) => { rankMap[b.bidder_id] = idx + 1; });
+
                 bHtml += `<div class="bordered-card mb-14">
                     <div class="section-head-bar">
                         <i class="bi bi-layers-fill t-forest"></i> ${esc(lotName)}
@@ -2554,6 +2355,10 @@ function loadConclusion(){
                     const ini   = (b.firstname||'').charAt(0).toUpperCase()+(b.lastname||'').charAt(0).toUpperCase();
                     const statusClass = b.eligibility_status==='eligible' ? 'status-text--eligible' : b.eligibility_status==='disqualified' ? 'status-text--disqualified' : 'status-text--pending';
                     const statusLabel = b.eligibility_status==='eligible' ? 'Eligible' : b.eligibility_status==='disqualified' ? 'Disqualified' : b.eligibility_status;
+                    const rank = rankMap[b.bidder_id];
+                    const rankClass = rank===1?'rank-badge--gold':rank===2?'rank-badge--silver':rank===3?'rank-badge--bronze':'rank-badge--default';
+                    const rankBadge = rank ? `<span class="rank-badge ${rankClass}">#${rank}</span>` : `<span class="rank-badge rank-badge--none">—</span>`;
+                    const amtDisplay = hasAmount(b) ? '₱'+parseFloat(b.total_offered_bid).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
 
                     bHtml += `<div class="pad-12-16 border-b">
                         <div class="flexc gap-10 mb-10">
@@ -2562,6 +2367,11 @@ function loadConclusion(){
                             </div>
                             <div class="fz-12-5 fw-7 t-dark flex-1">${esc(bName)}</div>
                             <span class="status-text ${statusClass}">${esc(statusLabel)}</span>
+                        </div>
+                        <div class="flexc gap-10 mb-10 fz-11-5">
+                            ${rankBadge}
+                            <span class="t-muted">Offered Bid:</span>
+                            <strong class="t-forest font-sg">${amtDisplay}</strong>
                         </div>
                         <div class="eyebrow-label mb-4">Eligibility Documents</div>
                         ${_conclusionFileList(b.bidder_id, lot.id, 'eligibility')}
@@ -2603,7 +2413,6 @@ const _rt = {
     heartbeatTimer:    null,   // setInterval handle for the fallback
     lastProgressHash:  '',     // fingerprint of the last progress response
     lastBiddersHash:   '',     // fingerprint of the last bidders response
-    lastAwardsHash:    '',     // fingerprint of the last awards response
     lastSigningStatus: '',     // last known signing_status (quorum bar trigger)
     _activeBidLotId:   0,      // bid_lot_id of the currently selected bidder
 };
@@ -2616,7 +2425,7 @@ const _poll = _rt;
 
 function _hashProgress(data){
     const lots = (data.lots || []).map(l =>
-        l.id + ':' + (+!!l.is_done) + ':' + l.pending_elig + ':' + l.pending_fin + ':' + l.is_awarded
+        l.id + ':' + (+!!l.is_done) + ':' + l.pending_elig + ':' + l.pending_fin
     ).join('|');
     return (data.status||'') + '|' + (data.signing_status||'') + '|' + (data.current_lot_id||0) + '|' + lots;
 }
@@ -2625,12 +2434,6 @@ function _hashBidders(bidders){
     return (bidders || []).map(b =>
         b.bidder_id + ':' + b.eligibility_status + ':' + b.financial_status + ':' + (+!!b.files_opened)
     ).join('|');
-}
-
-function _hashAwards(awards, failedLots){
-    const a = (awards || []).map(a => a.lot_id + ':' + a.bid_lot_id + ':' + a.awarded_amount).join('|');
-    const f = (failedLots || []).map(f => f.lot_id).join('|');
-    return a + '~' + f;
 }
 
 // ── Modal guard ───────────────────────────────────────────────────────────
@@ -2655,20 +2458,6 @@ function _silentRefreshBidders(lotId, stage){
         const activeLot = LOTS[STATE.activeLotIdx];
         if(!activeLot || activeLot.id !== lotId) return;
         renderLotBidderArea(lotId, stage, bidders);
-    })
-    .catch(function(){});
-}
-
-function _silentRefreshAwarding(){
-    get({ action:'get_awards', proc_id:PROC_ID, session_id:SESSION_ID })
-    .then(aData => {
-        const awards     = aData.awards      || [];
-        const failedLots = aData.failed_lots || [];
-        const newHash    = _hashAwards(awards, failedLots);
-        if(newHash === _rt.lastAwardsHash) return;
-        _rt.lastAwardsHash = newHash;
-        if(STATE.currentTab !== 'awarding') return;
-        loadAwarding();
     })
     .catch(function(){});
 }
@@ -2702,6 +2491,13 @@ function _handleProgressUpdate(data){
         SESSION_STATUS = 'ended';
         stopRealtimeSync();
         refreshSessionProgressFromDB();
+        // Viewers who didn't trigger the end themselves (BAC/TWG watching the
+        // session) never get switched to the Conclusion tab otherwise — the
+        // person who clicked "End Session" does this themselves in
+        // doEndSession(), but everyone else only has the tab unlocked.
+        const cTab = document.getElementById('mtab-conclusion');
+        if(cTab) cTab.classList.remove('locked');
+        switchMasterTab('conclusion');
         return;
     }
 
@@ -2727,10 +2523,6 @@ function _handleProgressUpdate(data){
             fetchAndRenderBiddersByDB(activeLotId);
             return;
         }
-        if(prevStatus !== 'awarding' && data.status === 'awarding' && STATE.currentTab === 'awarding'){
-            loadAwarding();
-            return;
-        }
     } else {
         _rt.lastSigningStatus = data.signing_status || 'not_started';
     }
@@ -2739,17 +2531,11 @@ function _handleProgressUpdate(data){
     const activeLotId = activeLot ? activeLot.id : 0;
     const stage       = (SESSION_STATUS === 'financial') ? 'financial' : 'eligibility';
     const onLotTab    = typeof STATE.currentTab === 'number';
-    const onAwarding  = STATE.currentTab === 'awarding';
 
     if(onLotTab && activeLotId > 0 &&
        (SESSION_STATUS === 'eligibility' || SESSION_STATUS === 'financial' || SESSION_STATUS === 'started')){
         _silentRefreshBidders(activeLotId, stage);
         if(signingChanged) _silentRefreshQuorum(activeLotId, stage);
-    }
-
-    if(onAwarding &&
-       (SESSION_STATUS === 'awarding' || SESSION_STATUS === 'eligibility' || SESSION_STATUS === 'financial')){
-        _silentRefreshAwarding();
     }
 }
 
@@ -2836,15 +2622,6 @@ function _onPusherEvent(event, data){
             // will re-fetch from DB anyway.
             break;
 
-        // ── Awarding ──────────────────────────────────────────────────────
-        case 'lot_awarded':
-        case 'lot_failed':
-            if(STATE.currentTab === 'awarding') _silentRefreshAwarding();
-            // Also refresh lot tab badges
-            get({ action:'progress', session_id:SESSION_ID })
-            .then(_handleProgressUpdate)
-            .catch(function(){});
-            break;
     }
 }
 
@@ -2896,7 +2673,6 @@ function startRealtimeSync(){
         'session_started', 'phase_changed', 'lot_changed', 'session_ended',
         'signing_started', 'bac_signed', 'files_opened',
         'eligibility_updated', 'checklist_updated',
-        'lot_awarded', 'lot_failed',
     ];
 
     events.forEach(function(ev){
@@ -2930,27 +2706,28 @@ document.addEventListener('DOMContentLoaded', ()=>{
         startRealtimeSync();
     }
     if(SESSION_STATUS === 'ended'){
-        // Unlock all lot tabs as done, unlock awarding + conclusion, go straight to conclusion
+        // Unlock all lot tabs as done, unlock conclusion, go straight to conclusion
         LOTS.forEach((_, i)=>{
             const t = document.getElementById('mtab-'+i);
             if(t){ t.classList.remove('locked'); t.classList.add('done'); }
         });
-        const aTab = document.getElementById('mtab-awarding');
-        if(aTab) aTab.classList.remove('locked');
         const cTab = document.getElementById('mtab-conclusion');
         if(cTab) cTab.classList.remove('locked');
-        // Lock awarding — session is concluded, conclusion tab is the final destination
-        if(aTab) aTab.classList.add('locked');
         switchMasterTab('conclusion');
-    } else if(SESSION_STATUS === 'awarding'){
-        // Unlock all lot tabs as done, unlock awarding tab, go to awarding
+    } else if(SESSION_STATUS === 'offered' || (LOTS.length > 0 && LOTS.every(l => l.is_done))){
+        // Reload while sitting on the Offered Bids tab, before End Session
+        // was confirmed — go straight back there instead of reopening a lot.
+        // The `every(is_done)` fallback covers the brief gap where the last
+        // lot's Done was confirmed but the 'offered' phase hadn't finished
+        // persisting to the DB yet.
         LOTS.forEach((_, i)=>{
             const t = document.getElementById('mtab-'+i);
-            if(t){ t.classList.remove('locked'); t.classList.add('done'); }
+            if(t){ t.classList.remove('locked','active'); t.classList.add('done'); }
         });
-        const aTab = document.getElementById('mtab-awarding');
-        if(aTab) aTab.classList.remove('locked');
-        switchMasterTab('awarding');
+        const oTab = document.getElementById('mtab-offered');
+        if(oTab) oTab.classList.remove('locked');
+        STATE.activeLotIdx = -1;
+        switchMasterTab('offered');
     } else {
         // Session in progress — determine active lot from DB current_lot_id
         let initialIdx = 0;
@@ -2965,8 +2742,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
             if(i < initialIdx){
                 t.classList.remove('locked');
                 t.classList.add('done');
-                const b = document.getElementById('mtab-badge-'+i);
-                if(b){ b.className='mtab-badge done'; b.innerHTML='<i class="bi bi-check2"></i> Done'; }
             } else if(i === initialIdx){
                 t.classList.remove('locked');
                 t.classList.add('active');
@@ -2976,16 +2751,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
             }
         });
 
-        const aTab = document.getElementById('mtab-awarding');
-        if(aTab) aTab.classList.add('locked');
-
         STATE.activeLotIdx = initialIdx;
         STATE.currentTab   = initialIdx;
 
         if(LOTS.length > 0){
             switchMasterTab(initialIdx);
         } else {
-            switchMasterTab('awarding');
+            switchMasterTab('conclusion');
         }
     }
 });

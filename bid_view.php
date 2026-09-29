@@ -93,9 +93,11 @@ if (!empty($procurement['closing_date'])) {
     if ($is_open && $diff_days <= 3 && $diff_days >= 0) $is_urgent = true;
 }
 
-$status_pill_class = in_array($p_status, ['open','closed','awarded','cancelled'])
-    ? 'status-' . $p_status
-    : 'status-open';
+$status_pill_class = $p_status === 'opened'
+    ? 'status-awarded' // reuse the same concluded-session styling as 'awarded'
+    : (in_array($p_status, ['open','closed','awarded','cancelled'])
+        ? 'status-' . $p_status
+        : 'status-open');
 ?>
 <!DOCTYPE html>
 <html lang="en">

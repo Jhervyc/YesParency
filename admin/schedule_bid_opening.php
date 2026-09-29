@@ -40,9 +40,9 @@ if ($procurement_id === 0) {
 $ps = $conn->prepare("
     SELECT p.*,
            (SELECT COUNT(*) FROM lots l WHERE l.procurement_id = p.id) AS lot_count,
-           (SELECT COUNT(*) FROM bids b WHERE b.procurement_id = p.id) AS bid_count
+           (SELECT COUNT(*) FROM bids b WHERE b.procurement_id = p.id AND b.status = 'submitted') AS bid_count
     FROM procurements p
-    WHERE p.id = ? AND p.status = 'open'
+    WHERE p.id = ? AND p.status IN ('open', 'closed')
     LIMIT 1
 ");$ps->bind_param("i", $procurement_id);
 $ps->execute();
@@ -50,7 +50,14 @@ $procurement = $ps->get_result()->fetch_assoc();
 $ps->close();
 
 if (!$procurement) {
-    $_SESSION['alert_error'] = "Procurement not found or is not open.";
+    $_SESSION['alert_error'] = "Procurement not found or is not eligible for scheduling.";
+    header("Location: bid_opening.php");
+    exit();
+}
+
+// Guard: don't allow scheduling an opening for a procurement with no bids
+if ((int)$procurement['bid_count'] === 0) {
+    $_SESSION['alert_error'] = "This procurement has no bids yet — nothing to open.";
     header("Location: bid_opening.php");
     exit();
 }
@@ -259,12 +266,14 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
                     <i class="bi bi-tag"></i><?= htmlspecialchars($procurement['procurement_mode']) ?>
                 </span>
                 <?php endif; ?>
-                <span class="hero-pill open">
-                    <i class="bi bi-circle-fill status-dot-tiny"></i> Open
+                <span class="hero-pill <?= $procurement['status'] === 'closed' ? 'closed' : 'open' ?>">
+                    <i class="bi bi-circle-fill status-dot-tiny"></i> <?= $procurement['status'] === 'closed' ? 'Closed' : 'Open' ?>
                 </span>
+                <?php if ($procurement['status'] !== 'closed'): ?>
                 <span class="hero-pill locked">
                     <i class="bi bi-lock-fill"></i> Procurement Locked
                 </span>
+                <?php endif; ?>
             </div>
         </div>
         <div class="vp-hero-title"><?= htmlspecialchars($procurement['title']) ?></div>
@@ -467,7 +476,7 @@ $alert_success = $_SESSION['alert_success'] ?? ''; unset($_SESSION['alert_succes
         </div>
         <div class="urm-modal-text">
             <h3>Schedule Bid Opening</h3>
-            <p>This will schedule a bid opening session and set the procurement status to <strong>Closed</strong>. This cannot be undone.</p>
+            <p>This will schedule a bid opening session<?= $procurement['status'] !== 'closed' ? ' and set the procurement status to <strong>Closed</strong>' : '' ?>. This cannot be undone.</p>
             <div class="urm-modal-user-pill"><?= htmlspecialchars($procurement['slsu_ref_no']) ?> · <?= htmlspecialchars(mb_strimwidth($procurement['title'], 0, 55, '…')) ?></div>
         </div>
         <div class="urm-modal-actions">

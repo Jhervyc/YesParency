@@ -1,6 +1,5 @@
 <?php
 include("utils/protect-page.php");
-require_once(__DIR__ . "/../utils/procurement_mode_helper.php");
 
 $bidder_id = intval($_SESSION['user_id']);
 
@@ -40,6 +39,7 @@ $stats = [
     'rejected'  => 0,
 ];
 
+$stats['concluded'] = 0; // bids.status='awarded' (historical data) OR procurement went through a session and is now 'opened'
 while ($row = $bids_result->fetch_assoc()) {
     $bid_id = $row['bid_id'];
     $s      = strtolower($row['bid_status']);
@@ -48,6 +48,9 @@ while ($row = $bids_result->fetch_assoc()) {
     $stats['total']++;
     if (isset($stats[$s])) {
         $stats[$s]++;
+    }
+    if ($s === 'awarded' || strtolower($row['procurement_status'] ?? '') === 'opened') {
+        $stats['concluded']++;
     }
 
     // Fetch associated lots for this bid
@@ -96,7 +99,7 @@ $stmt->close();
 $stat_total = $stats['total'];
 $pct_pending   = $stat_total > 0 ? round(($stats['pending'] / $stat_total) * 100) : 0;
 $pct_verified  = $stat_total > 0 ? round((($stats['submitted'] + $stats['opened']) / $stat_total) * 100) : 0;
-$pct_awarded   = $stat_total > 0 ? round(($stats['awarded'] / $stat_total) * 100) : 0;
+$pct_awarded   = $stat_total > 0 ? round(($stats['concluded'] / $stat_total) * 100) : 0;
 
 // Status styling configurations
 $status_config = [
@@ -224,14 +227,14 @@ include("components/topbar.php");
             </div>
         </div>
 
-        <!-- Awarded Contracts -->
+        <!-- Opened / Awarded -->
         <div class="ap2-stat">
             <div class="ap2-ring" style="--ring-color:#1f7a3d; --pct:<?= $pct_awarded ?>%">
-                <div class="ap2-ring-inner"><i class="bi bi-trophy-fill"></i></div>
+                <div class="ap2-ring-inner"><i class="bi bi-unlock-fill"></i></div>
             </div>
             <div class="ap2-stat-text">
-                <div class="ap2-stat-num clr-forest"><?= number_format($stats['awarded']) ?></div>
-                <div class="ap2-stat-lbl">Awarded</div>
+                <div class="ap2-stat-num clr-forest"><?= number_format($stats['concluded']) ?></div>
+                <div class="ap2-stat-lbl">Opened</div>
             </div>
         </div>
     </div>
@@ -331,11 +334,6 @@ include("components/topbar.php");
                                             <i class="bi bi-copy bid-copy-icon"></i>
                                         </span>
 
-                                        <?php if (($bid['bid_type'] ?? 'bid') === 'quotation'): ?>
-                                        <span class="quotation-tag">
-                                            <i class="bi bi-file-earmark-text-fill"></i> Quotation
-                                        </span>
-                                        <?php endif; ?>
                                     </div>
 
                                     <div class="bid-row-meta">

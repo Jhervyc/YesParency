@@ -340,6 +340,7 @@
 .deadline-tba { color: #c7d2cb; }
 .actions-row { display: flex; gap: 6px; justify-content: flex-end; }
 .proc-action-btn--scheduled { background: #f0f4f2; color: #88968d; cursor: default; }
+.proc-action-btn--disabled { background: #fdf3f0; color: #c48a6f; cursor: not-allowed; }
 .hash-icon { color: #88968d; font-size: 10px; }
 .status-dot-tiny { font-size: 7px; }
 .col-ref-th { width: 120px; }

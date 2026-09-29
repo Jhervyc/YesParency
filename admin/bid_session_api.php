@@ -36,11 +36,12 @@ $action  = $_GET['action'] ?? ($_POST['action'] ?? '');
 if ($action === 'bidders') {
     $lot_id     = (int)($_GET['lot_id']     ?? 0);
     $session_id = (int)($_GET['session_id'] ?? 0);
-    $phase      = in_array($_GET['phase'] ?? '', ['eligibility','financial','awarding']) ? $_GET['phase'] : 'eligibility';
+    $phase      = in_array($_GET['phase'] ?? '', ['eligibility','financial']) ? $_GET['phase'] : 'eligibility';
 
     if ($lot_id <= 0) { echo json_encode(['bidders' => []]); exit(); }
 
-    // Do NOT filter out rejected bidders so they remain visible in list (grayed out)
+    // Only approved (status = 'submitted') bids are opened during the session —
+    // bids still pending admin verification or already rejected never appear.
     $stmt = $conn->prepare("
         SELECT
             u.user_id AS bidder_id,
@@ -52,12 +53,13 @@ if ($action === 'bidders') {
             bl.id AS bid_lot_id,
             bl.eligibility_status,
             bl.financial_status,
+            bl.total_offered_bid,
             b.submission_date
         FROM bid_lots bl
         JOIN bids b         ON b.id = bl.bid_id
         JOIN users u        ON u.user_id = b.bidder_id
         LEFT JOIN bidder_profiles bp ON bp.user_id = u.user_id
-        WHERE bl.lot_id = ?
+        WHERE bl.lot_id = ? AND b.status = 'submitted'
         ORDER BY b.submission_date ASC
     ");
     $stmt->bind_param("i", $lot_id);
@@ -112,6 +114,7 @@ if ($action === 'files') {
         WHERE b.bidder_id = ?
           AND bd.lot_id   = ?
           AND bd.document_type = ?
+          AND b.status = 'submitted'
         ORDER BY bd.uploaded_at ASC
     ");
     $stmt->bind_param("iis", $bidder_id, $lot_id, $doc_type);
@@ -149,7 +152,7 @@ if ($action === 'progress') {
 
     $proc_id = (int)$sess_row['procurement_id'];
 
-    // Fetch lots evaluation & award progress directly from database
+    // Fetch lots evaluation progress directly from database
     $lots_stmt = $conn->prepare("
         SELECT
             l.id, l.lot_number, l.lot_title, l.abc,
@@ -158,8 +161,7 @@ if ($action === 'progress') {
             COUNT(CASE WHEN bl.eligibility_status = 'eligible' THEN 1 END) AS eligible_bids,
             COUNT(CASE WHEN bl.eligibility_status = 'disqualified' THEN 1 END) AS disq_elig,
             COUNT(CASE WHEN bl.eligibility_status = 'eligible' AND bl.financial_status IN ('pending','opened') THEN 1 END) AS pending_fin,
-            COUNT(CASE WHEN bl.eligibility_status = 'eligible' AND bl.financial_status IN ('qualified','non_compliant') THEN 1 END) AS done_fin,
-            (SELECT COUNT(*) FROM awards a WHERE a.lot_id = l.id) AS is_awarded
+            COUNT(CASE WHEN bl.eligibility_status = 'eligible' AND bl.financial_status IN ('qualified','non_compliant') THEN 1 END) AS done_fin
         FROM lots l
         LEFT JOIN bid_lots bl ON bl.lot_id = l.id
         WHERE l.procurement_id = ?
@@ -171,17 +173,34 @@ if ($action === 'progress') {
     $lots_summary = $lots_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $lots_stmt->close();
 
+    // A lot is only "done" once the admin has explicitly submitted Done for
+    // it (which advances current_lot_id past it) — never just inferred from
+    // having zero bids or nothing left pending, since that would mark
+    // bid-less lots done before the session ever reaches them.
+    $raw_status         = $sess_row['status'];
+    $current_lot_id_val = (int)($sess_row['current_lot_id'] ?? 0);
+    $current_lot_number = null;
+    if ($current_lot_id_val > 0) {
+        foreach ($lots_summary as $ls) {
+            if ((int)$ls['id'] === $current_lot_id_val) { $current_lot_number = (int)$ls['lot_number']; break; }
+        }
+    }
     foreach ($lots_summary as &$ls) {
-        $total  = (int)$ls['total_bids'];
-        $p_elig = (int)$ls['pending_elig'];
-        $p_fin  = (int)$ls['pending_fin'];
-        $ls['is_done'] = ($total === 0 || ($p_elig === 0 && $p_fin === 0) || (int)$ls['is_awarded'] > 0);
+        if ($raw_status === 'ended') {
+            $ls['is_done'] = true;
+        } elseif ($current_lot_id_val === 0) {
+            // No active lot pointer: either the session hasn't started yet
+            // (nothing done) or every lot has already been explicitly
+            // completed and we're waiting on the "End Session" confirmation.
+            $ls['is_done'] = ($raw_status !== 'scheduled');
+        } else {
+            $ls['is_done'] = ((int)$ls['lot_number'] < $current_lot_number);
+        }
     }
     unset($ls);
 
     // Derive current stage from status — 'eligibility' and 'financial' are used directly;
     // 'started' maps to 'eligibility' as the default opening phase.
-    $raw_status    = $sess_row['status'];
     $current_stage = in_array($raw_status, ['eligibility', 'financial']) ? $raw_status : 'eligibility';
 
     echo json_encode([
@@ -196,56 +215,6 @@ if ($action === 'progress') {
     exit();
 }
 
-// ── Get awards for procurement ─────────────────────────────────────────────
-if ($action === 'get_awards') {
-    $proc_id    = (int)($_GET['proc_id'] ?? 0);
-    $session_id = (int)($_GET['session_id'] ?? 0);
-
-    if ($proc_id <= 0 && $session_id > 0) {
-        $ps = $conn->prepare("SELECT procurement_id FROM bid_opening_sessions WHERE id = ?");
-        $ps->bind_param("i", $session_id);
-        $ps->execute();
-        $ps_row = $ps->get_result()->fetch_assoc();
-        $ps->close();
-        $proc_id = (int)($ps_row['procurement_id'] ?? 0);
-    }
-
-    if ($proc_id <= 0) { echo json_encode(['awards' => []]); exit(); }
-
-    $stmt = $conn->prepare("
-        SELECT a.id, a.lot_id, a.bid_lot_id, a.awarded_amount,
-               DATE_FORMAT(a.award_date, '%b %e, %Y') AS award_date_fmt,
-               l.lot_number, l.lot_title, l.abc,
-               u.firstname, u.lastname, u.username, u.profile_picture_url AS avatar,
-               COALESCE(bp.business_name, CONCAT(u.firstname,' ',u.lastname)) AS business_name,
-               bl.bid_id
-        FROM awards a
-        JOIN lots l      ON l.id = a.lot_id
-        JOIN bid_lots bl  ON bl.id = a.bid_lot_id
-        JOIN bids b       ON b.id = bl.bid_id
-        JOIN users u      ON u.user_id = b.bidder_id
-        LEFT JOIN bidder_profiles bp ON bp.user_id = u.user_id
-        WHERE l.procurement_id = ?
-        ORDER BY l.lot_number ASC
-    ");
-    $stmt->bind_param("i", $proc_id);
-    $stmt->execute();
-    $awards = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-    $stmt->close();
-
-    // Failed lots — read directly from lots.status = 'failed', scoped per lot_id
-    $fl = $conn->prepare("
-        SELECT id AS lot_id, lot_number
-        FROM lots
-        WHERE procurement_id = ? AND status = 'failed'
-    ");
-    $fl->bind_param("i", $proc_id);
-    $fl->execute();
-    $failed_lots = $fl->get_result()->fetch_all(MYSQLI_ASSOC);
-    $fl->close();
-
-    echo json_encode(['awards' => $awards, 'failed_lots' => $failed_lots]); exit();
-}
 
 // ═══════════════════════════════ POST ACTIONS ═════════════════════════════
 
@@ -466,7 +435,7 @@ if ($action === 'start_phase') {
     $session_id = (int)($_POST['session_id'] ?? 0);
     $phase      = $_POST['phase'] ?? '';
 
-    $allowed = ['eligibility', 'financial', 'awarding', 'ended', 'started'];
+    $allowed = ['eligibility', 'financial', 'offered', 'ended', 'started'];
     if (!in_array($phase, $allowed) || $session_id <= 0) {
         echo json_encode(['success' => false, 'message' => 'Invalid parameters.']); exit();
     }
@@ -604,103 +573,64 @@ if ($action === 'set_lot_opened') {
     echo json_encode(['success' => true]); exit();
 }
 
-// ── Fail Lot (no award — lot failed) ─────────────────────────────────────
-if ($action === 'fail_lot') {
-    $lot_id     = (int)($_POST['lot_id']     ?? 0);
+// ── Save total offered bid (Offered Bids tab) ───────────────────────────────
+if ($action === 'save_offered_bid') {
+    $bid_lot_id = (int)($_POST['bid_lot_id'] ?? 0);
     $session_id = (int)($_POST['session_id'] ?? 0);
+    $amount_raw = trim((string)($_POST['amount'] ?? ''));
 
-    if ($lot_id <= 0) {
+    if ($bid_lot_id <= 0 || $session_id <= 0) {
         echo json_encode(['success' => false, 'message' => 'Invalid parameters.']); exit();
     }
 
-    // Mark the lot itself as failed — scoped directly to this lot_id, no cross-lot bleed
-    $upd = $conn->prepare("UPDATE lots SET status = 'failed' WHERE id = ?");
-    $upd->bind_param("i", $lot_id);
+    // Reject once the session has already been concluded — this is a
+    // server-side check, not just a UI lock, since the tab-lock/click guard
+    // in the browser can be bypassed (e.g. removing the 'locked' class via
+    // DevTools, or calling this endpoint directly).
+    $sc = $conn->prepare("SELECT status FROM bid_opening_sessions WHERE id = ?");
+    $sc->bind_param("i", $session_id);
+    $sc->execute();
+    $sess_status = $sc->get_result()->fetch_assoc();
+    $sc->close();
+    if (!$sess_status || $sess_status['status'] === 'ended') {
+        echo json_encode(['success' => false, 'message' => 'This session has already concluded.']); exit();
+    }
+
+    $amount = ($amount_raw === '') ? null : (float)$amount_raw;
+
+    // Scope the update to bid_lots that actually belong to this session's
+    // procurement, so a bid_lot_id can't be used to write into an unrelated session.
+    $upd = $conn->prepare("
+        UPDATE bid_lots bl
+        JOIN lots l               ON l.id = bl.lot_id
+        JOIN bid_opening_sessions bos ON bos.procurement_id = l.procurement_id
+        SET bl.total_offered_bid = ?
+        WHERE bl.id = ? AND bos.id = ?
+    ");
+    $upd->bind_param("dii", $amount, $bid_lot_id, $session_id);
     $upd->execute();
+    $affected = $upd->affected_rows;
     $upd->close();
 
-    audit_log($conn, 'LOT_STATUS_CHANGED', 'lots', $lot_id,
-        "Lot #{$lot_id} marked as failed (no award) in session #{$session_id}",
-        ['status' => 'pending'], ['status' => 'failed', 'session_id' => $session_id]
-    );
-
-    // Remove any stale award row for this lot (in case of undo from awarded state)
-    $del = $conn->prepare("DELETE FROM awards WHERE lot_id = ?");
-    $del->bind_param("i", $lot_id);
-    $del->execute();
-    $del->close();
-
-    pusher_trigger($session_id, 'lot_failed', ['lot_id' => $lot_id]);
-
-    echo json_encode(['success' => true, 'lot_id' => $lot_id]); exit();
-}
-
-// ── Award Lot to Winner ───────────────────────────────────────────────────
-if ($action === 'award_lot') {
-    $session_id     = (int)($_POST['session_id']     ?? 0);
-    $lot_id         = (int)($_POST['lot_id']         ?? 0);
-    $bid_lot_id     = (int)($_POST['bid_lot_id']     ?? 0);
-    $awarded_amount = (float)($_POST['awarded_amount'] ?? 0);
-
-    if ($lot_id <= 0 || $bid_lot_id <= 0) {
-        echo json_encode(['success' => false, 'message' => 'Invalid parameters.']); exit();
+    if ($affected === 0) {
+        // affected_rows is 0 both when nothing matched and when the value
+        // didn't change — confirm the row actually exists before erroring.
+        $chk = $conn->prepare("
+            SELECT 1 FROM bid_lots bl
+            JOIN lots l ON l.id = bl.lot_id
+            JOIN bid_opening_sessions bos ON bos.procurement_id = l.procurement_id
+            WHERE bl.id = ? AND bos.id = ?
+        ");
+        $chk->bind_param("ii", $bid_lot_id, $session_id);
+        $chk->execute();
+        $exists = (bool)$chk->get_result()->fetch_row();
+        $chk->close();
+        if (!$exists) {
+            echo json_encode(['success' => false, 'message' => 'Bid lot not found for this session.']); exit();
+        }
     }
 
-    // Verify bid_lot belongs to this lot
-    $chk = $conn->prepare("SELECT id, bid_id FROM bid_lots WHERE id = ? AND lot_id = ?");
-    $chk->bind_param("ii", $bid_lot_id, $lot_id);
-    $chk->execute();
-    $bl_row = $chk->get_result()->fetch_assoc();
-    $chk->close();
-
-    if (!$bl_row) {
-        echo json_encode(['success' => false, 'message' => 'bid_lot not found for this lot.']); exit();
-    }
-
-    // Upsert into awards using bid_lot_id
-    $ins = $conn->prepare("
-        INSERT INTO awards (lot_id, bid_lot_id, awarded_amount, award_date)
-        VALUES (?, ?, ?, CURDATE())
-        ON DUPLICATE KEY UPDATE bid_lot_id = VALUES(bid_lot_id), awarded_amount = VALUES(awarded_amount), award_date = VALUES(award_date)
-    ");
-    $ins->bind_param("iid", $lot_id, $bid_lot_id, $awarded_amount);
-    $ins->execute();
-    $award_id = $conn->insert_id ?: null;
-    $ins->close();
-
-    // Mark the winning bid as awarded
-    $bid_id = (int)$bl_row['bid_id'];
-    $bupd = $conn->prepare("UPDATE bids SET status = 'awarded' WHERE id = ?");
-    $bupd->bind_param("i", $bid_id);
-    $bupd->execute();
-    $bupd->close();
-
-    // Mark the lot itself as awarded
-    $lupd = $conn->prepare("UPDATE lots SET status = 'awarded' WHERE id = ?");
-    $lupd->bind_param("i", $lot_id);
-    $lupd->execute();
-    $lupd->close();
-
-    audit_log($conn, 'AWARD_CREATED', 'lots', $lot_id,
-        "Lot #{$lot_id} awarded to bid_lot #{$bid_lot_id} for ₱" . number_format($awarded_amount, 2) . " in session #{$session_id}",
-        null,
-        ['lot_id' => $lot_id, 'bid_lot_id' => $bid_lot_id, 'awarded_amount' => $awarded_amount, 'session_id' => $session_id]
-    );
-    audit_log($conn, 'LOT_STATUS_CHANGED', 'lots', $lot_id,
-        "Lot #{$lot_id} status changed to awarded",
-        ['status' => 'pending'], ['status' => 'awarded']
-    );
-
-    pusher_trigger($session_id, 'lot_awarded', [
-        'lot_id'     => $lot_id,
-        'bid_lot_id' => $bid_lot_id,
-    ]);
-
-    // Send Notice of Award strictly to the winning bidder
-    require_once __DIR__ . '/../utils/mailer.php';
-    notify_lot_awarded($conn, $lot_id, $bid_lot_id, $awarded_amount);
-
-    echo json_encode(['success' => true, 'message' => 'Award recorded successfully.']); exit();
+    echo json_encode(['success' => true]); exit();
 }
 
 // ── End Session ───────────────────────────────────────────────────────────
@@ -712,15 +642,23 @@ if ($action === 'end_session') {
         echo json_encode(['success' => false, 'message' => 'Invalid session.']); exit();
     }
 
-    // 1. Mark session as ended
+    // 1. Mark session as ended — scoped to sessions not already ended, so a
+    // second/duplicate call (e.g. a client-side lock bypassed via DevTools,
+    // or the button clicked twice) is a harmless no-op instead of re-running
+    // the lot/procurement updates and re-sending the conclusion email.
     $upd = $conn->prepare("
         UPDATE bid_opening_sessions
         SET status = 'ended', ended_at = NOW()
-        WHERE id = ?
+        WHERE id = ? AND status != 'ended'
     ");
     $upd->bind_param("i", $session_id);
     $upd->execute();
+    $already_ended = ($upd->affected_rows === 0);
     $upd->close();
+
+    if ($already_ended) {
+        echo json_encode(['success' => true, 'new_status' => 'ended']); exit();
+    }
 
     audit_log($conn, 'BID_SESSION_ENDED', 'bid_opening', $session_id,
         "Bid opening session #{$session_id} officially ended",
@@ -729,37 +667,18 @@ if ($action === 'end_session') {
 
     if ($proc_id > 0) {
 
-        // 2. Any lot still 'pending' (no award, not marked failed) → mark failed
+        // 2. Every lot that went through the session (still 'pending' — no award/fail
+        //    decision is made here anymore) is simply marked 'opened'.
         $lupd = $conn->prepare("
-            UPDATE lots SET status = 'failed'
+            UPDATE lots SET status = 'opened'
             WHERE procurement_id = ? AND status = 'pending'
         ");
         $lupd->bind_param("i", $proc_id);
         $lupd->execute();
         $lupd->close();
 
-        // 3. Mark losing bids as 'rejected' (submitted/opened/pending but not awarded)
-        $bupd = $conn->prepare("
-            UPDATE bids
-            SET status = 'rejected'
-            WHERE procurement_id = ?
-              AND status NOT IN ('awarded', 'rejected')
-        ");
-        $bupd->bind_param("i", $proc_id);
-        $bupd->execute();
-        $bupd->close();
-
-        // 4. Update procurement status — 'awarded' if any lot was awarded, else 'closed'
-        $ac = $conn->prepare("
-            SELECT COUNT(*) FROM lots
-            WHERE procurement_id = ? AND status = 'awarded'
-        ");
-        $ac->bind_param("i", $proc_id);
-        $ac->execute();
-        $award_count = (int)$ac->get_result()->fetch_row()[0];
-        $ac->close();
-
-        $proc_status = ($award_count > 0) ? 'awarded' : 'closed';
+        // 3. Procurement status reflects that the session concluded — no award decision made here.
+        $proc_status = 'opened';
         $pupd = $conn->prepare("UPDATE procurements SET status = ? WHERE id = ?");
         $pupd->bind_param("si", $proc_status, $proc_id);
         $pupd->execute();

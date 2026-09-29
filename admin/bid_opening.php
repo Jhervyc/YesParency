@@ -25,12 +25,34 @@ if ($can_manage && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['open_n
         $old_ses = $snap->get_result()->fetch_assoc();
         $snap->close();
 
-        $upd = $conn->prepare("
-            UPDATE bid_opening_sessions
-            SET status = 'started', started_at = NOW()
-            WHERE id = ? AND status = 'scheduled'
-        ");
-        $upd->bind_param("i", $session_id);
+        // Resolve the procurement's first lot so current_lot_id is populated
+        // the same way bid_session_api.php's start_session action does —
+        // without this, is_done falls back to "no active lot pointer" and
+        // every lot tab reads as already done from the very first load.
+        $first_lot_id = 0;
+        if ($old_ses) {
+            $fl = $conn->prepare("SELECT id FROM lots WHERE procurement_id = ? ORDER BY lot_number ASC LIMIT 1");
+            $fl->bind_param("i", $old_ses['procurement_id']);
+            $fl->execute();
+            $first_lot_id = (int)($fl->get_result()->fetch_row()[0] ?? 0);
+            $fl->close();
+        }
+
+        if ($first_lot_id > 0) {
+            $upd = $conn->prepare("
+                UPDATE bid_opening_sessions
+                SET status = 'started', started_at = NOW(), current_lot_id = ?
+                WHERE id = ? AND status = 'scheduled'
+            ");
+            $upd->bind_param("ii", $first_lot_id, $session_id);
+        } else {
+            $upd = $conn->prepare("
+                UPDATE bid_opening_sessions
+                SET status = 'started', started_at = NOW()
+                WHERE id = ? AND status = 'scheduled'
+            ");
+            $upd->bind_param("i", $session_id);
+        }
         if ($upd->execute() && $upd->affected_rows > 0) {
             $ptitle = $old_ses['proc_title'] ?? "procurement #{$old_ses['procurement_id']}";
             audit_log(
@@ -69,7 +91,7 @@ $ls_res = $conn->query("
            p.id AS proc_id, p.title AS proc_title, p.slsu_ref_no
     FROM bid_opening_sessions bos
     JOIN procurements p ON bos.procurement_id = p.id
-    WHERE bos.status IN ('started','eligibility','financial','awarding')
+    WHERE bos.status IN ('started','eligibility','financial','offered')
     ORDER BY bos.started_at DESC
     LIMIT 1
 ");
@@ -79,7 +101,7 @@ if ($ls_res) $live_session = $ls_res->fetch_assoc();
 $scheduled_res = $conn->query("
     SELECT bos.id AS session_id, bos.created_at, bos.stream_path,
            p.title AS proc_title, p.slsu_ref_no, p.procurement_mode,
-           (SELECT COUNT(*) FROM bids b WHERE b.procurement_id = p.id) AS bid_count
+           (SELECT COUNT(*) FROM bids b WHERE b.procurement_id = p.id AND b.status = 'submitted') AS bid_count
     FROM bid_opening_sessions bos
     JOIN procurements p ON bos.procurement_id = p.id
     WHERE bos.status = 'scheduled'
@@ -132,7 +154,7 @@ $main = $conn->prepare("
     SELECT p.id, p.slsu_ref_no, p.title, p.abc, p.procurement_mode,
            p.closing_date, p.opening_date, p.status,
            (SELECT COUNT(*) FROM lots l WHERE l.procurement_id = p.id) AS lot_count,
-           (SELECT COUNT(*) FROM bids b WHERE b.procurement_id = p.id) AS bid_count
+           (SELECT COUNT(*) FROM bids b WHERE b.procurement_id = p.id AND b.status = 'submitted') AS bid_count
     FROM procurements p
     $where_sql
     $order_sql
@@ -429,6 +451,10 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
                             <?php if (in_array((int)$row['id'], $scheduled_proc_ids)): ?>
                             <span class="proc-action-btn proc-action-btn--scheduled">
                                 <i class="bi bi-check-circle-fill clr-forest"></i> Scheduled
+                            </span>
+                            <?php elseif ((int)$row['bid_count'] === 0): ?>
+                            <span class="proc-action-btn proc-action-btn--disabled" title="No bids yet — nothing to open">
+                                <i class="bi bi-calendar-x"></i> No Bids
                             </span>
                             <?php elseif ($can_manage): ?>
                             <a href="schedule_bid_opening.php?procurement=<?= $row['id'] ?>" class="proc-action-btn btn-schedule">

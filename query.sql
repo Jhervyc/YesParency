@@ -84,6 +84,7 @@ CREATE TABLE procurements (
         'open',
         'closed',
         'awarded',
+        'opened',
         'cancelled'
     ) NOT NULL DEFAULT 'draft',
 
@@ -118,6 +119,7 @@ CREATE TABLE lots (
     status ENUM(
         'pending',
         'awarded',
+        'opened',
         'failed'
     ) NOT NULL DEFAULT 'pending',
 
@@ -130,9 +132,14 @@ CREATE TABLE lots (
 -- ADD COLUMN status ENUM(
 --     'pending',
 --     'awarded',
+--     'opened',
 --     'failed'
 -- ) NOT NULL DEFAULT 'pending'
 -- AFTER abc;
+
+-- Migration for an existing database (lots already created without 'opened'):
+-- ALTER TABLE lots MODIFY COLUMN status ENUM('pending','awarded','opened','failed') NOT NULL DEFAULT 'pending';
+-- ALTER TABLE procurements MODIFY COLUMN status ENUM('draft','open','closed','awarded','opened','cancelled') NOT NULL DEFAULT 'draft';
 
 -- =================== Procurement_Documents table =======================
 
@@ -170,7 +177,6 @@ CREATE TABLE bids (
     bidder_id INT NOT NULL,
     procurement_id INT NOT NULL,
     bid_type ENUM(
-        'quotation',
         'bid'
     ) NOT NULL DEFAULT 'bid',
     submission_date DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -182,10 +188,15 @@ CREATE TABLE bids (
 
 -- ALTER TABLE bids
 -- ADD COLUMN bid_type ENUM(
---     'quotation',
 --     'bid'
 -- ) NOT NULL DEFAULT 'bid'
 -- AFTER procurement_id;
+
+-- Migration for an existing database (bid_type still allows 'quotation'):
+-- the quotation flow has been removed system-wide, so no future row should
+-- use it; existing 'quotation' rows are left as historical data (dev/test
+-- only, per the removal decision) — no UPDATE needed before running this:
+-- ALTER TABLE bids MODIFY COLUMN bid_type ENUM('bid') NOT NULL DEFAULT 'bid';
 -- =================== Bids_lots table =======================
 CREATE TABLE bid_lots (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -252,7 +263,7 @@ CREATE TABLE bid_documents (
     id INT AUTO_INCREMENT PRIMARY KEY,
     bid_id INT NOT NULL,
     lot_id INT NULL, -- NULL for bid-wide docs (e.g. receipt); set for per-lot eligibility/financial docs
-    document_type ENUM('eligibility', 'financial', 'qoutation', 'other') DEFAULT 'other',
+    document_type ENUM('eligibility', 'financial', 'other') DEFAULT 'other',
     document_name VARCHAR(255) NOT NULL,
     file_path VARCHAR(255) NOT NULL,
     uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -275,9 +286,13 @@ CREATE TABLE bid_documents (
 -- MODIFY COLUMN document_type ENUM(
 --     'eligibility',
 --     'financial',
---     'quotation',
 --     'other'
 -- );
+-- NOTE: this drops the never-matched 'qoutation' (sic) value that used to sit
+-- alongside the actually-inserted 'quotation' string from the now-removed
+-- bidder/submit_quotation.php — a pre-existing mismatch that's moot now that
+-- nothing writes that value; existing rows (if any) are left as historical
+-- data per the removal decision.
 
 -- =================== Awards table =======================
 CREATE TABLE IF NOT EXISTS awards (
@@ -410,7 +425,7 @@ CREATE TABLE IF NOT EXISTS bid_opening_sessions (
         'started',
         'eligibility',
         'financial',
-        'awarding',
+        'offered',
         'ended'
     ) NOT NULL DEFAULT 'scheduled',
 
@@ -444,15 +459,21 @@ CREATE TABLE IF NOT EXISTS bid_opening_sessions (
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ALTER TABLE bid_opening_sessions 
+-- ALTER TABLE bid_opening_sessions
 -- MODIFY COLUMN status ENUM(
 --     'scheduled',
 --     'started',
 --     'eligibility',
 --     'financial',
---     'awarding',
+--     'offered',
 --     'ended'
 -- ) NOT NULL DEFAULT 'scheduled';
+-- NOTE: before running this on an existing DB, first run
+-- UPDATE bid_opening_sessions SET status = 'financial' WHERE status = 'awarding';
+-- so no row is left holding a value the new enum no longer allows.
+-- 'offered' is a new phase (the "Offered Bids" tab, between the last lot
+-- and Conclusion) — no migration of existing rows is needed for it since
+-- it's an additive value.
 
 -- ALTER TABLE bid_opening_sessions
 -- ADD COLUMN current_lot_id INT NULL

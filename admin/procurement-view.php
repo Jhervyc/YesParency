@@ -1,7 +1,6 @@
 <?php
 include("utils/protect-page.php");
 include("utils/protect-secretariat.php");
-require_once(__DIR__ . "/../utils/procurement_mode_helper.php");
 
 $procurement_id = isset($_GET['id']) ? intval($_GET['id']) : (isset($_GET['procurement_id']) ? intval($_GET['procurement_id']) : 0);
 if ($procurement_id === 0) {
@@ -278,8 +277,8 @@ $stats_stmt->close();
 
 // Status & Timing Details
 $p_status = strtolower($proc['status'] ?? 'open');
-$status_badge_bg = ['open'=>'#e4f5ea', 'draft'=>'#eef0ed', 'closed'=>'#e7eefe', 'awarded'=>'#fcf1cf', 'cancelled'=>'#ffebee'][$p_status] ?? '#e4f5ea';
-$status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 'awarded'=>'#b78103', 'cancelled'=>'#c23b3b'][$p_status] ?? '#1f7a3d';
+$status_badge_bg = ['open'=>'#e4f5ea', 'draft'=>'#eef0ed', 'closed'=>'#e7eefe', 'awarded'=>'#fcf1cf', 'opened'=>'#fcf1cf', 'cancelled'=>'#ffebee'][$p_status] ?? '#e4f5ea';
+$status_badge_fg = ['open'=>'#1f7a3d', 'draft'=>'#6c776e', 'closed'=>'#2F6FED', 'awarded'=>'#b78103', 'opened'=>'#b78103', 'cancelled'=>'#c23b3b'][$p_status] ?? '#1f7a3d';
 
 // ── Fetch Procurement Documents (Categorized) ─────────────────────────────────
 $doc_stmt = $conn->prepare("SELECT * FROM procurement_documents WHERE procurement_id = ? ORDER BY uploaded_at DESC");
@@ -297,49 +296,6 @@ while ($d = $docs_res->fetch_assoc()) {
 }
 $doc_stmt->close();
 
-// ── Fetch quotation data for SVP / Shopping procurements ──────────────────────
-$_pv_is_quotation = is_quotation_mode($proc['procurement_mode'] ?? '');
-$pv_quotations    = [];   // lot_id → [ rows ]
-$pv_awards_map    = [];   // lot_id → award row
-if ($_pv_is_quotation) {
-    // Awards
-    $aw2 = $conn->prepare("SELECT * FROM awards WHERE lot_id IN (SELECT id FROM lots WHERE procurement_id = ?)");
-    $aw2->bind_param("i", $procurement_id);
-    $aw2->execute();
-    foreach ($aw2->get_result()->fetch_all(MYSQLI_ASSOC) as $aw) $pv_awards_map[$aw['lot_id']] = $aw;
-    $aw2->close();
-
-    // Initialise keyed by lot
-    foreach ($lots as $_l) $pv_quotations[$_l['id']] = [];
-
-    $pv_q = $conn->prepare("
-        SELECT b.id AS bid_id, b.submission_date, b.status AS bid_status,
-               bl.id AS bid_lot_id, bl.lot_id, bl.total_offered_bid,
-               u.firstname, u.lastname, u.email, u.profile_picture_url,
-               bp.business_name,
-               (SELECT bd.id FROM bid_documents bd WHERE bd.bid_id = b.id AND bd.document_type = 'quotation' LIMIT 1) AS doc_id
-        FROM bids b
-        JOIN bid_lots bl ON bl.bid_id = b.id
-        JOIN users u ON b.bidder_id = u.user_id
-        LEFT JOIN bidder_profiles bp ON u.user_id = bp.user_id
-        WHERE b.procurement_id = ? AND b.bid_type = 'quotation'
-        ORDER BY bl.lot_id ASC, bl.total_offered_bid ASC, b.submission_date ASC
-    ");
-    $pv_q->bind_param("i", $procurement_id);
-    $pv_q->execute();
-    foreach ($pv_q->get_result()->fetch_all(MYSQLI_ASSOC) as $_qr) {
-        if (isset($pv_quotations[$_qr['lot_id']])) $pv_quotations[$_qr['lot_id']][] = $_qr;
-    }
-    $pv_q->close();
-
-    // Compute rank per lot
-    foreach ($pv_quotations as $_lid => $_rows) {
-        $_rank = 1;
-        foreach ($_rows as $_i => $_row) {
-            $pv_quotations[$_lid][$_i]['computed_rank'] = ($_row['total_offered_bid'] !== null) ? $_rank++ : null;
-        }
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -483,7 +439,6 @@ if ($_pv_is_quotation) {
         <div class="vp-left-col">
 
             <!-- 1. Bid Submissions Desk -->
-            <?php if (!$_pv_is_quotation): ?>
             <div class="vp-card">
                 <div class="vp-card-head">
                     <div class="vp-card-title">
@@ -569,97 +524,6 @@ if ($_pv_is_quotation) {
                 <?php endif; ?>
 
             </div>
-
-            <?php else: ?>
-            <!-- ── Quotation Rankings (SVP / Shopping) ── -->
-            <div class="vp-card qr-card">
-                <div class="vp-card-head">
-                    <div class="vp-card-title">
-                        <i class="bi bi-list-ol clr-gold-dark"></i>
-                        <span>Quotation Rankings</span>
-                    </div>
-                    <a href="quotation_management.php?id=<?= $procurement_id ?>" class="qr-manage-link">
-                        <i class="bi bi-arrow-up-right-square"></i> Full Management
-                    </a>
-                </div>
-                <div>
-                <?php if (empty($lots)): ?>
-                    <div class="qr-empty">No lots defined yet.</div>
-                <?php else:
-                    foreach ($lots as $_pvlot):
-                        $_pv_quotes  = $pv_quotations[$_pvlot['id']] ?? [];
-                        $_pv_award   = $pv_awards_map[$_pvlot['id']] ?? null;
-                        $_lot_status = strtolower($_pvlot['status'] ?? 'pending');
-                ?>
-                    <div class="qr-lot-block">
-                        <!-- Lot label row -->
-                        <div class="qr-lot-label-row">
-                            <span class="qr-lot-num-badge">Lot <?= $_pvlot['lot_number'] ?></span>
-                            <span class="qr-lot-title"><?= htmlspecialchars($_pvlot['lot_title']) ?></span>
-                            <?php if ($_lot_status === 'awarded'): ?>
-                                <span class="qr-lot-status-badge qr-lot-status-badge--awarded"><i class="bi bi-trophy-fill"></i> Awarded</span>
-                            <?php elseif ($_lot_status === 'failed'): ?>
-                                <span class="qr-lot-status-badge qr-lot-status-badge--failed"><i class="bi bi-x-circle-fill"></i> Failed</span>
-                            <?php endif; ?>
-                        </div>
-                        <?php if (empty($_pv_quotes)): ?>
-                            <div class="qr-no-quotes">No quotations submitted yet.</div>
-                        <?php else: ?>
-                            <table class="qr-table">
-                                <thead>
-                                    <tr>
-                                        <th>Rank</th>
-                                        <th>Bidder</th>
-                                        <th>Offered Price</th>
-                                        <th>Status</th>
-                                        <th>Doc</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                <?php foreach ($_pv_quotes as $_pq):
-                                    $_r   = $_pq['computed_rank'];
-                                    $_biz = $_pq['business_name'] ?: ($_pq['firstname'].' '.$_pq['lastname']);
-                                    $_is_winner = $_pv_award && $_pv_award['bid_lot_id'] == $_pq['bid_lot_id'];
-                                    $_bs  = $_pq['bid_status'];
-                                    $_bs_label = match($_bs) { 'confirmed'=>'Confirmed','awarded'=>'Awarded','rejected'=>'Rejected','submitted'=>'Verified',default=>ucfirst($_bs) };
-                                    $_bs_class = match($_bs) { 'confirmed'=>'qr-status-badge--confirmed','awarded'=>'qr-status-badge--awarded','rejected'=>'qr-status-badge--rejected',default=>'qr-status-badge--default' };
-                                    $_rank_class = $_r===1 ? 'qr-rank--gold' : ($_r===2 ? 'qr-rank--silver' : ($r===3 ? 'qr-rank--bronze' : 'qr-rank--default'));
-                                ?>
-                                <tr class="qr-row <?= $_is_winner ? 'qr-row--winner' : '' ?>">
-                                    <td>
-                                        <span class="qr-rank <?= $_rank_class ?>">
-                                            <?= $_r ? '#'.$_r : '—' ?>
-                                        </span>
-                                    </td>
-                                    <td class="field-strong">
-                                        <?= htmlspecialchars($_biz) ?>
-                                        <?php if ($_is_winner): ?><span class="qr-winner-badge">WINNER</span><?php endif; ?>
-                                    </td>
-                                    <td class="qr-price">
-                                        <?= $_pq['total_offered_bid'] !== null ? '₱'.number_format((float)$_pq['total_offered_bid'],2) : '<span class="qr-price-pending">Pending</span>' ?>
-                                    </td>
-                                    <td>
-                                        <span class="qr-status-badge <?= $_bs_class ?>"><?= $_bs_label ?></span>
-                                    </td>
-                                    <td>
-                                        <?php if ($_pq['doc_id']): ?>
-                                            <a href="quotation_management.php?id=<?= $procurement_id ?>&action=view_doc&doc_id=<?= $_pq['doc_id'] ?>"
-                                               target="_blank"
-                                               class="qr-doc-link">
-                                                <i class="bi bi-file-earmark-text-fill"></i> View
-                                            </a>
-                                        <?php else: ?><span class="qr-doc-none">—</span><?php endif; ?>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        <?php endif; ?>
-                    </div>
-                <?php endforeach; endif; ?>
-                </div>
-            </div>
-            <?php endif; ?>
 
             <!-- 2. Project Specifications & Scope Overview -->
             <div class="vp-card">

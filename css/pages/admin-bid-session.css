@@ -169,6 +169,14 @@
 .btn-end-session:hover{background:#0c3d2c}
 .fail-lot-bar{padding:10px 18px;border-top:1px solid #fef2f2;background:#fffafa;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
+/* RANK BADGES (Conclusion tab — offered-bid ranking) */
+.rank-badge{font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:20px;display:inline-flex;align-items:center;justify-content:center;min-width:28px}
+.rank-badge--gold{background:#fff3cd;color:#b7860b}
+.rank-badge--silver{background:#eceff1;color:#546e7a}
+.rank-badge--bronze{background:#fbe4d5;color:#a1553a}
+.rank-badge--default{background:#f0f4f2;color:#55665a}
+.rank-badge--none{background:#f5f5f5;color:#aaa}
+
 /* SIDEBAR */
 .sb-panel{background:#fff;border:1px solid #eaeeec;border-radius:16px;overflow:hidden;margin-bottom:20px;box-shadow:0 1px 2px rgba(16,36,26,.03),0 8px 20px -12px rgba(16,36,26,.08)}
 .sb-head{padding:13px 16px;background:#fafcfb;border-bottom:1px solid #f0f4f2;font-size:13px;font-weight:800;color:#06251b;display:flex;align-items:center;gap:8px}

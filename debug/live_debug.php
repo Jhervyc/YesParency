@@ -55,12 +55,11 @@ if ($r_bos && $r_bos->num_rows > 0) {
         SELECT bos.id, bos.status, bos.stream_path, p.title
         FROM bid_opening_sessions bos
         JOIN procurements p ON bos.procurement_id = p.id
-        WHERE bos.status IN ('eligibility','financial','awarding','scheduled')
+        WHERE bos.status IN ('eligibility','financial','offered','scheduled')
         ORDER BY
             CASE bos.status
                 WHEN 'eligibility' THEN 1
                 WHEN 'financial'   THEN 2
-                WHEN 'awarding'    THEN 3
                 WHEN 'scheduled'   THEN 4
             END ASC,
             bos.started_at DESC

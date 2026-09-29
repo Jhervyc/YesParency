@@ -1,6 +1,5 @@
 <?php
 include("utils/protect-page.php");
-require_once(__DIR__ . "/../utils/procurement_mode_helper.php");
 require_once(__DIR__ . "/../utils/bidder_document_helper.php");
 
 $procurement_id = isset($_GET['id']) ? intval($_GET['id']) : (isset($_GET['procurement_id']) ? intval($_GET['procurement_id']) : 0);
@@ -104,22 +103,18 @@ if (!empty($procurement['closing_date'])) {
 }
 
 // Status styles
-$status_pill_class = in_array($p_status, ['open','draft','closed','awarded','cancelled'])
-    ? 'status-' . $p_status
-    : 'status-open';
+$status_pill_class = $p_status === 'opened'
+    ? 'status-awarded' // reuse the same concluded-session styling as 'awarded'
+    : (in_array($p_status, ['open','draft','closed','awarded','cancelled'])
+        ? 'status-' . $p_status
+        : 'status-open');
 
-// Submission routing — SVP / Shopping → quotation page, everything else → bid page
-$_proc_mode      = $procurement['procurement_mode'] ?? '';
-$_is_quotation   = is_quotation_mode($_proc_mode);
-$submit_url      = $_is_quotation
-    ? "submit_quotation.php?id={$procurement_id}"
-    : "submit_bid.php?id={$procurement_id}";
-$submit_label    = $_is_quotation ? 'Submit Price Quotation' : 'Submit Bid Proposal';
-$submit_icon     = $_is_quotation ? 'bi-file-earmark-text-fill' : 'bi-send-fill';
-$cta_title       = $_is_quotation ? 'Submit a Price Quotation' : 'Submit Electronic Bid';
-$cta_desc        = $_is_quotation
-    ? 'Upload your quotation document for each lot. The procurement officer will confirm your offered price after review.'
-    : 'Ensure all lot financial components and eligibility documents comply with RA 9184 before the submission deadline.';
+// Submission routing
+$submit_url      = "submit_bid.php?id={$procurement_id}";
+$submit_label    = 'Submit Bid Proposal';
+$submit_icon     = 'bi-send-fill';
+$cta_title       = 'Submit Electronic Bid';
+$cta_desc        = 'Ensure all lot financial components and eligibility documents comply with RA 9184 before the submission deadline.';
 ?>
 <!DOCTYPE html>
 <html lang="en">

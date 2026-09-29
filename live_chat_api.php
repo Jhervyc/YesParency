@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'send'
     $sc->execute();
     $sess = $sc->get_result()->fetch_assoc();
     $sc->close();
-    if (!$sess || !in_array($sess['status'], ['eligibility','financial','awarding','started'])) {
+    if (!$sess || !in_array($sess['status'], ['eligibility','financial','started','offered'])) {
         echo json_encode(['error' => 'Chat is only open during a live session.']); exit();
     }
 

@@ -72,7 +72,7 @@ $types       = '';
 if ($status_filter === 'open') {
     $where_parts[] = "p.status = 'open'";
 } elseif ($status_filter === 'closed') {
-    $where_parts[] = "p.status IN ('closed', 'awarded')";
+    $where_parts[] = "p.status IN ('closed', 'awarded', 'opened')";
 }
 
 // Procurement Mode Filter
@@ -149,7 +149,7 @@ $stat_all       = (int)($stat_all_res ? $stat_all_res->fetch_row()[0] : 0);
 $stat_open_res  = $conn->query("SELECT COUNT(*) FROM procurements WHERE status = 'open'");
 $stat_open      = (int)($stat_open_res ? $stat_open_res->fetch_row()[0] : 0);
 
-$stat_close_res = $conn->query("SELECT COUNT(*) FROM procurements WHERE status IN ('closed', 'awarded')");
+$stat_close_res = $conn->query("SELECT COUNT(*) FROM procurements WHERE status IN ('closed', 'awarded', 'opened')");
 $stat_close     = (int)($stat_close_res ? $stat_close_res->fetch_row()[0] : 0);
 
 $stat_urgent_res= $conn->query("SELECT COUNT(*) FROM procurements WHERE status = 'open' AND closing_date IS NOT NULL AND closing_date BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 3 DAY)");

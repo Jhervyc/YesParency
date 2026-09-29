@@ -29,8 +29,8 @@ if ($procurement_id <= 0) {
     $fb = $conn->query("
         SELECT p.id FROM bid_opening_sessions bos
         JOIN procurements p ON p.id = bos.procurement_id
-        WHERE bos.status IN ('eligibility','financial','awarding','started','scheduled')
-        ORDER BY FIELD(bos.status,'eligibility','financial','awarding','started','scheduled'), bos.started_at DESC
+        WHERE bos.status IN ('eligibility','financial','offered','started','scheduled')
+        ORDER BY FIELD(bos.status,'eligibility','financial','offered','started','scheduled'), bos.started_at DESC
         LIMIT 1
     ");
     if ($fb) {
@@ -69,7 +69,7 @@ if ($procurement_id > 0) {
             FROM bid_opening_sessions
             WHERE procurement_id = ?
             ORDER BY
-                FIELD(status,'eligibility','financial','awarding','started','scheduled','ended') ASC,
+                FIELD(status,'eligibility','financial','offered','started','scheduled','ended') ASC,
                 started_at DESC
             LIMIT 1
         ");
@@ -102,7 +102,7 @@ if ($procurement_id > 0) {
 }
 
 // ── Derived state ──────────────────────────────────────────────────────────
-$is_live      = $session && in_array($session['status'], ['eligibility','financial','awarding','started']);
+$is_live      = $session && in_array($session['status'], ['eligibility','financial','started','offered']);
 $is_scheduled = $session && $session['status'] === 'scheduled';
 $is_ended     = $session && $session['status'] === 'ended';
 $session_id   = $session ? (int)$session['id'] : 0;
@@ -149,7 +149,7 @@ function sessionStatusLabel(string $status): string {
         'started'     => 'Starting',
         'eligibility' => 'Eligibility Review',
         'financial'   => 'Financial Review',
-        'awarding'    => 'Awarding',
+        'offered'     => 'Recording Offered Bids',
         'ended'       => 'Session Ended',
         default       => ucfirst($status),
     };
@@ -437,7 +437,7 @@ body {
 
 .sp-stage-icon.elig  { background: rgba(30,122,61,.25); color: #4ade80; }
 .sp-stage-icon.fin   { background: rgba(59,130,246,.2); color: #93c5fd; }
-.sp-stage-icon.award { background: rgba(255,193,7,.15); color: #ffc107; }
+.sp-stage-icon.offered { background: rgba(255,193,7,.15); color: #ffc107; }
 .sp-stage-icon.sched { background: rgba(217,119,6,.15); color: #fbbf24; }
 .sp-stage-icon.ended { background: rgba(100,116,139,.15); color: #94a3b8; }
 
@@ -861,14 +861,14 @@ body {
             $stageIcon  = match($session['status']) {
                 'eligibility' => 'sp-stage-icon elig',
                 'financial'   => 'sp-stage-icon fin',
-                'awarding'    => 'sp-stage-icon award',
+                'offered'     => 'sp-stage-icon offered',
                 'scheduled'   => 'sp-stage-icon sched',
                 default       => 'sp-stage-icon ended',
             };
             $stageI = match($session['status']) {
                 'eligibility' => 'bi-shield-check',
                 'financial'   => 'bi-cash-stack',
-                'awarding'    => 'bi-trophy-fill',
+                'offered'     => 'bi-cash-coin',
                 'scheduled'   => 'bi-clock-fill',
                 default       => 'bi-check2-all',
             };
@@ -899,7 +899,7 @@ body {
             <div class="lots-grid" id="lotsGrid">
                 <?php foreach ($lots as $lot):
                     $isActiveLot = $session['current_lot_id'] && (int)$lot['id'] === (int)$session['current_lot_id'];
-                    $isDone      = $lot['lot_status'] === 'awarded' || $lot['lot_status'] === 'failed';
+                    $isDone      = in_array($lot['lot_status'], ['awarded','opened','failed'], true);
                     $isFailed    = $lot['lot_status'] === 'failed';
 
                     if ($isActiveLot)       { $rowCls = 'lot-row lot-active'; $numCls = 'lot-num active'; $pillCls = 'lot-state-pill active'; $pillTxt = 'Live'; }
@@ -1149,7 +1149,7 @@ function statusLabel(s) {
         started:     'Starting',
         eligibility: 'Eligibility Review',
         financial:   'Financial Review',
-        awarding:    'Awarding',
+        offered:     'Recording Offered Bids',
         ended:       'Session Ended',
     };
     return map[s] || s.charAt(0).toUpperCase() + s.slice(1);
@@ -1169,7 +1169,7 @@ function updateStageUI(status) {
         const classMap = {
             eligibility: 'sp-stage-icon elig',
             financial:   'sp-stage-icon fin',
-            awarding:    'sp-stage-icon award',
+            offered:     'sp-stage-icon offered',
             scheduled:   'sp-stage-icon sched',
         };
         icon.className = classMap[status] || 'sp-stage-icon ended';
@@ -1177,7 +1177,7 @@ function updateStageUI(status) {
         const iMap = {
             eligibility: 'bi-shield-check',
             financial:   'bi-cash-stack',
-            awarding:    'bi-trophy-fill',
+            offered:     'bi-cash-coin',
             scheduled:   'bi-clock-fill',
         };
         icon.innerHTML = `<i class="bi ${iMap[status] || 'bi-check2-all'}"></i>`;
@@ -1186,7 +1186,7 @@ function updateStageUI(status) {
     // Update topbar badge
     const badge = document.querySelector('.status-badge');
     if (badge) {
-        const live = ['eligibility','financial','awarding','started'].includes(status);
+        const live = ['eligibility','financial','started','offered'].includes(status);
         const ended = status === 'ended';
         badge.className = 'status-badge ' + (live ? 'live' : ended ? 'ended' : 'sched');
         badge.innerHTML = live ? '<span class="live-dot"></span> LIVE'
@@ -1210,7 +1210,7 @@ function refreshLots() {
 
             const isActive = lot.is_current;
             const isFailed = lot.status === 'failed';
-            const isDone   = lot.status === 'awarded' || lot.status === 'failed';
+            const isDone   = ['awarded','opened','failed'].includes(lot.status);
 
             // Row class
             row.className = isActive ? 'lot-row lot-active'

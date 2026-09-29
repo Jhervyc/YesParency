@@ -16,7 +16,7 @@ $ls = $conn->query("
            p.id AS proc_id, p.title AS proc_title, p.slsu_ref_no
     FROM bid_opening_sessions bos
     JOIN procurements p ON bos.procurement_id = p.id
-    WHERE bos.status IN ('started','eligibility','financial','awarding')
+    WHERE bos.status IN ('started','eligibility','financial','offered')
     ORDER BY bos.started_at DESC LIMIT 1
 ");
 if ($ls) $live_session = $ls->fetch_assoc();

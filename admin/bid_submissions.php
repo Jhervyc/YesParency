@@ -1,7 +1,6 @@
 <?php
 include("utils/protect-page.php");
 include("utils/protect-secretariat.php");
-require_once(__DIR__ . "/../utils/procurement_mode_helper.php");
 
 // Handle Verify / Reject
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_verify_bid'])) {
@@ -257,11 +256,6 @@ if ($mode_filter !== 'all') {
                     </td>
                     <td class="proc-title-cell">
                         <?= htmlspecialchars(mb_strimwidth($proc['procurement_title'], 0, 65, '…')) ?>
-                        <?php if (is_quotation_mode($proc['procurement_mode'] ?? '')): ?>
-                        <span class="quotation-badge">
-                            <i class="bi bi-file-earmark-text-fill"></i> Quotation
-                        </span>
-                        <?php endif; ?>
                         <?php if ($hasPending): ?>
                         <div class="pending-note">
                             <i class="bi bi-hourglass-split"></i> <?= $pendingBids ?> pending review
@@ -275,12 +269,7 @@ if ($mode_filter !== 'all') {
                         </span>
                     </td>
                     <td class="col-actions-th">
-                        <?php
-                            $view_url = is_quotation_mode($proc['procurement_mode'] ?? '')
-                                ? "bid-submission-view.php?id={$proc['procurement_id']}"
-                                : "bid-submission-view.php?id={$proc['procurement_id']}";
-                        ?>
-                        <a href="<?= htmlspecialchars($view_url) ?>" class="proc-action-btn btn-view">
+                        <a href="bid-submission-view.php?id=<?= (int)$proc['procurement_id'] ?>" class="proc-action-btn btn-view">
                             <i class="bi bi-eye"></i> View
                         </a>
                     </td>
