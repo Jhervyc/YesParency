@@ -1,207 +1,301 @@
 <?php
 include("utils/protect-page.php");
+require_once(__DIR__ . "/../utils/notification_personal_api.php");
 
 header('Content-Type: application/json');
 $current_user_id = (int)$_SESSION['user_id'];
-$current_role    = $_SESSION['role'] ?? 'superadmin';
-
-function timeAgo($datetime) {
-    $time = strtotime($datetime);
-    $diff = time() - $time;
-    if ($diff < 60) return 'Just now';
-    if ($diff < 3600) return floor($diff / 60) . 'm ago';
-    if ($diff < 86400) return floor($diff / 3600) . 'h ago';
-    if ($diff < 604800) return floor($diff / 86400) . 'd ago';
-    return date('M j, Y', $time);
-}
 
 $action = $_GET['action'] ?? $_POST['action'] ?? 'fetch';
 
-if ($action === 'fetch') {
-    // Fetch notifications applicable to this user
-    $stmt = $conn->prepare("
-        SELECT 
-            sn.notification_id,
-            sn.title,
-            sn.message,
-            sn.target_type,
-            sn.target_role,
-            sn.target_user_id,
-            sn.created_at,
-            u.firstname AS creator_fname,
-            u.lastname AS creator_lname,
-            tu.firstname AS target_fname,
-            tu.lastname AS target_lname,
-            CASE WHEN unr.read_at IS NOT NULL THEN 1 ELSE 0 END AS is_read
-        FROM system_notifications sn
-        LEFT JOIN users u ON sn.created_by = u.user_id
-        LEFT JOIN users tu ON sn.target_user_id = tu.user_id
-        LEFT JOIN user_notification_reads unr 
-            ON sn.notification_id = unr.notification_id 
-            AND unr.user_id = ?
-        WHERE (sn.target_type = 'all'
-           OR (sn.target_type = 'role' AND sn.target_role = ?)
-           OR (sn.target_type = 'user' AND sn.target_user_id = ?))
-          AND sn.created_at >= (SELECT created_at FROM users WHERE user_id = ?)
-        ORDER BY sn.created_at DESC
-        LIMIT 30
-    ");
-    $stmt->bind_param("isii", $current_user_id, $current_role, $current_user_id, $current_user_id);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    
-    $notifications = [];
-    $unread_count = 0;
-    while ($row = $res->fetch_assoc()) {
-        $is_read = (int)$row['is_read'];
-        if (!$is_read) $unread_count++;
-        
-        $notifications[] = [
-            'id'           => (int)$row['notification_id'],
-            'title'        => $row['title'],
-            'message'      => $row['message'],
-            'target_type'  => $row['target_type'],
-            'target_role'  => $row['target_role'],
-            'created_at'   => $row['created_at'],
-            'time_ago'     => timeAgo($row['created_at']),
-            'formatted_date' => date('M j, Y · g:i A', strtotime($row['created_at'])),
-            'creator_name' => trim(($row['creator_fname'] ?? '') . ' ' . ($row['creator_lname'] ?? '')) ?: 'System',
-            'is_read'      => $is_read
-        ];
-    }
-    $stmt->close();
-
-    echo json_encode([
-        'status'        => 'success',
-        'unread_count'  => $unread_count,
-        'notifications' => $notifications
-    ]);
+// ── Personal inbox actions (every admin) ──────────────────────────────────────
+if (notif_handle_personal_action($conn, $current_user_id, $action)) {
     exit;
 }
 
-if ($action === 'mark_read') {
-    $notif_id = (int)($_POST['notification_id'] ?? 0);
-    if ($notif_id > 0) {
+// ── Notification Management actions (Secretariat / superadmin only) ───────────
+if (!isset($_SESSION['admin_type'])) {
+    $rs = $conn->prepare("SELECT admin_type FROM admin_roles WHERE user_id = ?");
+    $rs->bind_param("i", $current_user_id);
+    $rs->execute();
+    $_SESSION['admin_type'] = $rs->get_result()->fetch_assoc()['admin_type'] ?? 'SECRETARIAT';
+    $rs->close();
+}
+if (in_array($_SESSION['admin_type'], ['BAC', 'TWG'], true)) {
+    http_response_code(403);
+    echo json_encode(['status' => 'error', 'message' => 'You are not allowed to manage notifications.']);
+    exit;
+}
+
+$is_post = $_SERVER['REQUEST_METHOD'] === 'POST';
+
+/** Read the audience fields posted by the composer. */
+function nm_read_audience(): array
+{
+    $type    = $_POST['audience_type'] ?? 'all';
+    $roles   = array_map('strval', (array)($_POST['roles'] ?? []));
+    $userIds = array_map('intval', (array)($_POST['user_ids'] ?? []));
+    return [$type, $roles, $userIds];
+}
+
+switch ($action) {
+
+    case 'stats':
+        echo json_encode(['status' => 'success', 'stats' => notif_admin_stats($conn)]);
+        exit;
+
+    case 'search_users':
+        $q    = trim($_GET['q'] ?? '');
+        $like = '%' . $q . '%';
         $stmt = $conn->prepare("
-            INSERT INTO user_notification_reads (notification_id, user_id, read_at)
-            VALUES (?, ?, NOW())
-            ON DUPLICATE KEY UPDATE read_at = NOW()
+            SELECT u.user_id, u.firstname, u.lastname, u.username, u.email, u.role, bp.business_name
+            FROM users u
+            LEFT JOIN bidder_profiles bp ON bp.user_id = u.user_id
+            WHERE u.status = 'active'
+              AND (CONCAT(u.firstname, ' ', u.lastname) LIKE ? OR u.username LIKE ? OR u.email LIKE ? OR bp.business_name LIKE ?)
+            ORDER BY u.firstname, u.lastname
+            LIMIT 12
         ");
-        $stmt->bind_param("ii", $notif_id, $current_user_id);
+        $stmt->bind_param("ssss", $like, $like, $like, $like);
         $stmt->execute();
+        $users = [];
+        foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $u) {
+            $users[] = [
+                'id'       => (int)$u['user_id'],
+                'name'     => trim($u['firstname'] . ' ' . $u['lastname']),
+                'username' => $u['username'],
+                'email'    => $u['email'],
+                'role'     => $u['role'],
+                'business' => $u['business_name'],
+            ];
+        }
         $stmt->close();
-    }
-
-    // Get new unread count
-    $stmt = $conn->prepare("
-        SELECT COUNT(*) 
-        FROM system_notifications sn
-        LEFT JOIN user_notification_reads unr 
-            ON sn.notification_id = unr.notification_id 
-            AND unr.user_id = ?
-        WHERE (sn.target_type = 'all'
-           OR (sn.target_type = 'role' AND sn.target_role = ?)
-           OR (sn.target_type = 'user' AND sn.target_user_id = ?))
-          AND sn.created_at >= (SELECT created_at FROM users WHERE user_id = ?)
-          AND unr.read_at IS NULL
-    ");
-    $stmt->bind_param("isii", $current_user_id, $current_role, $current_user_id, $current_user_id);
-    $stmt->execute();
-    $unread_count = (int)$stmt->get_result()->fetch_row()[0];
-    $stmt->close();
-
-    echo json_encode(['status' => 'success', 'unread_count' => $unread_count]);
-    exit;
-}
-
-if ($action === 'mark_all_read') {
-    $stmt = $conn->prepare("
-        INSERT IGNORE INTO user_notification_reads (notification_id, user_id, read_at)
-        SELECT sn.notification_id, ?, NOW()
-        FROM system_notifications sn
-        LEFT JOIN user_notification_reads unr 
-            ON sn.notification_id = unr.notification_id 
-            AND unr.user_id = ?
-        WHERE (sn.target_type = 'all'
-           OR (sn.target_type = 'role' AND sn.target_role = ?)
-           OR (sn.target_type = 'user' AND sn.target_user_id = ?))
-          AND sn.created_at >= (SELECT created_at FROM users WHERE user_id = ?)
-          AND unr.read_at IS NULL
-    ");
-    $stmt->bind_param("iisii", $current_user_id, $current_user_id, $current_role, $current_user_id, $current_user_id);
-    $stmt->execute();
-    $stmt->close();
-
-    echo json_encode(['status' => 'success', 'unread_count' => 0]);
-    exit;
-}
-
-if ($action === 'create_notification') {
-    $title       = trim($_POST['title'] ?? '');
-    $message     = trim($_POST['message'] ?? '');
-    $target_type = trim($_POST['target_type'] ?? 'all');
-    $target_role = !empty($_POST['target_role']) ? trim($_POST['target_role']) : null;
-    $target_user = !empty($_POST['target_user_id']) ? (int)$_POST['target_user_id'] : null;
-
-    if (empty($title) || empty($message)) {
-        echo json_encode(['status' => 'error', 'message' => 'Title and message are required.']);
+        echo json_encode(['status' => 'success', 'users' => $users]);
         exit;
-    }
 
-    if (!in_array($target_type, ['all', 'role', 'user'])) {
-        $target_type = 'all';
-    }
-
-    if ($target_type === 'role' && !in_array($target_role, ['user', 'bidder', 'admin', 'superadmin'])) {
-        echo json_encode(['status' => 'error', 'message' => 'Please select a valid target role.']);
-        exit;
-    }
-
-    if ($target_type === 'user' && (!$target_user || $target_user <= 0)) {
-        echo json_encode(['status' => 'error', 'message' => 'Please select a valid target user.']);
-        exit;
-    }
-
-    $stmt = $conn->prepare("
-        INSERT INTO system_notifications (title, message, target_type, target_role, target_user_id, created_by)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ");
-    $stmt->bind_param("ssssii", $title, $message, $target_type, $target_role, $target_user, $current_user_id);
-    
-    if ($stmt->execute()) {
-        $notif_id = $stmt->insert_id;
-        $stmt->close();
+    case 'count_audience':
+        [$type, $roles, $userIds] = nm_read_audience();
         echo json_encode([
             'status' => 'success',
-            'message' => 'Notification announcement published successfully!',
-            'notification_id' => $notif_id
+            'count'  => notif_count_audience($conn, $type, $roles, $userIds, $current_user_id),
         ]);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $conn->error]);
-    }
-    exit;
-}
+        exit;
 
-if ($action === 'get_users') {
-    // Fetch users for target_user selector
-    $res = $conn->query("
-        SELECT user_id, firstname, lastname, username, role, email 
-        FROM users 
-        ORDER BY role ASC, firstname ASC 
-        LIMIT 100
-    ");
-    $users = [];
-    while ($u = $res->fetch_assoc()) {
-        $users[] = [
-            'id'       => (int)$u['user_id'],
-            'name'     => htmlspecialchars($u['firstname'] . ' ' . $u['lastname']),
-            'username' => htmlspecialchars($u['username']),
-            'role'     => $u['role'],
-            'email'    => htmlspecialchars($u['email'])
-        ];
-    }
-    echo json_encode(['status' => 'success', 'users' => $users]);
-    exit;
+    case 'send':
+        if (!$is_post) break;
+        $title   = trim($_POST['title'] ?? '');
+        $message = trim($_POST['message'] ?? '');
+        $link    = notif_clean_link($_POST['link'] ?? '');
+        [$type, $roles, $userIds] = nm_read_audience();
+
+        if ($title === '' || $message === '') {
+            echo json_encode(['status' => 'error', 'message' => 'Title and message are required.']);
+            exit;
+        }
+        if (mb_strlen($title) > 120 || mb_strlen($message) > 1000) {
+            echo json_encode(['status' => 'error', 'message' => 'Title is limited to 120 and message to 1000 characters.']);
+            exit;
+        }
+        if ($link === false) {
+            echo json_encode(['status' => 'error', 'message' => 'Link must be a page path such as bidder/procurement.php.']);
+            exit;
+        }
+
+        $result = send_admin_notification($conn, $title, $message, $type, $roles, $userIds, $link ?: null, $current_user_id);
+        if ($result['recipients'] === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'No active users match the selected audience.']);
+            exit;
+        }
+
+        audit_log($conn, 'NOTIFICATION_SENT', 'notifications', null,
+            "Sent notification \"{$title}\" to {$result['audience']} ({$result['recipients']} recipients)",
+            null,
+            [
+                'batch_id'      => $result['batch_id'],
+                'title'         => $title,
+                'message'       => $message,
+                'link'          => $link ?: null,
+                'audience_type' => $type,
+                'roles'         => $roles,
+                'user_ids'      => $userIds,
+                'recipients'    => $result['recipients'],
+            ]
+        );
+
+        echo json_encode([
+            'status'     => 'success',
+            'message'    => "Notification sent to {$result['recipients']} " . ($result['recipients'] === 1 ? 'user' : 'users') . '.',
+            'batch_id'   => $result['batch_id'],
+            'recipients' => $result['recipients'],
+            'stats'      => notif_admin_stats($conn),
+        ]);
+        exit;
+
+    case 'list_batches':
+        $search = trim($_GET['search'] ?? '');
+        $offset = max(0, (int)($_GET['offset'] ?? 0));
+        $limit  = 10;
+
+        $where  = "n.type = 'admin_message' AND n.batch_id IS NOT NULL";
+        $types  = '';
+        $params = [];
+        if ($search !== '') {
+            $like   = '%' . $search . '%';
+            $where .= " AND (n.title LIKE ? OR n.message LIKE ? OR n.audience LIKE ?)";
+            $types .= 'sss';
+            array_push($params, $like, $like, $like);
+        }
+        $types .= 'ii';
+        array_push($params, $limit + 1, $offset);
+
+        $stmt = $conn->prepare("
+            SELECT b.*, TIMESTAMPDIFF(SECOND, b.created_at, NOW()) AS age_sec,
+                   a.firstname AS actor_fname, a.lastname AS actor_lname
+            FROM (
+                SELECT n.batch_id,
+                       MIN(n.title) AS title, MIN(n.message) AS message, MIN(n.link) AS link,
+                       MIN(n.audience) AS audience, MIN(n.actor_id) AS actor_id,
+                       MIN(n.created_at) AS created_at,
+                       COUNT(*) AS total, SUM(n.is_read) AS read_count
+                FROM notifications n
+                WHERE $where
+                GROUP BY n.batch_id
+            ) b
+            LEFT JOIN users a ON a.user_id = b.actor_id
+            ORDER BY b.created_at DESC
+            LIMIT ? OFFSET ?
+        ");
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        $has_more = count($rows) > $limit;
+        if ($has_more) array_pop($rows);
+
+        $batches = array_map(function ($r) {
+            $sender = trim(($r['actor_fname'] ?? '') . ' ' . ($r['actor_lname'] ?? ''));
+            return [
+                'batch_id'       => $r['batch_id'],
+                'title'          => $r['title'],
+                'message'        => $r['message'],
+                'link'           => $r['link'],
+                'audience'       => $r['audience'] ?: '—',
+                'sender'         => $sender !== '' ? $sender : 'Former admin',
+                'total'          => (int)$r['total'],
+                'read_count'     => (int)$r['read_count'],
+                'time_ago'       => notif_time_ago($r['created_at'], (int)$r['age_sec']),
+                'formatted_date' => date('M j, Y · g:i A', strtotime($r['created_at'])),
+            ];
+        }, $rows);
+
+        echo json_encode(['status' => 'success', 'batches' => $batches, 'has_more' => $has_more]);
+        exit;
+
+    case 'batch_recipients':
+        $batch_id = preg_replace('/[^a-f0-9]/', '', $_GET['batch_id'] ?? '');
+        $stmt = $conn->prepare("
+            SELECT u.user_id, u.firstname, u.lastname, u.username, u.role, n.is_read, n.read_at
+            FROM notifications n
+            JOIN users u ON u.user_id = n.user_id
+            WHERE n.batch_id = ? AND n.type = 'admin_message'
+            ORDER BY n.is_read DESC, n.read_at DESC, u.firstname
+        ");
+        $stmt->bind_param("s", $batch_id);
+        $stmt->execute();
+        $recipients = array_map(fn($r) => [
+            'name'     => trim($r['firstname'] . ' ' . $r['lastname']),
+            'username' => $r['username'],
+            'role'     => $r['role'],
+            'is_read'  => (int)$r['is_read'] === 1,
+            'read_at'  => $r['read_at'] ? date('M j, Y · g:i A', strtotime($r['read_at'])) : null,
+        ], $stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        $stmt->close();
+        echo json_encode(['status' => 'success', 'recipients' => $recipients]);
+        exit;
+
+    case 'recall_batch':
+        if (!$is_post) break;
+        $batch_id = preg_replace('/[^a-f0-9]/', '', $_POST['batch_id'] ?? '');
+        $snap = $conn->prepare("
+            SELECT MIN(title) AS title, MIN(message) AS message, MIN(audience) AS audience, COUNT(*) AS total
+            FROM notifications WHERE batch_id = ? AND type = 'admin_message'
+        ");
+        $snap->bind_param("s", $batch_id);
+        $snap->execute();
+        $old = $snap->get_result()->fetch_assoc();
+        $snap->close();
+
+        if (!$old || (int)$old['total'] === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Notification not found or already recalled.']);
+            exit;
+        }
+
+        $del = $conn->prepare("DELETE FROM notifications WHERE batch_id = ? AND type = 'admin_message'");
+        $del->bind_param("s", $batch_id);
+        $del->execute();
+        $removed = $del->affected_rows;
+        $del->close();
+
+        audit_log($conn, 'NOTIFICATION_RECALLED', 'notifications', null,
+            "Recalled notification \"{$old['title']}\" from {$removed} recipients",
+            array_merge($old, ['batch_id' => $batch_id]),
+            null
+        );
+
+        echo json_encode(['status' => 'success', 'message' => 'Notification recalled.', 'stats' => notif_admin_stats($conn)]);
+        exit;
+
+    case 'list_system':
+        $category = $_GET['category'] ?? 'all';
+        $search   = trim($_GET['search'] ?? '');
+        $offset   = max(0, (int)($_GET['offset'] ?? 0));
+        $limit    = 15;
+
+        $where  = ["n.type <> 'admin_message'"];
+        $types  = '';
+        $params = [];
+        $catTypes = isset(NOTIF_CATEGORIES[$category]) ? notif_category_types($category) : null;
+        if ($catTypes !== null) {
+            $where[] = 'n.type IN (' . implode(',', array_fill(0, count($catTypes), '?')) . ')';
+            $types  .= str_repeat('s', count($catTypes));
+            $params  = array_merge($params, $catTypes);
+        }
+        if ($search !== '') {
+            $like    = '%' . $search . '%';
+            $where[] = "(n.title LIKE ? OR n.message LIKE ? OR CONCAT(u.firstname, ' ', u.lastname) LIKE ?)";
+            $types  .= 'sss';
+            array_push($params, $like, $like, $like);
+        }
+        $types .= 'ii';
+        array_push($params, $limit + 1, $offset);
+
+        $stmt = $conn->prepare("
+            SELECT n.*, " . NOTIF_AGE_SQL . ", u.firstname AS r_fname, u.lastname AS r_lname, u.role AS r_role,
+                   a.firstname AS actor_fname, a.lastname AS actor_lname
+            FROM notifications n
+            JOIN users u ON u.user_id = n.user_id
+            LEFT JOIN users a ON a.user_id = n.actor_id
+            WHERE " . implode(' AND ', $where) . "
+            ORDER BY n.created_at DESC, n.notification_id DESC
+            LIMIT ? OFFSET ?
+        ");
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        $has_more = count($rows) > $limit;
+        if ($has_more) array_pop($rows);
+
+        $items = array_map(function ($r) {
+            $f = notif_format_row($r);
+            $f['recipient']      = trim($r['r_fname'] . ' ' . $r['r_lname']);
+            $f['recipient_role'] = $r['r_role'];
+            return $f;
+        }, $rows);
+
+        echo json_encode(['status' => 'success', 'items' => $items, 'has_more' => $has_more]);
+        exit;
 }
 
 echo json_encode(['status' => 'error', 'message' => 'Invalid action']);

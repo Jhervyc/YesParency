@@ -4,9 +4,12 @@
  *
  * Handles PHPMailer configuration, queueing, sending, and specific-recipient notifications.
  * Strictly adheres to specific-user notifications (no broadcast emails).
+ * Each notify_* function also creates the matching in-app notification
+ * (utils/notification_helper.php) before the email is queued.
  */
 
 require_once __DIR__ . '/../bootstrap.php';
+require_once __DIR__ . '/notification_helper.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
@@ -370,10 +373,17 @@ function notify_bidder_approved(mysqli $conn, int $userId): bool
     $bidder = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    if (!$bidder || empty($bidder['email'])) return false;
+    if (!$bidder) return false;
 
     $recipientName = trim($bidder['firstname'] . ' ' . $bidder['lastname']);
     $businessName  = $bidder['business_name'] ?: $recipientName;
+
+    notify_user($conn, $userId, 'bidder_approved',
+        'Your bidder account has been approved',
+        "Welcome aboard! {$businessName} is now an accredited bidder. You can browse open procurements and submit bid proposals.",
+        'bidder/dashboard.php', null, "bidder_approved:{$userId}");
+
+    if (empty($bidder['email'])) return false;
 
     // Duplicate prevention
     if (is_notification_already_queued($conn, 'bidder_approved', $bidder['email'], 'user_id', $userId)) {
@@ -413,10 +423,17 @@ function notify_bidder_rejected(mysqli $conn, int $userId, ?string $reason = nul
     $bidder = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    if (!$bidder || empty($bidder['email'])) return false;
+    if (!$bidder) return false;
 
     $recipientName = trim($bidder['firstname'] . ' ' . $bidder['lastname']);
     $businessName  = $bidder['business_name'] ?: $recipientName;
+
+    notify_user($conn, $userId, 'bidder_rejected',
+        'Update on your bidder application',
+        "Your bidder application for {$businessName} was not approved." . ($reason ? " Reason: {$reason}" : '') . " You may review your details and apply again.",
+        'user/bidder-registration.php', null, "bidder_rejected:{$userId}:" . date('YmdHis'));
+
+    if (empty($bidder['email'])) return false;
 
     // Duplicate prevention
     if (is_notification_already_queued($conn, 'bidder_rejected', $bidder['email'], 'user_id', $userId)) {
@@ -461,10 +478,17 @@ function notify_bid_verified(mysqli $conn, int $bidId): bool
     $bid = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    if (!$bid || empty($bid['email'])) return false;
+    if (!$bid) return false;
 
     $recipientName = trim($bid['firstname'] . ' ' . $bid['lastname']);
     $businessName  = $bid['business_name'] ?: $recipientName;
+
+    notify_user($conn, (int)$bid['user_id'], 'bid_verified',
+        'Bid verified: ' . $bid['proc_title'],
+        "Your bid submission for \"{$bid['proc_title']}\" has been verified by the BAC Secretariat and is now eligible for bid opening.",
+        'bidder/my_bids.php', null, "bid_verified:{$bidId}");
+
+    if (empty($bid['email'])) return false;
 
     // Duplicate prevention
     if (is_notification_already_queued($conn, 'bid_verified', $bid['email'], 'bid_id', $bidId)) {
@@ -511,10 +535,17 @@ function notify_bid_rejected(mysqli $conn, int $bidId, ?string $reason = null): 
     $bid = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    if (!$bid || empty($bid['email'])) return false;
+    if (!$bid) return false;
 
     $recipientName = trim($bid['firstname'] . ' ' . $bid['lastname']);
     $businessName  = $bid['business_name'] ?: $recipientName;
+
+    notify_user($conn, (int)$bid['user_id'], 'bid_rejected',
+        'Bid not accepted: ' . $bid['proc_title'],
+        "Your bid submission for \"{$bid['proc_title']}\" was rejected during verification." . ($reason ? " Reason: {$reason}" : ''),
+        'bidder/my_bids.php', null, "bid_rejected:{$bidId}");
+
+    if (empty($bid['email'])) return false;
 
     // Duplicate prevention
     if (is_notification_already_queued($conn, 'bid_rejected', $bid['email'], 'bid_id', $bidId)) {
@@ -563,7 +594,7 @@ function notify_bid_session_scheduled(mysqli $conn, int $sessionId): array
 
     // Fetch ONLY the invited users for this specific session
     $invStmt = $conn->prepare("
-        SELECT u.user_id, u.firstname, u.lastname, u.email
+        SELECT u.user_id, u.firstname, u.lastname, u.email, u.role
         FROM bid_session_invited bsi
         JOIN users u ON bsi.user_id = u.user_id
         WHERE bsi.bid_session_id = ? AND u.status = 'active'
@@ -583,6 +614,11 @@ function notify_bid_session_scheduled(mysqli $conn, int $sessionId): array
     $subject            = "Invitation: Bid Opening Session for " . $session['proc_title'];
 
     foreach ($invitedUsers as $u) {
+        notify_user($conn, (int)$u['user_id'], 'session_scheduled',
+            'Bid opening scheduled: ' . $session['proc_title'],
+            "You're invited to the bid opening session on {$scheduledDate} at {$scheduledTime}. Join from the Bid Sessions page when it goes live.",
+            notif_session_link($u['role'] ?? ''), null, "session_scheduled:{$sessionId}");
+
         $email = trim($u['email'] ?? '');
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;
 
@@ -642,7 +678,7 @@ function notify_bid_session_concluded(mysqli $conn, int $sessionId): array
 
     // Get invited users for this session
     $invStmt = $conn->prepare("
-        SELECT u.user_id, u.firstname, u.lastname, u.email
+        SELECT u.user_id, u.firstname, u.lastname, u.email, u.role
         FROM bid_session_invited bsi
         JOIN users u ON bsi.user_id = u.user_id
         WHERE bsi.bid_session_id = ? AND u.status = 'active'
@@ -663,7 +699,7 @@ function notify_bid_session_concluded(mysqli $conn, int $sessionId): array
             }
         }
         if (!$found) {
-            $crStmt = $conn->prepare("SELECT user_id, firstname, lastname, email FROM users WHERE user_id = ? AND status = 'active' LIMIT 1");
+            $crStmt = $conn->prepare("SELECT user_id, firstname, lastname, email, role FROM users WHERE user_id = ? AND status = 'active' LIMIT 1");
             if ($crStmt) {
                 $crStmt->bind_param("i", $session['created_by']);
                 $crStmt->execute();
@@ -680,6 +716,11 @@ function notify_bid_session_concluded(mysqli $conn, int $sessionId): array
     $subject       = "Bid Opening Session Concluded: " . $session['proc_title'];
 
     foreach ($recipients as $u) {
+        notify_user($conn, (int)$u['user_id'], 'session_concluded',
+            'Bid opening concluded: ' . $session['proc_title'],
+            "The bid opening session for \"{$session['proc_title']}\" has ended. The session report is now available.",
+            notif_session_link($u['role'] ?? ''), null, "session_concluded:{$sessionId}");
+
         $email = trim($u['email'] ?? '');
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;
 
@@ -738,10 +779,17 @@ function notify_lot_awarded(mysqli $conn, int $lotId, int $bidLotId, float $awar
     $winner = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    if (!$winner || empty($winner['email'])) return false;
+    if (!$winner) return false;
 
     $recipientName = trim($winner['firstname'] . ' ' . $winner['lastname']);
     $businessName  = $winner['business_name'] ?: $recipientName;
+
+    notify_user($conn, (int)$winner['user_id'], 'lot_awarded',
+        "Congratulations! Lot #{$winner['lot_number']} awarded to you",
+        "{$businessName} has been awarded Lot #{$winner['lot_number']} ({$winner['lot_title']}) of \"{$winner['proc_title']}\" for ₱" . number_format($awardedAmount, 2) . '.',
+        'bidder/my_bids.php', null, "lot_awarded:{$lotId}");
+
+    if (empty($winner['email'])) return false;
 
     // Duplicate check for this lot award to this winner
     if (is_notification_already_queued($conn, 'award_notification', $winner['email'], 'lot_id', $lotId)) {
@@ -911,16 +959,21 @@ function notify_bidder_document_expiring(mysqli $conn, int $docId, int $daysLeft
     $template = $isUrgent ? 'doc_expiring_7' : 'doc_expiring_30';
     $email    = trim($doc['email']);
 
-    // Prevent duplicate for this document and this expiration date event
-    if (is_doc_notification_queued($conn, $template, $email, $docId, $doc['expiration_date'])) {
-        return true;
-    }
-
     $docLabels = defined('REQUIRED_BIDDER_DOCS') ? REQUIRED_BIDDER_DOCS : [];
     $docLabel  = $docLabels[$doc['document_type']] ?? ucwords(str_replace('_', ' ', $doc['document_type']));
     $recipientName = trim($doc['firstname'] . ' ' . $doc['lastname']);
     $businessName  = $doc['business_name'] ?: $recipientName;
     $expFormatted  = date('F j, Y', strtotime($doc['expiration_date']));
+
+    notify_user($conn, (int)$doc['user_id'], 'doc_expiring',
+        "{$docLabel} expires in {$daysLeft} day" . ($daysLeft === 1 ? '' : 's'),
+        "Your {$docLabel} expires on {$expFormatted}. Upload a renewed copy to keep submitting bids without interruption.",
+        'bidder/settings.php?tab=documents', null, "doc_expiring:{$docId}:{$doc['expiration_date']}:{$template}");
+
+    // Prevent duplicate for this document and this expiration date event
+    if (is_doc_notification_queued($conn, $template, $email, $docId, $doc['expiration_date'])) {
+        return true;
+    }
 
     $subject = $isUrgent
         ? "URGENT Compliance Notice: {$docLabel} Expires in {$daysLeft} Days"
@@ -973,16 +1026,21 @@ function notify_bidder_document_expired(mysqli $conn, int $docId): bool
     $template = 'doc_expired';
     $email    = trim($doc['email']);
 
-    // Prevent duplicate for this document and this expiration date event
-    if (is_doc_notification_queued($conn, $template, $email, $docId, $doc['expiration_date'])) {
-        return true;
-    }
-
     $docLabels = defined('REQUIRED_BIDDER_DOCS') ? REQUIRED_BIDDER_DOCS : [];
     $docLabel  = $docLabels[$doc['document_type']] ?? ucwords(str_replace('_', ' ', $doc['document_type']));
     $recipientName = trim($doc['firstname'] . ' ' . $doc['lastname']);
     $businessName  = $doc['business_name'] ?: $recipientName;
     $expFormatted  = date('F j, Y', strtotime($doc['expiration_date']));
+
+    notify_user($conn, (int)$doc['user_id'], 'doc_expired',
+        "{$docLabel} has expired — bidding locked",
+        "Your {$docLabel} expired on {$expFormatted}. Bid submissions are locked until you upload a valid, renewed document.",
+        'bidder/settings.php?tab=documents', null, "doc_expired:{$docId}:{$doc['expiration_date']}");
+
+    // Prevent duplicate for this document and this expiration date event
+    if (is_doc_notification_queued($conn, $template, $email, $docId, $doc['expiration_date'])) {
+        return true;
+    }
 
     $subject = "IMPORTANT: {$docLabel} Has Expired — Bid Proposal Submissions Locked";
 
@@ -1030,27 +1088,13 @@ function notify_secretariat_document_reuploaded(mysqli $conn, int $userId, int $
     $docLabels    = defined('REQUIRED_BIDDER_DOCS') ? REQUIRED_BIDDER_DOCS : [];
     $docLabel     = $docLabels[$docType] ?? ucwords(str_replace('_', ' ', $docType));
 
-    // Fetch active Secretariat members
-    $secStmt = $conn->prepare("
-        SELECT u.user_id, u.firstname, u.lastname, u.email
-        FROM users u
-        JOIN admin_roles ar ON u.user_id = ar.user_id
-        WHERE ar.admin_type = 'SECRETARIAT' AND u.status = 'active'
-    ");
-    $recipients = [];
-    if ($secStmt) {
-        $secStmt->execute();
-        $recipients = $secStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        $secStmt->close();
-    }
+    // Active Secretariat members (falls back to superadmins)
+    $recipients = get_secretariat_recipients($conn);
 
-    // Fallback: If no Secretariat configured, notify active superadmins
-    if (empty($recipients)) {
-        $saRes = $conn->query("SELECT user_id, firstname, lastname, email FROM users WHERE role = 'superadmin' AND status = 'active'");
-        if ($saRes) {
-            $recipients = $saRes->fetch_all(MYSQLI_ASSOC);
-        }
-    }
+    notify_users($conn, array_column($recipients, 'user_id'), 'doc_reuploaded',
+        "Document re-uploaded: {$docLabel}",
+        "{$businessName} uploaded a new {$docLabel} and it is awaiting review.",
+        'admin/bidder-profile.php?id=' . $userId, $userId);
 
     $subject = "Document Re-uploaded: {$docLabel} for {$businessName}";
     $reviewUrl = mailer_get_app_url() . '/admin/bidder-profile.php?id=' . $userId;

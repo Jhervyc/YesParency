@@ -9,7 +9,8 @@ if (!isset($topbar_title) || empty($topbar_title)) {
     $script_name = basename($_SERVER['PHP_SELF'] ?? '');
     $titles_map = [
         'dashboard.php'             => 'Admin Dashboard',
-        'announcements.php'         => 'System Announcements',
+        'notification-management.php' => 'Notification Management',
+        'notification.php'          => 'My Notifications',
         'procurement.php'           => 'Procurements',
         'account-management.php'    => 'Bidder Accounts',
         'bid_submissions.php'       => 'Bid Submissions',

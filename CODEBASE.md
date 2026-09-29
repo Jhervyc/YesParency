@@ -176,7 +176,7 @@ YesParency/
 │   ├── bidder-profile.php
 │   ├── get_bidder.php
 │   ├── get_procurements.php
-│   ├── announcements.php
+│   ├── notification-management.php # Compose/track/recall admin notifications + system activity log
 │   ├── invitation_requests.php # Approve/reject access requests
 │   ├── live_event.php
 │   ├── audit_trail.php
@@ -297,7 +297,7 @@ YesParency/
 
 ### Sidebar Visibility Rules (`admin/components/sidebar.php`)
 
-- BAC/TWG (`$is_restricted = true`): sees limited nav — no account management, no announcements, no invitations
+- BAC/TWG (`$is_restricted = true`): sees limited nav — no account management, no notification management, no invitations
 - Secretariat: sees full nav
 - Superadmin (`$_SESSION['role'] === 'superadmin'`): sees everything + **Super Admin** section with User & Role Management
 
@@ -327,8 +327,7 @@ YesParency/
 | `awards` | `lot_id`, `bid_lot_id`, `awarded_amount` | Contract awards |
 | `bidder_profiles` | `user_id`, `business_name`, `tin_number`, `application_status` | |
 | `bidder_documents` | `document_id`, `user_id`, `document_type`, `file_path`, `expiration_date` | |
-| `system_notifications` | `notification_id`, `target_type`, `target_role`, `target_user_id`, `created_at` | target_type: all/role/user |
-| `user_notification_reads` | `notification_id`, `user_id`, `read_at` | Read tracking |
+| `notifications` | `user_id`, `type`, `title`, `message`, `link`, `actor_id`, `batch_id`, `dedupe_key`, `is_read`, `read_at` | Owned per-user rows; see §12 |
 | `system_settings` | `setting_key`, `setting_value` | Key-value: org info, MediaMTX config |
 | `email_queue` | `id`, `recipient_email`, `template`, `payload`, `status`, `attempts` | Async email queue |
 | `password_resets` | `email`, `token_hash`, `expires_at`, `used` | SHA-256 hash, 15-min expiry, DELETE on use |
@@ -337,13 +336,12 @@ YesParency/
 | `audit_logs` | `user_id`, `action`, `module`, `record_id`, `old_values`, `new_values`, `ip_address` | |
 | `checklist_templates` | `id`, `procurement_type`, `checklist_type`, `item_name`, `is_required` | Configurable per procurement type |
 | `bid_checklist` | `template_item_id`, `bid_lot_id` | Evaluation checklist per lot |
-| `announcement` / `announcements` | | System-wide announcements |
 
 ### Important Column Notes
 
 - `procurements.philgeps_ref_no` — PHP code uses this name; SQL schema has an ALTER renaming it from `philgeps_ref_no` to `procurement_ref_no` that was never applied to PHP
 - `bidder_documents.file_path` — stored as `../uploads/bidders/{id}/filename` — relative path for server-side use, NOT a direct browser URL
-- `system_notifications.created_at` — used to filter notifications for new accounts (only show notifs created after user's `users.created_at`)
+- `notifications.link` — stored relative to the app root (e.g. `bidder/my_bids.php`); clients open it as `'../' + link`
 
 ---
 
@@ -470,10 +468,9 @@ include("components/sidebar.php");
 ```
 
 ### Notifications
-- `components/notifications.php` — bell icon in topbar, fetches from `notifications_api.php`
-- Admin: `admin/notifications_api.php`
-- Bidder: `bidder/notifications_api.php`
-- All notification queries include: `AND sn.created_at >= (SELECT created_at FROM users WHERE user_id = ?)` — new accounts don't see old notifications
+- `components/notifications.php` — thin wrapper around the shared bell `includes/notification_bell.php`
+- Admin: `admin/notifications_api.php` (personal + management actions), Bidder: `bidder/notifications_api.php` (personal only)
+- All personal queries are simply `WHERE user_id = ?` — see §12
 
 ### Avatar Pattern
 ```php
@@ -490,6 +487,7 @@ $avatar_url = !empty($_SESSION['profile_picture_url'])
 
 ### Architecture
 1. Code calls a `notify_*()` or `send_*_email()` function in `utils/mailer.php`
+   (each `notify_*()` also creates the matching in-app notification — see §12)
 2. Function calls `queue_email()` → inserts into `email_queue` table
 3. For time-sensitive emails (password reset), `send_queued_email()` is called immediately after queuing
 4. `cron/process_email_queue.php` runs every minute to flush pending queue items
@@ -534,20 +532,36 @@ Templates live in `utils/email_templates/`. `layout.php` wraps all templates.
 
 ## 12. Notification System
 
-### Types
-- `target_type='all'` — everyone sees it
-- `target_type='role'` — specific role (bidder, admin, superadmin)
-- `target_type='user'` — specific user
+### Model — owned notifications
+Every row in `notifications` belongs to exactly one user (`user_id`). Read state lives on the row (`is_read`, `read_at`).
+There is no broadcast table: admin messages fan out one row per recipient at send time, so new accounts
+naturally don't see older messages.
 
-### Read Tracking
-`user_notification_reads` table — `notification_id + user_id` unique pair.
+- **System events** — `utils/mailer.php` `notify_*()` functions call `notify_user()` before queuing the email.
+  `dedupe_key` (e.g. `bid_verified:42`) + `INSERT IGNORE` makes repeated calls idempotent.
+- **Admin-side alerts** — `notify_secretariat()` (Secretariat, falls back to superadmins): `bid_submitted`
+  (`bidder/submit_bid.php`), `bidder_application` (`user/bidder-registration.php`), `invitation_request` (`register.php`),
+  `doc_reuploaded` (mailer).
+- **Admin messages** — `admin/notification-management.php` → `send_admin_notification()`: type `admin_message`,
+  audience Everyone / roles / specific users; rows share a `batch_id` for read tracking and recall.
 
-### Important Behavior
-New accounts only see notifications created **after** their `users.created_at`. This filter is applied in ALL notification queries:
-```sql
-AND sn.created_at >= (SELECT created_at FROM users WHERE user_id = ?)
-```
-This affects: `notifications_api.php` (fetch, mark_read, mark_all_read) and `notification.php` (all stat queries + paged query) — in both `admin/` and `bidder/`.
+### Files
+| File | Purpose |
+|---|---|
+| `utils/notification_helper.php` | Type registry (`NOTIF_TYPES` icon/tone/label/category), `notify_user/users/secretariat()`, `send_admin_notification()`, counts, formatting |
+| `utils/notification_personal_api.php` | Shared personal actions: `fetch`, `mark_read`, `mark_unread`, `mark_all_read`, `delete` |
+| `includes/notification_bell.php` | Topbar bell + dropdown + detail modal (exposes `openNotifObject`, `updateNotifBadge`) |
+| `includes/notification_inbox.php` | Full inbox used by `admin/notification.php` and `bidder/notification.php` |
+| `includes/notification_widget.php` | "Latest notifications" dashboard card |
+| `debug/migrate_notifications.php` | One-time CLI migration from the old `system_notifications` tables |
+
+### Adding a new notification type
+1. Add it to `NOTIF_TYPES` in `utils/notification_helper.php` (icon, tone, label, category).
+2. Call `notify_user()` / `notify_secretariat()` where the event happens, with a `dedupe_key` if it can fire twice.
+
+### Time display
+"time ago" and date groups use ages computed by MySQL (`NOTIF_AGE_SQL`), because PHP's timezone
+(Europe/Berlin in XAMPP) differs from MySQL's.
 
 ---
 

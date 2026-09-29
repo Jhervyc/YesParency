@@ -113,31 +113,9 @@ $recent_bids_stmt->bind_param("i", $bidder_id);
 $recent_bids_stmt->execute();
 $recent_bids_result = $recent_bids_stmt->get_result();
 
-// ── 8. Announcements / Notifications (for 40% column) ────────────────────────
-$notifs_stmt = $conn->prepare("
-    SELECT sn.notification_id, sn.title, sn.message, sn.target_type, sn.target_role, sn.created_at,
-           u.firstname, u.lastname
-    FROM system_notifications sn
-    LEFT JOIN users u ON sn.created_by = u.user_id
-    WHERE sn.target_type = 'all'
-       OR (sn.target_type = 'role' AND sn.target_role = 'bidder')
-       OR (sn.target_type = 'user' AND sn.target_user_id = ?)
-    ORDER BY sn.created_at DESC
-    LIMIT 3
-");
-$notifs_stmt->bind_param("i", $bidder_id);
-$notifs_stmt->execute();
-$notifs_result = $notifs_stmt->get_result();
-
-function timeAgo($datetime) {
-    $time = strtotime($datetime);
-    $diff = time() - $time;
-    if ($diff < 60) return 'Just now';
-    if ($diff < 3600) return floor($diff / 60) . 'm ago';
-    if ($diff < 86400) return floor($diff / 3600) . 'h ago';
-    if ($diff < 604800) return floor($diff / 86400) . 'd ago';
-    return date('M j, Y', $time);
-}
+// ── 8. My latest notifications (for 40% column) ─────────────────────────────
+require_once(__DIR__ . "/../utils/notification_helper.php");
+$widget_notifs = notif_latest($conn, $bidder_id, 3);
 
 function pct($part, $total) {
     return $total > 0 ? round($part / $total * 100) : 0;
@@ -358,59 +336,15 @@ include("components/topbar.php");
 
             </div>
 
-            <!-- 4. Announcements / Notifications Card -->
+            <!-- 4. My Notifications Card -->
             <div class="sub-card sub-card--mt">
                 <div class="sub-card-head">
                     <div class="sub-card-title">
-                        <i class="bi bi-megaphone clr-orange"></i> System Announcements &amp; Notices
+                        <i class="bi bi-bell clr-orange"></i> Latest Notifications
                     </div>
                     <a href="notification.php" class="sub-card-link">View all <i class="bi bi-arrow-right"></i></a>
                 </div>
-                <div>
-                    <?php if (!$notifs_result || $notifs_result->num_rows === 0): ?>
-                        <div class="sub-empty sub-empty--sm">
-                            <i class="bi bi-bell-slash sub-empty-icon"></i>
-                            No recent announcements.
-                        </div>
-                    <?php else: while ($nt = $notifs_result->fetch_assoc()):
-                        $targetBadge = strtoupper($nt['target_type']);
-                        $targetBadgeClass = 'side-notif-target-badge--all';
-                        if ($nt['target_type'] === 'role') {
-                            $targetBadge = strtoupper($nt['target_role'] ?? 'BIDDER');
-                            $targetBadgeClass = 'side-notif-target-badge--role';
-                        }
-                    ?>
-                        <div class="side-notif-row">
-                            <div class="side-notif-icon">
-                                <i class="bi bi-bell-fill"></i>
-                            </div>
-                            <div class="side-notif-body">
-                                <div class="side-notif-top-row">
-                                    <div class="side-notif-title" title="<?= htmlspecialchars($nt['title']) ?>">
-                                        <?= htmlspecialchars($nt['title']) ?>
-                                    </div>
-                                    <span class="side-notif-time">
-                                        <i class="bi bi-clock"></i> <?= timeAgo($nt['created_at']) ?>
-                                    </span>
-                                </div>
-                                <div class="side-notif-snippet">
-                                    <?= htmlspecialchars($nt['message']) ?>
-                                </div>
-                                <div class="side-notif-foot-row">
-                                    <div class="side-notif-meta">
-                                        <span class="side-notif-target-badge <?= $targetBadgeClass ?>">
-                                            <?= htmlspecialchars($targetBadge) ?>
-                                        </span>
-                                        <span>From: <?= htmlspecialchars(trim(($nt['firstname'] ?? '') . ' ' . ($nt['lastname'] ?? '')) ?: 'BAC Secretariat') ?></span>
-                                    </div>
-                                    <a href="notification.php" class="proc-action-btn--view proc-action-btn--sm">
-                                        <i class="bi bi-eye"></i> View
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endwhile; endif; ?>
-                </div>
+                <?php include("../includes/notification_widget.php"); ?>
             </div>
 
         </div>

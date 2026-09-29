@@ -1,6 +1,7 @@
 <?php
 session_start();
 include("config/db_connect.php");
+require_once __DIR__ . '/utils/notification_helper.php';
 
 $error   = $_SESSION['reg_error']   ?? '';
 $success = $_SESSION['reg_success'] ?? '';
@@ -67,6 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
         if ($ins->execute()) {
+            notify_secretariat($conn, 'invitation_request',
+                'New access request',
+                "{$contact_person} of {$company_name} requested access to the portal.",
+                'admin/invitation_requests.php', null, 'invitation_request:' . $ins->insert_id);
             $_SESSION['reg_success'] = "Your request has been submitted! We'll review it and send you an invitation by email.";
         } else {
             $_SESSION['reg_error'] = "Something went wrong. Please try again.";

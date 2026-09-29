@@ -3,6 +3,7 @@ include("utils/protect-page.php");
 require_once("../utils/crypto.php");
 require_once(__DIR__ . "/../admin/utils/audit_helper.php");
 require_once(__DIR__ . "/../utils/bidder_document_helper.php");
+require_once(__DIR__ . "/../utils/notification_helper.php");
 
 $procurement_id = isset($_GET['id']) ? intval($_GET['id']) : (isset($_GET['procurement_id']) ? intval($_GET['procurement_id']) : 0);
 $bidder_id      = intval($_SESSION['user_id']);
@@ -213,6 +214,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_bid'])) {
                     'document_count'   => count($uploaded_file_paths),
                 ]
             );
+
+            // ── In-app alert to the BAC Secretariat ─────────────────────────────
+            $lot_count = count($selected_lots);
+            notify_secretariat($conn, 'bid_submitted',
+                'New bid submitted: ' . $procurement['title'],
+                notif_user_display_name($conn, $bidder_id) . " submitted a bid covering {$lot_count} lot" . ($lot_count === 1 ? '' : 's') . '. It is awaiting verification.',
+                'admin/bid-submission-view.php?id=' . $procurement_id, $bidder_id, "bid_submitted:{$bid_id}");
 
             // ── Audit: BID_DOCUMENT_UPLOADED (one entry per file type group) ────
             $doc_types_uploaded = array_unique(

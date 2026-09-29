@@ -47,15 +47,9 @@ if ($cal_result) {
     while ($c = $cal_result->fetch_assoc()) $cal_events[] = $c;
 }
 
-// ── Recent Notifications / Announcements (latest 3) ─────────────────────────
-$notifs_dash_result = $conn->query("
-    SELECT sn.notification_id, sn.title, sn.message, sn.target_type, sn.target_role, sn.created_at,
-           u.firstname, u.lastname
-    FROM system_notifications sn
-    LEFT JOIN users u ON sn.created_by = u.user_id
-    ORDER BY sn.created_at DESC
-    LIMIT 3
-");
+// ── My latest notifications (3) ─────────────────────────────────────────────
+require_once(__DIR__ . "/../utils/notification_helper.php");
+$widget_notifs = notif_latest($conn, $admin_id, 3);
 
 // ── Pending bids overview (latest 4) ───────────────────────────────────────
 $pending_bids_result = $conn->query("
@@ -80,16 +74,6 @@ $pending_result = $conn->query("
     LIMIT 4
 ");
 
-function timeAgo($datetime) {
-    $time = strtotime($datetime);
-    $diff = time() - $time;
-    if ($diff < 60) return 'Just now';
-    if ($diff < 3600) return floor($diff / 60) . 'm ago';
-    if ($diff < 86400) return floor($diff / 3600) . 'h ago';
-    if ($diff < 604800) return floor($diff / 86400) . 'd ago';
-    return date('M j, Y', $time);
-}
-
 function pct($part, $total) {
     return $total > 0 ? round($part / $total * 100) : 0;
 }
@@ -107,6 +91,7 @@ function pct($part, $total) {
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
     <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/bid-session-panel.css">
     <link rel="stylesheet" href="../css/pages/admin-dashboard.css">
 </head>
 <body class="dash-body">
@@ -162,6 +147,9 @@ include("components/topbar.php");
                     </div>
                 </div>
             </div>
+
+            <!-- Quick join: bid sessions I'm invited to -->
+            <?php include("components/session-invites.php"); ?>
 
             <!-- 2. Procurement Statistics (Reduced Height) -->
             <div class="compact-stat-card">
@@ -312,61 +300,15 @@ include("components/topbar.php");
 
             </div>
 
-            <!-- 5. System Announcements & Notices -->
+            <!-- 5. My Notifications -->
             <div class="sub-card">
                 <div class="sub-card-head">
                     <div class="sub-card-title">
-                        <i class="bi bi-megaphone clr-amber"></i> System Announcements &amp; Broadcasts
+                        <i class="bi bi-bell clr-amber"></i> Latest Notifications
                     </div>
-                    <a href="announcements.php" class="sub-card-link">Manage Broadcasts <i class="bi bi-arrow-right"></i></a>
+                    <a href="notification.php" class="sub-card-link">View all <i class="bi bi-arrow-right"></i></a>
                 </div>
-                <div>
-                    <?php if (!$notifs_dash_result || $notifs_dash_result->num_rows === 0): ?>
-                        <div class="empty-announce">
-                            <i class="bi bi-bell-slash empty-announce-icon"></i>
-                            No announcements posted yet.
-                        </div>
-                    <?php else: while ($nt = $notifs_dash_result->fetch_assoc()):
-                        $targetBadge = strtoupper($nt['target_type']);
-                        $targetColor = '#e3f2fd';
-                        $targetFg    = '#1565c0';
-                        if ($nt['target_type'] === 'role') {
-                            $targetBadge = strtoupper($nt['target_role'] ?? 'ROLE');
-                            $targetColor = '#f3e5f5';
-                            $targetFg    = '#7b1fa2';
-                        }
-                    ?>
-                        <div class="side-notif-row">
-                            <div class="side-notif-icon">
-                                <i class="bi bi-bell-fill"></i>
-                            </div>
-                            <div class="side-notif-body">
-                                <div class="notif-title-row">
-                                    <div class="side-notif-title" title="<?= htmlspecialchars($nt['title']) ?>">
-                                        <?= htmlspecialchars($nt['title']) ?>
-                                    </div>
-                                    <span class="notif-time">
-                                        <i class="bi bi-clock"></i> <?= timeAgo($nt['created_at']) ?>
-                                    </span>
-                                </div>
-                                <div class="side-notif-snippet">
-                                    <?= htmlspecialchars($nt['message']) ?>
-                                </div>
-                                <div class="notif-meta-row">
-                                    <div class="side-notif-meta">
-                                        <span class="notif-target-badge" style="--badge-bg:<?= $targetColor ?>; --badge-fg:<?= $targetFg ?>;">
-                                            <?= htmlspecialchars($targetBadge) ?>
-                                        </span>
-                                        <span>By: <?= htmlspecialchars(trim(($nt['firstname'] ?? '') . ' ' . ($nt['lastname'] ?? '')) ?: 'Admin') ?></span>
-                                    </div>
-                                    <a href="announcements.php" class="proc-action-btn review review-pill">
-                                        <i class="bi bi-eye"></i> View
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endwhile; endif; ?>
-                </div>
+                <?php include("../includes/notification_widget.php"); ?>
             </div>
 
         </div>
@@ -477,9 +419,9 @@ include("components/topbar.php");
             <div class="sad-action-icon sad-action-icon--purple"><i class="bi bi-journal-text"></i></div>
             <span>Audit Trail</span>
         </a>
-        <a href="announcements.php" class="sad-action-card">
-            <div class="sad-action-icon sad-action-icon--teal"><i class="bi bi-megaphone"></i></div>
-            <span>Announcements</span>
+        <a href="notification-management.php" class="sad-action-card">
+            <div class="sad-action-icon sad-action-icon--teal"><i class="bi bi-send"></i></div>
+            <span>Notifications</span>
         </a>
         <a href="../logout.php" class="sad-action-card">
             <div class="sad-action-icon sad-action-icon--red"><i class="bi bi-box-arrow-left"></i></div>

@@ -32,8 +32,6 @@
 
 .empty-mini { padding: 28px 16px; text-align: center; color: #88968d; font-size: 11.5px; }
 .empty-mini-icon { font-size: 22px; color: #c7d2cb; display: block; margin-bottom: 4px; }
-.empty-announce { padding: 26px 16px; text-align: center; color: #88968d; font-size: 12px; }
-.empty-announce-icon { font-size: 24px; color: #c7d2cb; display: block; margin-bottom: 6px; }
 
 .review-pill {
     background: #E7EEFE;
@@ -47,18 +45,6 @@
 .review-pill--dark {
     background: #06251b;
     color: #ffc107;
-}
-
-.notif-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.notif-time { font-size: 10px; color: #88968d; white-space: nowrap; }
-.notif-meta-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; gap: 8px; }
-.notif-target-badge {
-    background: var(--badge-bg, #e3f2fd);
-    color: var(--badge-fg, #1565c0);
-    padding: 1px 6px;
-    border-radius: 4px;
-    font-weight: 700;
-    font-size: 9.5px;
 }
 
 .profile-detail-item--wide { grid-column: span 2; }
@@ -116,7 +102,7 @@
 /* ── 60% + 40% Layout ── */
 .dash-layout-60-40 {
     display: grid;
-    grid-template-columns: 1.55fr 1fr;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
     gap: 22px;
     align-items: start;
     margin-bottom: 24px;
@@ -124,7 +110,7 @@
 
 @media (max-width: 1120px) {
     .dash-layout-60-40 {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
@@ -310,7 +296,7 @@
 .compact-stat-metrics {
     flex: 1;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
 }
 
@@ -340,14 +326,14 @@
 /* ── Side-by-Side: Applications & Bids (60% Column) ── */
 .dash-side-by-side {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 16px;
     margin-bottom: 16px;
 }
 
 @media (max-width: 768px) {
     .dash-side-by-side {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
@@ -512,7 +498,7 @@
 
 .profile-details-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 8px;
 }
 
@@ -609,7 +595,7 @@
 
 .mini-cal-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 4px;
     text-align: center;
 }
@@ -780,67 +766,11 @@
     overflow-y: auto;
 }
 
-/* Notification item in 60% column */
-.side-notif-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px 14px;
-    border-bottom: 1px solid #f4f7f5;
-    transition: background .15s;
-}
-
-.side-notif-row:last-child { border-bottom: none; }
-.side-notif-row:hover { background: #f9fbf9; }
-
-.side-notif-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: #e8f5e9;
-    color: #1f7a3d;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-
-.side-notif-body { flex: 1; min-width: 0; }
-.side-notif-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: #182019;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.2;
-}
-
-.side-notif-snippet {
-    font-size: 11px;
-    color: #6C776E;
-    margin-top: 2px;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.side-notif-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 10px;
-    color: #9aa8a1;
-}
-
 /* ════════════════════════════════
    MOBILE-FIRST RESPONSIVE
    (see ../responsive.css for the shared breakpoint set + utilities)
    ════════════════════════════════ */
 @media (max-width: 480px) {
     .dash-greeting-card { padding: 18px 20px; }
-    .compact-stat-metrics { grid-template-columns: repeat(2, 1fr); }
+    .compact-stat-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

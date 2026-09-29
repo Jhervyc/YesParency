@@ -15,7 +15,7 @@
 /* ── 60% + 40% Layout ── */
 .dash-layout-60-40 {
     display: grid;
-    grid-template-columns: 1.55fr 1fr;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
     gap: 22px;
     align-items: start;
     margin-bottom: 24px;
@@ -113,7 +113,7 @@
 /* ── 4 Donut Stat Cards (Inside 60% Column) ── */
 .ap2-stats-4-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
     margin-bottom: 20px;
 }
@@ -193,7 +193,7 @@
 /* ── Side-by-Side Open Procurements & My Bids ── */
 .dash-side-by-side {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 16px;
 }
 
@@ -454,7 +454,7 @@
 
 .profile-details-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 10px;
 }
 
@@ -514,7 +514,7 @@
 /* Calendar grid */
 .mini-cal-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 3px;
     padding: 14px 16px 12px;
 }
@@ -654,102 +654,6 @@
     white-space: nowrap;
 }
 
-/* Notification item in 40% column */
-.side-notif-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 11px 16px;
-    border-bottom: 1px solid #f4f7f5;
-    transition: background .15s;
-}
-
-.side-notif-row:last-child { border-bottom: none; }
-.side-notif-row:hover { background: #f9fbf9; }
-
-.side-notif-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: #e8f5e9;
-    color: #1f7a3d;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-
-.side-notif-body { flex: 1; min-width: 0; }
-
-.side-notif-top-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.side-notif-time {
-    font-size: 10px;
-    color: #88968d;
-    white-space: nowrap;
-}
-
-.side-notif-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: #182019;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.2;
-}
-
-.side-notif-snippet {
-    font-size: 11px;
-    color: #6C776E;
-    margin-top: 2px;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.side-notif-foot-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 4px;
-    gap: 8px;
-}
-
-.side-notif-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 0;
-    font-size: 10px;
-    color: #9aa8a1;
-}
-
-.side-notif-target-badge {
-    padding: 1px 6px;
-    border-radius: 4px;
-    font-weight: 700;
-    font-size: 9.5px;
-}
-
-.side-notif-target-badge--role {
-    background: #e8f5e9;
-    color: #1f7a3d;
-}
-
-.side-notif-target-badge--all {
-    background: #e3f2fd;
-    color: #1565c0;
-}
-
 /* Buttons & Badges */
 .btn-mini-bid {
     background: #06251b;
@@ -797,17 +701,17 @@
 
 @media (max-width: 1120px) {
     .dash-layout-60-40 {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
 @media (max-width: 768px) {
     .ap2-stats-4-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .dash-side-by-side {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .dash-greeting-card {
@@ -817,10 +721,10 @@
 
 @media (max-width: 480px) {
     .ap2-stats-4-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .profile-details-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 }

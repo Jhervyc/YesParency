@@ -13,7 +13,7 @@ $per_page      = 20;
 $offset        = ($page - 1) * $per_page;
 
 $valid_actions = ['CREATE', 'UPDATE', 'DELETE'];
-$valid_modules = ['procurements', 'bids', 'lots', 'users', 'announcements', 'settings', 'bid_opening'];
+$valid_modules = ['procurements', 'bids', 'lots', 'users', 'notifications', 'announcements', 'settings', 'bid_opening'];
 
 if ($action_filter !== 'all' && !in_array($action_filter, $valid_actions)) $action_filter = 'all';
 if ($module_filter !== 'all' && !in_array($module_filter, $valid_modules)) $module_filter = 'all';
@@ -193,7 +193,8 @@ $logs_data = [];
                         <option value="bids" <?= $module_filter==='bids'?'selected':'' ?>>Bids</option>
                         <option value="lots" <?= $module_filter==='lots'?'selected':'' ?>>Lots</option>
                         <option value="users" <?= $module_filter==='users'?'selected':'' ?>>Users</option>
-                        <option value="announcements" <?= $module_filter==='announcements'?'selected':'' ?>>Announcements</option>
+                        <option value="notifications" <?= $module_filter==='notifications'?'selected':'' ?>>Notifications</option>
+                        <option value="announcements" <?= $module_filter==='announcements'?'selected':'' ?>>Announcements (legacy)</option>
                         <option value="settings" <?= $module_filter==='settings'?'selected':'' ?>>Settings</option>
                         <option value="bid_opening" <?= $module_filter==='bid_opening'?'selected':'' ?>>Bid Opening</option>
                     </select>

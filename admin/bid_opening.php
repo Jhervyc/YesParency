@@ -185,6 +185,7 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
     <link rel="stylesheet" href="../dashboard.css">
     <link rel="stylesheet" href="../css/dashboard-shell.css">
     <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/bid-session-panel.css">
     <link rel="stylesheet" href="../css/pages/admin-bid-opening.css">
 </head>
 <body class="dash-body">

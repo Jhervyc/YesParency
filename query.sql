@@ -335,43 +335,37 @@ INSERT INTO system_settings (setting_key, setting_value) VALUES
     ('maintenance_mode', '0')
 ON DUPLICATE KEY UPDATE setting_key = VALUES(setting_key);
 
--- =================== System Notifications Table =======================
--- Handles announcements targeted to Everyone ('all'), Specific Roles ('role'), or Individual Users ('user')
-CREATE TABLE IF NOT EXISTS system_notifications (
+-- =================== Notifications Table =======================
+-- Owned, per-user in-app notifications. Every row belongs to exactly one user.
+-- System events insert rows directly; admin-composed messages fan out one row per
+-- recipient sharing a batch_id (so the send can be tracked / recalled).
+CREATE TABLE IF NOT EXISTS notifications (
     notification_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,                  -- owner / recipient
+    type VARCHAR(50) NOT NULL,             -- 'admin_message', 'bid_verified', 'doc_expiring', ...
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
-    target_type ENUM('all', 'role', 'user') NOT NULL DEFAULT 'all',
-    target_role ENUM('user', 'bidder', 'admin', 'superadmin') NULL,
-    target_user_id INT NULL,
-    created_by INT NOT NULL,
+    link VARCHAR(255) NULL,                -- app-root-relative URL, e.g. 'bidder/my_bids.php'
+    actor_id INT NULL,                     -- who caused it (NULL = System)
+    batch_id CHAR(32) NULL,                -- groups the fan-out of one admin send
+    audience VARCHAR(100) NULL,            -- label of an admin send: 'Everyone', 'Bidders', '3 users'
+    dedupe_key VARCHAR(100) NULL,          -- e.g. 'bid_verified:42' - prevents duplicate inserts
+    is_read TINYINT(1) NOT NULL DEFAULT 0,
+    read_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (target_user_id) 
-        REFERENCES users(user_id) 
-        ON DELETE CASCADE,
-        
-    FOREIGN KEY (created_by) 
-        REFERENCES users(user_id) 
-        ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    INDEX idx_owner (user_id, is_read, created_at),
+    INDEX idx_batch (batch_id),
+    INDEX idx_type (type, created_at),
+    UNIQUE KEY uq_dedupe (user_id, dedupe_key),
 
--- =================== User Notification Reads Table =======================
--- Tracks read status and timestamps per user without duplicating notification text
-CREATE TABLE IF NOT EXISTS user_notification_reads (
-    notification_id INT NOT NULL,
-    user_id INT NOT NULL,
-    read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (notification_id, user_id),
-
-    FOREIGN KEY (notification_id) 
-        REFERENCES system_notifications(notification_id) 
+    FOREIGN KEY (user_id)
+        REFERENCES users(user_id)
         ON DELETE CASCADE,
 
-    FOREIGN KEY (user_id) 
-        REFERENCES users(user_id) 
-        ON DELETE CASCADE
+    FOREIGN KEY (actor_id)
+        REFERENCES users(user_id)
+        ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =================== Audit Trail / System Logs Table =======================

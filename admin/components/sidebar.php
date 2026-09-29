@@ -15,7 +15,7 @@ $is_procurement_active   = in_array($active, ['procurement.php', 'create_procure
 $is_bids_active          = in_array($active, ['bid_submissions.php', 'bid-submission-view.php']);
 $is_invitations_active   = in_array($active, ['invitation_requests.php']);
 $is_accounts_active      = in_array($active, ['account-management.php', 'account-management', 'bidder-profile.php', 'bidder-profile']);
-$is_announcements_active = in_array($active, ['announcements.php', 'announcements']);
+$is_notif_mgmt_active    = in_array($active, ['notification-management.php', 'notification-management']);
 $is_audit_active         = in_array($active, ['audit_trail.php', 'audit_trail']);
 $is_settings_active      = in_array($active, ['settings.php', 'settings']);
 $is_notification_active  = in_array($active, ['notification.php', 'notification']);
@@ -85,8 +85,8 @@ $is_restricted = in_array($admin_type, ['BAC', 'TWG']);
         <a href="account-management.php" class="nav-item <?= $is_accounts_active ? 'active' : '' ?>">
             <i class="bi bi-people"></i><span>Bidder Accounts</span>
         </a>
-        <a href="announcements.php" class="nav-item <?= $is_announcements_active ? 'active' : '' ?>">
-            <i class="bi bi-megaphone"></i><span>Announcements</span>
+        <a href="notification-management.php" class="nav-item <?= $is_notif_mgmt_active ? 'active' : '' ?>">
+            <i class="bi bi-send"></i><span>Notifications</span>
         </a>
         <a href="invitation_requests.php" class="nav-item <?= $is_invitations_active ? 'active' : '' ?>">
             <i class="bi bi-envelope-paper-fill"></i><span>Invitations</span>

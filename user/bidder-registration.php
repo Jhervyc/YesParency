@@ -1,5 +1,6 @@
-<?php 
+<?php
 include("utils/protect-page.php");
+require_once(__DIR__ . "/../utils/notification_helper.php");
 
 $userId = (int)$_SESSION["user_id"];
 
@@ -179,6 +180,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_registration']
 
             // Commit Transaction
             $conn->commit();
+
+            // In-app alert to the BAC Secretariat
+            notify_secretariat($conn, 'bidder_application',
+                'New bidder application',
+                "{$businessName} applied for bidder accreditation. Review the submitted documents to approve or reject the application.",
+                'admin/bidder-profile.php?id=' . $userId, $userId);
 
             // Redirect back to show submitted status
             header("Location: bidder-registration.php?registered=1");

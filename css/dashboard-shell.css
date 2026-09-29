@@ -554,25 +554,6 @@ body.dash-body {
 .notif-item.unread { background: #fdfaf3; }
 .notif-item.unread:hover { background: #f9f4e9; }
 
-.notif-item-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: #e8f5e9;
-    color: #1f7a3d;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-
-.notif-item.unread .notif-item-icon {
-    background: #fff3e0;
-    color: #e67e22;
-}
-
 .notif-item-content {
     flex: 1;
     min-width: 0;
@@ -593,6 +574,7 @@ body.dash-body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .notif-item.unread .notif-item-title {
@@ -615,6 +597,7 @@ body.dash-body {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    overflow-wrap: anywhere;
 }
 
 .notif-item-meta {
@@ -622,22 +605,8 @@ body.dash-body {
     align-items: center;
     gap: 8px;
     margin-top: 6px;
+    min-width: 0;
 }
-
-.notif-target-badge {
-    font-size: 9.5px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    padding: 2px 6px;
-    border-radius: 6px;
-    background: #eef3ef;
-    color: #55665a;
-}
-
-.notif-target-badge.all { background: #e3f2fd; color: #1565c0; }
-.notif-target-badge.role { background: #f3e5f5; color: #7b1fa2; }
-.notif-target-badge.user { background: #fff8e1; color: #f57f17; }
 
 .notif-unread-indicator {
     width: 7px;
@@ -692,6 +661,348 @@ body.dash-body {
 .notif-create-action-btn:hover {
     background: #0b3d2d;
 }
+
+.notif-footer--split {
+    display: flex;
+    gap: 8px;
+}
+
+.notif-footer-link { text-decoration: none; }
+
+.notif-footer-link--ghost {
+    background: #fff;
+    color: #06251b;
+    border: 1px solid #dbe2dd;
+}
+
+.notif-footer-link--ghost:hover {
+    background: #f1f6f3;
+}
+
+.notif-item-actor {
+    font-size: 10.5px;
+    color: #9aa8a1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.notif-item-go {
+    color: #9aa8a1;
+    font-size: 16px;
+    line-height: 1;
+}
+
+/* ── Notification type tones for the type pill (bell, inbox, management pages) ── */
+.nt-tone--green  { --nt-bg: #e7f5ec; --nt-fg: #1f7a3d; }
+.nt-tone--red    { --nt-bg: #fdecec; --nt-fg: #c62828; }
+.nt-tone--gold   { --nt-bg: #fff4d4; --nt-fg: #a8780c; }
+.nt-tone--blue   { --nt-bg: #e7eefe; --nt-fg: #1f5fbf; }
+.nt-tone--purple { --nt-bg: #f1e8fb; --nt-fg: #7b1fa2; }
+.nt-tone--orange { --nt-bg: #fff0df; --nt-fg: #d0681a; }
+.nt-tone--teal   { --nt-bg: #e0f4f2; --nt-fg: #00796b; }
+.nt-tone--slate  { --nt-bg: #eef2ef; --nt-fg: #55665a; }
+
+.nt-type-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: var(--nt-bg, #eef2ef);
+    color: var(--nt-fg, #55665a);
+    white-space: nowrap;
+}
+
+/* ── Dashboard "latest notifications" widget (includes/notification_widget.php) ── */
+.nw-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sub-card .nw-list { padding: 10px 14px 14px; }
+
+.nw-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    border: 1px solid #edf1ee;
+    background: #fff;
+    border-radius: 14px;
+    padding: 12px;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    transition: background .15s, border-color .15s, box-shadow .15s;
+}
+
+.nw-item:hover { border-color: #d6e0da; box-shadow: 0 4px 14px rgba(6, 37, 27, .06); }
+.nw-item.unread { background: #fffcf4; border-color: #f1e6c8; }
+
+.nw-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.nw-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.nw-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #182019;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.nw-item.unread .nw-title { font-weight: 800; color: #06251b; }
+.nw-time { font-size: 10.5px; color: #9aa8a1; white-space: nowrap; }
+
+.nw-msg {
+    font-size: 11.5px;
+    color: #6c776e;
+    line-height: 1.45;
+    margin-top: 2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.nw-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    min-width: 0;
+}
+
+.nw-actor {
+    font-size: 10.5px;
+    color: #9aa8a1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+/* ── Overflow guards for dashboard lists & cards (admin + bidder dashboards) ──
+   .sub-item-meta is a flex row, so text-overflow on the row itself never
+   applies — each piece has to be allowed to shrink and ellipsize. */
+.sub-item-meta > * {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sub-item-meta > *:not(:first-child) { flex-shrink: 0; }
+
+.sub-item-title a {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dash-col-60,
+.dash-col-40,
+.sub-card,
+.nw-list,
+.nw-item,
+.profile-info,
+.profile-detail-item,
+.side-event-main,
+.side-event-left {
+    min-width: 0;
+}
+
+.side-event-main { flex: 1; }
+
+/* Stat rows follow the width of their own column (not the screen):
+   4 across when there's room, 2×2 when the 60% column gets narrow. */
+.dash-col-60 { container-type: inline-size; }
+
+@container (max-width: 700px) {
+    .ap2-stats-4-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+@container (max-width: 560px) {
+    .compact-stat-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+@container (max-width: 340px) {
+    .ap2-stats-4-grid { grid-template-columns: minmax(0, 1fr) !important; }
+}
+
+.stat-donut-card,
+.compact-metric-item { min-width: 0; }
+
+.compact-metric-lbl {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.profile-rep-name {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.greeting-title,
+.greeting-sub { overflow-wrap: anywhere; }
+
+.nt-type-pill { flex-shrink: 0; }
+
+.nw-item .notif-unread-indicator { margin-top: 6px; }
+
+.nw-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 26px 12px;
+    color: #88968d;
+    font-size: 12px;
+    text-align: center;
+}
+
+.nw-empty i { font-size: 26px; color: #c7d2cb; }
+
+/* ── Admin dashboard: bid-session panel (admin/components/session-invites.php).
+   Base look comes from ../css/bid-session-panel.css (same as Bid Opening). ── */
+.si-panel { margin-bottom: 16px; }
+.si-panel .bo-live-banner + .bo-live-banner { border-top: 1px solid rgba(255, 255, 255, .08); }
+.si-live-info { flex: 1; min-width: 0; }
+
+.si-panel .bo-live-head-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.si-invited-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #ffc107;
+    background: rgba(255, 193, 7, .12);
+    border: 1px solid rgba(255, 193, 7, .3);
+    padding: 3px 9px;
+    border-radius: 20px;
+}
+
+.si-ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.si-panel .sched-card .btn-open-now { text-decoration: none; }
+
+/* ── Notification detail modal ── */
+.notif-detail-backdrop {
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: 24px 10px;
+    z-index: 2000;
+}
+
+.notif-detail-box {
+    max-width: 520px;
+    width: 95%;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    border-radius: 20px;
+    padding: 24px;
+    margin: auto;
+}
+
+.notif-detail-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.notif-detail-headtext {
+    flex: 1;
+    min-width: 0;
+}
+
+.notif-detail-headtext h4 {
+    margin: 6px 0 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: #06251b;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.notif-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    font-size: 11.5px;
+    color: #88968d;
+    font-weight: 600;
+    margin-bottom: 14px;
+}
+
+.notif-detail-meta i { margin-right: 3px; }
+
+.notif-detail-message {
+    background: #f7faf8;
+    border: 1px solid #eaeeec;
+    border-radius: 14px;
+    padding: 16px;
+    font-size: 13px;
+    color: #2d3a32;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.notif-detail-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.notif-detail-open,
+.notif-detail-close {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    text-decoration: none;
+    border: none;
+}
+
+.notif-detail-open  { background: #f1f6f3; color: #06251b; }
+.notif-detail-close { background: #06251b; color: #ffc107; }
+.notif-detail-open[hidden] { display: none; }
 
 /* =========================================================
    MAIN CONTENT
