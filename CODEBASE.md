@@ -22,11 +22,12 @@
 13. [Live Streaming](#13-live-streaming)
 14. [Cron Jobs](#14-cron-jobs)
 15. [Security & File Access](#15-security--file-access)
-16. [CSS & Frontend Conventions](#16-css--frontend-conventions)
-17. [Audit Logging](#17-audit-logging)
-18. [Known Issues & Pending Work](#18-known-issues--pending-work)
-19. [Session & Auth Flow](#19-session--auth-flow)
-20. [Changelog — What Was Built / Changed](#20-changelog--what-was-built--changed)
+16. [Bid Encryption](#16-bid-encryption)
+17. [CSS & Frontend Conventions](#17-css--frontend-conventions)
+18. [Audit Logging](#18-audit-logging)
+19. [Known Issues & Pending Work](#19-known-issues--pending-work)
+20. [Session & Auth Flow](#20-session--auth-flow)
+21. [Changelog — What Was Built / Changed](#21-changelog--what-was-built--changed)
 
 ---
 
@@ -88,10 +89,12 @@ DB_NAME=yesparency_db
 DB_USER=root                           # Change for production
 DB_PASS=
 
+MEDIAMTX_SCHEME=https                  # http or https — used when building HLS URLs
 MEDIAMTX_HOST=                         # HLS stream server hostname
-MEDIAMTX_HLS_PORT=8888                 # HLS port
+MEDIAMTX_HLS_PORT=8888                 # HLS port (blank = no port appended to URL)
 MEDIAMTX_RTMP_PORT=1935
 MEDIAMTX_DEFAULT_PATH=live
+MEDIAMTX_MANIFEST=index.m3u8           # HLS manifest filename
 
 FINANCIAL_KEY=                         # 64-char hex — bid encryption key
 ELIGIBILITY_KEY=                       # 64-char hex — bid encryption key
@@ -138,7 +141,7 @@ YesParency/
 ├── live_chat_api.php           # Pusher chat API for live.php
 ├── stream_health.php           # Public server-side HLS health check — ?path=X → {"online": bool}
 ├── bid_schedule.php            # Public procurement schedule page
-├── bid_view.php / bid_view.php # Public bid detail page
+├── bid_view.php                # Public procurement detail page (no auth required)
 ├── bootstrap.php               # Dotenv loader (safeLoad)
 ├── style.css                   # Shared CSS — login, register, public pages
 ├── dashboard.css               # Shared CSS — ALL dashboard panels (admin/bidder/user)
@@ -148,7 +151,8 @@ YesParency/
 │   ├── components/
 │   │   ├── sidebar.php         # Role-aware sidebar (BAC/TWG restricted, superadmin extras)
 │   │   ├── topbar.php
-│   │   └── notifications.php   # Topbar notification bell
+│   │   ├── notifications.php   # Topbar notification bell
+│   │   └── session-invites.php # Dashboard panel — live/scheduled sessions (role-aware)
 │   ├── utils/
 │   │   ├── protect-page.php    # Auth guard — allows role=admin AND role=superadmin
 │   │   ├── protect-secretariat.php  # Additional guard — blocks BAC/TWG from secretariat pages
@@ -175,7 +179,6 @@ YesParency/
 │   ├── reject_bidder.php
 │   ├── bidder-profile.php
 │   ├── get_bidder.php
-│   ├── get_procurements.php
 │   ├── notification-management.php # Compose/track/recall admin notifications + system activity log
 │   ├── invitation_requests.php # Approve/reject access requests
 │   ├── live_event.php
@@ -216,9 +219,10 @@ YesParency/
 │
 ├── utils/
 │   ├── mailer.php              # ⭐ All email functions + queue system
-│   ├── bidder_document_helper.php
-│   ├── crypto.php              # Bid encryption/decryption
-│   ├── procurement_mode_helper.php
+│   ├── bidder_document_helper.php  # ⭐ REQUIRED_BIDDER_DOCS, document validation, file cleanup
+│   ├── crypto.php              # ⭐ Bid file encryption/decryption (AES-256-CBC)
+│   ├── notification_helper.php # NOTIF_TYPES registry, notify_user/secretariat, send_admin_notification
+│   ├── notification_personal_api.php # Personal inbox actions (fetch, mark_read, delete)
 │   └── email_templates/
 │       ├── layout.php          # Master email layout — dark green #06251b header
 │       ├── bidder_approved.php
@@ -237,12 +241,33 @@ YesParency/
 │       └── password_reset.php
 │
 ├── cron/
-│   ├── close_procurements.php          # Auto-close overdue procurements
 │   ├── process_email_queue.php         # SMTP email sender worker
 │   └── check_document_expirations.php  # Bidder document expiry notifier
 │
 ├── includes/
-│   └── navbar.php              # Public navbar component + CSS
+│   ├── navbar.php              # Public navbar component + CSS
+│   ├── footer.php              # Public footer component — render_public_footer()
+│   ├── notification_bell.php   # Topbar bell + dropdown + detail modal
+│   ├── notification_inbox.php  # Full inbox (used by notification.php pages)
+│   ├── notification_widget.php # "Latest notifications" dashboard card
+│   └── pagination.php          # render_pagination() — compact list pagination
+│
+├── js/
+│   └── ajax-list.js            # AjaxList: in-place filter/search/paging for list pages
+│
+├── css/
+│   ├── base.css                # CSS reset / base tokens
+│   ├── components.css          # Shared UI components (navbar, footer, cards)
+│   ├── dashboard-shell.css     # Dashboard shell layout + notification tone classes
+│   ├── bid-session-panel.css   # Session invite panel (session-invites.php)
+│   ├── responsive.css          # Mobile breakpoints
+│   └── pages/                  # Per-page stylesheets — one file per route
+│       ├── admin-*.css         # 20 admin page stylesheets
+│       ├── bidder-*.css        # 8 bidder page stylesheets
+│       ├── user-*.css          # 5 user page stylesheets
+│       └── (login, register, index, bid_schedule, bid_view, etc.)
+│
+├── partials/                   # List fragments (also admin/, bidder/, user/partials/) — see §10
 │
 ├── uploads/
 │   ├── .htaccess               # Allows images/PDFs, blocks all script execution
@@ -350,71 +375,89 @@ YesParency/
 ```
 (create) → draft
 draft    → open         [admin: review_procurement.php — confirm_publish POST]
-open     → closed       [auto: cron/close_procurements.php when closing_date <= NOW()]
-                        [manual: admin/schedule_bid_opening.php when session is created]
-closed   → awarded      [admin: bid_session_api.php — end_session action, if ≥1 lot awarded]
-closed   → closed       [admin: bid_session_api.php — end_session action, 0 lots awarded]
+open     → closed       [manual: admin/schedule_bid_opening.php when session is created]
+closed   → opened       [admin: bid_session_api.php — end_session action]
 any      → cancelled    [no code currently implements this transition]
 
-Lots:    pending → awarded / failed
-Bids:    submitted → opened → pending → awarded / rejected
+Lots:    pending → opened (after session ends)
+Bids:    submitted → (evaluated during session) → final status in bid_lots
 ```
-
-### Auto-Close Logic (`cron/close_procurements.php`)
-
-- Runs every minute
-- Finds `status='open'` procurements where `closing_date <= NOW()`
-- Sets procurement `status='closed'`
-- Sets lots `status='failed'` where no `bid_lots` entries exist for that lot
-- Lots with bids stay `pending` — await bid opening session
-- Writes `PROCUREMENT_AUTO_CLOSED` or `PROCUREMENT_AUTO_CLOSED_NO_BIDS` audit log
-- Full transaction — rolls back on any error
 
 ---
 
 ## 8. Bid Opening Lifecycle
 
 ```
-Session statuses: scheduled → started → eligibility → financial → ended
+Session statuses: scheduled → started → eligibility → financial → offered → ended
 
 1. Secretariat creates session (schedule_bid_opening.php)
    → bid_opening_sessions row inserted, status='scheduled'
    → procurement status set to 'closed'
    → invited BAC/TWG members notified by email
 
-2. Secretariat clicks "Open Now" (bid_opening.php or bid-session-list.php)
-   → status='started'
+2. Secretariat starts session (bid_session_api.php — action=start_session)
+   → status='started', started_at=NOW(), current_lot_id set to first lot
 
 3. Live stream begins (live.php — HLS via MediaMTX)
-   → Public can watch
-   → Chat via Pusher
+   → Public can watch; authenticated bidders can chat via Pusher
 
 4. Secretariat signals open (bid_session_api.php — action=signal_open)
-   → signing_status='signing'
+   → signing_status='signing' — BAC members are now prompted to sign
 
-5. BAC members sign lots with their password (bid_session_api.php — action=sign_lot)
-   → bid_lot_signatures rows inserted
-   → Quorum check — requires majority of invited BAC members
+5. BAC members sign with their password (bid_session_api.php — action=sign_lot)
+   → bid_lot_signatures row inserted per BAC member
+   → Quorum: required = ceil(total_invited_BAC / 2)
+   → When quorum reached: signing_status='done', Pusher fires 'signing_completed'
+   → signing_status resets to 'not_started' after each eligibility/financial decision
 
-6. Evaluation phases: eligibility → financial
-   → bid_lots.eligibility_status, bid_lots.financial_status updated
+6. Secretariat advances phases lot-by-lot:
+   → set_lot_opened  — marks bid_lot eligibility/financial_status='opened'
+   → set_eligible    — marks eligibility_status=eligible|disqualified
+                       (disqualified cascades financial_status to non_compliant)
+                     — marks financial_status=qualified|non_compliant
+                     — server-side guard: all checklist items must be 'present'/'not_applicable'
+                       before marking Eligible (checked via bid_checklist)
+   → set_current_lot — advances current_lot_id pointer, resets signing_status
+   → start_phase     — advances session status (eligibility→financial→offered→ended)
+   → save_offered_bid — saves total_offered_bid on bid_lot (Offered Bids tab)
 
 7. End session (bid_session_api.php — action=end_session)
-   → session.status='ended'
-   → Remaining pending lots (this session made no award/fail decision) → status='opened'
-   → bids.status is left untouched — no forced award/reject at conclusion
-   → procurement status → 'opened'
-   → Email notification to all participants
+   → session.status='ended', ended_at=NOW()
+   → All lots still 'pending' → status='opened'
+   → procurement.status → 'opened'
+   → Email notification to all invited participants via notify_bid_session_concluded()
+   → Idempotent: a second call on an already-ended session is a no-op
 ```
 
-Note: the live bid-opening session no longer has an "awarding" step — declaring a
-winning bidder is out of scope for this flow. The separate "quotation" flow for
-Small Value Procurement / Shopping procurements (`admin/quotation_management.php`,
-`bidder/submit_quotation.php`) has been removed entirely — every procurement now
-goes through this same `submit_bid.php` → `bid_session.php` flow regardless of
+Note: the live bid-opening session does not award contracts — declaring a winning bidder
+is out of scope for this flow. The separate "quotation" flow has been removed entirely —
+every procurement now goes through `submit_bid.php` → `bid_session.php` regardless of
 procurement mode.
 
-**Key file:** `admin/bid_session_api.php` — all session actions are AJAX POST to this file with `$_POST['action']`
+### `admin/bid_session_api.php` — Full Action Reference
+
+**GET actions** (via `?action=`):
+
+| Action | Parameters | Returns |
+|---|---|---|
+| `bidders` | `lot_id`, `phase`, `session_id` | Bidder list for a lot with evaluation state |
+| `files` | `bidder_id`, `lot_id`, `phase`, `session_id` | Encrypted doc list for a bidder+lot |
+| `progress` | `session_id` | Full session status, signing state, per-lot progress |
+
+**POST actions** (via `$_POST['action']`):
+
+| Action | Who | What It Does |
+|---|---|---|
+| `start_session` | Secretariat | `scheduled→started`, sets `started_at` + `current_lot_id` |
+| `signal_open` | Secretariat | Sets `signing_status='signing'`; fires Pusher `signing_started` |
+| `sign_lot` | BAC only | Records signature; checks quorum; fires Pusher `signing_completed` on quorum |
+| `set_lot_opened` | Secretariat | Sets `eligibility_status` or `financial_status` to `'opened'` |
+| `set_eligible` | Secretariat | Marks eligibility/financial result; cascades disqualification; resets signing cycle |
+| `start_phase` | Secretariat | Advances `session.status`; resets `signing_status`; on `ended` fires conclusion email |
+| `set_current_lot` | Secretariat | Updates `current_lot_id`; resets `signing_status` |
+| `save_offered_bid` | Secretariat | Saves `total_offered_bid` on `bid_lots`; blocked after session ends |
+| `decrypt_file` | Secretariat/BAC | Verifies admin password → `decryptFile()` → returns base64 data URL in-memory; blocked until lot is opened |
+| `end_session` | Secretariat | Ends session; sets pending lots to `opened`; sets procurement to `opened`; sends email |
 
 ---
 
@@ -429,10 +472,15 @@ procurement mode.
 | `admin/utils/protect-page.php` | Admin auth guard — allows both `admin` and `superadmin` |
 | `admin/utils/audit_helper.php` | `audit_log()` function — call this for every significant action |
 | `utils/mailer.php` | All email send functions + queue system + `process_email_queue()` |
+| `utils/crypto.php` | `encryptFile()` / `decryptFile()` — AES-256-CBC bid document encryption; see §16 |
+| `utils/bidder_document_helper.php` | `REQUIRED_BIDDER_DOCS` constant (5 doc types), `check_bidder_documents_status()` (bid submission gate), `get_bidder_documents()`, `get_document_validity_info()`, `delete_bidder_physical_file()` |
+| `utils/notification_helper.php` | `NOTIF_TYPES` registry, `notify_user/users/secretariat()`, `send_admin_notification()` |
 | `config/mediamtx.php` | Stream URL builder — `mediamtx_url($path)`, `mediamtx_config()` |
 | `stream_health.php` | Public server-side HLS stream health check — `?path=X` → `{"online": bool}` |
 | `config/db_connect.php` | DB connection — reads `DB_*` from `.env` via `$_ENV` |
 | `bootstrap.php` | Dotenv loader — `safeLoad()` to avoid CRLF crashes |
+| `bid_view.php` | Public procurement detail page — shows procurement info, lots, and award status; no auth required; accessible to guests |
+| `live_chat_api.php` | Chat API for `live.php`. `GET ?action=fetch&session_id=N&after=M` returns visible comments after ID M. `POST action=moderate` (admin only) shows/hides a comment. |
 | `dashboard.css` | Shared dashboard styles used by ALL panel pages |
 | `style.css` | Shared public page styles — login, register, NOT index.php |
 | `index.php` | Self-contained — has all CSS inline, does NOT load style.css |
@@ -472,6 +520,29 @@ include("components/sidebar.php");
 - Admin: `admin/notifications_api.php` (personal + management actions), Bidder: `bidder/notifications_api.php` (personal only)
 - All personal queries are simply `WHERE user_id = ?` — see §12
 
+### List Pages (AJAX filter / search / pagination)
+Every list page (procurement, audit trail, accounts, roles, invitations, bid submissions,
+bid sessions, bid opening, the bidder/user procurement pages and the public `bid_schedule.php`)
+filters in place instead of reloading:
+- The list markup lives in a partial (`<folder>/partials/<page>-list.php`), included inside
+  `<div id="…ListRoot" class="ajax-list-root">` on a normal load.
+- The page returns **only** that partial when requested with `?ajax=1` (early `exit` right
+  after the list query, before any HTML).
+- `js/ajax-list.js` → `AjaxList.init({ root, form, endpoint })` intercepts the filter form
+  (tab buttons = `<button type="submit" name="…" value="…">`, selects, debounced search),
+  fetches the fragment and swaps it in. The URL is kept current with `history.replaceState`,
+  so **Back leaves the page** and refresh/bookmarks keep the filter.
+- Pagination: `render_pagination($page, $total_pages, $query)` from `includes/pagination.php`
+  (`‹ 1 … 7 [8] 9 … 24 ›`, shorter set on phones). Clamp `$page` to `$total_pages` before
+  computing `$offset`.
+- POST actions inside a list: add `data-post-inplace` to the form — it posts via fetch and
+  reloads with `location.replace` (no history entry, filter kept, `$_SESSION` flash still shown).
+- Phones: add `filter-chips` to the tab row (swipeable), and `proc-cards` to a `.proc-table`
+  with `card-head` / `card-badge` / `card-actions` / `card-hide` / `data-label="…"` on cells
+  to turn rows into cards (styles in `dashboard.css`; `bid_schedule.php` has its own copy in
+  `css/pages/bid_schedule.css` since it doesn't load `dashboard.css`).
+- `partials/` folders have a deny-all `.htaccess`; they are only ever included.
+
 ### Avatar Pattern
 ```php
 // From any subfolder (admin/, bidder/, user/)
@@ -480,6 +551,28 @@ $avatar_url = !empty($_SESSION['profile_picture_url'])
     : '';
 // profile_picture_url stored as: uploads/profile/filename.ext
 ```
+
+### Session Invites Panel (`admin/components/session-invites.php`)
+Dashboard panel that shows live and scheduled bid-opening sessions. Include it below the greeting card on any admin dashboard page:
+
+```php
+include("components/session-invites.php");
+```
+
+Behavior:
+- **Secretariat / Superadmin** — shows all non-ended sessions (they manage everything)
+- **BAC / TWG** — shows only sessions they are invited to via `bid_session_invited`
+- Renders **nothing** when there are no live or scheduled sessions
+- Live sessions display a LIVE badge + Manage/Join button; scheduled sessions show date, bid count, and an Open Now / View Session button
+- Requires `$conn` and `$_SESSION['user_id']` to be set (already done by `protect-page.php`)
+- CSS: `css/bid-session-panel.css`
+
+### Public Footer (`includes/footer.php`)
+```php
+require_once __DIR__ . '/includes/footer.php';
+render_public_footer();
+```
+Renders the site footer with YesParency branding, navigation links (Home, Procurement, About, Bidder Portal), and governance links (PhilGEPS, GPPB, SLSU). Styling lives in `css/components.css` (`.footer-index` and related classes).
 
 ---
 
@@ -575,8 +668,9 @@ naturally don't see older messages.
 ### Config Keys in `system_settings`
 | Key | Default | Description |
 |---|---|---|
+| `mediamtx_scheme` | `https` | URL scheme — `http` or `https` |
 | `mediamtx_host` | `localhost` | MediaMTX server hostname |
-| `mediamtx_hls_port` | `8888` | HLS playback port |
+| `mediamtx_hls_port` | `8888` | HLS playback port (blank = no port in URL) |
 | `mediamtx_rtmp_port` | `1935` | RTMP ingest port |
 | `mediamtx_default_path` | `live` | Default stream path used when creating new bid sessions |
 | `mediamtx_manifest` | `index.m3u8` | HLS manifest filename appended to the stream path |
@@ -585,9 +679,9 @@ All editable from Admin/Superadmin → Settings → Live tab (`admin/settings.ph
 
 ### HLS URL Format
 ```
-http://{host}:{hls_port}/{stream_path}/{manifest}
+{scheme}://{host}[:{hls_port}]/{stream_path}/{manifest}
 ```
-Built by `mediamtx_url($streamPath)` in `config/mediamtx.php`.
+Built by `mediamtx_url($streamPath)` in `config/mediamtx.php`. Port is omitted when `mediamtx_hls_port` is blank.
 
 ### Stream Health Check
 `stream_health.php` (root, public/unauthenticated like `live.php`) — `GET ?path=<stream_path>` does a short-timeout server-side `HEAD` request against the computed HLS manifest URL and returns `{"online": true|false}`. Every page that embeds the stream calls this before pointing an `<iframe>` at MediaMTX, instead of rendering the iframe unconditionally and hoping the stream is actually up.
@@ -620,8 +714,9 @@ All cron files follow the same pattern:
 | File | Schedule | Description |
 |---|---|---|
 | `cron/process_email_queue.php` | `* * * * *` | Send pending emails from `email_queue` |
-| `cron/close_procurements.php` | `* * * * *` | Auto-close overdue open procurements |
 | `cron/check_document_expirations.php` | `0 6 * * *` | Notify bidders of expiring docs |
+
+> ⚠️ `cron/close_procurements.php` was removed. Procurement auto-close is no longer handled by a cron job.
 
 **Command format:**
 ```bash
@@ -643,6 +738,9 @@ php /home/USERNAME/web/yesparency.site/public_html/cron/FILENAME.php
 - Denies all direct HTTP access to the config folder
 - PHP `include`/`require` still works fine
 
+**`partials/.htaccess`** (and `admin/`, `bidder/`, `user/partials/`)
+- Denies direct HTTP access to list fragments; they're only included by their page
+
 ### Pending Security Work
 - `uploads/bidders/` — bidder eligibility documents (tax IDs, government IDs) are currently accessible via direct URL if the path is known. **Needs a PHP proxy** (`bidder/get_document.php?id=X`) that checks auth before streaming the file. A separate `.htaccess` in `uploads/bidders/` should block direct access entirely.
 
@@ -659,13 +757,60 @@ php /home/USERNAME/web/yesparency.site/public_html/cron/FILENAME.php
 
 ---
 
-## 16. CSS & Frontend Conventions
+## 16. Bid Encryption
+
+**File:** `utils/crypto.php`
+
+All bid documents (eligibility + financial) are encrypted at upload time and decrypted in-memory during the bid opening session. Nothing is ever stored unencrypted on disk after upload.
+
+### Algorithm
+- **Cipher:** AES-256-CBC via PHP `openssl_encrypt` / `openssl_decrypt`
+- **Keys:** Two separate 64-char hex keys in `.env` — `FINANCIAL_KEY` and `ELIGIBILITY_KEY`
+- **IV:** Random 16 bytes prepended to the ciphertext in the stored `.enc` file
+- **File format on disk:** `[16-byte IV][ciphertext]`
+
+### Functions
+
+```php
+encryptFile(string $sourcePath, string $destinationPath, string $documentType): array
+```
+- `$documentType`: `'eligibility'` or `'financial'` — selects which `.env` key to use
+- Reads source file, encrypts, writes IV+ciphertext to `$destinationPath`
+- Deletes the original plaintext file after successful write
+- Returns `['success' => bool, 'message' => string]`
+
+```php
+decryptFile(string $sourcePath, string $documentType): array
+```
+- Reads the `.enc` file, extracts IV from first 16 bytes, decrypts remainder
+- Returns plaintext **in memory only** — nothing written back to disk
+- Returns `['success' => bool, 'message' => string, 'data' => string]`
+
+### Where it's called
+
+| Caller | When |
+|---|---|
+| `bidder/submit_bid.php` | On bid upload — each eligibility/financial document is encrypted immediately; original deleted |
+| `admin/bid_session_api.php` → `decrypt_file` | During bid opening — admin password verified first, then `decryptFile()` called; result returned as base64 data URL |
+
+### Server-side decryption gate (`bid_session_api.php`)
+A document can only be decrypted once its lot's corresponding phase status has reached `'opened'` in `bid_lots`. Attempts to decrypt via a guessed `doc_id` before the lot is unsealed are rejected with HTTP 200 + `{'success': false, 'message': 'This lot has not been opened yet.'}`.
+
+---
+
+## 17. CSS & Frontend Conventions
 
 ### File Responsibilities
 | File | Used By |
 |---|---|
 | `style.css` | `login.php`, `register.php`, `accept_invitation.php`, `forgot-password.php`, `reset-password.php`, `bid_schedule.php`, `live.php` |
 | `dashboard.css` | ALL pages inside `admin/`, `bidder/`, `user/` |
+| `css/base.css` | Base reset + CSS tokens (imported by other CSS files) |
+| `css/components.css` | Shared public components — navbar, footer |
+| `css/dashboard-shell.css` | Dashboard shell layout + `.nt-tone--*` notification colour classes |
+| `css/bid-session-panel.css` | Session invite panel (`admin/components/session-invites.php`) |
+| `css/responsive.css` | Mobile breakpoints shared across public pages |
+| `css/pages/*.css` | Per-page stylesheets — one file per route (44 total) |
 | Inline `<style>` | `index.php` (self-contained, does NOT load style.css) |
 
 ### Color System
@@ -698,7 +843,7 @@ background: #144937; color: #ffffff;
 
 ---
 
-## 17. Audit Logging
+## 18. Audit Logging
 
 **Function:** `audit_log()` in `admin/utils/audit_helper.php`
 
@@ -720,7 +865,7 @@ audit_log(
 
 ---
 
-## 18. Known Issues & Pending Work
+## 19. Known Issues & Pending Work
 
 ### High Priority
 1. **`uploads/bidders/` direct URL access** — eligibility documents (tax IDs, gov IDs) accessible via direct URL. Fix: add `.htaccess` to `uploads/bidders/` blocking all access, create PHP proxy `bidder/get_document.php?id=X` and `admin/get_document.php?id=X`.
@@ -743,7 +888,7 @@ audit_log(
 
 ---
 
-## 19. Session & Auth Flow
+## 20. Session & Auth Flow
 
 ### Login (`login.php`)
 1. POST `username` + `password`
@@ -802,7 +947,7 @@ accept_invitation.php (POST — create account)
 
 ---
 
-## 20. Changelog — What Was Built / Changed
+## 21. Changelog — What Was Built / Changed
 
 ### Auth & Access
 - Fixed `admin/utils/protect-page.php` role check — was `||` (always true), fixed to `&&` so superadmin sessions pass through
@@ -830,7 +975,7 @@ accept_invitation.php (POST — create account)
 - **Redesigned all 14 email templates** — new layout matching YesParency design (dark green header, yellow accent, Poppins, clean footer with no legal disclaimers)
 
 ### Cron
-- Created `cron/close_procurements.php` — auto-closes overdue procurements, marks lots failed per-lot based on bid coverage, full transaction, audit logged
+- Removed `cron/close_procurements.php` — procurement auto-close is no longer a cron job
 - Fixed `cron/check_document_expirations.php` — already existed, confirmed compatible with Hestia
 
 ### Security

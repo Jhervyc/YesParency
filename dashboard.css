@@ -4060,6 +4060,83 @@
 }
 .page-link:hover, .page-link.active { background:#06251b; color:#ffc107; }
 .page-link.disabled { opacity:.4; pointer-events:none; }
+/* Compact pagination (includes/pagination.php) — phones get their own
+   page set: ‹ 1 … [8] … 24 › with bigger tap targets */
+.page-ellipsis {
+    display:inline-flex; align-items:flex-end; justify-content:center;
+    width:20px; height:32px; padding-bottom:6px;
+    font-size:12px; font-weight:700; color:#88968d; user-select:none;
+}
+.page-ellipsis--sm { display:none; }
+@media(max-width:480px){
+    .pagination { gap:6px; justify-content:center; flex-wrap:nowrap; }
+    .pagination .page-hide-sm, .pagination .page-ellipsis--lg { display:none; }
+    .pagination .page-ellipsis--sm { display:inline-flex; height:40px; padding-bottom:9px; }
+    .pagination .page-link { width:40px; height:40px; font-size:13px; border-radius:10px; }
+}
+
+/* ══ AJAX lists (js/ajax-list.js) — mobile-first ═══════════════════════ */
+.ajax-list-root { transition:opacity .15s; }
+.ajax-list-root.is-loading { opacity:.5; pointer-events:none; }
+.ajax-list-error {
+    margin:12px 16px; padding:10px 14px; border-radius:8px;
+    background:#fdecec; color:#b42318; font-size:13px;
+}
+
+/* Phones: filter tabs become one swipeable chip row instead of wrapping
+   onto several lines; bleeds to the panel edges to hint it scrolls */
+.filter-chips { position:relative; }
+.ap2-controls { --chip-bleed:20px; }
+@media(max-width:639px){
+    .filter-chips {
+        flex-wrap:nowrap !important; overflow-x:auto;
+        margin:0 calc(-1 * var(--chip-bleed, 14px)); padding:0 var(--chip-bleed, 14px) 2px;
+        scrollbar-width:none; -webkit-overflow-scrolling:touch;
+        scroll-snap-type:x proximity; scroll-padding:0 var(--chip-bleed, 14px);
+    }
+    .filter-chips::-webkit-scrollbar { display:none; }
+    .filter-chips > * { flex:0 0 auto; white-space:nowrap; scroll-snap-align:start; }
+    .filter-chips .ap2-filter-btn { padding:9px 14px; min-height:38px; }
+
+    /* 16px stops iOS Safari from zooming the page when a field is focused */
+    .ajax-list-ready .ap2-search-field { min-width:0; }
+    .ajax-list-ready .ap2-search-field input,
+    .ajax-list-ready select { font-size:16px; min-height:44px; }
+
+    /* Live search + Enter key make the Search button redundant on phones */
+    .ajax-list-ready .ap2-go-btn, .ajax-list-ready .proc-go-btn { display:none; }
+
+    /* ── .proc-cards: a .proc-table that becomes one card per row on phones ──
+         [card-head] ................ [card-badge]
+         every other cell, one per line (data-label="X" prefixes a label)
+         [ card-actions — full-width buttons ]
+       Cells marked .card-hide are dropped (e.g. duplicated info). */
+    .proc-cards, .proc-cards tbody { display:block; }
+    .proc-cards thead { display:none; }
+    .proc-cards tbody tr { display:flex !important; flex-wrap:wrap; align-items:center; gap:6px 12px; padding:14px 16px; }
+    .proc-cards td { display:block !important; padding:0 !important; flex:1 1 100%; min-width:0; text-align:left; white-space:normal; }
+    .proc-cards td.card-head  { order:-2; flex:1 1 0; }
+    .proc-cards td.card-badge { order:-1; flex:0 0 auto; margin-left:auto; text-align:right; }
+    .proc-cards td.card-hide  { display:none !important; }
+    .proc-cards td.card-actions { order:99; margin-top:6px; display:flex !important; gap:8px; }
+    .proc-cards td.card-actions > * { flex:1 1 0; }
+    .proc-cards td.card-actions > div,
+    .proc-cards td.card-actions > form { display:flex; gap:8px; justify-content:stretch; flex-wrap:nowrap; }
+    .proc-cards td.card-actions .proc-action-btn { flex:1 1 0; justify-content:center; min-height:40px; font-size:13px; }
+    .proc-cards .proc-title-cell { font-size:14px; }
+    .proc-cards .proc-deadline-cell strong { display:inline; margin-right:4px; }
+    .proc-cards td[data-label]::before {
+        content:attr(data-label); margin-right:6px;
+        font-family:'Poppins',sans-serif; font-size:10px; font-weight:700;
+        letter-spacing:.04em; text-transform:uppercase; color:#88968d;
+    }
+
+    /* Footer: stack "Showing …" above centered pagination */
+    .ajax-list-root .table-foot,
+    .ajax-list-root .ap2-card-foot { display:flex; flex-direction:column; align-items:stretch; text-align:center; gap:12px; padding:14px 12px 16px; }
+    /* Filter forms stack on phones: search, tab row, dropdowns — one per line */
+    form.ajax-list-ready { flex-direction:column; align-items:stretch; }
+}
 
 .filter-dropdowns {
     display: flex;

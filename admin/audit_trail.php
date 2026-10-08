@@ -1,5 +1,6 @@
 <?php
 include("utils/protect-page.php");
+include(__DIR__ . "/../includes/pagination.php");
 
 // ── Only audit database / data modifications (exclude authentication events like LOGIN/LOGOUT) ──
 $mod_condition = "al.action NOT IN ('LOGIN', 'LOGOUT', 'AUTH')";
@@ -71,7 +72,9 @@ $count_stmt = mysqli_prepare($conn, $count_sql);
 if ($params) mysqli_stmt_bind_param($count_stmt, $types, ...$params);
 mysqli_stmt_execute($count_stmt);
 $total_shown = intval(mysqli_stmt_get_result($count_stmt)->fetch_row()[0] ?? 0);
-$total_pages = max(1, ceil($total_shown / $per_page));
+$total_pages = max(1, (int)ceil($total_shown / $per_page));
+$page        = min($page, $total_pages);
+$offset      = ($page - 1) * $per_page;
 
 // Paged query
 $main_sql = "
@@ -93,6 +96,12 @@ $result = mysqli_stmt_get_result($stmt);
 
 // Prepare records in an array for rendering and side-drawer detail view
 $logs_data = [];
+
+// ── AJAX: return only the list fragment ──────────────────────────────────────
+if (isset($_GET['ajax'])) {
+    include __DIR__ . '/partials/audit-trail-list.php';
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -176,9 +185,10 @@ $logs_data = [];
                     <i class="bi bi-search"></i>
                     <input type="text" name="search"
                         placeholder="Search by description, record ID, or user..."
+                        enterkeyhint="search" autocomplete="off"
                         value="<?= htmlspecialchars($search) ?>">
                 </div>
-                <div class="at-tabs">
+                <div class="at-tabs filter-chips">
                     <?php foreach (['all'=>'All','CREATE'=>'Created','UPDATE'=>'Updated','DELETE'=>'Deleted'] as $val => $lbl): ?>
                     <button type="submit" name="action" value="<?= $val ?>"
                             class="ap2-filter-btn <?= $action_filter === $val ? 'active' : '' ?>">
@@ -187,7 +197,7 @@ $logs_data = [];
                     <?php endforeach; ?>
                 </div>
                 <div class="filter-dropdowns">
-                    <select name="module" onchange="document.getElementById('auditFilterForm').submit()">
+                    <select name="module">
                         <option value="all" <?= $module_filter==='all'?'selected':'' ?>>All Modules</option>
                         <option value="procurements" <?= $module_filter==='procurements'?'selected':'' ?>>Procurements</option>
                         <option value="bids" <?= $module_filter==='bids'?'selected':'' ?>>Bids</option>
@@ -203,96 +213,8 @@ $logs_data = [];
             </form>
         </div>
 
-        <?php if ($total_shown === 0): ?>
-        <div class="anc-empty-state">
-            <i class="bi bi-database-exclamation anc-empty-icon"></i>
-            <div class="anc-empty-text">No audit records found<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.</div>
-        </div>
-        <?php else: ?>
-        <div class="table-scroll">
-            <table class="proc-table">
-                <thead>
-                    <tr>
-                        <th class="col-w-42"></th>
-                        <th>Description</th>
-                        <th class="col-mode">Actor</th>
-                        <th class="col-opening">Module</th>
-                        <th class="col-abc">IP Address</th>
-                        <th class="col-status">Time</th>
-                        <th class="at-action-th">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php while ($row = $result->fetch_assoc()):
-                    $logs_data[$row['log_id']] = $row;
-                    $act = strtoupper($row['action']);
-                    $mod = 'default'; $icon = 'bi-database';
-                    $is_create = in_array($act,['CREATE','INSERT'])||str_ends_with($act,'_CREATED')||str_ends_with($act,'SUBMITTED')||str_ends_with($act,'INVITED')||str_ends_with($act,'RECORDED');
-                    $is_update = in_array($act,['UPDATE','PUBLISH','APPROVE','REJECT','TOGGLE_MAINTENANCE'])||str_ends_with($act,'_UPDATED')||str_ends_with($act,'_CHANGED')||str_ends_with($act,'_APPROVED')||str_ends_with($act,'_REJECTED')||str_ends_with($act,'_STARTED')||str_ends_with($act,'_ACTIVATED')||str_ends_with($act,'_DEACTIVATED')||str_ends_with($act,'_REORDERED');
-                    $is_delete = $act==='DELETE'||str_ends_with($act,'_DELETED')||str_ends_with($act,'_CANCELLED')||str_ends_with($act,'_REMOVED');
-                    if ($is_create) { $mod='create'; $icon='bi-plus-circle'; }
-                    elseif ($is_update) { $mod='update'; $icon='bi-pencil-square'; }
-                    elseif ($is_delete) { $mod='delete'; $icon='bi-trash3'; }
-                    $actorName = $row['username'] ? trim($row['firstname'].' '.$row['lastname']) : 'System';
-                    $usernameStr = $row['username'] ? '@'.$row['username'] : '—';
-                ?>
-                <tr>
-                    <td class="at-icon-col">
-                        <div class="at-action-icon at-action-icon--<?= $mod ?>">
-                            <i class="bi <?= $icon ?>"></i>
-                        </div>
-                    </td>
-                    <td class="proc-title-cell">
-                        <?= htmlspecialchars(mb_strimwidth($row['description'], 0, 70, '…')) ?>
-                        <div class="at-action-sub">
-                            <span class="proc-status-pill at-action-pill at-action-pill--<?= $mod ?>">
-                                <?= htmlspecialchars($act) ?>
-                            </span>
-                        </div>
-                    </td>
-                    <td class="proc-deadline-cell col-mode">
-                        <strong><?= htmlspecialchars($actorName) ?></strong>
-                        <span class="clr-idle"><?= htmlspecialchars($usernameStr) ?></span>
-                    </td>
-                    <td class="proc-deadline-cell col-opening">
-                        <strong><?= htmlspecialchars(ucfirst($row['module'])) ?></strong>
-                        <?php if ($row['record_id']): ?><span class="clr-idle">#<?= intval($row['record_id']) ?></span><?php endif; ?>
-                    </td>
-                    <td class="proc-deadline-cell col-abc"><?= htmlspecialchars($row['ip_address'] ?? '—') ?></td>
-                    <td class="proc-deadline-cell col-status nowrap">
-                        <?= date('M j, Y', strtotime($row['created_at'])) ?><br>
-                        <span class="clr-idle"><?= date('g:i A', strtotime($row['created_at'])) ?></span>
-                    </td>
-                    <td class="text-right">
-                        <button type="button" class="proc-action-btn btn-view" onclick="loadLogDetail(<?= $row['log_id'] ?>)">
-                            <i class="bi bi-eye"></i>
-                        </button>
-                    </td>
-                </tr>
-                <?php endwhile; ?>
-                </tbody>
-            </table>
-        </div>
-        <?php endif; ?>
-
-        <div class="table-foot">
-            <div>
-                Showing <strong><?= number_format(min($total_shown,$offset+1)) ?></strong>–<strong><?= number_format(min($total_shown,$offset+$per_page)) ?></strong>
-                of <strong><?= number_format($total_shown) ?></strong> record<?= $total_shown!=1?'s':'' ?>
-                <?= $search?' for "'.htmlspecialchars($search).'"':'' ?>
-            </div>
-            <?php if ($total_pages > 1):
-                $qp = array_filter(['action'=>$action_filter!=='all'?$action_filter:null,'module'=>$module_filter!=='all'?$module_filter:null,'search'=>$search?:null]);
-                $qs = $qp ? '?'.http_build_query($qp).'&' : '?';
-            ?>
-            <div class="pagination">
-                <a href="<?= $qs ?>page=<?= max(1,$page-1) ?>" class="page-link <?= $page<=1?'disabled':'' ?>"><i class="bi bi-chevron-left"></i></a>
-                <?php for ($p=max(1,min($page-2,$total_pages-4)); $p<=min($total_pages,$p+4); $p++): ?>
-                <a href="<?= $qs ?>page=<?= $p ?>" class="page-link <?= $p===$page?'active':'' ?>"><?= $p ?></a>
-                <?php endfor; ?>
-                <a href="<?= $qs ?>page=<?= min($total_pages,$page+1) ?>" class="page-link <?= $page>=$total_pages?'disabled':'' ?>"><i class="bi bi-chevron-right"></i></a>
-            </div>
-            <?php endif; ?>
+        <div id="auditListRoot" class="ajax-list-root">
+            <?php include __DIR__ . '/partials/audit-trail-list.php'; ?>
         </div>
 
     </div><!-- /.proc-table-panel -->
@@ -323,9 +245,23 @@ $logs_data = [];
     </div>
 </div>
 
+<script src="../js/ajax-list.js"></script>
 <script>
-    // Cached logs payload for client-side instant drawer render
-    const logsPayload = <?= json_encode($logs_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+    AjaxList.init({
+        root:     '#auditListRoot',
+        form:     '#auditFilterForm',
+        endpoint: 'audit_trail.php',
+    });
+
+    // Cached logs payload for client-side instant drawer render.
+    // Lives inside the list fragment, so re-read it after each AJAX swap.
+    let logsPayload = {};
+    function readLogsPayload() {
+        const el = document.getElementById('auditLogsData');
+        try { logsPayload = el ? JSON.parse(el.textContent) : {}; } catch (e) { logsPayload = {}; }
+    }
+    readLogsPayload();
+    document.getElementById('auditListRoot').addEventListener('ajaxlist:updated', readLogsPayload);
 
     function formatJSON(str) {
         if (!str || str === 'null') return null;

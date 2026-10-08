@@ -65,3 +65,18 @@
     flex-wrap: wrap;
     gap: 10px;
 }
+
+/* ════════════════════════════════
+   MOBILE-FIRST RESPONSIVE
+   (dashboard.css already stacks .ap2-user-row to one column ≤640px)
+   ════════════════════════════════ */
+@media (max-width: 639px) {
+    #accountListRoot .ap2-user-row { padding: 14px 16px; gap: 10px; }
+    /* username · business · email wraps instead of being cut off */
+    #accountListRoot .ap2-user-sub { white-space: normal; line-height: 1.5; overflow-wrap: anywhere; }
+    #accountListRoot .ap2-action-cell {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+        justify-self: stretch; padding-left: 54px; /* line up under the name, past the avatar */
+    }
+    #accountListRoot .ap2-action-cell .proc-action-btn { margin-left: auto; min-height: 40px; }
+}

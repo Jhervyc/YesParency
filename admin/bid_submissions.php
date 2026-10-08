@@ -1,6 +1,7 @@
 <?php
 include("utils/protect-page.php");
 include("utils/protect-secretariat.php");
+include(__DIR__ . "/../includes/pagination.php");
 
 // Handle Verify / Reject
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_verify_bid'])) {
@@ -122,11 +123,36 @@ while ($p_row = $proc_result->fetch_assoc()) {
 }
 $ps->close();
 
-// Post-filter by procurement mode category if selected
+// Post-filter by procurement mode category if selected.
+// get_procurement_category() used to live in the quotation helpers removed in
+// 83d46c3; kept here (same logic) because this filter still depends on it.
+if (!function_exists('get_procurement_category')) {
+    function get_procurement_category(string $mode): string
+    {
+        $lower = strtolower(trim($mode));
+        if (str_contains($lower, 'small value') || $lower === 'svp') return 'svp';
+        if (str_contains($lower, 'shopping')) return 'shopping';
+        return 'public_bidding';
+    }
+}
 if ($mode_filter !== 'all') {
     $procurements = array_values(array_filter($procurements, function($p) use ($mode_filter) {
         return get_procurement_category($p['procurement_mode'] ?? '') === $mode_filter;
     }));
+}
+
+// ── Pagination (mode is filtered in PHP above, so page the array) ─────────────
+$per_page     = 15;
+$total_shown  = count($procurements);
+$total_pages  = max(1, (int)ceil($total_shown / $per_page));
+$page         = min(max(1, (int)($_GET['page'] ?? 1)), $total_pages);
+$offset       = ($page - 1) * $per_page;
+$procurements = array_slice($procurements, $offset, $per_page);
+
+// ── AJAX: return only the list fragment ──────────────────────────────────────
+if (isset($_GET['ajax'])) {
+    include __DIR__ . '/partials/bid-submissions-list.php';
+    exit();
 }
 ?><!DOCTYPE html>
 <html lang="en">
@@ -160,7 +186,7 @@ if ($mode_filter !== 'all') {
     <!-- ── Stat cards ── -->
     <div class="sad-section-label">Overview</div>
     <div class="ap2-stats">
-        <a href="bid_submissions.php" class="ap2-stat stat-link-reset">
+        <a href="bid_submissions.php" class="ap2-stat stat-link-reset" data-filter-shortcut="all">
             <div class="ap2-ring" style="--ring-color:#219653; --pct:100%;">
                 <div class="ap2-ring-inner"><i class="bi bi-folder2-open clr-green"></i></div>
             </div>
@@ -169,7 +195,7 @@ if ($mode_filter !== 'all') {
                 <div class="ap2-stat-lbl">Open Procurements</div>
             </div>
         </a>
-        <a href="bid_submissions.php?filter=has_bids" class="ap2-stat stat-link-reset">
+        <a href="bid_submissions.php?filter=has_bids" class="ap2-stat stat-link-reset" data-filter-shortcut="has_bids">
             <div class="ap2-ring" style="--ring-color:#2F6FED; --pct:100%;">
                 <div class="ap2-ring-inner"><i class="bi bi-inbox clr-blue"></i></div>
             </div>
@@ -178,7 +204,7 @@ if ($mode_filter !== 'all') {
                 <div class="ap2-stat-lbl">Total Bids Received</div>
             </div>
         </a>
-        <a href="bid_submissions.php?filter=pending" class="ap2-stat stat-link-reset <?= $stat_pend > 0 ? 'bsv-stat-warn' : '' ?>">
+        <a href="bid_submissions.php?filter=pending" class="ap2-stat stat-link-reset <?= $stat_pend > 0 ? 'bsv-stat-warn' : '' ?>" data-filter-shortcut="pending">
             <div class="ap2-ring" style="--ring-color:<?= $stat_pend > 0 ? '#e67e22' : '#8B958E' ?>; --pct:<?= $stat_bids > 0 ? round($stat_pend/$stat_bids*100) : 0 ?>%;">
                 <div class="ap2-ring-inner"><i class="bi bi-hourglass-split <?= $stat_pend > 0 ? 'clr-amber' : 'clr-idle' ?>"></i></div>
             </div>
@@ -192,20 +218,21 @@ if ($mode_filter !== 'all') {
     <!-- ── List panel ── -->
     <div class="proc-table-panel">
         <div class="filter-bar">
-            <form method="GET" action="" class="form-contents">
+            <form method="GET" action="" id="submissionFilterForm" class="form-contents">
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
                     <input type="text" name="search"
                         placeholder="Search by procurement title or SLSU ref..."
+                        enterkeyhint="search" autocomplete="off"
                         value="<?= htmlspecialchars($search) ?>">
                 </div>
-                <div class="filter-pills-group">
-                    <select name="mode_filter" class="mode-select" onchange="this.form.submit()">
-                        <option value="all"            <?= $mode_filter==='all'?'selected':'' ?>>All Modes</option>
-                        <option value="public_bidding" <?= $mode_filter==='public_bidding'?'selected':'' ?>>Public Bidding</option>
-                        <option value="svp"            <?= $mode_filter==='svp'?'selected':'' ?>>Small Value Procurement</option>
-                        <option value="shopping"       <?= $mode_filter==='shopping'?'selected':'' ?>>Shopping</option>
-                    </select>
+                <select name="mode_filter" class="mode-select">
+                    <option value="all"            <?= $mode_filter==='all'?'selected':'' ?>>All Modes</option>
+                    <option value="public_bidding" <?= $mode_filter==='public_bidding'?'selected':'' ?>>Public Bidding</option>
+                    <option value="svp"            <?= $mode_filter==='svp'?'selected':'' ?>>Small Value Procurement</option>
+                    <option value="shopping"       <?= $mode_filter==='shopping'?'selected':'' ?>>Shopping</option>
+                </select>
+                <div class="filter-pills-group filter-chips">
                     <button type="submit" name="filter" value="all" class="ap2-filter-btn <?= $filter==='all'?'active':'' ?>">All Open</button>
                     <button type="submit" name="filter" value="pending" class="ap2-filter-btn <?= $filter==='pending'?'active':'' ?>">
                         <i class="bi bi-hourglass-split"></i> Pending Bids
@@ -221,67 +248,9 @@ if ($mode_filter !== 'all') {
             </form>
         </div>
 
-        <?php if (empty($procurements)): ?>
-        <div class="results-empty">
-            <i class="bi bi-inbox results-empty-icon"></i>
-            <div class="results-empty-title">
-                <?php if ($filter==='pending'): ?>No procurements with pending bids<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.
-                <?php elseif ($filter==='has_bids'): ?>No procurements with submitted bids found<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.
-                <?php else: ?>No open procurements found<?= $search?' for "'.htmlspecialchars($search).'"':'' ?>.
-                <?php endif; ?>
-            </div>
+        <div id="submissionListRoot" class="ajax-list-root">
+            <?php include __DIR__ . '/partials/bid-submissions-list.php'; ?>
         </div>
-        <?php else: ?>
-        <div class="table-scroll">
-            <table class="proc-table">
-                <thead>
-                    <tr>
-                        <th class="col-ref-th">SLSU Ref</th>
-                        <th>Procurement Title</th>
-                        <th class="col-abc">Total Bids</th>
-                        <th class="col-status">Status</th>
-                        <th class="col-actions-th">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($procurements as $proc):
-                    $hasPending  = intval($proc['pending_bids']) > 0;
-                    $totalBids   = intval($proc['total_bids']);
-                    $pendingBids = intval($proc['pending_bids']);
-                ?>
-                <tr>
-                    <td class="proc-ref-cell">
-                        <i class="bi bi-hash hash-icon"></i>
-                        <?= htmlspecialchars($proc['slsu_ref_no'] ?? '—') ?>
-                    </td>
-                    <td class="proc-title-cell">
-                        <?= htmlspecialchars(mb_strimwidth($proc['procurement_title'], 0, 65, '…')) ?>
-                        <?php if ($hasPending): ?>
-                        <div class="pending-note">
-                            <i class="bi bi-hourglass-split"></i> <?= $pendingBids ?> pending review
-                        </div>
-                        <?php endif; ?>
-                    </td>
-                    <td class="proc-abc-cell col-abc"><?= $totalBids ?></td>
-                    <td class="col-status">
-                        <span class="proc-status-pill status-open">
-                            <i class="bi bi-circle-fill status-dot-tiny"></i> Open
-                        </span>
-                    </td>
-                    <td class="col-actions-th">
-                        <a href="bid-submission-view.php?id=<?= (int)$proc['procurement_id'] ?>" class="proc-action-btn btn-view">
-                            <i class="bi bi-eye"></i> View
-                        </a>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-        <div class="table-foot">
-            <div><?= count($procurements) ?> open procurement<?= count($procurements)!=1?'s':'' ?> shown<?= $filter==='pending'?' (filtered: pending bids)':'' ?></div>
-        </div>
-        <?php endif; ?>
     </div><!-- /.proc-table-panel -->
 
 </div>
@@ -301,7 +270,23 @@ if ($mode_filter !== 'all') {
     <?php unset($_SESSION['alert_error']); ?>
 <?php endif; ?>
 
+<script src="../js/ajax-list.js"></script>
 <script>
+    AjaxList.init({
+        root:     '#submissionListRoot',
+        form:     '#submissionFilterForm',
+        endpoint: 'bid_submissions.php',
+    });
+
+    // Stat cards double as filter shortcuts — switch the tab in place
+    document.querySelectorAll('[data-filter-shortcut]').forEach(card => {
+        card.addEventListener('click', e => {
+            const tab = document.querySelector('#submissionFilterForm button[name="filter"][value="' + card.dataset.filterShortcut + '"]');
+            if (!tab) return;
+            e.preventDefault();
+            tab.click();
+        });
+    });
 
     const toast = document.getElementById('toastAlert');
     if (toast) setTimeout(() => toast.classList.add('hide'), 4000);

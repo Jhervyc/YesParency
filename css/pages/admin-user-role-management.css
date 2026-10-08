@@ -151,3 +151,18 @@
 .confirm-btn--promote  { background: #43a047; }
 .confirm-btn--demote   { background: #e67e22; }
 .confirm-btn--delete   { background: #e53935; }
+
+/* ════════════════════════════════
+   MOBILE-FIRST RESPONSIVE
+   (dashboard.css already stacks .ap2-user-row to one column ≤640px)
+   ════════════════════════════════ */
+@media (max-width: 639px) {
+    #userListRoot .ap2-user-row { padding: 14px 16px; gap: 10px; }
+    /* @username · email wraps instead of being cut off */
+    #userListRoot .ap2-user-sub { white-space: normal; line-height: 1.5; overflow-wrap: anywhere; }
+    #userListRoot .ap2-action-cell {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+        justify-self: stretch; padding-left: 54px; /* line up under the name, past the avatar */
+    }
+    #userListRoot .ap2-action-cell .ap2-action-btn { margin-left: auto; min-height: 40px; }
+}

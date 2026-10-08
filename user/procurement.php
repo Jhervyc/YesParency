@@ -1,5 +1,6 @@
 <?php
 include("utils/protect-page.php");
+include(__DIR__ . "/../includes/pagination.php");
 
 $user_id   = (int)$_SESSION['user_id'];
 $user_role = $_SESSION['role'] ?? 'user';
@@ -106,7 +107,9 @@ $count_stmt->execute();
 $total_shown = (int)$count_stmt->get_result()->fetch_row()[0];
 $count_stmt->close();
 
-$total_pages = max(1, ceil($total_shown / $per_page));
+$total_pages = max(1, (int)ceil($total_shown / $per_page));
+$page        = min($page, $total_pages);
+$offset      = ($page - 1) * $per_page;
 
 // Main Paged Query
 $main_sql = "
@@ -132,6 +135,12 @@ $main_stmt   = $conn->prepare($main_sql);
 $main_stmt->bind_param($main_types, ...$main_params);
 $main_stmt->execute();
 $procs_result = $main_stmt->get_result();
+
+// ── AJAX: return only the list fragment ──────────────────────────────────────
+if (isset($_GET['ajax'])) {
+    include __DIR__ . '/partials/procurement-list.php';
+    exit();
+}
 
 // ── Overall Summary Counts ─────────────────────────────────────────────────────
 $stat_all_res   = $conn->query("SELECT COUNT(*) FROM procurements WHERE status != 'draft'");
@@ -354,21 +363,19 @@ include("components/topbar.php");
         <div class="proc-controls-bar">
             <form method="GET" action="procurement.php" id="procFilterForm">
 
-                <!-- Hidden inputs for sort -->
-                <input type="hidden" name="sort" id="hiddenSort" value="<?= htmlspecialchars($sort) ?>">
 
                 <div class="ap2-controls">
 
                     <!-- 1. Search Box -->
                     <div class="ap2-search-field">
                         <i class="bi bi-search"></i>
-                        <input type="text" name="search"
+                        <input type="text" name="search" enterkeyhint="search" autocomplete="off"
                             placeholder="Search by title, SLSU ref, or mode..."
                             value="<?= htmlspecialchars($search) ?>">
                     </div>
 
                     <!-- 2. Status Filter Tabs -->
-                    <div class="ap2-filters">
+                    <div class="ap2-filters filter-chips">
                         <?php
                         $status_tabs = [
                             'open'   => 'Open',
@@ -386,7 +393,7 @@ include("components/topbar.php");
 
                     <!-- 3. Procurement Mode Dropdown -->
                     <div class="proc-module-select">
-                        <select name="mode" onchange="document.getElementById('procFilterForm').submit();">
+                        <select name="mode">
                             <option value="all">All Modes</option>
                             <?php foreach ($avail_modes as $m): ?>
                                 <option value="<?= htmlspecialchars($m) ?>" <?= $mode_filter === $m ? 'selected' : '' ?>>
@@ -398,7 +405,7 @@ include("components/topbar.php");
 
                     <!-- 4. Sort Dropdown -->
                     <div class="proc-module-select">
-                        <select id="sortSelect" onchange="document.getElementById('hiddenSort').value=this.value; document.getElementById('procFilterForm').submit();">
+                        <select id="sortSelect" name="sort">
                             <option value="closing_asc"  <?= $sort === 'closing_asc'  ? 'selected' : '' ?>>Closing Soonest</option>
                             <option value="closing_desc" <?= $sort === 'closing_desc' ? 'selected' : '' ?>>Closing Latest</option>
                             <option value="abc_desc"      <?= $sort === 'abc_desc'     ? 'selected' : '' ?>>ABC: High to Low</option>
@@ -417,118 +424,9 @@ include("components/topbar.php");
         </div>
 
         <!-- ── Main Table List ── -->
-        <?php if ($total_shown === 0): ?>
-            <div class="results-empty">
-                <i class="bi bi-search results-empty-icon"></i>
-                <p class="results-empty-title">No Matching Opportunities Found</p>
-                <p class="results-empty-desc">We couldn't find any procurements matching your current search or filter criteria.</p>
-                <a href="procurement.php" class="vp-back-link">
-                    Reset Filters
-                </a>
-            </div>
-        <?php else: ?>
-            <div class="table-scroll">
-                <table class="proc-table">
-                    <thead>
-                        <tr>
-                            <th class="col-ref-th">SLSU Ref</th>
-                            <th>Procurement Project Title</th>
-                            <th>Procurement Mode</th>
-                            <th>Approved Budget (ABC)</th>
-                            <th>Deadline / Urgency</th>
-                            <th class="col-actions-th">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php while ($row = $procs_result->fetch_assoc()):
-                            $st = strtolower($row['status'] ?? 'open');
-                            $isOpen = ($st === 'open');
-                            $daysLeft = null;
-                            if ($row['closing_date']) {
-                                $daysLeft = ceil((strtotime($row['closing_date']) - time()) / 86400);
-                            }
-                        ?>
-                            <tr>
-                                <td class="proc-ref-cell">
-                                    <i class="bi bi-hash"></i> <?= htmlspecialchars($row['slsu_ref_no'] ?: 'N/A') ?>
-                                </td>
-                                
-                                <td class="proc-title-cell">
-                                    <a href="view_procurement.php?id=<?= $row['id'] ?>">
-                                        <?= htmlspecialchars($row['title']) ?>
-                                    </a>
-                                </td>
-
-                                <td>
-                                    <span class="proc-mode-tag">
-                                        <?= htmlspecialchars($row['procurement_mode'] ?: 'Public Bidding') ?>
-                                    </span>
-                                </td>
-
-                                <td class="proc-abc-cell">
-                                    ₱<?= number_format((float)$row['abc'], 2) ?>
-                                </td>
-
-                                <td class="proc-deadline-cell">
-                                    <?php if ($row['closing_date']): ?>
-                                        <strong><?= date('M j, Y · g:i A', strtotime($row['closing_date'])) ?></strong>
-                                        <?php if ($isOpen && $daysLeft !== null): ?>
-                                            <?php if ($daysLeft < 0): ?>
-                                                <span class="deadline-badge deadline-badge--closed">Submission Closed</span>
-                                            <?php elseif ($daysLeft == 0): ?>
-                                                <span class="deadline-badge deadline-badge--today">● Closes Today</span>
-                                            <?php elseif ($daysLeft <= 3): ?>
-                                                <span class="deadline-badge deadline-badge--soon">▲ <?= $daysLeft ?> days left</span>
-                                            <?php else: ?>
-                                                <span class="deadline-badge deadline-badge--normal"><?= $daysLeft ?> days remaining</span>
-                                            <?php endif; ?>
-                                        <?php endif; ?>
-                                    <?php else: ?>
-                                        <span class="deadline-tba">To be announced</span>
-                                    <?php endif; ?>
-                                </td>
-
-                                <td class="ta-right">
-                                    <a href="view_procurement.php?id=<?= $row['id'] ?>" class="proc-action-btn">
-                                        <i class="bi bi-eye"></i> View
-                                    </a>
-                                </td>
-                            </tr>
-                        <?php endwhile; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            <?php if ($total_pages > 1): ?>
-                <div class="ap2-pagination">
-                    <div class="ap2-pagination-info">
-                        Showing <strong><?= min($total_shown, $offset + 1) ?></strong> to <strong><?= min($total_shown, $offset + $per_page) ?></strong> of <strong><?= number_format($total_shown) ?></strong> items
-                    </div>
-                    <div class="ap2-pagination-links">
-                        <?php if ($page > 1): ?>
-                            <a href="?status=<?= urlencode($status_filter) ?>&mode=<?= urlencode($mode_filter) ?>&search=<?= urlencode($search) ?>&sort=<?= urlencode($sort) ?>&page=<?= $page - 1 ?>" class="ap2-page-link">
-                                <i class="bi bi-chevron-left"></i> Prev
-                            </a>
-                        <?php endif; ?>
-
-                        <?php for ($p = 1; $p <= $total_pages; $p++): ?>
-                            <a href="?status=<?= urlencode($status_filter) ?>&mode=<?= urlencode($mode_filter) ?>&search=<?= urlencode($search) ?>&sort=<?= urlencode($sort) ?>&page=<?= $p ?>"
-                               class="ap2-page-link <?= $p === $page ? 'active' : '' ?>">
-                                <?= $p ?>
-                            </a>
-                        <?php endfor; ?>
-
-                        <?php if ($page < $total_pages): ?>
-                            <a href="?status=<?= urlencode($status_filter) ?>&mode=<?= urlencode($mode_filter) ?>&search=<?= urlencode($search) ?>&sort=<?= urlencode($sort) ?>&page=<?= $page + 1 ?>" class="ap2-page-link">
-                                Next <i class="bi bi-chevron-right"></i>
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            <?php endif; ?>
-
-        <?php endif; ?>
+        <div id="userProcListRoot" class="ajax-list-root">
+            <?php include __DIR__ . '/partials/procurement-list.php'; ?>
+        </div>
 
     </div>
 
@@ -550,6 +448,14 @@ include("components/topbar.php");
     </div>
 </div>
 
+<script src="../js/ajax-list.js"></script>
+<script>
+AjaxList.init({
+    root:     '#userProcListRoot',
+    form:     '#procFilterForm',
+    endpoint: 'procurement.php',
+});
+</script>
 <script>
 // Raw calendar events passed from PHP
 const calEvents = <?= json_encode($cal_events) ?>;

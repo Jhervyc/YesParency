@@ -1,5 +1,6 @@
 <?php
 include("utils/protect-page.php");
+include(__DIR__ . "/../includes/pagination.php");
 
 // Handle create admin account
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_admin'])) {
@@ -70,6 +71,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
         }
         $stmt->close();
     }
+    // AJAX delete: the page reloads itself with location.replace (no history entry)
+    if (isset($_POST['ajax'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => ($_SESSION['alert_type'] ?? '') === 'success']);
+        exit();
+    }
     $qs = http_build_query(array_filter(['search' => $_POST['search'] ?? '', 'role' => $_POST['role'] ?? '']));
     header("Location: user-role-management.php" . ($qs ? "?$qs" : ""));
     exit();
@@ -111,7 +118,9 @@ if ($params) $cnt->bind_param($types, ...$params);
 $cnt->execute();
 $total_shown = (int)$cnt->get_result()->fetch_row()[0];
 $cnt->close();
-$total_pages = max(1, ceil($total_shown / $per_page));
+$total_pages = max(1, (int)ceil($total_shown / $per_page));
+$page        = min($page, $total_pages);
+$offset      = ($page - 1) * $per_page;
 
 // Rows
 $lp = array_merge($params, [$per_page, $offset]);
@@ -120,6 +129,12 @@ $stmt = $conn->prepare("SELECT user_id,firstname,lastname,username,email,role,st
 $stmt->bind_param($lt, ...$lp);
 $stmt->execute();
 $users = $stmt->get_result();
+
+// ── AJAX: return only the list fragment ──────────────────────────────────────
+if (isset($_GET['ajax'])) {
+    include __DIR__ . '/partials/user-role-list.php';
+    exit();
+}
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -216,14 +231,15 @@ $users = $stmt->get_result();
             </div>
 
             <!-- Search + filter controls -->
-            <form method="GET" action="" class="ap2-controls mb-16">
+            <form method="GET" action="" id="userFilterForm" class="ap2-controls mb-16">
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
                     <input type="text" name="search"
                            placeholder="Search by name, username, or email"
+                           enterkeyhint="search" autocomplete="off"
                            value="<?= htmlspecialchars($search) ?>">
                 </div>
-                <div class="ap2-filters">
+                <div class="ap2-filters filter-chips">
                     <?php
                     $tabs = ['all' => 'All', 'user' => 'Users', 'admin' => 'Admins', 'bidder' => 'Bidders'];
                     foreach ($tabs as $val => $label):
@@ -245,75 +261,8 @@ $users = $stmt->get_result();
                 <span>Actions</span>
             </div>
 
-            <!-- User rows -->
-            <?php if ($total_shown === 0): ?>
-                <div class="empty-state empty-state--lg">
-                    <i class="bi bi-people"></i>
-                    <p>No users found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</p>
-                </div>
-            <?php else: ?>
-                <?php while ($user = $users->fetch_assoc()):
-                    $isSelf     = $user['user_id'] === intval($_SESSION['user_id']);
-                    $initials   = strtoupper(substr($user['firstname'],0,1).substr($user['lastname'],0,1));
-                    $roleClass  = $user['role'] === 'admin' ? 'ap2-badge-admin' : ($user['role'] === 'bidder' ? 'ap2-badge-bidder' : 'ap2-badge-user');
-                    $safeFullName = htmlspecialchars(addslashes($user['firstname'].' '.$user['lastname']));
-                    $safeUsername = htmlspecialchars(addslashes($user['username']));
-                    $userAvatarUrl = !empty($user['profile_picture_url']) ? '../' . ltrim($user['profile_picture_url'], '/') : '';
-                ?>
-                <div class="ap2-user-row">
-
-                    <div class="ap2-who-cell">
-                        <div class="ap2-avatar ap2-avatar--<?= $user['role'] ?> avatar-cover">
-                            <?php if (!empty($userAvatarUrl)): ?>
-                                <img src="<?= htmlspecialchars($userAvatarUrl) ?>" alt="<?= htmlspecialchars($initials) ?>">
-                            <?php else: ?>
-                                <?= htmlspecialchars($initials) ?>
-                            <?php endif; ?>
-                        </div>
-                        <div class="ap2-user-text">
-                            <div class="ap2-user-name"><?= htmlspecialchars($user['firstname'].' '.$user['lastname']) ?></div>
-                            <div class="ap2-user-sub">
-                                @<?= htmlspecialchars($user['username']) ?> &nbsp;·&nbsp; <?= htmlspecialchars($user['email']) ?>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="ap2-action-cell">
-                        <span class="ap2-badge <?= $roleClass ?>"><?= strtoupper($user['role']) ?></span>
-                    <?php if ($isSelf): ?>
-                        <span class="ap2-self-label">You</span>
-                    <?php else: ?>
-
-                        <button type="button" class="ap2-action-btn ap2-delete"
-                                onclick="openConfirm('delete', <?= $user['user_id'] ?>, '<?= $safeFullName ?>', '<?= $safeUsername ?>')">
-                            <i class="bi bi-trash3"></i> Delete
-                        </button>
-
-                    <?php endif; ?>
-                    </div>
-
-                </div>
-                <?php endwhile; ?>
-            <?php endif; ?>
-
-            <div class="ap2-card-foot ap2-card-foot--flex">
-                <div>
-                    Showing <strong><?= min($total_shown, $offset+1) ?></strong>–<strong><?= min($total_shown, $offset+$per_page) ?></strong>
-                    of <strong><?= number_format($total_shown) ?></strong> result<?= $total_shown !== 1 ? 's' : '' ?>
-                    <?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>
-                </div>
-                <?php if ($total_pages > 1):
-                    $qs = array_filter(['search'=>$search, 'role'=>$role_filter!=='all'?$role_filter:null]);
-                    $qstr = $qs ? '&'.http_build_query($qs) : '';
-                ?>
-                <div class="pagination">
-                    <a href="?page=<?= max(1,$page-1) ?><?= $qstr ?>" class="page-link <?= $page<=1?'disabled':'' ?>"><i class="bi bi-chevron-left"></i></a>
-                    <?php for ($p=max(1,$page-2); $p<=min($total_pages,$page+2); $p++): ?>
-                    <a href="?page=<?= $p ?><?= $qstr ?>" class="page-link <?= $p===$page?'active':'' ?>"><?= $p ?></a>
-                    <?php endfor; ?>
-                    <a href="?page=<?= min($total_pages,$page+1) ?><?= $qstr ?>" class="page-link <?= $page>=$total_pages?'disabled':'' ?>"><i class="bi bi-chevron-right"></i></a>
-                </div>
-                <?php endif; ?>
+            <div id="userListRoot" class="ajax-list-root">
+                <?php include __DIR__ . '/partials/user-role-list.php'; ?>
             </div>
 
         </div><!-- /.ap2-card -->
@@ -446,13 +395,14 @@ $users = $stmt->get_result();
 </div>
 
 <!-- Hidden form submitted by modal -->
-<form id="actionForm" method="POST" action="" class="hide">
+<form id="actionForm" method="POST" action="user-role-management.php" class="hide">
     <input type="hidden" id="actionUserId" name="user_id">
     <input type="hidden" id="actionType"   name="" value="1">
     <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
     <input type="hidden" name="role"   value="<?= htmlspecialchars($role_filter) ?>">
 </form>
 
+<script src="../js/ajax-list.js"></script>
 <script>
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('dashOverlay');
@@ -536,12 +486,29 @@ $users = $stmt->get_result();
         document.getElementById('confirmModal').classList.remove('open');
     }
 
-    document.getElementById('modalConfirmBtn').addEventListener('click', () => {
-        document.getElementById('actionForm').submit();
+    // Delete via fetch, then reload in place (keeps filter/page, no history entry).
+    // Filters change without a reload, so read them from the URL, not the page-load values.
+    document.getElementById('modalConfirmBtn').addEventListener('click', function () {
+        this.disabled = true;
+        const form = document.getElementById('actionForm');
+        const qs   = new URLSearchParams(location.search);
+        form.elements.search.value = qs.get('search') || '';
+        form.elements.role.value   = qs.get('role') || 'all';
+        const data = new FormData(form);
+        data.append('ajax', '1');
+        fetch('user-role-management.php', { method: 'POST', body: data, credentials: 'same-origin' })
+            .then(() => location.replace(location.href))
+            .catch(() => form.submit());
     });
 
     document.getElementById('confirmModal').addEventListener('click', function(e) {
         if (e.target === this) closeConfirm();
+    });
+
+    AjaxList.init({
+        root:     '#userListRoot',
+        form:     '#userFilterForm',
+        endpoint: 'user-role-management.php',
     });
 
     const toast = document.getElementById('toastAlert');

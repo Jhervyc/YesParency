@@ -211,8 +211,10 @@
    (see ../responsive.css for the shared breakpoint set + utilities)
    ════════════════════════════════ */
 @media (max-width: 640px) {
+    .session-filter-bar-wrap { padding: 14px 16px; }
     .session-filter-form {
         flex-direction: column;
         align-items: stretch;
+        --chip-bleed: 16px; /* swipeable tab row reaches the panel edges */
     }
 }

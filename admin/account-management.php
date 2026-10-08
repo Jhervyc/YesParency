@@ -2,6 +2,7 @@
 include("utils/protect-page.php");
 include("utils/protect-secretariat.php");
 require_once(__DIR__ . "/../utils/bidder_document_helper.php");
+include(__DIR__ . "/../includes/pagination.php");
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 $stat_total    = $conn->query("SELECT COUNT(*) FROM bidder_profiles")->fetch_row()[0];
@@ -43,7 +44,9 @@ if ($types) $cnt->bind_param($types, ...$params);
 $cnt->execute();
 $total_shown = (int)$cnt->get_result()->fetch_row()[0];
 $cnt->close();
-$total_pages = max(1, ceil($total_shown / $per_page));
+$total_pages = max(1, (int)ceil($total_shown / $per_page));
+$page        = min($page, $total_pages);
+$offset      = ($page - 1) * $per_page;
 
 // Rows
 $lp = array_merge($params, [$per_page, $offset]);
@@ -60,6 +63,12 @@ $stmt = $conn->prepare("
 $stmt->bind_param($lt, ...$lp);
 $stmt->execute();
 $result = $stmt->get_result();
+
+// ── AJAX: return only the list fragment ──────────────────────────────────────
+if (isset($_GET['ajax'])) {
+    include __DIR__ . '/partials/account-management-list.php';
+    exit();
+}
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -138,14 +147,15 @@ $result = $stmt->get_result();
         </div>
 
         <!-- ── Search + filter ── -->
-        <form method="GET" action="" class="ap2-controls mb-16">
+        <form method="GET" action="" id="accountFilterForm" class="ap2-controls mb-16">
             <div class="ap2-search-field">
                 <i class="bi bi-search"></i>
                 <input type="text" name="search"
                     placeholder="Search by name, username, or business..."
+                    enterkeyhint="search" autocomplete="off"
                     value="<?= htmlspecialchars($search) ?>">
             </div>
-            <div class="ap2-filters">
+            <div class="ap2-filters filter-chips">
                 <?php foreach (['all'=>'All','pending'=>'Pending','approved'=>'Approved','rejected'=>'Rejected'] as $val => $lbl): ?>
                     <button type="submit" name="status" value="<?= $val ?>"
                             class="ap2-filter-btn <?= $status_filter === $val ? 'active' : '' ?>">
@@ -164,85 +174,8 @@ $result = $stmt->get_result();
             <span>Actions</span>
         </div>
 
-        <?php if ($total_shown === 0): ?>
-            <div class="empty-state empty-state--lg">
-                <i class="bi bi-people"></i>
-                <p>No bidders found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</p>
-            </div>
-        <?php else: ?>
-            <?php while ($row = $result->fetch_assoc()):
-                $appSt    = $row['application_status'] ?? null;
-                $isPending = $appSt === 'pending';
-                $badgeClass = match($appSt) {
-                    'approved' => 'ap2-status-badge--approved',
-                    'pending'  => 'ap2-status-badge--pending',
-                    'rejected' => 'ap2-status-badge--rejected',
-                    default    => 'ap2-status-badge--default',
-                };
-                $businessName = $row['business_name'] ?? 'No business profile';
-                $initials     = strtoupper(substr($row['firstname'],0,1).substr($row['lastname'],0,1));
-                $avatarUrl    = !empty($row['profile_picture_url']) ? '../'.ltrim($row['profile_picture_url'],'/') : '';
-                $safeFullName = htmlspecialchars(addslashes($row['firstname'].' '.$row['lastname']));
-                $safeUsername = htmlspecialchars(addslashes($row['username']));
-            ?>
-            <div class="ap2-user-row <?= $isPending ? 'bsv-row-pending' : '' ?>">
-
-                <div class="ap2-who-cell">
-                    <div class="ap2-avatar ap2-avatar--<?= $row['role'] ?> avatar-cover">
-                        <?php if (!empty($avatarUrl)): ?>
-                            <img src="<?= htmlspecialchars($avatarUrl) ?>" alt="<?= htmlspecialchars($initials) ?>">
-                        <?php else: ?>
-                            <?= htmlspecialchars($initials) ?>
-                        <?php endif; ?>
-                    </div>
-                    <div class="ap2-user-text">
-                        <div class="ap2-user-name"><?= htmlspecialchars($row['firstname'].' '.$row['lastname']) ?></div>
-                        <div class="ap2-user-sub">
-                            @<?= htmlspecialchars($row['username']) ?>
-                            &nbsp;·&nbsp;
-                            <i class="bi bi-building fz-10"></i> <?= htmlspecialchars($businessName) ?>
-                            &nbsp;·&nbsp;
-                            <?= htmlspecialchars($row['email']) ?>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="ap2-action-cell">
-                    <span class="ap2-badge <?= $badgeClass ?>">
-                        <?= strtoupper($appSt ?? 'UNKNOWN') ?>
-                    </span>
-                    <?php if ($isPending): ?>
-                        <span class="ap2-self-label">
-                            <i class="bi bi-hourglass-split"></i> Pending
-                        </span>
-                    <?php endif; ?>
-                    <a href="bidder-profile.php?id=<?= $row['user_id'] ?>" class="proc-action-btn btn-view no-underline">
-                        <i class="bi bi-eye"></i> View Profile
-                    </a>
-                </div>
-
-            </div>
-            <?php endwhile; ?>
-        <?php endif; ?>
-
-        <div class="ap2-card-foot ap2-card-foot--flex">
-            <div>
-                Showing <strong><?= min($total_shown, $offset+1) ?></strong>–<strong><?= min($total_shown, $offset+$per_page) ?></strong>
-                of <strong><?= number_format($total_shown) ?></strong> bidder<?= $total_shown != 1 ? 's' : '' ?>
-                <?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>
-            </div>
-            <?php if ($total_pages > 1):
-                $qs = array_filter(['search'=>$search, 'status'=>$status_filter!=='all'?$status_filter:null]);
-                $qstr = $qs ? '&'.http_build_query($qs) : '';
-            ?>
-            <div class="pagination">
-                <a href="?page=<?= max(1,$page-1) ?><?= $qstr ?>" class="page-link <?= $page<=1?'disabled':'' ?>"><i class="bi bi-chevron-left"></i></a>
-                <?php for ($p=max(1,$page-2); $p<=min($total_pages,$page+2); $p++): ?>
-                <a href="?page=<?= $p ?><?= $qstr ?>" class="page-link <?= $p===$page?'active':'' ?>"><?= $p ?></a>
-                <?php endfor; ?>
-                <a href="?page=<?= min($total_pages,$page+1) ?><?= $qstr ?>" class="page-link <?= $page>=$total_pages?'disabled':'' ?>"><i class="bi bi-chevron-right"></i></a>
-            </div>
-            <?php endif; ?>
+        <div id="accountListRoot" class="ajax-list-root">
+            <?php include __DIR__ . '/partials/account-management-list.php'; ?>
         </div>
 
     </div><!-- /.ap2-card -->
@@ -258,6 +191,7 @@ $result = $stmt->get_result();
     <?php unset($_SESSION['alert_success']); ?>
 <?php endif; ?>
 
+<script src="../js/ajax-list.js"></script>
 <script>
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('dashOverlay');
@@ -271,6 +205,12 @@ $result = $stmt->get_result();
         sidebar.classList.remove('mobile-open');
         overlay.classList.remove('active');
     }
+
+    AjaxList.init({
+        root:     '#accountListRoot',
+        form:     '#accountFilterForm',
+        endpoint: 'account-management.php',
+    });
 
     const toast = document.getElementById('toastAlert');
     if (toast) setTimeout(() => toast.classList.add('hide'), 4000);

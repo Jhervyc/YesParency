@@ -2,6 +2,7 @@
 include("utils/protect-page.php");
 include("utils/protect-secretariat.php");
 require_once(__DIR__ . "/../utils/mailer.php");
+include(__DIR__ . "/../includes/pagination.php");
 
 $admin_id = intval($_SESSION['user_id']);
 
@@ -17,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'appro
 
     if (!$req) {
         $_SESSION['alert_error'] = "Request not found or already processed.";
-        header("Location: invitation_requests.php"); exit();
+        header("Location: invitation_requests.php" . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '')); exit();
     }
 
     // Generate token + expiry (7 days)
@@ -49,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'appro
     } catch (Exception $e) {
         $conn->rollback();
         $_SESSION['alert_error'] = "Failed to approve request: " . $e->getMessage();
-        header("Location: invitation_requests.php"); exit();
+        header("Location: invitation_requests.php" . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '')); exit();
     }
 
     // Send invite email
@@ -62,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'appro
     );
 
     $_SESSION['alert_success'] = "Request approved. Invitation email sent to {$req['email']}.";
-    header("Location: invitation_requests.php"); exit();
+    header("Location: invitation_requests.php" . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '')); exit();
 }
 
 // ── Resend invite ─────────────────────────────────────────────────────────────
@@ -77,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'resen
 
     if (!$req) {
         $_SESSION['alert_error'] = "Cannot resend: request not found or not yet approved.";
-        header("Location: invitation_requests.php"); exit();
+        header("Location: invitation_requests.php" . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '')); exit();
     }
 
     // Regenerate token + extend expiry
@@ -110,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'resen
     );
 
     $_SESSION['alert_success'] = "Invitation resent to {$req['email']}.";
-    header("Location: invitation_requests.php"); exit();
+    header("Location: invitation_requests.php" . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '')); exit();
 }
 
 // ── Reject request ────────────────────────────────────────────────────────────
@@ -126,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'rejec
 
     if (!$req) {
         $_SESSION['alert_error'] = "Request not found or already processed.";
-        header("Location: invitation_requests.php"); exit();
+        header("Location: invitation_requests.php" . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '')); exit();
     }
 
     $upd = $conn->prepare("
@@ -148,7 +149,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'rejec
     );
 
     $_SESSION['alert_success'] = "Request rejected. Notification sent to {$req['email']}.";
-    header("Location: invitation_requests.php"); exit();
+    header("Location: invitation_requests.php" . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '')); exit();
+}
+
+// ── Delete request ────────────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
+    $req_id = intval($_POST['req_id'] ?? 0);
+
+    $row = $conn->prepare("SELECT * FROM invitation_requests WHERE id = ? LIMIT 1");
+    $row->bind_param("i", $req_id);
+    $row->execute();
+    $req = $row->get_result()->fetch_assoc();
+    $row->close();
+
+    if (!$req) {
+        $_SESSION['alert_error'] = "Request not found.";
+        header("Location: invitation_requests.php" . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '')); exit();
+    }
+
+    $conn->begin_transaction();
+    try {
+        $del_inv = $conn->prepare("DELETE FROM user_invitations WHERE email = ?");
+        $del_inv->bind_param("s", $req['email']);
+        $del_inv->execute();
+        $del_inv->close();
+
+        $del_req = $conn->prepare("DELETE FROM invitation_requests WHERE id = ?");
+        $del_req->bind_param("i", $req_id);
+        $del_req->execute();
+        $del_req->close();
+
+        $conn->commit();
+    } catch (Exception $e) {
+        $conn->rollback();
+        $_SESSION['alert_error'] = "Failed to delete request: " . $e->getMessage();
+        header("Location: invitation_requests.php" . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '')); exit();
+    }
+
+    audit_log($conn, 'INVITATION_REQUEST_DELETED', 'invitation_requests', $req_id,
+        "Deleted invitation request from {$req['company_name']} ({$req['email']})",
+        $req,
+        []
+    );
+
+    $_SESSION['alert_success'] = "Request from {$req['company_name']} deleted.";
+    header("Location: invitation_requests.php" . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '')); exit();
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
@@ -187,7 +232,9 @@ if ($types) $cnt->bind_param($types, ...$params);
 $cnt->execute();
 $total_shown = (int)$cnt->get_result()->fetch_row()[0];
 $cnt->close();
-$total_pages = max(1, ceil($total_shown / $per_page));
+$total_pages = max(1, (int)ceil($total_shown / $per_page));
+$page        = min($page, $total_pages);
+$offset      = ($page - 1) * $per_page;
 
 $lp  = array_merge($params, [$per_page, $offset]);
 $lt  = $types . 'ii';
@@ -204,6 +251,12 @@ $rstmt->bind_param($lt, ...$lp);
 $rstmt->execute();
 $requests = $rstmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $rstmt->close();
+
+// ── AJAX: return only the list fragment ──────────────────────────────────────
+if (isset($_GET['ajax'])) {
+    include __DIR__ . '/partials/invitation-requests-list.php';
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -287,14 +340,15 @@ include("components/topbar.php");
         </div>
 
         <!-- Search + filter -->
-        <form method="GET" action="" class="ap2-controls mb-16">
+        <form method="GET" action="" id="requestFilterForm" class="ap2-controls mb-16">
             <div class="ap2-search-field">
                 <i class="bi bi-search"></i>
                 <input type="text" name="search"
                        placeholder="Search by company, contact, or email..."
+                       enterkeyhint="search" autocomplete="off"
                        value="<?= htmlspecialchars($search) ?>">
             </div>
-            <div class="ap2-filters">
+            <div class="ap2-filters filter-chips">
                 <?php foreach (['all'=>'All','pending'=>'Pending','approved'=>'Approved','rejected'=>'Rejected'] as $val => $lbl): ?>
                     <button type="submit" name="status" value="<?= $val ?>"
                             class="ap2-filter-btn <?= $status_filter === $val ? 'active' : '' ?>">
@@ -308,130 +362,9 @@ include("components/topbar.php");
             <button type="submit" class="ap2-go-btn"><i class="bi bi-search"></i> Search</button>
         </form>
 
-        <?php if (empty($requests)): ?>
-            <div class="results-empty">
-                <i class="bi bi-envelope-paper results-empty-icon"></i>
-                <div class="results-empty-title">
-                    No <?= $status_filter !== 'all' ? $status_filter . ' ' : '' ?>requests found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.
-                </div>
-            </div>
-        <?php else: ?>
-        <div class="table-scroll">
-            <table class="req-table">
-                <thead>
-                    <tr>
-                        <th>Organization</th>
-                        <th>Email</th>
-                        <th>Business Type</th>
-                        <th>TIN</th>
-                        <th>Submitted</th>
-                        <th>Status</th>
-                        <th class="col-actions-th">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($requests as $req):
-                    $status = $req['status'];
-                ?>
-                <tr>
-                    <td>
-                        <div class="req-company"><?= htmlspecialchars($req['company_name']) ?></div>
-                        <div class="req-contact"><i class="bi bi-person"></i> <?= htmlspecialchars($req['contact_person']) ?></div>
-                        <?php if (!empty($req['phone'])): ?>
-                            <div class="req-contact"><i class="bi bi-telephone"></i> <?= htmlspecialchars($req['phone']) ?></div>
-                        <?php endif; ?>
-                    </td>
-                    <td class="email-cell">
-                        <?= htmlspecialchars($req['email']) ?>
-                    </td>
-                    <td class="biztype-cell">
-                        <?= htmlspecialchars($req['business_type'] ?? '—') ?>
-                    </td>
-                    <td class="tin-cell">
-                        <?= htmlspecialchars($req['tax_id_tin'] ?? '—') ?>
-                    </td>
-                    <td class="date-cell">
-                        <?= date('M j, Y', strtotime($req['created_at'])) ?>
-                        <?php if ($status !== 'pending' && $req['reviewed_at']): ?>
-                            <div class="reviewed-note">
-                                <?= $status === 'approved' ? 'Approved' : 'Rejected' ?> <?= date('M j, Y', strtotime($req['reviewed_at'])) ?>
-                                <?php if ($req['reviewer_username']): ?>
-                                    by @<?= htmlspecialchars($req['reviewer_username']) ?>
-                                <?php endif; ?>
-                            </div>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <span class="req-status-pill <?= $status ?>">
-                            <i class="bi bi-circle-fill status-dot-xxtiny"></i>
-                            <?= ucfirst($status) ?>
-                        </span>
-                        <?php if (!empty($req['admin_notes']) && $status === 'rejected'): ?>
-                            <div class="admin-notes-preview">
-                                "<?= htmlspecialchars(mb_strimwidth($req['admin_notes'], 0, 60, '...')) ?>"
-                            </div>
-                        <?php endif; ?>
-                    </td>
-                    <td class="actions-cell">
-                        <?php if ($status === 'pending'): ?>
-                            <!-- Approve form -->
-                            <form method="POST" action="" class="inline-form">
-                                <input type="hidden" name="action"  value="approve">
-                                <input type="hidden" name="req_id" value="<?= $req['id'] ?>">
-                                <button type="submit" class="req-btn approve"
-                                        onclick="return confirm('Approve request from <?= htmlspecialchars(addslashes($req['company_name'])) ?>?')">
-                                    <i class="bi bi-check-circle-fill"></i> Approve
-                                </button>
-                            </form>
-                            <!-- Reject — opens modal -->
-                            <button type="button" class="req-btn reject"
-                                    onclick="openRejectModal(<?= $req['id'] ?>, '<?= htmlspecialchars(addslashes($req['company_name'])) ?>')">
-                                <i class="bi bi-x-circle-fill"></i> Reject
-                            </button>
-
-                        <?php elseif ($status === 'approved'): ?>
-                            <!-- Resend invite -->
-                            <form method="POST" action="" class="inline-form">
-                                <input type="hidden" name="action"  value="resend">
-                                <input type="hidden" name="req_id" value="<?= $req['id'] ?>">
-                                <button type="submit" class="req-btn resend"
-                                        onclick="return confirm('Re-generate and resend the invitation to <?= htmlspecialchars(addslashes($req['email'])) ?>?')">
-                                    <i class="bi bi-envelope-arrow-up-fill"></i> Resend Invite
-                                </button>
-                            </form>
-
-                        <?php else: ?>
-                            <span class="no-actions-text">No actions</span>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
+        <div id="requestListRoot" class="ajax-list-root">
+            <?php include __DIR__ . '/partials/invitation-requests-list.php'; ?>
         </div>
-
-        <!-- Pagination -->
-        <?php if ($total_pages > 1): ?>
-        <div class="pag-wrap">
-            <div><?= $total_shown ?> request<?= $total_shown !== 1 ? 's' : '' ?> — Page <?= $page ?> of <?= $total_pages ?></div>
-            <div class="pag-links">
-                <?php
-                $qs = http_build_query(array_filter(['search'=>$search,'status'=>$status_filter]));
-                $qs = $qs ? '&'.$qs : '';
-                ?>
-                <a href="?page=<?= max(1,$page-1) ?><?= $qs ?>" class="pag-btn <?= $page<=1?'disabled':'' ?>"><i class="bi bi-chevron-left"></i></a>
-                <?php for($p=1; $p<=$total_pages; $p++): ?>
-                    <a href="?page=<?= $p ?><?= $qs ?>" class="pag-btn <?= $p===$page?'active':'' ?>"><?= $p ?></a>
-                <?php endfor; ?>
-                <a href="?page=<?= min($total_pages,$page+1) ?><?= $qs ?>" class="pag-btn <?= $page>=$total_pages?'disabled':'' ?>"><i class="bi bi-chevron-right"></i></a>
-            </div>
-        </div>
-        <?php else: ?>
-        <div class="pag-wrap">
-            <div><?= $total_shown ?> request<?= $total_shown !== 1 ? 's' : '' ?> found</div>
-        </div>
-        <?php endif; ?>
-        <?php endif; ?>
 
     </div><!-- /.ap2-card -->
 
@@ -443,7 +376,7 @@ include("components/topbar.php");
     <div class="rej-modal">
         <h4><i class="bi bi-x-circle-fill modal-title-icon"></i> Reject Request</h4>
         <p id="rejectModalDesc">Provide an optional reason for the rejection. This will be included in the email sent to the applicant.</p>
-        <form method="POST" action="" id="rejectForm">
+        <form method="POST" action="invitation_requests.php" id="rejectForm">
             <input type="hidden" name="action"  value="reject">
             <input type="hidden" name="req_id" id="rejectReqId">
             <textarea name="admin_notes" id="rejectNotes" placeholder="Optional: reason for rejection (visible to applicant)..."></textarea>
@@ -465,7 +398,14 @@ include("components/topbar.php");
     <?php unset($_SESSION['alert_error']); ?>
 <?php endif; ?>
 
+<script src="../js/ajax-list.js"></script>
 <script>
+AjaxList.init({
+    root:     '#requestListRoot',
+    form:     '#requestFilterForm',
+    endpoint: 'invitation_requests.php',
+});
+
 const toast = document.getElementById('toastAlert');
 if (toast) setTimeout(() => toast.classList.add('hide'), 4000);
 

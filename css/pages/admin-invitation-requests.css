@@ -86,6 +86,8 @@
 .req-btn.reject:hover  { background: #fef2f2; border-color: #b91c1c; }
 .req-btn.resend  { background: #fffbeb; color: #b45309; border: 1.5px solid #fde68a; }
 .req-btn.resend:hover  { background: #fef3c7; }
+.req-btn.delete { background: #b91c1c; color: #fff; }
+.req-btn.delete:hover { background: #991b1b; }
 
 /* Table */
 .req-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
@@ -127,10 +129,46 @@
 .btn-confirm-rej { background: #b91c1c; color: #fff; border: none; border-radius: 9px; padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .15s; }
 .btn-confirm-rej:hover { background: #991b1b; }
 
-/* Pagination */
-.pag-wrap { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-top: 1px solid #f0f4f2; font-size: 12px; color: #6c776e; flex-wrap: wrap; gap: 8px; }
-.pag-links { display: flex; gap: 4px; flex-wrap: wrap; }
-.pag-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; color: #06251b; border: 1px solid #eaeeec; background: #fff; transition: all .15s; }
-.pag-btn:hover { background: #06251b; color: #ffc107; border-color: #06251b; }
-.pag-btn.active { background: #06251b; color: #ffc107; border-color: #06251b; }
-.pag-btn.disabled { opacity: .4; pointer-events: none; }
+/* ════════════════════════════════
+   MOBILE-FIRST RESPONSIVE
+   Phones: each request becomes a card instead of a 7-column table.
+     Company / contact ........ [Status]
+     email@example.com
+     Business type           TIN 123-456
+     Submitted date (+ reviewed note)
+     [ Approve ] [ Reject ]
+   ════════════════════════════════ */
+@media (max-width: 639px) {
+    .req-list-table,
+    .req-list-table tbody { display: block; }
+    .req-list-table thead { display: none; }
+
+    .req-list-table tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "org     status"
+            "email   email"
+            "biz     tin"
+            "date    date"
+            "actions actions";
+        gap: 6px 12px;
+        padding: 14px 16px;
+    }
+    .req-list-table td { display: block; padding: 0; }
+
+    .req-list-table td:nth-child(1) { grid-area: org; min-width: 0; }
+    .req-list-table td:nth-child(6) { grid-area: status; text-align: right; }
+    .req-list-table .email-cell     { grid-area: email; overflow-wrap: anywhere; }
+    .req-list-table .biztype-cell   { grid-area: biz; }
+    .req-list-table .tin-cell       { grid-area: tin; text-align: right; white-space: nowrap; }
+    .req-list-table .tin-cell::before { content: 'TIN '; font-size: 10px; font-weight: 700; color: #88968d; }
+    .req-list-table .date-cell      { grid-area: date; }
+
+    .req-list-table .actions-cell {
+        grid-area: actions; margin-top: 6px;
+        display: flex; gap: 8px; text-align: left; white-space: normal;
+    }
+    .req-list-table .actions-cell .inline-form { display: contents; }
+    .req-list-table .req-btn { flex: 1 1 0; justify-content: center; min-height: 40px; font-size: 12.5px; }
+}

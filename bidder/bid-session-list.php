@@ -1,6 +1,7 @@
 <?php
 include("utils/protect-page.php");
 require_once dirname(__DIR__) . '/config/mediamtx.php';
+include(__DIR__ . "/../includes/pagination.php");
 
 // ── Bidder guard ────────────────────────────────────────────────────────────
 $user_role  = $_SESSION['role'] ?? '';
@@ -46,7 +47,9 @@ if ($params) $cnt->bind_param($types, ...$params);
 $cnt->execute();
 $total_shown = (int)$cnt->get_result()->fetch_row()[0];
 $cnt->close();
-$total_pages = max(1, ceil($total_shown / $per_page));
+$total_pages = max(1, (int)ceil($total_shown / $per_page));
+$page        = min($page, $total_pages);
+$offset      = ($page - 1) * $per_page;
 
 // Main list
 $list_params = array_merge($params, [$per_page, $offset]);
@@ -75,6 +78,12 @@ $list = $conn->prepare("
 $list->bind_param($list_types, ...$list_params);
 $list->execute();
 $sessions = $list->get_result();
+
+// ── AJAX: return only the list fragment ──────────────────────────────────────
+if (isset($_GET['ajax'])) {
+    include __DIR__ . '/partials/bid-session-list.php';
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -118,17 +127,16 @@ $sessions = $list->get_result();
         <!-- Search + Filter bar -->
         <div class="session-filter-bar-wrap">
             <form method="GET" id="filterForm" class="session-filter-form">
-                <input type="hidden" name="filter" id="hiddenFilter" value="<?= htmlspecialchars($filter) ?>">
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
-                    <input type="text" name="search" placeholder="Search by title or reference number…" value="<?= htmlspecialchars($search) ?>">
+                    <input type="text" name="search" placeholder="Search by title or reference number…" value="<?= htmlspecialchars($search) ?>"
+                           enterkeyhint="search" autocomplete="off">
                 </div>
                 <!-- Status filter pills -->
-                <div class="filter-status-group">
+                <div class="filter-status-group filter-chips">
                     <?php foreach (['all'=>'All','live'=>'Live','scheduled'=>'Scheduled','ended'=>'Ended'] as $val => $lbl): ?>
-                    <button type="button"
-                        class="ap2-filter-btn <?= $filter === $val ? 'active' : '' ?>"
-                        onclick="document.getElementById('hiddenFilter').value='<?= $val ?>'; document.getElementById('filterForm').submit();">
+                    <button type="submit" name="filter" value="<?= $val ?>"
+                        class="ap2-filter-btn <?= $filter === $val ? 'active' : '' ?>">
                         <?= $lbl ?>
                     </button>
                     <?php endforeach; ?>
@@ -137,133 +145,23 @@ $sessions = $list->get_result();
             </form>
         </div>
 
-        <?php if ($total_shown === 0): ?>
-        <div class="proc-empty-state">
-            <i class="bi bi-collection proc-empty-icon"></i>
-            <div class="proc-empty-title">No sessions found<?= $search ? ' for "' . htmlspecialchars($search) . '"' : '' ?>.</div>
+        <div id="sessionListRoot" class="ajax-list-root">
+            <?php include __DIR__ . '/partials/bid-session-list.php'; ?>
         </div>
-        <?php else: ?>
-        <div class="table-scroll-x">
-            <table class="proc-table">
-                <thead>
-                    <tr>
-                        <th class="col-ref-narrow">SLSU Ref</th>
-                        <th>Procurement</th>
-                        <th>Mode</th>
-                        <th>ABC</th>
-                        <th>Started</th>
-                        <th>Invited</th>
-                        <th>Status</th>
-                        <th class="col-actions-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php while ($row = $sessions->fetch_assoc()):
-                    $st = $row['session_status'];
-                    $is_live_status = in_array($st, ['eligibility', 'financial', 'offered']);
-
-                    if ($is_live_status) {
-                        $pill_class = 'pill-live';
-                        $pill_icon  = 'bi-broadcast';
-                        $pill_label = ucfirst($st) . ' Phase';
-                    } elseif ($st === 'scheduled') {
-                        $pill_class = 'pill-scheduled';
-                        $pill_icon  = 'bi-clock';
-                        $pill_label = 'Scheduled';
-                    } else {
-                        $pill_class = 'pill-ended';
-                        $pill_icon  = 'bi-check2-circle';
-                        $pill_label = 'Ended';
-                    }
-                ?>
-                <tr>
-                    <td class="proc-ref-cell">
-                        <i class="bi bi-hash proc-ref-icon"></i>
-                        <?= htmlspecialchars($row['slsu_ref_no']) ?>
-                    </td>
-                    <td class="proc-title-cell">
-                        <a href="view_procurement.php?id=<?= $row['proc_id'] ?>">
-                            <?= htmlspecialchars(mb_strimwidth($row['proc_title'], 0, 60, '…')) ?>
-                        </a>
-                        <div class="proc-title-sub">
-                            <i class="bi bi-inbox"></i> <?= (int)$row['bid_count'] ?> bid<?= $row['bid_count'] != 1 ? 's' : '' ?>
-                            &nbsp;·&nbsp;
-                            <i class="bi bi-broadcast stream-icon"></i>
-                            <?= htmlspecialchars($row['stream_path']) ?>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="proc-mode-tag"><?= htmlspecialchars($row['procurement_mode'] ?? '—') ?></span>
-                    </td>
-                    <td class="proc-abc-cell">₱<?= number_format((float)$row['abc'], 2) ?></td>
-                    <td class="proc-deadline-cell">
-                        <?php if ($row['started_at']): ?>
-                            <strong><?= date('M j, Y', strtotime($row['started_at'])) ?></strong>
-                            <?= date('g:i A', strtotime($row['started_at'])) ?>
-                        <?php else: ?>
-                            <span class="clr-placeholder">—</span>
-                        <?php endif; ?>
-                    </td>
-                    <td class="invited-cell">
-                        <i class="bi bi-people invited-icon"></i>
-                        <?= (int)$row['invited_count'] ?>
-                    </td>
-                    <td>
-                        <span class="session-pill <?= $pill_class ?>">
-                            <i class="bi <?= $pill_icon ?> session-pill-icon"></i>
-                            <?= $pill_label ?>
-                        </span>
-                    </td>
-                    <td class="text-right">
-                        <?php if ($st === 'scheduled'): ?>
-                            <span class="proc-action-btn proc-action-btn--upcoming">
-                                <i class="bi bi-clock"></i> Upcoming
-                            </span>
-                        <?php elseif ($is_live_status): ?>
-                            <a href="../live.php" class="proc-action-btn btn-open">
-                                <i class="bi bi-play-circle-fill"></i> Watch Live
-                            </a>
-                        <?php else: ?>
-                        <a href="view_procurement.php?id=<?= $row['proc_id'] ?>" class="proc-action-btn btn-view">
-                            <i class="bi bi-eye"></i> View
-                        </a>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endwhile; ?>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="table-foot">
-            <div>
-                Showing <?= min($total_shown, $offset + 1) ?>–<?= min($total_shown, $offset + $per_page) ?>
-                of <?= number_format($total_shown) ?> session<?= $total_shown != 1 ? 's' : '' ?>
-                <?= $search ? ' for "' . htmlspecialchars($search) . '"' : '' ?>
-            </div>
-            <?php if ($total_pages > 1):
-                $qs = array_filter(['search' => $search, 'filter' => $filter !== 'all' ? $filter : null]);
-                $qstr = $qs ? '&' . http_build_query($qs) : '';
-            ?>
-            <div class="pagination">
-                <a href="?page=<?= max(1, $page - 1) ?><?= $qstr ?>" class="page-link <?= $page <= 1 ? 'disabled' : '' ?>">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-                <?php for ($p = max(1, $page - 2); $p <= min($total_pages, $page + 2); $p++): ?>
-                <a href="?page=<?= $p ?><?= $qstr ?>" class="page-link <?= $p === $page ? 'active' : '' ?>"><?= $p ?></a>
-                <?php endfor; ?>
-                <a href="?page=<?= min($total_pages, $page + 1) ?><?= $qstr ?>" class="page-link <?= $page >= $total_pages ? 'disabled' : '' ?>">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
-            </div>
-            <?php endif; ?>
-        </div>
-        <?php endif; ?>
 
     </div>
 
 </div>
 </main>
+
+<script src="../js/ajax-list.js"></script>
+<script>
+    AjaxList.init({
+        root:     '#sessionListRoot',
+        form:     '#filterForm',
+        endpoint: 'bid-session-list.php',
+    });
+</script>
 
 </body>
 </html>

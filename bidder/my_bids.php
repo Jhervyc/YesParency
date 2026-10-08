@@ -256,7 +256,6 @@ include("components/topbar.php");
                 <button type="button" class="ap2-filter-btn" onclick="filterBids('pending', this)">Pending</button>
                 <button type="button" class="ap2-filter-btn" onclick="filterBids('submitted', this)">Verified</button>
                 <button type="button" class="ap2-filter-btn" onclick="filterBids('opened', this)">Opened</button>
-                <button type="button" class="ap2-filter-btn" onclick="filterBids('awarded', this)">Awarded</button>
                 <?php if ($stats['rejected'] > 0): ?>
                     <button type="button" class="ap2-filter-btn" onclick="filterBids('rejected', this)">Rejected</button>
                 <?php endif; ?>

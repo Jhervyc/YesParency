@@ -75,3 +75,9 @@
         align-items: stretch;
     }
 }
+
+/* Phones: rows become cards via the shared .proc-cards (dashboard.css);
+   only the icon-only delete button needs a fixed width here. */
+@media (max-width: 639px) {
+    .proc-cards td.card-actions .proc-action-btn--delete { flex: 0 0 44px; padding: 0; }
+}

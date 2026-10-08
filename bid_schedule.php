@@ -1,5 +1,6 @@
 <?php
 include "config/db_connect.php";
+include __DIR__ . "/includes/pagination.php";
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 $user_dashboard_link = "login.php";
@@ -70,7 +71,9 @@ if (isset($conn) && $conn instanceof mysqli) {
     $cnt->execute();
     $total_count = (int)$cnt->get_result()->fetch_row()[0];
     $cnt->close();
-    $total_pages = max(1, ceil($total_count / $per_page));
+    $total_pages = max(1, (int)ceil($total_count / $per_page));
+    $page        = min($page, $total_pages);
+    $offset      = ($page - 1) * $per_page;
 
     // Order
     $order_sql = $sort === 'closing'
@@ -95,6 +98,12 @@ if (isset($conn) && $conn instanceof mysqli) {
     $stmt->close();
 }
 $total_pages = $total_pages ?? 1;
+
+// ── AJAX: return only the list fragment ──────────────────────────────────────
+if (isset($_GET['ajax'])) {
+    include __DIR__ . '/partials/bid-schedule-list.php';
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -151,18 +160,17 @@ $total_pages = $total_pages ?? 1;
 <!-- ── Filter Bar ── -->
 <div class="filter-bar-wrap">
     <form class="filter-bar-inner" method="GET" action="bid_schedule.php" id="filterForm">
-        <input type="hidden" name="filter" id="hiddenFilter" value="<?= htmlspecialchars($filter) ?>">
         <input type="hidden" name="sort"   id="hiddenSort"   value="<?= htmlspecialchars($sort) ?>">
         <div class="filter-search">
             <i class="bi bi-search"></i>
-            <input type="text" name="search" placeholder="Search by title or SLSU ref…" value="<?= htmlspecialchars($search) ?>">
+            <input type="text" name="search" placeholder="Search by title or SLSU ref…" value="<?= htmlspecialchars($search) ?>"
+                   enterkeyhint="search" autocomplete="off">
         </div>
 
         <!-- Status -->
-        <div class="filter-status-group">
-            <?php foreach (['all'=>'All','open'=>'Open','closed'=>'Closed','awarded'=>'Awarded','opened'=>'Opened'] as $v => $l): ?>
-            <button type="button" class="filter-btn <?= $filter === $v ? 'active' : '' ?>"
-                onclick="document.getElementById('hiddenFilter').value='<?= $v ?>'; document.getElementById('filterForm').submit();">
+        <div class="filter-status-group filter-chips">
+            <?php foreach (['all'=>'All','open'=>'Open','closed'=>'Closed','opened'=>'Opened'] as $v => $l): ?>
+            <button type="submit" name="filter" value="<?= $v ?>" class="filter-btn <?= $filter === $v ? 'active' : '' ?>">
                 <?= $l ?>
             </button>
             <?php endforeach; ?>
@@ -170,8 +178,7 @@ $total_pages = $total_pages ?? 1;
 
         <!-- Mode dropdown -->
         <?php if (!empty($modes)): ?>
-        <select name="mode" class="filter-btn filter-select"
-                onchange="document.getElementById('filterForm').submit()">
+        <select name="mode" class="filter-btn filter-select">
             <option value="">All Modes</option>
             <?php foreach ($modes as $m): ?>
                 <option value="<?= htmlspecialchars($m) ?>" <?= $filter_mode === $m ? 'selected' : '' ?>>
@@ -182,15 +189,14 @@ $total_pages = $total_pages ?? 1;
         <?php endif; ?>
 
         <!-- Sort: Closing Soonest -->
-        <button type="button" class="filter-btn <?= $sort === 'closing' ? 'active' : '' ?>"
-            onclick="document.getElementById('hiddenSort').value='<?= $sort === 'closing' ? 'default' : 'closing' ?>'; document.getElementById('filterForm').submit();">
+        <button type="button" id="sortToggle" class="filter-btn <?= $sort === 'closing' ? 'active' : '' ?>">
             <i class="bi bi-clock-history"></i> Closing Soonest
         </button>
 
         <button type="submit" class="filter-go"><i class="bi bi-search"></i> Search</button>
 
         <!-- Always visible clear -->
-        <a href="bid_schedule.php" class="filter-clear-link">
+        <a href="bid_schedule.php" class="filter-clear-link" id="filterClear">
             <i class="bi bi-x-circle"></i> Clear
         </a>
     </form>
@@ -199,113 +205,35 @@ $total_pages = $total_pages ?? 1;
 <!-- ── Table ── -->
 <div class="table-panel-wrap">
     <div class="table-panel">
-        <?php if (empty($procurements)): ?>
-        <div class="tbl-empty">
-            <i class="bi bi-calendar-x"></i>
-            <p>No procurements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</p>
+        <div id="scheduleListRoot" class="ajax-list-root">
+            <?php include __DIR__ . '/partials/bid-schedule-list.php'; ?>
         </div>
-        <?php else: ?>
-        <div class="table-scroll">
-            <table class="proc-table">
-                <thead>
-                    <tr>
-                        <th class="col-ref-th">SLSU Ref</th>
-                        <th>Project Title</th>
-                        <th>Mode</th>
-                        <th>ABC</th>
-                        <th>Opening Date</th>
-                        <th>Submission Cutoff</th>
-                        <th>Status</th>
-                        <th class="ta-right">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($procurements as $p):
-                    $ps = strtolower($p['status'] ?? 'open');
-                    $pillClass = match($ps) {
-                        'open'    => 'spill-open',
-                        'closed'  => 'spill-closed',
-                        'awarded' => 'spill-awarded',
-                        'opened'  => 'spill-awarded',
-                        default   => 'spill-other',
-                    };
-                    $pillIcon = match($ps) {
-                        'open'    => 'bi-door-open',
-                        'closed'  => 'bi-lock',
-                        'awarded' => 'bi-trophy',
-                        'opened'  => 'bi-unlock',
-                        default   => 'bi-circle',
-                    };
-                ?>
-                <tr>
-                    <td class="col-ref"><i class="bi bi-hash"></i> <?= htmlspecialchars($p['slsu_ref_no'] ?: '—') ?></td>
-                    <td class="col-title">
-                        <a href="bid_view.php?id=<?= (int)$p['id'] ?>"><?= htmlspecialchars(mb_strimwidth($p['title'], 0, 65, '…')) ?></a>
-                        <?php if ((int)$p['lots_count'] > 0): ?>
-                        <div class="col-title-sub">
-                            <i class="bi bi-boxes"></i> <?= (int)$p['lots_count'] ?> lot<?= $p['lots_count'] > 1 ? 's' : '' ?>
-                        </div>
-                        <?php endif; ?>
-                    </td>
-                    <td><span class="col-mode"><?= htmlspecialchars($p['procurement_mode'] ?: '—') ?></span></td>
-                    <td class="col-abc">₱<?= number_format((float)$p['abc'], 2) ?></td>
-                    <td class="col-date">
-                        <?php if ($p['opening_date']): ?>
-                            <strong><?= date('M j, Y', strtotime($p['opening_date'])) ?></strong>
-                            <?= date('g:i A', strtotime($p['opening_date'])) ?>
-                        <?php else: ?>—<?php endif; ?>
-                    </td>
-                    <td class="col-date">
-                        <?php if ($p['closing_date']): ?>
-                            <strong><?= date('M j, Y', strtotime($p['closing_date'])) ?></strong>
-                            <?= date('g:i A', strtotime($p['closing_date'])) ?>
-                        <?php else: ?>—<?php endif; ?>
-                    </td>
-                    <td>
-                        <span class="spill <?= $pillClass ?>">
-                            <i class="bi <?= $pillIcon ?>"></i>
-                            <?= ucfirst($ps) ?>
-                        </span>
-                    </td>
-                    <td class="ta-right">
-                        <a href="bid_view.php?id=<?= (int)$p['id'] ?>" class="act-btn act-btn-view">
-                            <i class="bi bi-eye"></i> View
-                        </a>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="tbl-foot">
-            <div>
-                Showing <?= min($total_count, $offset+1) ?>–<?= min($total_count, $offset+$per_page) ?>
-                of <?= number_format($total_count) ?> project<?= $total_count != 1 ? 's' : '' ?>
-            </div>
-            <?php if ($total_pages > 1):
-                $qs = array_filter(['search'=>$search, 'filter'=>$filter!=='all'?$filter:null, 'mode'=>$filter_mode!==''?$filter_mode:null, 'sort'=>$sort!=='default'?$sort:null]);
-                $qstr = $qs ? '&'.http_build_query($qs) : '';
-            ?>
-            <div class="pagination">
-                <a href="?page=<?= max(1,$page-1) ?><?= $qstr ?>" class="plink <?= $page<=1?'disabled':'' ?>"><i class="bi bi-chevron-left"></i></a>
-                <?php for ($pg = max(1,$page-2); $pg <= min($total_pages,$page+2); $pg++): ?>
-                <a href="?page=<?= $pg ?><?= $qstr ?>" class="plink <?= $pg===$page?'active':'' ?>"><?= $pg ?></a>
-                <?php endfor; ?>
-                <a href="?page=<?= min($total_pages,$page+1) ?><?= $qstr ?>" class="plink <?= $page>=$total_pages?'disabled':'' ?>"><i class="bi bi-chevron-right"></i></a>
-            </div>
-            <?php endif; ?>
-        </div>
-        <?php endif; ?>
     </div>
 </div>
 
 <!-- ── Footer ── -->
 <?php require_once __DIR__ . '/includes/footer.php'; render_public_footer(); ?>
 
+<script src="js/ajax-list.js"></script>
 <script>
-document.querySelector('.filter-search input')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('filterForm').submit();
+AjaxList.init({
+    root:     '#scheduleListRoot',
+    form:     '#filterForm',
+    endpoint: 'bid_schedule.php',
+});
+
+// "Closing Soonest" is an on/off toggle backed by the hidden sort field
+document.getElementById('sortToggle').addEventListener('click', function () {
+    const sort = document.getElementById('hiddenSort');
+    sort.value = sort.value === 'closing' ? 'default' : 'closing';
+    this.classList.toggle('active', sort.value === 'closing');
+    document.getElementById('filterForm').requestSubmit();
+});
+
+// Clear: reload the bare page without adding a history entry
+document.getElementById('filterClear').addEventListener('click', e => {
+    e.preventDefault();
+    location.replace('bid_schedule.php');
 });
 </script>
 </body>

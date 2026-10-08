@@ -1,6 +1,7 @@
 <?php
 include("utils/protect-page.php");
 include("utils/protect-secretariat.php");
+include(__DIR__ . "/../includes/pagination.php");
 
 // ── Status filter ────────────────────────────────────────────────────────────
 $status_filter = isset($_GET['status']) ? strtolower(trim($_GET['status'])) : 'all';
@@ -56,7 +57,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_procurement'])
         }
         mysqli_stmt_close($del_stmt);
     }
-    header("Location: procurement.php?status=" . urlencode($status_filter) . ($search ? '&search=' . urlencode($search) : ''));
+    // AJAX delete: the page reloads itself with location.replace (no history entry)
+    if (isset($_POST['ajax'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => !isset($_SESSION['alert_error'])]);
+        exit();
+    }
+    header("Location: procurement.php?" . http_build_query(array_filter(['status' => $status_filter, 'search' => $search, 'page' => $page > 1 ? $page : null])));
     exit();
 }
 
@@ -83,50 +90,43 @@ $grad = rtrim($grad, ', ');
 if (!$grad) $grad = '#e5eae4 0% 100%';
 
 // ── Fetch procurements list ───────────────────────────────────────────────────
-if ($search !== '') {
-    $like = '%' . $search . '%';
-    if ($status_filter !== 'all') {
-        $count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements WHERE LOWER(status) = ? AND (title LIKE ? OR slsu_ref_no LIKE ?)");
-        mysqli_stmt_bind_param($count_stmt, "sss", $status_filter, $like, $like);
-        mysqli_stmt_execute($count_stmt);
-        $total_shown = (int)mysqli_fetch_row(mysqli_stmt_get_result($count_stmt))[0];
-        mysqli_stmt_close($count_stmt);
-
-        $stmt = mysqli_prepare($conn, "SELECT id, title, slsu_ref_no, abc, procurement_mode, status FROM procurements WHERE LOWER(status) = ? AND (title LIKE ? OR slsu_ref_no LIKE ?) ORDER BY id DESC LIMIT ? OFFSET ?");
-        mysqli_stmt_bind_param($stmt, "sssii", $status_filter, $like, $like, $per_page, $offset);
-    } else {
-        $count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements WHERE title LIKE ? OR slsu_ref_no LIKE ?");
-        mysqli_stmt_bind_param($count_stmt, "ss", $like, $like);
-        mysqli_stmt_execute($count_stmt);
-        $total_shown = (int)mysqli_fetch_row(mysqli_stmt_get_result($count_stmt))[0];
-        mysqli_stmt_close($count_stmt);
-
-        $stmt = mysqli_prepare($conn, "SELECT id, title, slsu_ref_no, abc, procurement_mode, status FROM procurements WHERE title LIKE ? OR slsu_ref_no LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?");
-        mysqli_stmt_bind_param($stmt, "ssii", $like, $like, $per_page, $offset);
-    }
-} else {
-    if ($status_filter !== 'all') {
-        $count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements WHERE LOWER(status) = ?");
-        mysqli_stmt_bind_param($count_stmt, "s", $status_filter);
-        mysqli_stmt_execute($count_stmt);
-        $total_shown = (int)mysqli_fetch_row(mysqli_stmt_get_result($count_stmt))[0];
-        mysqli_stmt_close($count_stmt);
-
-        $stmt = mysqli_prepare($conn, "SELECT id, title, slsu_ref_no, abc, procurement_mode, status FROM procurements WHERE LOWER(status) = ? ORDER BY id DESC LIMIT ? OFFSET ?");
-        mysqli_stmt_bind_param($stmt, "sii", $status_filter, $per_page, $offset);
-    } else {
-        $count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements");
-        mysqli_stmt_execute($count_stmt);
-        $total_shown = (int)mysqli_fetch_row(mysqli_stmt_get_result($count_stmt))[0];
-        mysqli_stmt_close($count_stmt);
-
-        $stmt = mysqli_prepare($conn, "SELECT id, title, slsu_ref_no, abc, procurement_mode, status FROM procurements ORDER BY id DESC LIMIT ? OFFSET ?");
-        mysqli_stmt_bind_param($stmt, "ii", $per_page, $offset);
-    }
+$where  = [];
+$types  = '';
+$params = [];
+if ($status_filter !== 'all') {
+    $where[]  = 'LOWER(status) = ?';
+    $types   .= 's';
+    $params[] = $status_filter;
 }
-$total_pages = max(1, ceil($total_shown / $per_page));
+if ($search !== '') {
+    $like     = '%' . $search . '%';
+    $where[]  = '(title LIKE ? OR slsu_ref_no LIKE ?)';
+    $types   .= 'ss';
+    array_push($params, $like, $like);
+}
+$where_sql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+$count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM procurements $where_sql");
+if ($params) mysqli_stmt_bind_param($count_stmt, $types, ...$params);
+mysqli_stmt_execute($count_stmt);
+$total_shown = (int)mysqli_fetch_row(mysqli_stmt_get_result($count_stmt))[0];
+mysqli_stmt_close($count_stmt);
+
+$total_pages = max(1, (int)ceil($total_shown / $per_page));
+$page        = min($page, $total_pages);
+$offset      = ($page - 1) * $per_page;
+
+$stmt = mysqli_prepare($conn, "SELECT id, title, slsu_ref_no, abc, procurement_mode, status FROM procurements $where_sql ORDER BY id DESC LIMIT ? OFFSET ?");
+mysqli_stmt_bind_param($stmt, $types . 'ii', ...array_merge($params, [$per_page, $offset]));
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
+
+// ── AJAX: return only the list fragment ──────────────────────────────────────
+if (isset($_GET['ajax'])) {
+    include __DIR__ . '/partials/procurement-list.php';
+    mysqli_stmt_close($stmt);
+    exit();
+}
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -220,11 +220,12 @@ $result = mysqli_stmt_get_result($stmt);
                     <i class="bi bi-search"></i>
                     <input type="text" name="search"
                         placeholder="Search by title or SLSU ref..."
+                        enterkeyhint="search" autocomplete="off"
                         value="<?= htmlspecialchars($search) ?>">
                 </div>
-                <div class="filter-status-group">
+                <div class="filter-status-group filter-chips">
                     <?php
-                    $tabs = ['all'=>'All','draft'=>'Draft','open'=>'Open','closed'=>'Closed','awarded'=>'Awarded','opened'=>'Opened'];
+                    $tabs = ['all'=>'All','draft'=>'Draft','open'=>'Open','closed'=>'Closed','opened'=>'Opened'];
                     foreach ($tabs as $val => $label):
                     ?>
                         <button type="submit" name="status" value="<?= $val ?>"
@@ -239,104 +240,9 @@ $result = mysqli_stmt_get_result($stmt);
             </form>
         </div>
 
-        <?php if (mysqli_num_rows($result) > 0): ?>
-        <div class="table-scroll">
-            <table class="proc-table">
-                <thead>
-                    <tr>
-                        <th class="col-ref-narrow">SLSU Ref</th>
-                        <th>Title</th>
-                        <th class="col-mode">Mode</th>
-                        <th class="col-abc">ABC</th>
-                        <th class="col-status">Status</th>
-                        <th class="col-actions-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php while ($row = mysqli_fetch_assoc($result)):
-                    $cs = strtolower($row['status']);
-                    $stClass = match($cs) { 'open'=>'status-open','closed'=>'status-closed','awarded'=>'status-awarded','opened'=>'status-awarded', default=>'status-draft' };
-                ?>
-                <tr>
-                    <td class="proc-ref-cell">
-                        <i class="bi bi-hash proc-ref-icon"></i>
-                        <?= htmlspecialchars($row['slsu_ref_no'] ?? '—') ?>
-                    </td>
-                    <td class="proc-title-cell">
-                        <?php if ($cs !== 'draft'): ?>
-                            <a href="procurement-view.php?id=<?= $row['id'] ?>"><?= htmlspecialchars(mb_strimwidth($row['title'], 0, 65, '…')) ?></a>
-                        <?php else: ?>
-                            <?= htmlspecialchars(mb_strimwidth($row['title'], 0, 65, '…')) ?>
-                        <?php endif; ?>
-                        <div class="proc-title-sub">
-                            <i class="bi bi-briefcase"></i> <?= htmlspecialchars($row['procurement_mode'] ?? '—') ?>
-                        </div>
-                    </td>
-                    <td class="col-mode">
-                        <span class="proc-mode-tag"><?= htmlspecialchars($row['procurement_mode'] ?? '—') ?></span>
-                    </td>
-                    <td class="proc-abc-cell col-abc">₱<?= number_format($row['abc'], 2) ?></td>
-                    <td class="col-status">
-                        <span class="proc-status-pill <?= $stClass ?>">
-                            <i class="bi bi-circle-fill status-dot-icon"></i> <?= ucfirst($cs) ?>
-                        </span>
-                    </td>
-                    <td class="text-right">
-                        <div class="actions-wrap-end">
-                            <?php if ($cs !== 'draft'): ?>
-                                <a href="procurement-view.php?id=<?= $row['id'] ?>" class="proc-action-btn btn-view">
-                                    <i class="bi bi-eye"></i> View
-                                </a>
-                            <?php endif; ?>
-                            <?php if ($cs === 'draft'): ?>
-                                <a href="review_procurement.php?id=<?= $row['id'] ?>" class="proc-action-btn proc-action-btn--review-alt">
-                                    <i class="bi bi-eye"></i> Review
-                                </a>
-                                <a href="manage_lots.php?id=<?= $row['id'] ?>" class="proc-action-btn btn-open">
-                                    <i class="bi bi-sliders"></i> Manage
-                                </a>
-                            <?php endif; ?>
-                            <form method="POST" action="procurement.php?status=<?= urlencode($status_filter) ?><?= $search ? '&search='.urlencode($search) : '' ?>" class="form-inline">
-                                <input type="hidden" name="procurement_id" value="<?= $row['id'] ?>">
-                                <button type="button" class="proc-action-btn proc-action-btn--delete"
-                                        onclick="openDeleteModal(<?= $row['id'] ?>, '<?= htmlspecialchars(addslashes($row['title'])) ?>')">
-                                    <i class="bi bi-trash3"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                <?php endwhile; ?>
-                </tbody>
-            </table>
+        <div id="procListRoot" class="ajax-list-root">
+            <?php include __DIR__ . '/partials/procurement-list.php'; ?>
         </div>
-
-        <div class="table-foot">
-            <div>
-                Showing <strong><?= min($total_shown, $offset + 1) ?></strong>–<strong><?= min($total_shown, $offset + $per_page) ?></strong>
-                of <strong><?= number_format($total_shown) ?></strong> procurement<?= $total_shown != 1 ? 's' : '' ?>
-                <?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>
-            </div>
-            <?php if ($total_pages > 1):
-                $qs = array_filter(['search'=>$search, 'status'=>$status_filter !== 'all' ? $status_filter : null]);
-                $qstr = $qs ? '&'.http_build_query($qs) : '';
-            ?>
-            <div class="pagination">
-                <a href="?page=<?= max(1,$page-1) ?><?= $qstr ?>" class="page-link <?= $page<=1?'disabled':'' ?>"><i class="bi bi-chevron-left"></i></a>
-                <?php for ($p = max(1,$page-2); $p <= min($total_pages,$page+2); $p++): ?>
-                <a href="?page=<?= $p ?><?= $qstr ?>" class="page-link <?= $p===$page?'active':'' ?>"><?= $p ?></a>
-                <?php endfor; ?>
-                <a href="?page=<?= min($total_pages,$page+1) ?><?= $qstr ?>" class="page-link <?= $page>=$total_pages?'disabled':'' ?>"><i class="bi bi-chevron-right"></i></a>
-            </div>
-            <?php endif; ?>
-        </div>
-
-        <?php else: ?>
-        <div class="proc-empty-state">
-            <i class="bi bi-folder2-open proc-empty-icon"></i>
-            <div class="proc-empty-title">No procurements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</div>
-        </div>
-        <?php endif; ?>
 
         <?php mysqli_stmt_close($stmt); ?>
     </div>
@@ -387,13 +293,18 @@ $result = mysqli_stmt_get_result($stmt);
 </div>
 
 <!-- Hidden form submitted by modal -->
-<form id="deleteForm" method="POST" action="procurement.php?status=<?= urlencode($status_filter) ?><?= $search ? '&search='.urlencode($search) : '' ?>" hidden>
+<form id="deleteForm" method="POST" action="procurement.php" hidden>
     <input type="hidden" id="deleteId" name="procurement_id">
     <input type="hidden" name="delete_procurement" value="1">
 </form>
 
+<script src="../js/ajax-list.js"></script>
 <script>
-
+    AjaxList.init({
+        root:     '#procListRoot',
+        form:     '#procFilterForm',
+        endpoint: 'procurement.php',
+    });
 
     const toast = document.getElementById('toastAlert');
     if (toast) setTimeout(() => toast.classList.add('hide'), 4000);
@@ -408,8 +319,21 @@ $result = mysqli_stmt_get_result($stmt);
         document.getElementById('deleteModal').classList.remove('open');
     }
 
-    document.getElementById('deleteConfirmBtn').addEventListener('click', () => {
-        document.getElementById('deleteForm').submit();
+    // Row delete buttons live inside the AJAX-swapped list, so delegate
+    document.getElementById('procListRoot').addEventListener('click', e => {
+        const btn = e.target.closest('[data-delete-id]');
+        if (btn) openDeleteModal(btn.dataset.deleteId, btn.dataset.deleteTitle);
+    });
+
+    // Delete via fetch, then reload in place (keeps filter/page, no history entry)
+    document.getElementById('deleteConfirmBtn').addEventListener('click', function () {
+        this.disabled = true;
+        const form = document.getElementById('deleteForm');
+        const data = new FormData(form);
+        data.append('ajax', '1');
+        fetch('procurement.php' + location.search, { method: 'POST', body: data, credentials: 'same-origin' })
+            .then(() => location.replace(location.href))
+            .catch(() => { form.action = 'procurement.php' + location.search; form.submit(); });
     });
 
     document.getElementById('deleteModal').addEventListener('click', function(e) {

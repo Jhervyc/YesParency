@@ -126,6 +126,67 @@
     overflow-y: auto;
 }
 
+/* ════════════════════════════════
+   MOBILE-FIRST RESPONSIVE
+   (see ../responsive.css for the shared breakpoint set + utilities)
+   ════════════════════════════════ */
+
+/* Phones: each log row becomes a compact card. Module + IP stay in the
+   detail drawer; actor and time move under the description.
+     [icon]  Description ………………… [👁]
+             ACTION_PILL
+             Actor @user        Sep 29, 3:04 PM
+   639px pairs with dashboard.css, which shows .col-mode/.col-status ≥640px. */
+@media (max-width: 639px) {
+    .at-list-table,
+    .at-list-table tbody { display: block; }
+    .at-list-table thead { display: none; }
+
+    .at-list-table tbody tr {
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr) auto auto;
+        grid-template-areas:
+            "icon desc  desc btn"
+            "icon actor time time";
+        gap: 8px 12px;
+        padding: 14px 16px;
+    }
+    .at-list-table td { display: block; padding: 0; }
+
+    .at-list-table .at-icon-col     { grid-area: icon; }
+    .at-list-table .proc-title-cell { grid-area: desc; font-size: 13px; overflow-wrap: anywhere; }
+    .at-list-table .at-view-cell    { grid-area: btn; align-self: start; }
+    .at-list-table .at-view-cell .proc-action-btn {
+        width: 40px; height: 40px; padding: 0; justify-content: center;
+    }
+
+    .at-list-table td.col-mode {
+        display: block; grid-area: actor; align-self: center;
+        overflow: hidden; text-overflow: ellipsis;
+    }
+    .at-list-table td.col-mode strong { display: inline; }
+    .at-list-table td.col-mode .clr-idle { display: none; } /* @username — in the drawer */
+
+    .at-list-table td.col-status {
+        display: block; grid-area: time; align-self: center; text-align: right;
+    }
+    .at-list-table td.col-status br { display: none; }
+    .at-list-table td.col-status .clr-idle::before { content: ' · '; }
+
+    .at-list-table td.col-opening,
+    .at-list-table td.col-abc { display: none !important; }
+
+    /* Stat cards: tighter so two fit side by side on small phones */
+    .ap2-stats-4 .ap2-stat { padding: 12px; gap: 10px; }
+    .ap2-stats-4 .ap2-ring { width: 38px; height: 38px; }
+    .ap2-stats-4 .ap2-ring-inner { width: 28px; height: 28px; font-size: 12px; }
+    .ap2-stats-4 .ap2-stat-num { font-size: 18px; }
+    .ap2-stats-4 .ap2-stat-text { min-width: 0; }
+
+    /* Drawer detail fields: one column so long values (user agent, IDs) read cleanly */
+    .at-drawer-grid { grid-template-columns: 1fr; }
+}
+
 .module-select-wrap select {
     border: 1.5px solid #eaeeec;
     background: #eef2f0;

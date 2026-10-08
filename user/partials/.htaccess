@@ -1,0 +1,14 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# List fragments are only ever included by their page (full load or ?ajax=1).
+# Requested directly they have no context, so block them.
+# ─────────────────────────────────────────────────────────────────────────────
+
+<IfModule mod_authz_core.c>
+    # Apache 2.4+
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    # Apache 2.2 fallback
+    Order deny,allow
+    Deny from all
+</IfModule>

@@ -580,14 +580,14 @@ include("components/topbar.php");
                                            title="Set official expiration date. Leave blank for documents with no expiration.">
 
                                     <button type="submit" class="bp-save-btn">
-                                        <i class="bi bi-check-lg"></i> Save Date
+                                        <i class="bi bi-check-lg"></i> Save
                                     </button>
                                 </form>
 
                                 <!-- Reject Document Button -->
                                 <button type="button" class="bp-reject-doc-btn"
                                         onclick="openRejectDocModal(<?= $doc['document_id'] ?>, '<?= htmlspecialchars(addslashes($docLabel)) ?>')">
-                                    <i class="bi bi-trash3-fill"></i> Reject &amp; Delete File
+                                    <i class="bi bi-trash3-fill"></i> Reject
                                 </button>
                             </div>
                             <?php else: ?>

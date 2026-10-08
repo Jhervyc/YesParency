@@ -1,6 +1,7 @@
 <?php
 include("utils/protect-page.php");
 require_once dirname(__DIR__) . '/config/mediamtx.php';
+include(__DIR__ . "/../includes/pagination.php");
 
 // ── Resolve admin type & manage permission ─────────────────────────────────
 if (!isset($_SESSION['admin_type']) && isset($conn)) {
@@ -147,7 +148,9 @@ if ($params) $cnt->bind_param($types, ...$params);
 $cnt->execute();
 $total_shown = (int)$cnt->get_result()->fetch_row()[0];
 $cnt->close();
-$total_pages = max(1, ceil($total_shown / $per_page));
+$total_pages = max(1, (int)ceil($total_shown / $per_page));
+$page        = min($page, $total_pages);
+$offset      = ($page - 1) * $per_page;
 
 // Main list
 $main = $conn->prepare("
@@ -165,6 +168,12 @@ $mt = $types . 'ii';
 $main->bind_param($mt, ...$mp);
 $main->execute();
 $procs = $main->get_result();
+
+// ── AJAX: return only the list fragment ──────────────────────────────────────
+if (isset($_GET['ajax'])) {
+    include __DIR__ . '/partials/bid-opening-list.php';
+    exit();
+}
 
 // ── Summary stats ──────────────────────────────────────────────────────────
 $stat_total   = (int)$conn->query("SELECT COUNT(*) FROM procurements WHERE status = 'open'")->fetch_row()[0];
@@ -358,12 +367,12 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
         <!-- Search + Filter bar -->
         <div class="filter-bar">
             <form method="GET" action="" id="procFilterForm" class="form-contents">
-                <input type="hidden" name="sort" id="hiddenSort" value="<?= htmlspecialchars($sort) ?>">
                 <div class="ap2-search-field">
                     <i class="bi bi-search"></i>
-                    <input type="text" name="search" placeholder="Search title or ref…" value="<?= htmlspecialchars($search) ?>">
+                    <input type="text" name="search" placeholder="Search title or ref…" value="<?= htmlspecialchars($search) ?>"
+                        enterkeyhint="search" autocomplete="off">
                 </div>
-                <div class="filter-status-group">
+                <div class="filter-status-group filter-chips">
                     <?php
                     $status_tabs = ['all'=>'All','open'=>'Open','closed'=>'Closed'];
                     foreach ($status_tabs as $val => $label):
@@ -375,7 +384,7 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
                     <?php endforeach; ?>
                 </div>
                 <div class="filter-dropdowns">
-                    <select id="sortSelect" onchange="document.getElementById('hiddenSort').value=this.value; document.getElementById('procFilterForm').submit();">
+                    <select id="sortSelect" name="sort">
                         <option value="closing_asc"  <?= $sort==='closing_asc'  ? 'selected':'' ?>>Closing Soonest</option>
                         <option value="closing_desc" <?= $sort==='closing_desc' ? 'selected':'' ?>>Closing Latest</option>
                         <option value="abc_desc"     <?= $sort==='abc_desc'     ? 'selected':'' ?>>ABC: High → Low</option>
@@ -387,113 +396,9 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
             </form>
         </div>
 
-        <?php if ($total_shown === 0): ?>
-        <div class="results-empty">
-            <i class="bi bi-folder2-open results-empty-icon"></i>
-            <div class="results-empty-title">No procurements found<?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>.</div>
+        <div id="openingListRoot" class="ajax-list-root">
+            <?php include __DIR__ . '/partials/bid-opening-list.php'; ?>
         </div>
-        <?php else: ?>
-        <div class="table-scroll">
-            <table class="proc-table">
-                <thead>
-                    <tr>
-                        <th class="col-ref-th">SLSU Ref</th>
-                        <th>Title</th>
-                        <th class="col-mode">Mode</th>
-                        <th class="col-abc">ABC</th>
-                        <th class="col-opening">Opening Date</th>
-                        <th class="col-status">Status</th>
-                        <th class="col-actions-th">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php while ($row = $procs->fetch_assoc()):
-                    $st      = strtolower($row['status'] ?? 'draft');
-                    $stClass = match($st) { 'open'=>'status-open','closed'=>'status-closed','awarded'=>'status-awarded', default=>'status-draft' };
-                    $stLabel = ucfirst($st);
-                ?>
-                <tr>
-                    <td class="proc-ref-cell">
-                        <i class="bi bi-hash hash-icon"></i>
-                        <?= htmlspecialchars($row['slsu_ref_no']) ?>
-                    </td>
-                    <td class="proc-title-cell">
-                        <a href="procurement-view.php?id=<?= $row['id'] ?>">
-                            <?= htmlspecialchars(mb_strimwidth($row['title'], 0, 65, '…')) ?>
-                        </a>
-                        <div class="proc-title-specs">
-                            <i class="bi bi-layers"></i> <?= (int)$row['lot_count'] ?> lot<?= $row['lot_count'] != 1 ? 's' : '' ?>
-                            &nbsp;·&nbsp;
-                            <i class="bi bi-inbox"></i> <?= (int)$row['bid_count'] ?> bid<?= $row['bid_count'] != 1 ? 's' : '' ?>
-                        </div>
-                    </td>
-                    <td class="col-mode">
-                        <span class="proc-mode-tag"><?= htmlspecialchars($row['procurement_mode'] ?? '—') ?></span>
-                    </td>
-                    <td class="proc-abc-cell col-abc">₱<?= number_format((float)$row['abc'], 2) ?></td>
-                    <td class="proc-deadline-cell col-opening">
-                        <?php if (!empty($row['opening_date'])): ?>
-                            <strong><?= date('M j, Y', strtotime($row['opening_date'])) ?></strong>
-                            <?= date('g:i A', strtotime($row['opening_date'])) ?>
-                        <?php else: ?>
-                            <span class="deadline-tba">TBA</span>
-                        <?php endif; ?>
-                    </td>
-                    <td class="col-status">
-                        <span class="proc-status-pill <?= $stClass ?>">
-                            <i class="bi bi-circle-fill status-dot-tiny"></i> <?= $stLabel ?>
-                        </span>
-                    </td>
-                    <td class="col-actions-th">
-                        <div class="actions-row">
-                            <a href="procurement-view.php?id=<?= $row['id'] ?>" class="proc-action-btn btn-view">
-                                <i class="bi bi-eye"></i> View
-                            </a>
-                            <?php if (in_array((int)$row['id'], $scheduled_proc_ids)): ?>
-                            <span class="proc-action-btn proc-action-btn--scheduled">
-                                <i class="bi bi-check-circle-fill clr-forest"></i> Scheduled
-                            </span>
-                            <?php elseif ((int)$row['bid_count'] === 0): ?>
-                            <span class="proc-action-btn proc-action-btn--disabled" title="No bids yet — nothing to open">
-                                <i class="bi bi-calendar-x"></i> No Bids
-                            </span>
-                            <?php elseif ($can_manage): ?>
-                            <a href="schedule_bid_opening.php?procurement=<?= $row['id'] ?>" class="proc-action-btn btn-schedule">
-                                <i class="bi bi-calendar-plus"></i> Schedule
-                            </a>
-                            <?php endif; ?>
-                        </div>
-                    </td>
-                </tr>
-                <?php endwhile; ?>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="table-foot">
-            <div>
-                Showing <?= min($total_shown, $offset+1) ?>–<?= min($total_shown, $offset+$per_page) ?>
-                of <?= number_format($total_shown) ?> procurement<?= $total_shown != 1 ? 's' : '' ?>
-                <?= $search ? ' for "'.htmlspecialchars($search).'"' : '' ?>
-            </div>
-            <?php if ($total_pages > 1):
-                $qs = array_filter(['search'=>$search,'status'=>$status_filter!=='all'?$status_filter:null,'sort'=>$sort!=='closing_asc'?$sort:null]);
-                $qstr = $qs ? '&'.http_build_query($qs) : '';
-            ?>
-            <div class="pagination">
-                <a href="?page=<?= max(1,$page-1) ?><?= $qstr ?>" class="page-link <?= $page<=1?'disabled':'' ?>">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-                <?php for($p=max(1,$page-2); $p<=min($total_pages,$page+2); $p++): ?>
-                <a href="?page=<?= $p ?><?= $qstr ?>" class="page-link <?= $p===$page?'active':'' ?>"><?= $p ?></a>
-                <?php endfor; ?>
-                <a href="?page=<?= min($total_pages,$page+1) ?><?= $qstr ?>" class="page-link <?= $page>=$total_pages?'disabled':'' ?>">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
-            </div>
-            <?php endif; ?>
-        </div>
-        <?php endif; ?>
     </div>
 
 <!-- ── Open Now Confirmation Modal ───────────────────────────────────────── -->
@@ -536,7 +441,14 @@ $stat_sessions= (int)$conn->query("SELECT COUNT(*) FROM bid_opening_sessions")->
 </div>
 </main>
 
+<script src="../js/ajax-list.js"></script>
 <script>
+    AjaxList.init({
+        root:     '#openingListRoot',
+        form:     '#procFilterForm',
+        endpoint: 'bid_opening.php',
+    });
+
     const toast = document.getElementById('toastAlert');
     if (toast) setTimeout(() => toast.classList.add('hide'), 4000);
 </script>
