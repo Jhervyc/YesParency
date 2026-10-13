@@ -484,3 +484,392 @@
 
 /* ── Modal scroll container ── */
 .modal-scroll{max-height:70vh;overflow-y:auto}
+
+/* ==========================================================================
+   FLOATING STREAM WIDGET  (.fsw-*)
+   Fixed bottom-right, minimizable to a pill, no close button.
+   Mobile: collapses to a 64×64 thumbnail square.
+   ========================================================================== */
+
+/* ── Widget container ── */
+.fsw-widget {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    width: 320px;
+    background: #0f2318;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.3);
+    display: flex;
+    flex-direction: column;
+    /* overflow visible so pill is not clipped when minimized */
+    transition: width .25s ease, height .25s ease, border-radius .25s ease;
+}
+
+/* ── Header bar ── */
+.fsw-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px 0 12px;
+    height: 36px;
+    flex-shrink: 0;
+    background: #06251b;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    cursor: default;
+}
+
+.fsw-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #d1fae5;
+    font-family: 'Poppins', sans-serif;
+}
+
+.fsw-title .bi-broadcast { color: #ffc107; font-size: 13px; }
+
+/* Live pulse dot */
+.fsw-live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #dc2626;
+    opacity: 0;
+    transition: opacity .3s;
+}
+.fsw-widget.fsw-stream-live .fsw-live-dot {
+    opacity: 1;
+    animation: fswPulse 2s infinite;
+}
+@keyframes fswPulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── Buttons ── */
+.fsw-btn {
+    background: rgba(255,255,255,.07);
+    border: none;
+    color: #a8c5ae;
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    flex-shrink: 0;
+    font-family: 'Poppins', sans-serif;
+}
+.fsw-btn:hover { background: rgba(255,255,255,.14); color: #fff; }
+
+/* ── Video body ── */
+.fsw-body {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    flex-shrink: 0;
+}
+
+.fsw-body iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
+/* ── Offline state ── */
+.fsw-offline {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: #0b1812;
+}
+
+.fsw-offline-icon { font-size: 28px; color: #1f3828; }
+.fsw-offline-text { font-size: 12px; font-weight: 700; color: #3a5a44; font-family: 'Poppins', sans-serif; }
+.fsw-offline-sub  { font-size: 10.5px; color: #2a4232; font-family: 'Poppins', sans-serif; }
+
+/* ── Pill (shown when minimized on desktop) ── */
+.fsw-pill {
+    display: none; /* hidden by default — shown via .fsw-minimized */
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    color: #d1fae5;
+    font-family: 'Poppins', sans-serif;
+    background: #06251b;
+    border-radius: 14px;
+    transition: background .15s;
+    user-select: none;
+}
+.fsw-pill:hover { background: #0c3d2c; }
+.fsw-pill .bi-broadcast { color: #ffc107; font-size: 13px; }
+.fsw-pill-label { flex: 1; }
+.fsw-pill-chevron { font-size: 11px; color: #88968d; }
+
+/* ── MINIMIZED state (desktop) ──
+   Widget shrinks to just the pill; header and body are hidden.
+   The pill itself controls width/height via its own padding and height. */
+.fsw-widget.fsw-minimized {
+    width: auto;
+    min-width: 0;
+    border-radius: 24px;
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+.fsw-widget.fsw-minimized .fsw-header { display: none; }
+.fsw-widget.fsw-minimized .fsw-body   { display: none; }
+.fsw-widget.fsw-minimized .fsw-pill   { display: flex; border-radius: 24px; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+
+/* ==========================================================================
+   MOBILE — ≤ 768px
+   Widget collapses to a 64×64px square thumbnail.
+   Tap to expand into a taller overlay-style player.
+   ========================================================================== */
+@media (max-width: 768px) {
+
+    .fsw-widget {
+        width: 64px;
+        bottom: 16px;
+        right: 16px;
+        border-radius: 14px;
+        box-shadow: 0 4px 18px rgba(0,0,0,.5);
+    }
+
+    /* On mobile the default state IS the thumbnail — hide the full UI */
+    .fsw-widget .fsw-header { display: none; }
+    .fsw-widget .fsw-body   { display: none; }
+    .fsw-widget .fsw-pill   { display: none; }
+
+    /* Thumbnail face — always visible */
+    .fsw-widget::before {
+        content: '';
+        display: block;
+        width: 64px;
+        height: 64px;
+    }
+
+    /* Thumbnail icon overlay */
+    .fsw-widget::after {
+        content: '\F1D6'; /* Bootstrap Icons: broadcast (U+F1D6) */
+        font-family: 'bootstrap-icons';
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        color: #ffc107;
+        background: #06251b;
+        border-radius: 14px;
+        cursor: pointer;
+        pointer-events: none;
+    }
+
+    /* Tappable overlay on the whole widget to expand */
+    .fsw-widget { cursor: pointer; position: fixed; }
+
+    /* ── EXPANDED on mobile (.fsw-mob-expanded added by JS) ── */
+    .fsw-widget.fsw-mob-expanded {
+        width: calc(100vw - 24px);
+        right: 12px;
+        bottom: 12px;
+        cursor: default;
+        border-radius: 14px;
+    }
+    .fsw-widget.fsw-mob-expanded::before { display: none; }
+    .fsw-widget.fsw-mob-expanded::after  { display: none; }
+    .fsw-widget.fsw-mob-expanded .fsw-header { display: flex; }
+    .fsw-widget.fsw-mob-expanded .fsw-body   { display: block; }
+
+    /* Minimized on mobile re-uses fsw-minimized → back to thumbnail */
+    .fsw-widget.fsw-minimized { width: 64px; border-radius: 14px; }
+    .fsw-widget.fsw-minimized .fsw-header { display: none; }
+    .fsw-widget.fsw-minimized .fsw-body   { display: none; }
+    .fsw-widget.fsw-minimized .fsw-pill   { display: none; }
+    .fsw-widget.fsw-minimized::after      { display: flex; }
+    .fsw-widget.fsw-minimized::before     { display: block; }
+}
+
+/* ==========================================================================
+   ADMIN LIVE CHAT  (.sb-panel--chat, admin chat overrides)
+   Replaces the "Chat coming soon" placeholder inside the right sb-panel.
+   ========================================================================== */
+
+/* Make the chat sb-panel taller and flex-column */
+.sb-panel--chat {
+    display: flex;
+    flex-direction: column;
+    max-height: 420px;
+    min-height: 260px;
+}
+
+/* Scrollable message area */
+.admin-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 12px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    scroll-behavior: smooth;
+}
+
+.admin-chat-messages::-webkit-scrollbar { width: 3px; }
+.admin-chat-messages::-webkit-scrollbar-track { background: transparent; }
+.admin-chat-messages::-webkit-scrollbar-thumb { background: #e0e8e4; border-radius: 2px; }
+
+/* Empty state */
+.admin-chat-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #c7d2cb;
+    font-size: 12px;
+    text-align: center;
+    padding: 20px;
+    font-family: 'Poppins', sans-serif;
+}
+.admin-chat-empty i { font-size: 28px; }
+
+/* Message row */
+.admin-chat-msg {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+/* Avatar */
+.admin-chat-av {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: #e0ece4;
+    color: #06251b;
+    font-size: 10px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    /* overflow visible so pill is not clipped when minimized */
+    font-family: 'Poppins', sans-serif;
+}
+.admin-chat-av img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Bubble */
+.admin-chat-bubble {
+    background: #f4f8f5;
+    border: 1px solid #eaeeec;
+    border-radius: 0 9px 9px 9px;
+    padding: 7px 10px;
+    flex: 1;
+    min-width: 0;
+}
+.admin-bubble-name { font-size: 10.5px; font-weight: 800; color: #06251b; margin-bottom: 2px; }
+.admin-bubble-text { font-size: 12px; color: #374151; line-height: 1.45; word-break: break-word; }
+.admin-bubble-time { font-size: 10px; color: #88968d; margin-top: 3px; }
+
+/* View-only notice bar */
+.admin-chat-notice {
+    padding: 9px 14px;
+    border-top: 1px solid #f0f4f2;
+    background: #fafcfb;
+    font-size: 11.5px;
+    color: #88968d;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    font-family: 'Poppins', sans-serif;
+}
+.admin-chat-notice i { color: #a8c5ae; font-size: 13px; }
+
+/* ==========================================================================
+   FLOATING WIDGET — FULLSCREEN STATE
+   When .fsw-body, #fswIframe, or .fsw-widget is the fullscreen element,
+   ensure the video fills the screen, has top z-index, and no page content overlaps.
+   ========================================================================== */
+.fsw-body:fullscreen,
+.fsw-body:-webkit-full-screen,
+#fswIframe:fullscreen,
+#fswIframe:-webkit-full-screen,
+.fsw-widget:fullscreen,
+.fsw-widget:-webkit-full-screen {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    background: #000 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 2147483647 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#fswIframe:fullscreen,
+#fswIframe:-webkit-full-screen {
+    display: block !important;
+}
+
+.fsw-body:fullscreen iframe,
+.fsw-body:-webkit-full-screen iframe,
+.fsw-widget:fullscreen iframe,
+.fsw-widget:-webkit-full-screen iframe {
+    position: absolute !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    display: block !important;
+}
+
+.fsw-widget:fullscreen .fsw-header,
+.fsw-widget:-webkit-full-screen .fsw-header,
+.fsw-widget:fullscreen .fsw-pill,
+.fsw-widget:-webkit-full-screen .fsw-pill {
+    display: none !important;
+}
+
+.fsw-widget:fullscreen .fsw-body,
+.fsw-widget:-webkit-full-screen .fsw-body {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+}
+
+/* Ensure container elevation when any descendant is fullscreen */
+.fsw-widget:has(:fullscreen),
+.fsw-widget:has(:-webkit-full-screen) {
+    z-index: 2147483647 !important;
+}

@@ -1,5 +1,6 @@
 <?php
 include("utils/protect-page.php");
+require_once dirname(__DIR__) . '/config/mediamtx.php';
 
 if (!isset($_SESSION['admin_type']) && isset($conn)) {
     $at = $conn->prepare("SELECT admin_type FROM admin_roles WHERE user_id = ?");
@@ -33,6 +34,10 @@ $ss->execute();
 $session = $ss->get_result()->fetch_assoc();
 $ss->close();
 if (!$session) { header("Location: bid_opening.php"); exit(); }
+
+// ── Stream URL ─────────────────────────────────────────────────────────────
+$stream_path = $session['stream_path'] ?? mediamtx_default_path();
+$stream_url  = mediamtx_url($stream_path);
 
 // ── Invited-only access guard ──────────────────────────────────────────────
 // Superadmin and SECRETARIAT always have access.
@@ -420,9 +425,17 @@ $inv_res->close();
 <!-- ════ RIGHT ════ -->
 <div class="flexcol gap-4">
 
-<div class="sb-panel">
-    <div class="sb-head"><i class="bi bi-chat-dots-fill t-gold"></i> Live Chat</div>
-    <div class="chat-ph"><i class="bi bi-chat-square-dots"></i><span>Chat coming soon</span></div>
+<div class="sb-panel sb-panel--chat">
+    <div class="sb-head">
+        <i class="bi bi-chat-dots-fill t-gold"></i> Live Chat
+        <span class="count-badge" id="adminChatCount">0</span>
+    </div>
+    <div class="admin-chat-messages" id="adminChatMessages">
+        <div class="admin-chat-empty" id="adminChatEmpty">
+            <i class="bi bi-chat-square-dots"></i>
+            <span>No messages yet.</span>
+        </div>
+    </div>
 </div>
 
 <div class="sb-panel">
@@ -755,6 +768,8 @@ $inv_res->close();
 const SESSION_ID     = <?= (int)$session_id ?>;
 const PROC_ID        = <?= (int)$proc_id ?>;
 const CAN_MANAGE     = <?= $can_manage ? 'true' : 'false' ?>;
+const STREAM_PATH    = <?= json_encode($stream_path) ?>;
+const STREAM_URL     = <?= json_encode($stream_url) ?>;
 const PROC_TYPE      = '<?= htmlspecialchars($session['procurement_type'] ?? 'goods_services') ?>';
 const IS_BAC         = <?= ($admin_type === 'BAC') ? 'true' : 'false' ?>;
 const ADMIN_TYPE     = '<?= htmlspecialchars($admin_type) ?>';
@@ -2668,6 +2683,8 @@ function startRealtimeSync(){
     });
 
     _rt.channel = _rt.pusher.subscribe('session-' + SESSION_ID);
+    // Expose channel for the admin chat IIFE so it can bind chat_message
+    window._adminPusherChannel = _rt.channel;
 
     const events = [
         'session_started', 'phase_changed', 'lot_changed', 'session_ended',
@@ -2761,7 +2778,356 @@ document.addEventListener('DOMContentLoaded', ()=>{
         }
     }
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FLOATING STREAM WIDGET
+// Runs after DOMContentLoaded so getElementById never returns null.
+// Fixes: minimize/expand, stream offline detection, + drag support.
+// ═══════════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function () {
+    const widget  = document.getElementById('floatStreamWidget');
+    const iframe  = document.getElementById('fswIframe');
+    const offline = document.getElementById('fswOffline');
+    if (!widget || !iframe) return;
+
+    const isMobile = () => window.innerWidth <= 768;
+    let isStreamLive            = false;
+    let consecutiveOfflineCount = 0;
+    let pendingOnlineTimeout    = null;
+
+    // ── Resilient Iframe Loader / Reloader ────────────────────────────────
+    window.reloadFSWStream = function () {
+        if (!STREAM_URL) return;
+        iframe.src = 'about:blank';
+        setTimeout(() => {
+            if (isStreamLive) {
+                iframe.src = STREAM_URL;
+            }
+        }, 150);
+    };
+
+    function applyStreamOnline() {
+        if (isStreamLive) return;
+        isStreamLive = true;
+        consecutiveOfflineCount = 0;
+        offline.style.display = 'none';
+
+        // Brief 1s buffer before injecting iframe src when first coming online:
+        // Ensures MediaMTX has finished writing the initial HLS video chunks,
+        // preventing the player from failing on an empty playlist (gray screen).
+        if (pendingOnlineTimeout) clearTimeout(pendingOnlineTimeout);
+        pendingOnlineTimeout = setTimeout(() => {
+            if (!isStreamLive) return;
+            iframe.src           = STREAM_URL;
+            iframe.style.display = 'block';
+            widget.classList.add('fsw-stream-live');
+        }, 1000);
+    }
+
+    function applyStreamOffline() {
+        if (!isStreamLive) return;
+        isStreamLive = false;
+        if (pendingOnlineTimeout) clearTimeout(pendingOnlineTimeout);
+        iframe.style.display   = 'none';
+        iframe.src             = 'about:blank';
+        offline.style.display = 'flex';
+        widget.classList.remove('fsw-stream-live');
+    }
+
+    // ── Continuous Stream Health Heartbeat ────────────────────────────────
+    // Keeps polling so that when OBS starts or stops, the UI automatically
+    // adapts without requiring a full browser page reload.
+    function checkStream() {
+        if (!STREAM_PATH) return;
+        fetch('../stream_health.php?path=' + encodeURIComponent(STREAM_PATH))
+            .then(r => r.json())
+            .then(d => {
+                if (d.online) {
+                    consecutiveOfflineCount = 0;
+                    if (!isStreamLive) {
+                        applyStreamOnline();
+                    }
+                } else {
+                    if (isStreamLive) {
+                        consecutiveOfflineCount++;
+                        // Require 2 consecutive failed pings (~10s) before declaring offline
+                        // to prevent minor network hiccups from flickering the stream
+                        if (consecutiveOfflineCount >= 2) {
+                            applyStreamOffline();
+                        }
+                    }
+                }
+            })
+            .catch(() => {
+                if (isStreamLive) {
+                    consecutiveOfflineCount++;
+                    if (consecutiveOfflineCount >= 2) {
+                        applyStreamOffline();
+                    }
+                }
+            });
+    }
+
+    // Clicking offline placeholder triggers an instant check & retry
+    if (offline) {
+        offline.style.cursor = 'pointer';
+        offline.title = 'Click to re-check stream';
+        offline.addEventListener('click', checkStream);
+    }
+
+    // Initial check + continuous 5-second heartbeat
+    checkStream();
+    setInterval(checkStream, 5000);
+
+    // ── Helper: release drag anchoring so CSS right/bottom takes over ─────
+    function snapToBottomRight() {
+        widget.style.left   = '';
+        widget.style.top    = '';
+        widget.style.right  = '';
+        widget.style.bottom = '';
+    }
+
+    // ── Fullscreen state tracking ─────────────────────────────────────────
+    // Protects widget from collapsing when the user uses the iframe's fullscreen button.
+    let isFullscreenActive   = false;
+    let justExitedFullscreen = false;
+
+    function onFsChange() {
+        const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        if (isFs) {
+            widget.classList.remove('fsw-minimized');
+        } else if (isFullscreenActive) {
+            justExitedFullscreen = true;
+            setTimeout(() => { justExitedFullscreen = false; }, 400);
+        }
+        isFullscreenActive = isFs;
+    }
+
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+
+    // ── Minimize / expand ─────────────────────────────────────────────────
+    window.toggleFSW = function () {
+        if (isMobile()) {
+            widget.classList.toggle('fsw-mob-expanded');
+        } else {
+            widget.classList.toggle('fsw-minimized');
+            // Whether minimizing or expanding, snap to bottom-right corner
+            // so the widget is always anchored there regardless of drag position.
+            snapToBottomRight();
+        }
+    };
+
+    // Mobile: tap thumbnail (whole widget when not expanded) to expand
+    widget.addEventListener('click', function (e) {
+        if (!isMobile()) return;
+        if (e.target.closest('.fsw-minimize-btn, .fsw-fullscreen-btn')) return;
+        if (!widget.classList.contains('fsw-mob-expanded')) {
+            widget.classList.add('fsw-mob-expanded');
+        }
+    });
+
+    // On resize: minimize and snap to bottom-right.
+    // This prevents the feed from vanishing when stale drag pixel coordinates
+    // become out-of-bounds for the new viewport dimensions.
+    // NOTE: Ignore resize events fired due to entering or exiting fullscreen!
+    window.addEventListener('resize', function () {
+        if (document.fullscreenElement || document.webkitFullscreenElement || justExitedFullscreen) {
+            return;
+        }
+        snapToBottomRight();
+        if (isMobile()) {
+            widget.classList.remove('fsw-mob-expanded');
+        } else {
+            widget.classList.add('fsw-minimized');
+        }
+    });
+
+    // ── Drag (desktop only, pointer events) ──────────────────────────────
+    const dragHandle = widget.querySelector('.fsw-header');
+    if (dragHandle) {
+        dragHandle.style.cursor = 'grab';
+        let dragging = false, offX = 0, offY = 0;
+
+        dragHandle.addEventListener('pointerdown', function (e) {
+            if (e.target.closest('button')) return;
+            if (isMobile()) return;
+            dragging = true;
+            dragHandle.style.cursor = 'grabbing';
+            const r = widget.getBoundingClientRect();
+            // Convert from right/bottom anchoring to left/top for free movement
+            widget.style.right  = 'auto';
+            widget.style.bottom = 'auto';
+            widget.style.left   = r.left + 'px';
+            widget.style.top    = r.top  + 'px';
+            offX = e.clientX - r.left;
+            offY = e.clientY - r.top;
+            widget.setPointerCapture(e.pointerId);
+            e.preventDefault();
+        });
+
+        widget.addEventListener('pointermove', function (e) {
+            if (!dragging) return;
+            const x = Math.max(0, Math.min(e.clientX - offX, window.innerWidth  - widget.offsetWidth));
+            const y = Math.max(0, Math.min(e.clientY - offY, window.innerHeight - widget.offsetHeight));
+            widget.style.left = x + 'px';
+            widget.style.top  = y + 'px';
+        });
+
+        widget.addEventListener('pointerup', function () {
+            if (!dragging) return;
+            dragging = false;
+            dragHandle.style.cursor = 'grab';
+        });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ADMIN LIVE CHAT  (view-only, Pusher + 30s fallback polling)
+// ═══════════════════════════════════════════════════════════════════════════
+(function () {
+    const chatEl    = document.getElementById('adminChatMessages');
+    const emptyEl   = document.getElementById('adminChatEmpty');
+    const countEl   = document.getElementById('adminChatCount');
+    let lastId      = 0;
+    let msgCount    = 0;
+
+    // ── Escape HTML helper (reuse esc() if defined, else own copy) ────────
+    function escChat(s) {
+        const d = document.createElement('div');
+        d.textContent = String(s ?? '');
+        return d.innerHTML;
+    }
+
+    // ── Time-ago helper ───────────────────────────────────────────────────
+    function timeAgo(iso) {
+        const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+        if (diff < 60)    return 'Just now';
+        if (diff < 3600)  return Math.floor(diff / 60) + 'm ago';
+        if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+        const d = new Date(iso);
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    // ── Append one message bubble ─────────────────────────────────────────
+    function appendMsg(c) {
+        if (!chatEl) return;
+        // Deduplicate
+        if (c.id && chatEl.querySelector('[data-msg-id="' + c.id + '"]')) return;
+
+        // Remove empty state
+        if (emptyEl && emptyEl.parentNode) emptyEl.remove();
+
+        const initials = ((c.firstname || '').charAt(0) + (c.lastname || '').charAt(0)).toUpperCase() || '?';
+        const avatarHtml = c.profile_picture_url
+            ? '<img src="' + escChat(c.profile_picture_url) + '" alt="">'
+            : escChat(initials);
+
+        const row = document.createElement('div');
+        row.className = 'admin-chat-msg';
+        if (c.id) row.setAttribute('data-msg-id', c.id);
+        row.innerHTML =
+            '<div class="admin-chat-av">' + avatarHtml + '</div>' +
+            '<div class="admin-chat-bubble">' +
+                '<div class="admin-bubble-name">@' + escChat(c.username) + '</div>' +
+                '<div class="admin-bubble-text">' + escChat(c.comment) + '</div>' +
+                '<div class="admin-bubble-time">' + escChat(c.time_ago || timeAgo(c.created_at)) + '</div>' +
+            '</div>';
+
+        chatEl.appendChild(row);
+        msgCount++;
+
+        // Update count badge
+        if (countEl) countEl.textContent = msgCount;
+
+        // Auto-scroll if near bottom (within 120px)
+        const nearBottom = (chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight) < 120;
+        if (nearBottom) chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    // ── Fetch messages from API ───────────────────────────────────────────
+    function fetchMessages(after) {
+        if (!SESSION_ID) return;
+        fetch('../live_chat_api.php?action=fetch&session_id=' + SESSION_ID + '&after=' + after)
+            .then(r => r.json())
+            .then(d => {
+                (d.comments || []).forEach(c => {
+                    if (c.id > lastId) lastId = parseInt(c.id);
+                    appendMsg(c);
+                });
+            })
+            .catch(() => {});
+    }
+
+    // ── Initial load — fetch last messages on page ready ─────────────────
+    fetchMessages(0);
+
+    // ── Pusher: bind chat_message on the already-subscribed channel ───────
+    // The channel 'session-{SESSION_ID}' is subscribed by the existing
+    // Pusher block above. We hook into the same pusher instance via a
+    // deferred binding so this IIFE doesn't need a reference to it.
+    // We use a small retry loop in case Pusher hasn't subscribed yet.
+    let pusherBindAttempts = 0;
+    function bindPusherChat() {
+        if (typeof Pusher === 'undefined') return;
+        // Walk all Pusher instances on window (the existing block assigns to
+        // a local var, so we look for the global connection object instead).
+        // The simplest cross-scope approach: use a shared registry.
+        if (window._adminPusherChannel) {
+            window._adminPusherChannel.bind('chat_message', function (data) {
+                if (!data || !data.comment) return;
+                if (data.id) lastId = Math.max(lastId, parseInt(data.id));
+                appendMsg(data);
+            });
+        } else if (pusherBindAttempts < 20) {
+            pusherBindAttempts++;
+            setTimeout(bindPusherChat, 300);
+        }
+    }
+    bindPusherChat();
+
+    // ── 30-second fallback polling (catches missed Pusher events) ─────────
+    setInterval(function () {
+        fetchMessages(lastId);
+    }, 30000);
+
+})();
 </script>
+
+<!-- ══ FLOATING STREAM WIDGET ══════════════════════════════════════════════ -->
+<div id="floatStreamWidget" class="fsw-widget">
+
+    <!-- ── Expanded: header bar ── -->
+    <div class="fsw-header" id="fswHeader">
+        <span class="fsw-title">
+            <i class="bi bi-broadcast"></i>
+            <span id="fswTitleText">Live Stream</span>
+            <span class="fsw-live-dot" id="fswLiveDot"></span>
+        </span>
+        <button class="fsw-btn fsw-minimize-btn" id="fswMinimizeBtn" onclick="toggleFSW()" title="Minimize">
+            <i class="bi bi-dash-lg"></i>
+        </button>
+    </div>
+
+    <!-- ── Expanded: video body ── -->
+    <div class="fsw-body" id="fswBody">
+        <iframe id="fswIframe" allow="autoplay; fullscreen" allowfullscreen style="display:none;"></iframe>
+        <div id="fswOffline" class="fsw-offline">
+            <i class="bi bi-broadcast fsw-offline-icon"></i>
+            <span class="fsw-offline-text">Stream offline</span>
+            <span class="fsw-offline-sub">Waiting for signal…</span>
+        </div>
+    </div>
+
+    <!-- ── Minimized pill (desktop) / thumbnail trigger (mobile) ── -->
+    <div class="fsw-pill" id="fswPill" onclick="toggleFSW()">
+        <i class="bi bi-broadcast"></i>
+        <span class="fsw-pill-label">Live Stream</span>
+        <i class="bi bi-chevron-up fsw-pill-chevron"></i>
+    </div>
+
+</div>
+<!-- /FLOATING STREAM WIDGET -->
 
 </body>
 </html>

@@ -1016,30 +1016,65 @@ if (IS_LIVE) {
     (function () {
         const waitingEl = document.getElementById('streamWaitingState');
         const iframeEl  = document.getElementById('liveStreamIframe');
-        let confirmedOnline = false;
+        let isStreamLive            = false;
+        let consecutiveOfflineCount = 0;
+        let pendingOnlineTimeout    = null;
+
+        function applyOnline() {
+            if (isStreamLive) return;
+            isStreamLive = true;
+            consecutiveOfflineCount = 0;
+            if (waitingEl) waitingEl.style.display = 'none';
+
+            // Brief 1s buffer before injecting iframe src:
+            // Prevents requesting the HLS playlist before MediaMTX finishes the first .ts segment
+            if (pendingOnlineTimeout) clearTimeout(pendingOnlineTimeout);
+            pendingOnlineTimeout = setTimeout(() => {
+                if (!isStreamLive) return;
+                if (iframeEl) {
+                    iframeEl.src           = STREAM_URL;
+                    iframeEl.style.display = '';
+                }
+            }, 1000);
+        }
+
+        function applyOffline() {
+            if (!isStreamLive) return;
+            isStreamLive = false;
+            if (pendingOnlineTimeout) clearTimeout(pendingOnlineTimeout);
+            if (iframeEl) {
+                iframeEl.style.display = 'none';
+                iframeEl.src           = 'about:blank';
+            }
+            if (waitingEl) waitingEl.style.display = 'flex';
+        }
 
         function checkStream() {
-            if (confirmedOnline) return;
+            if (!STREAM_PATH) return;
             fetch('stream_health.php?path=' + encodeURIComponent(STREAM_PATH))
                 .then(r => r.json())
                 .then(data => {
                     if (data.online) {
-                        confirmedOnline = true;
-                        if (iframeEl) {
-                            iframeEl.src = STREAM_URL;
-                            iframeEl.style.display = '';
+                        consecutiveOfflineCount = 0;
+                        if (!isStreamLive) applyOnline();
+                    } else {
+                        if (isStreamLive) {
+                            consecutiveOfflineCount++;
+                            if (consecutiveOfflineCount >= 2) applyOffline();
                         }
-                        if (waitingEl) waitingEl.style.display = 'none';
                     }
                 })
-                .catch(() => {}); // stay in waiting state, retry on next poll
+                .catch(() => {
+                    if (isStreamLive) {
+                        consecutiveOfflineCount++;
+                        if (consecutiveOfflineCount >= 2) applyOffline();
+                    }
+                });
         }
 
         checkStream();
-        const pollTimer = setInterval(() => {
-            if (confirmedOnline) { clearInterval(pollTimer); return; }
-            checkStream();
-        }, 5000);
+        // Continuous 5s heartbeat keeps live feed synced without requiring manual page reload
+        setInterval(checkStream, 5000);
     })();
 }
 
