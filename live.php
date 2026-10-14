@@ -386,6 +386,46 @@ body {
     border: none;
 }
 
+.video-reconnect-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 5;
+    background: rgba(6, 37, 27, 0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #e2ede6;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'Poppins', sans-serif;
+    padding: 4px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.15s, opacity 0.15s, transform 0.1s;
+    opacity: 0.85;
+}
+.video-reconnect-btn:hover {
+    background: rgba(12, 61, 44, 0.95);
+    opacity: 1;
+    color: #fff;
+    transform: translateY(-1px);
+}
+.video-reconnect-btn:active {
+    transform: translateY(0);
+}
+.live-spin {
+    animation: liveSpin .6s linear infinite;
+    display: inline-block;
+}
+@keyframes liveSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 .video-offline {
     position: absolute;
     inset: 0;
@@ -833,6 +873,9 @@ body {
                     <p>Waiting for the live signal. This updates automatically once the stream is online.</p>
                 </div>
                 <iframe id="liveStreamIframe" allow="autoplay; fullscreen" allowfullscreen style="display:none;"></iframe>
+                <button type="button" class="video-reconnect-btn" id="videoReconnectBtn" onclick="reloadLiveStream(event)" style="display:none;" title="Click if stream is buffering or stuck">
+                    <i class="bi bi-arrow-clockwise" id="liveReconnectIcon"></i> Reconnect
+                </button>
             <?php else: ?>
                 <div class="video-offline" id="videoOfflineState">
                     <i class="bi bi-broadcast"></i>
@@ -935,7 +978,7 @@ body {
     <!-- ── RIGHT COLUMN: CHAT ── -->
     <div class="chat-col">
         <div class="chat-head">
-            <div class="chat-head-title"><i class="bi bi-chat-dots-fill"></i> Live Chat</div>
+            <div class="chat-head-title"><i class="bi bi-chat-dots-fill"></i> <span id="chatHeadTitleText"><?= $is_ended ? 'History Chat' : 'Live Chat' ?></span></div>
             <span class="chat-count" id="chatCount"><?= count($comments) ?></span>
         </div>
 
@@ -1014,11 +1057,32 @@ const STREAM_URL     = <?= json_encode($stream_url) ?>;
 // pointing the iframe straight at the host:port and hoping it's up.
 if (IS_LIVE) {
     (function () {
-        const waitingEl = document.getElementById('streamWaitingState');
-        const iframeEl  = document.getElementById('liveStreamIframe');
+        const waitingEl   = document.getElementById('streamWaitingState');
+        const iframeEl    = document.getElementById('liveStreamIframe');
+        const reconnectBtn= document.getElementById('videoReconnectBtn');
         let isStreamLive            = false;
         let consecutiveOfflineCount = 0;
         let pendingOnlineTimeout    = null;
+
+        // ── Manual reconnect trigger ─────────────────────────────────────────
+        window.reloadLiveStream = function (e) {
+            if (e && e.stopPropagation) e.stopPropagation();
+            const icon = document.getElementById('liveReconnectIcon');
+            if (icon) icon.classList.add('live-spin');
+
+            checkStream();
+
+            if (iframeEl && STREAM_URL) {
+                iframeEl.src = 'about:blank';
+                setTimeout(() => {
+                    iframeEl.src           = STREAM_URL;
+                    iframeEl.style.display = '';
+                    if (waitingEl) waitingEl.style.display = 'none';
+                    if (reconnectBtn) reconnectBtn.style.display = 'inline-flex';
+                    if (icon) setTimeout(() => icon.classList.remove('live-spin'), 600);
+                }, 150);
+            }
+        };
 
         function applyOnline() {
             if (isStreamLive) return;
@@ -1035,6 +1099,7 @@ if (IS_LIVE) {
                     iframeEl.src           = STREAM_URL;
                     iframeEl.style.display = '';
                 }
+                if (reconnectBtn) reconnectBtn.style.display = 'inline-flex';
             }, 1000);
         }
 
@@ -1046,6 +1111,7 @@ if (IS_LIVE) {
                 iframeEl.style.display = 'none';
                 iframeEl.src           = 'about:blank';
             }
+            if (reconnectBtn) reconnectBtn.style.display = 'none';
             if (waitingEl) waitingEl.style.display = 'flex';
         }
 
@@ -1227,6 +1293,15 @@ function updateStageUI(status) {
         badge.innerHTML = live ? '<span class="live-dot"></span> LIVE'
                         : ended ? '<i class="bi bi-check2-all"></i> Ended'
                         : '<i class="bi bi-clock"></i> Scheduled';
+    }
+
+    if (status === 'ended') {
+        const chatTitle = document.getElementById('chatHeadTitleText');
+        if (chatTitle) chatTitle.textContent = 'History Chat';
+        const iframeEl = document.getElementById('liveStreamIframe');
+        if (iframeEl) { iframeEl.src = 'about:blank'; iframeEl.style.display = 'none'; }
+        const reconnectBtn = document.getElementById('videoReconnectBtn');
+        if (reconnectBtn) reconnectBtn.style.display = 'none';
     }
 }
 

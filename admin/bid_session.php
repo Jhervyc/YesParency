@@ -427,7 +427,7 @@ $inv_res->close();
 
 <div class="sb-panel sb-panel--chat">
     <div class="sb-head">
-        <i class="bi bi-chat-dots-fill t-gold"></i> Live Chat
+        <i class="bi bi-chat-dots-fill t-gold"></i> <span id="adminChatTitle"><?= ($st === 'ended') ? 'History Chat' : 'Live Chat' ?></span>
         <span class="count-badge" id="adminChatCount">0</span>
     </div>
     <div class="admin-chat-messages" id="adminChatMessages">
@@ -834,6 +834,7 @@ function refreshSessionProgressFromDB(){
                 actEl.textContent = 'Recording offered bid amounts before concluding the session.';
             } else if(data.status === 'ended'){
                 actEl.textContent = 'Bid Opening Session officially concluded and archived.';
+                if(typeof applySessionConcludedUI === 'function') applySessionConcludedUI();
             }
         }
 
@@ -2087,6 +2088,20 @@ function openEndSessionModal(){
 }
 function closeEndSessionModal(){ document.getElementById('endSessionModal').classList.remove('open'); _catchUpAfterModal(); }
 
+function applySessionConcludedUI(){
+    SESSION_STATUS = 'ended';
+    // 1. Remove floating stream widget and unbind stream
+    const widget = document.getElementById('floatStreamWidget');
+    if(widget){
+        const iframe = document.getElementById('fswIframe');
+        if(iframe) iframe.src = 'about:blank';
+        widget.remove();
+    }
+    // 2. Change Live Chat to History Chat
+    const chatTitle = document.getElementById('adminChatTitle');
+    if(chatTitle) chatTitle.textContent = 'History Chat';
+}
+
 function doEndSession(){
     const btn = document.getElementById('endSessionConfirmBtn');
     btn.disabled = true;
@@ -2101,7 +2116,7 @@ function doEndSession(){
         btn.innerHTML = '<i class="bi bi-check2-circle"></i> Yes, End Session';
         if(!d.success){ alert(d.message||'Failed to end session.'); return; }
         closeEndSessionModal();
-        SESSION_STATUS = 'ended';
+        applySessionConcludedUI();
         stopPolling(); // session concluded — no more polling needed
         // Unlock conclusion tab, navigate to conclusion
         const cTab = document.getElementById('mtab-conclusion');
@@ -2504,6 +2519,7 @@ function _handleProgressUpdate(data){
     // Session ended
     if(data.status === 'ended' && SESSION_STATUS !== 'ended'){
         SESSION_STATUS = 'ended';
+        applySessionConcludedUI();
         stopRealtimeSync();
         refreshSessionProgressFromDB();
         // Viewers who didn't trigger the end themselves (BAC/TWG watching the
@@ -2796,13 +2812,22 @@ document.addEventListener('DOMContentLoaded', function () {
     let pendingOnlineTimeout    = null;
 
     // ── Resilient Iframe Loader / Reloader ────────────────────────────────
-    window.reloadFSWStream = function () {
+    window.reloadFSWStream = function (e) {
+        if (e && e.stopPropagation) e.stopPropagation();
         if (!STREAM_URL) return;
+        const icon = document.getElementById('fswRefreshIcon');
+        if (icon) icon.classList.add('fsw-spinning');
+
+        // Check health endpoint immediately
+        checkStream();
+
+        // Briefly unbind and reload iframe src
         iframe.src = 'about:blank';
         setTimeout(() => {
-            if (isStreamLive) {
-                iframe.src = STREAM_URL;
-            }
+            iframe.src = STREAM_URL;
+            iframe.style.display = 'block';
+            offline.style.display = 'none';
+            if (icon) setTimeout(() => icon.classList.remove('fsw-spinning'), 600);
         }, 150);
     };
 
@@ -3094,6 +3119,7 @@ document.addEventListener('DOMContentLoaded', function () {
 })();
 </script>
 
+<?php if ($st !== 'ended'): ?>
 <!-- ══ FLOATING STREAM WIDGET ══════════════════════════════════════════════ -->
 <div id="floatStreamWidget" class="fsw-widget">
 
@@ -3104,9 +3130,14 @@ document.addEventListener('DOMContentLoaded', function () {
             <span id="fswTitleText">Live Stream</span>
             <span class="fsw-live-dot" id="fswLiveDot"></span>
         </span>
-        <button class="fsw-btn fsw-minimize-btn" id="fswMinimizeBtn" onclick="toggleFSW()" title="Minimize">
-            <i class="bi bi-dash-lg"></i>
-        </button>
+        <div style="display:flex; align-items:center; gap:4px;">
+            <button class="fsw-btn fsw-refresh-btn" id="fswRefreshBtn" onclick="reloadFSWStream(event)" title="Reconnect stream">
+                <i class="bi bi-arrow-clockwise" id="fswRefreshIcon"></i>
+            </button>
+            <button class="fsw-btn fsw-minimize-btn" id="fswMinimizeBtn" onclick="toggleFSW()" title="Minimize">
+                <i class="bi bi-dash-lg"></i>
+            </button>
+        </div>
     </div>
 
     <!-- ── Expanded: video body ── -->
@@ -3128,6 +3159,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </div>
 <!-- /FLOATING STREAM WIDGET -->
+<?php endif; ?>
 
 </body>
 </html>

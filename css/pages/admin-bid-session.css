@@ -566,6 +566,14 @@
     font-family: 'Poppins', sans-serif;
 }
 .fsw-btn:hover { background: rgba(255,255,255,.14); color: #fff; }
+.fsw-spinning {
+    animation: fswSpin .6s linear infinite;
+    display: inline-block;
+}
+@keyframes fswSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
 
 /* ── Video body ── */
 .fsw-body {
